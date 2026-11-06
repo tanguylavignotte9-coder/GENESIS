@@ -1,5 +1,6 @@
 import esbuild from 'esbuild';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const racine = path.dirname(fileURLToPath(import.meta.url));
@@ -54,3 +55,6 @@ const builds = [
 for (const b of builds) {
   await esbuild.build(b);
 }
+
+fs.mkdirSync(path.join(racine, 'dist/renderer'), { recursive: true });
+fs.copyFileSync(path.join(racine, 'src/renderer/index.html'), path.join(racine, 'dist/renderer/index.html'));

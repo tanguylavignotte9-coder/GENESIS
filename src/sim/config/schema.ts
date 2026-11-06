@@ -165,6 +165,14 @@ export interface ConfigRecit {
   tauxPropagationReligionParMois: number;
   probabiliteScepticisme: number;
   generationsChroniqueLignee: number;
+  seuilDivergenceNouvelleLangue: number;
+  distanceIsolementTotalTuiles: number;
+  chanceRevelationParMois: number;
+  seuilBonheurSchisme: number;
+  chanceSchismeParMois: number;
+  moisStressMaxAvantFolie: number;
+  chanceFolieParMois: number;
+  chanceErranceFolie: number;
 }
 
 export interface ConfigComplete {

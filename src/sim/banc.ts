@@ -27,6 +27,8 @@ export interface ResultatBanc {
   batiments: number;
   objets: number;
   villages: number;
+  langues: number;
+  religions: number;
   moisSimules: number;
   msGenerationMonde: number;
   msParMoisMoyen: number;
@@ -74,6 +76,8 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
   const batiments = sim.etat.batiments.size;
   const objets = sim.etat.objets.size;
   const villages = Array.from(sim.etat.groupes.values()).filter((g) => g.niveau >= 2).length;
+  const langues = sim.etat.langues.size;
+  const religions = sim.etat.religions.size;
   const msParMois = opts.mois > 0 ? msSimulation / opts.mois : 0;
   const nbTuiles = sim.etat.monde.taille * sim.etat.monde.taille;
   const tuilesParSeconde = opts.mois > 0 ? (nbTuiles * opts.mois) / (msSimulation / 1000) : 0;
@@ -117,6 +121,8 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
     batiments,
     objets,
     villages,
+    langues,
+    religions,
     moisSimules: opts.mois,
     msGenerationMonde: msGeneration,
     msParMoisMoyen: msParMois,
@@ -145,6 +151,7 @@ export function formaterBanc(r: ResultatBanc): string {
     `Faune : ${r.animauxInitiaux.toLocaleString('fr-FR')} animaux initiaux → ${r.animauxVivantsApres.toLocaleString('fr-FR')} vivants après ${r.moisSimules} mois (tick faune : ${r.msParMoisFaune.toFixed(2)} ms/mois)`,
     `Humains : ${r.individusInitiaux} individus initiaux → ${r.individusVivantsApres} vivants, ${r.naissances} naissances, ${r.morts} morts en ${r.moisSimules} mois (inclus dans les ${r.msParMoisMoyen.toFixed(1)} ms/mois)`,
     `Sociétés : ${r.batiments} bâtiments, ${r.objets} objets fabriqués, ${r.villages} village(s) sédentarisé(s)`,
+    `Culture : ${r.langues} langue(s), ${r.religions} religion(s) émergée(s)`,
     `Individus (modèle) : ${r.individusCrees.toLocaleString('fr-FR')} créés en ${r.msCreationIndividus.toFixed(1)} ms (${r.individusParSeconde.toLocaleString('fr-FR')}/s)`,
     `Sauvegarde : ${(r.tailleSauvegardeOctets / 1024).toFixed(1)} Ko, sérialisation ${r.msSerialisation.toFixed(1)} ms, reprise ${r.msDeserialisation.toFixed(1)} ms`,
     `Empreinte du monde après banc : ${r.empreinteMondeApres}`,

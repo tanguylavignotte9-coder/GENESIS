@@ -24,5 +24,29 @@
   "probabiliteScepticisme": 0.15,
 
   // Nombre de générations retenues dans une chronique de lignée avant archivage (lecture seule, pas une limite de simulation).
-  "generationsChroniqueLignee": 10
+  "generationsChroniqueLignee": 10,
+
+  // Divergence linguistique atteinte (0 à 1) à partir de laquelle un groupe isolé engendre une nouvelle langue distincte.
+  "seuilDivergenceNouvelleLangue": 0.6,
+
+  // Distance entre deux groupes (en tuiles) considérée comme isolement total pour la divergence des langues.
+  "distanceIsolementTotalTuiles": 300,
+
+  // Probabilité de révélation religieuse par mois pour un individu charismatique ayant vécu un drame récent (0 à 1).
+  "chanceRevelationParMois": 0.05,
+
+  // Bonheur moyen des croyants sous lequel un schisme religieux devient possible, 0 à 100.
+  "seuilBonheurSchisme": 25,
+
+  // Probabilité de schisme par mois quand le seuil de bonheur est franchi (0 à 1).
+  "chanceSchismeParMois": 0.05,
+
+  // Nombre de mois à stress maximal (100) avant que la folie devienne possible.
+  "moisStressMaxAvantFolie": 3,
+
+  // Probabilité de folie par mois une fois le seuil de stress maximal franchi (0 à 1).
+  "chanceFolieParMois": 0.3,
+
+  // Probabilité qu'un individu devienne fou (malus) et erre au lieu d'agir normalement, une fois 'folie' acquise (0 à 1 par tick).
+  "chanceErranceFolie": 0.3
 }

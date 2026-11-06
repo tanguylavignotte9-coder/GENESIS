@@ -117,3 +117,26 @@ Bandes initiales posées réellement (individus créés selon `parametresDepart`
 - **Matériaux** : le bois provient réellement de la biomasse défrichée autour du chantier ; la pierre du socle (carrières = J6 avec la métallurgie).
 - **Valeur des objets** : subjective par type (base en config) × (1 − usure) ; le troc n'a lieu que si les valeurs sont proches (seuil en config) — aucun prix global.
 - **Village = huttes permanentes** (seuil de bâtiments en config), conformément au doc : aucun seuil de population.
+
+---
+
+# Rapport J5 — culture & récits : langues, religions, santé mentale, chroniques, sagas, favoris
+
+## Ce qui a été livré (J5)
+
+- **Langues émergentes** (`culture/systemeLangues.ts`) : langue-mère unique au départ ; chaque mois, la divergence d'une langue croît au prorata de l'**isolement du groupe** (distance au groupe le plus proche / `distanceIsolementTotalTuiles`) ; au-delà du seuil, une **nouvelle langue naît** (parent renseigné, journal « Nouvelle langue »). **Barrière linguistique partielle** : malus de coopération entre individus de langues différentes, **apprentissage possible** au contact (`languesConnues`), et la barrière s'applique aussi à la recherche de partenaire.
+- **Religions génératives** (`culture/systemeReligion.ts`) : un **prophète charismatique** (charisme ≥ seuil + souvenir d'un drame intense) peut recevoir une révélation et fonder un culte avec attributs **générés** (1–3 dieux nommés, tabous contextuels, jours sacrés), consigné au journal ; **propagation** par contact (taux × charisme) ; **sceptiques** (probabilité en config) jamais convertis ; **schisme** quand le bonheur des croyants s'effondre. **Rites de couple** : la reproduction n'a lieu qu'entre individus de même langue (ou langue apprise) et de religions compatibles.
+- **Santé mentale** : deuil → stress + souvenir + **traumatisme** (malus) pour la famille ; cannibalisme → traumatisme ; **stress maximal prolongé → folie** (malus « folie », errance aléatoire, journal « Folie ») ; **émotions V1** (peur = sécurité, colère = rancunes, joie = bonheur) exposées sur la fiche.
+- **Récits factuels** (`recit/chroniques.ts`) : biographie = **uniquement** les événements du journal de l'individu (jamais d'invention) ; chronique de groupe ; **« saga du moment »** calculée chaque mois (événement marquant récent pondéré) et affichée en bannière.
+- **UI** : bannière saga, **personnages favoris** (⭐ sur la fiche, événements de favoris surlignés dans le journal), bouton **📖 Chronique** dans la fiche.
+
+## Mesures banc J5 (240 mois = 20 ans, 4 bandes × 30, graine 42)
+
+- Population 100 → **314 vivants** (284 naissances, 70 morts — boucle malthusienne), 4 villages, 231 objets, **2 langues et 2 religions émergées naturellement**, sim ~92 ms/mois.
+- **Note de calibration (pour J7)** : la faune chute de 3 394 à 132 animaux en 20 ans (chasse humaine + prédation + surpâturage) — équilibre proie-prédateur émergent mais sévère ; à recalibrer au banc (taux de chasse/reproduction) pour des équilibres durables.
+
+## Choix d'interprétation J5 (zones ouvertes)
+
+- **Déclencheur de prophète** : charisme ≥ seuil **et** souvenir d'un drame récent (intensité ≥ 60) — la révélation naît des événements vécus, pas du hasard seul ; probabilité mensuelle en config (`chanceRevelationParMois`), calibrée au banc.
+- **Divergence** : proportionnelle à l'isolement géographique mesuré entre centres de groupes — les îles/continents sans navigation (V1) divergent le plus, conformément à la boucle 3 du doc.
+- **Folie** : seuil = N mois à stress 100 (config), puis probabilité mensuelle ; comportement = errance aléatoire (pas de script de dialogues).

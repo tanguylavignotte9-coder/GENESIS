@@ -112,6 +112,9 @@ export class Individu {
   nomFamille: string;
   chantierId: number | null;
   objetIds: number[];
+  languesConnues: number[];
+  emotions: { peur: number; colere: number; joie: number };
+  moisStressMax: number;
 
   constructor(id: number, nom: string) {
     this.id = id;
@@ -153,6 +156,9 @@ export class Individu {
     this.nomFamille = '';
     this.chantierId = null;
     this.objetIds = [];
+    this.languesConnues = [];
+    this.emotions = { peur: 0, colere: 0, joie: 50 };
+    this.moisStressMax = 0;
   }
 
   get estMature(): boolean {
@@ -185,6 +191,9 @@ export class Individu {
     return {
       ...this,
       connaissances: Array.from(this.connaissances),
+      languesConnues: [...this.languesConnues],
+      objetIds: [...this.objetIds],
+      emotions: { ...this.emotions },
       sante: { valeur: this.sante.valeur, blessures: this.sante.blessures, maladies: this.sante.maladies },
     } as unknown as Record<string, unknown>;
   }

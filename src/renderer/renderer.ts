@@ -43,6 +43,8 @@ async function demarrer(): Promise<void> {
   let worker: Worker | null = null;
   let derniersIndividus: number[] = [];
   let derniersTerritoires: Array<{ id: number; couleur: number; tuiles: number[] }> = [];
+  let favoris = new Set<number>();
+  let ficheCouranteId = -1;
   let seed = Number(inputSeed.value) || 42;
 
   const vitesses = vitessesDisponibles(config.temps);
@@ -79,6 +81,13 @@ async function demarrer(): Promise<void> {
         afficherFiche(msg);
       } else if (msg.type === 'ficheGroupe') {
         afficherFicheGroupe(msg);
+      } else if (msg.type === 'saga') {
+        const s = msg.saga as { sujet: string; description: string; date: { an: number; mois: number } };
+        const banniere = $('saga');
+        banniere.style.display = 'block';
+        banniere.innerHTML = `<span class="titre">✦ Saga du moment (an ${s.date.an}, mois ${s.date.mois})</span>${s.sujet} — ${s.description}`;
+      } else if (msg.type === 'chronique') {
+        afficherChronique(msg);
       } else if (msg.type === 'erreur') {
         console.error(msg.message);
       }
@@ -90,7 +99,7 @@ async function demarrer(): Promise<void> {
     const liste = $('listeJournal');
     for (const ev of evenements) {
       const div = document.createElement('div');
-      div.className = 'evenement';
+      div.className = 'evenement' + (ev.individusImpliques.some((id) => favoris.has(id)) ? ' favori' : '');
       const date = document.createElement('span');
       date.className = 'date';
       date.textContent = `An ${ev.date.an}, M${ev.date.mois}`;
@@ -127,7 +136,9 @@ async function demarrer(): Promise<void> {
       return;
     }
     panneau.style.display = 'flex';
+    ficheCouranteId = Number(msg.id);
     $('ficheTitre').textContent = String(fiche.nom);
+    $('btnFavori').textContent = favoris.has(ficheCouranteId) ? '⭐ Retirer des favoris' : '⭐ Favori';
     const besoins = fiche.besoins as Record<string, number>;
     const comp = fiche.competences as Record<string, number>;
     const sante = fiche.sante as { valeur: number; blessures: unknown[]; maladies: unknown[] };
@@ -215,6 +226,27 @@ async function demarrer(): Promise<void> {
     $('listeJournal').innerHTML = '';
     worker?.postMessage({ type: 'filtrerJournal', filtre: valeur ? { types: [valeur] } : {} });
   });
+
+  $('btnFavori').addEventListener('click', () => {
+    if (ficheCouranteId < 0) return;
+    if (favoris.has(ficheCouranteId)) favoris.delete(ficheCouranteId);
+    else favoris.add(ficheCouranteId);
+    $('btnFavori').textContent = favoris.has(ficheCouranteId) ? '⭐ Retirer des favoris' : '⭐ Favori';
+  });
+
+  $('btnChronique').addEventListener('click', () => {
+    if (ficheCouranteId >= 0) worker?.postMessage({ type: 'chronique', id: ficheCouranteId });
+  });
+
+  function afficherChronique(msg: Record<string, unknown>): void {
+    const evenements = (msg.evenements as Evenement[]) ?? [];
+    $('ficheContenu').innerHTML = evenements.length === 0
+      ? '<div>Aucun événement connu.</div>'
+      : evenements
+          .slice(-30)
+          .map((e) => `<div class="ligne"><span class="cle">An ${e.date.an}, M${e.date.mois} — ${e.type}</span><span>${e.sujet}</span></div>`)
+          .join('');
+  }
 
   const hote = $('app');
   const configPremierePasse = config;

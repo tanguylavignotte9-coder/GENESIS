@@ -441,6 +441,14 @@ function validerRecit(o: Record<string, unknown>, erreurs: Erreurs) {
     tauxPropagationReligionParMois: exigerNombre(o, 'tauxPropagationReligionParMois', b, { min: 0, max: 1 }, erreurs)!,
     probabiliteScepticisme: exigerNombre(o, 'probabiliteScepticisme', b, { min: 0, max: 1 }, erreurs)!,
     generationsChroniqueLignee: exigerNombre(o, 'generationsChroniqueLignee', b, { min: 1, max: 10000, entier: true }, erreurs)!,
+    seuilDivergenceNouvelleLangue: exigerNombre(o, 'seuilDivergenceNouvelleLangue', b, { min: 0.01, max: 1 }, erreurs)!,
+    distanceIsolementTotalTuiles: exigerNombre(o, 'distanceIsolementTotalTuiles', b, { min: 10, max: 10000, entier: true }, erreurs)!,
+    chanceRevelationParMois: exigerNombre(o, 'chanceRevelationParMois', b, { min: 0, max: 1 }, erreurs)!,
+    seuilBonheurSchisme: exigerNombre(o, 'seuilBonheurSchisme', b, { min: 0, max: 100 }, erreurs)!,
+    chanceSchismeParMois: exigerNombre(o, 'chanceSchismeParMois', b, { min: 0, max: 1 }, erreurs)!,
+    moisStressMaxAvantFolie: exigerNombre(o, 'moisStressMaxAvantFolie', b, { min: 1, max: 100, entier: true }, erreurs)!,
+    chanceFolieParMois: exigerNombre(o, 'chanceFolieParMois', b, { min: 0, max: 1 }, erreurs)!,
+    chanceErranceFolie: exigerNombre(o, 'chanceErranceFolie', b, { min: 0, max: 1 }, erreurs)!,
   };
 }
 

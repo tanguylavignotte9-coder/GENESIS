@@ -1,5 +1,6 @@
 import { Simulation } from '../simulation';
 import { TypeEvenement, type Evenement } from '../journal/journal';
+import { sagaDuMoment, biographie, chroniqueGroupe } from '../recit/chroniques';
 import type { ConfigComplete } from '../config/schema';
 import { serialiserSimulation, deserialiserSimulation } from '../sauvegarde/serialiseur';
 
@@ -18,6 +19,7 @@ let empreintes: Record<string, string> = {};
 let dernierDigestMois = -1;
 let ticksDepuisDigest = 0;
 let dernierJournalId = 0;
+let dernierMoisSaga = -1;
 
 function envoyerDigest(forcer: boolean): void {
   if (!sim) return;
@@ -66,6 +68,14 @@ function demarrerBoucle(): void {
   ctx.setInterval(() => {
     if (!sim) return;
     sim.tick(pas);
+    const cleMois = sim.etat.calendrier.an * 12 + sim.etat.calendrier.mois;
+    if (cleMois !== dernierMoisSaga) {
+      dernierMoisSaga = cleMois;
+      const saga = sagaDuMoment(sim.etat);
+      if (saga) {
+        ctx.postMessage({ type: 'saga', saga: { id: saga.id, type: saga.type, sujet: saga.sujet, description: saga.description, date: saga.date, individus: saga.individusImpliques } });
+      }
+    }
     envoyerDigest(false);
     envoyerJournal();
   }, pas * 1000);
@@ -181,6 +191,17 @@ ctx.onmessage = (e: MessageEvent) => {
             politiques: { ...g.politiques },
           },
         });
+        break;
+      }
+      case 'chronique': {
+        if (!sim) break;
+        const id = msg.id as number;
+        ctx.postMessage({ type: 'chronique', id, evenements: biographie(sim.etat, id) });
+        break;
+      }
+      case 'chroniqueGroupe': {
+        if (!sim) break;
+        ctx.postMessage({ type: 'chroniqueGroupe', id: msg.id, evenements: chroniqueGroupe(sim.etat, msg.id as number) });
         break;
       }
       case 'filtrerJournal': {

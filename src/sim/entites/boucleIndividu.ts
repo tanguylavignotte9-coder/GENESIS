@@ -8,6 +8,8 @@ import { animauxProches, construireIndexSpatial } from '../faune/systemeFaune';
 import { construireEspeces } from '../faune/especes';
 import { genererPrenom, nomComplet } from '../culture/noms';
 import { tickIndividuOuvrier } from '../batiments/chantier';
+import { peutCooperer } from '../culture/systemeLangues';
+import { religionsCompatibles } from '../culture/systemeReligion';
 
 export type IndexAnimaux = Map<number, number[]>;
 
@@ -17,6 +19,30 @@ export function indexAnimauxPourTick(etat: EtatPartage): IndexAnimaux {
 
 function clamp100(v: number): number {
   return Math.max(0, Math.min(100, v));
+}
+
+export function santeMentaleMensuelle(etat: EtatPartage, config: ConfigComplete): void {
+  const cfg = config.recit;
+  for (const ind of etat.individus.values()) {
+    if (!ind.vivant) continue;
+    if (ind.besoins.stress >= 100) {
+      ind.moisStressMax += 1;
+    } else {
+      ind.moisStressMax = Math.max(0, ind.moisStressMax - 1);
+    }
+    if (ind.moisStressMax >= cfg.moisStressMaxAvantFolie && !ind.malus.includes('folie') && etat.rng.chance(cfg.chanceFolieParMois)) {
+      ind.malus.push('folie');
+      etat.journal.ajouter({
+        date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
+        type: TypeEvenement.Drame,
+        sujet: 'Folie',
+        description: `${ind.nom} sombre dans la folie après un stress prolongé.`,
+        individusImpliques: [ind.id],
+        tuileX: Math.round(ind.positionX),
+        tuileY: Math.round(ind.positionY),
+      });
+    }
+  }
 }
 
 export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Individu, jours: number, indexAnimaux: IndexAnimaux): void {
@@ -30,6 +56,13 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
   const rng = etat.rng;
   const facteurMois = jours / config.temps.joursParMois;
   const facteurAn = jours / (config.temps.joursParMois * config.temps.moisParAn);
+
+  if (ind.malus.includes('folie') && rng.chance(config.recit.chanceErranceFolie * Math.min(1, facteurMois))) {
+    const voisins = monde.voisins8(Math.round(ind.positionX), Math.round(ind.positionY));
+    const c = rng.choix(voisins);
+    deplacerVers(etat, config, ind, { x: c[0], y: c[1] }, jours);
+    return;
+  }
 
   ind.ageAnnees += facteurAn;
 
@@ -108,6 +141,7 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
         monde.carcasseNourriture[i] -= pris;
         ind.besoins.faim = clamp100(ind.besoins.faim - 35);
         ind.besoins.stress = clamp100(ind.besoins.stress + cfg.stressCannibalisme);
+        if (!ind.malus.includes('traumatisme')) ind.malus.push('traumatisme');
         ind.dernierActeCannibalisme = { an: etat.calendrier.an, mois: etat.calendrier.mois };
         etat.journal.ajouter({
           date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
@@ -187,7 +221,7 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
     }
     case 'reproduction': {
       if (ind.sexe === Sexe.Femme && !ind.grossesse && ind.ageAnnees >= cfg.ageMaturiteMoyenAnnees && ind.ageAnnees < 50) {
-        const partenaire = trouverPartenaire(etat, ind, cfg);
+        const partenaire = trouverPartenaire(etat, ind, config);
         if (partenaire && rng.chance(cfg.chanceReproductionParMois * facteurMois * config.temps.joursParMois * 0.2)) {
           ind.grossesse = { pereRegistreId: partenaire.id, pereBiologiqueId: partenaire.id, moisRestants: cfg.dureeGestationMois };
           ind.partenaires.push(partenaire.id);
@@ -205,9 +239,10 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
           .map((id) => etat.individus.get(id))
           .find((a) => a && a.vivant && a.id !== ind.id && Math.hypot(a.positionX - ind.positionX, a.positionY - ind.positionY) <= 3);
         if (autre) {
-          ind.besoins.social = clamp100(ind.besoins.social - 30);
-          ind.ajouterRelation(autre.id, TypeRelation.Amical, 5);
-          ind.bonheur = clamp100(ind.bonheur + 3 * facteurMois);
+          const coop = peutCooperer(ind, autre, config);
+          ind.besoins.social = clamp100(ind.besoins.social - 30 * coop);
+          ind.ajouterRelation(autre.id, TypeRelation.Amical, 5 * coop);
+          ind.bonheur = clamp100(ind.bonheur + 3 * coop * facteurMois);
         }
       }
     }
@@ -215,6 +250,10 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
 
   if (ind.besoins.faim < 50 && ind.besoins.soif < 50 && ind.besoins.sommeil < 50) ind.bonheur = clamp100(ind.bonheur + 1 * facteurMois);
   if (ind.besoins.stress > 80) ind.bonheur = clamp100(ind.bonheur - 2 * facteurMois);
+
+  ind.emotions.joie = ind.bonheur;
+  ind.emotions.peur = ind.besoins.securite;
+  ind.emotions.colere = Math.max(0, ...ind.relations.filter((r) => r.type === TypeRelation.Rancune).map((r) => r.intensite), 0);
 
   if (ind.grossesse) {
     ind.grossesse.moisRestants -= facteurMois;
@@ -293,13 +332,15 @@ export function mourir(etat: EtatPartage, config: ConfigComplete, ind: Individu,
       const proche = etat.individus.get(rel.vers);
       if (proche && proche.vivant) {
         proche.besoins.stress = clamp100(proche.besoins.stress + config.individus.stressDeuilProche);
+        if (rel.type === TypeRelation.Famille && !proche.malus.includes('traumatisme')) proche.malus.push('traumatisme');
         proche.ajouterMemoire(etat.journal.dernierId, `Deuil de ${ind.nom}`, 80, { an: etat.calendrier.an, mois: etat.calendrier.mois }, config.individus.capaciteMemoireEvenements);
       }
     }
   }
 }
 
-function trouverPartenaire(etat: EtatPartage, ind: Individu, cfg: ConfigComplete['individus']): Individu | undefined {
+function trouverPartenaire(etat: EtatPartage, ind: Individu, config: ConfigComplete): Individu | undefined {
+  const cfg = config.individus;
   const groupe = ind.groupeId !== null ? etat.groupes.get(ind.groupeId) : undefined;
   if (!groupe) return undefined;
   for (const id of groupe.membres) {
@@ -307,7 +348,11 @@ function trouverPartenaire(etat: EtatPartage, ind: Individu, cfg: ConfigComplete
     if (!a || !a.vivant || a.id === ind.id) continue;
     if (a.sexe === ind.sexe) continue;
     if (a.ageAnnees < cfg.ageMaturiteMoyenAnnees) continue;
-    if (Math.hypot(a.positionX - ind.positionX, a.positionY - ind.positionY) <= cfg.distanceMaxPartenaireTuiles) return a;
+    if (Math.hypot(a.positionX - ind.positionX, a.positionY - ind.positionY) > cfg.distanceMaxPartenaireTuiles) continue;
+    const memeLangue = a.langueId === ind.langueId || ind.languesConnues.includes(a.langueId) || a.languesConnues.includes(ind.langueId);
+    if (!memeLangue) continue;
+    if (!religionsCompatibles(ind, a)) continue;
+    return a;
   }
   return undefined;
 }

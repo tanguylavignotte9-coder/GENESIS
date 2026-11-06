@@ -1,0 +1,32 @@
+{
+  // ============================================================
+  // FAUNE & FLORE — constantes écologiques.
+  // Chaque animal est individuellement simulé ; les équilibres
+  // proie-prédateur émergent, jamais régulés par code.
+  // ============================================================
+
+  // Probabilité qu'une tuile fasse pousser sa végétation d'un cran un mois donné (0 à 1), selon climat et saison.
+  "probabilitePousseVegetationParMois": 0.3,
+
+  // Probabilité qu'une tuile défrichée naturellement (par le climat) perde sa végétation un mois donné (0 à 1).
+  "probabiliteDegradationVegetationParMois": 0.05,
+
+  // Nombre initial d'animaux par tuile de terre (tirage entre min et max à la génération).
+  "animauxParTuileMin": 0,
+  "animauxParTuileMax": 3,
+
+  // Probabilité de reproduction d'un animal par mois quand ses besoins sont remplis (0 à 1).
+  "probabiliteReproductionFauneParMois": 0.08,
+
+  // Consommation de végétation par animal et par mois, en points de biomasse de la tuile (0 à 100).
+  "consommationVegetationParAnimalParMois": 5,
+
+  // Biomasse de végétation maximale d'une tuile (échelle 0 à 100, constante biologique du biome).
+  "biomasseVegetationMax": 100,
+
+  // Rendement de cueillette par individu et par mois sur une tuile, en unités de nourriture.
+  "rendementCueilletteParMois": 2,
+
+  // Rendement de chasse par individu et par mois (avant probabilité de succès), en unités de nourriture.
+  "rendementChasseParMois": 3
+}

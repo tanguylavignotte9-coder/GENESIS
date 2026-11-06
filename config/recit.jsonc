@@ -1,0 +1,28 @@
+{
+  // ============================================================
+  // RÉCIT — journal, chroniques, langues et religions émergentes.
+  // Le journal est en lecture seule pour la simulation : il
+  // constate, il n'influence jamais.
+  // ============================================================
+
+  // Nombre d'événements affichés par page dans le panneau journal.
+  "notificationsParPage": 50,
+
+  // Taux de divergence d'une langue isolée par siècle (0 à 1 = fraction de nouveaux mots/grammaire), la langue-mère étant unique au départ.
+  "tauxDivergenceLangueParSiecle": 0.05,
+
+  // Malus de coopération entre individus de langues différentes (0 à 1), l'apprentissage d'une langue reste possible.
+  "malusCooperationLangueDifferente": 0.3,
+
+  // Charisme minimal d'un prophète pour fonder un culte (0 à 100).
+  "seuilCharismeProphete": 70,
+
+  // Probabilité de propagation d'une religion par mois et par contact avec un croyant (0 à 1).
+  "tauxPropagationReligionParMois": 0.02,
+
+  // Probabilité qu'un individu naisse sceptique envers les religions (0 à 1).
+  "probabiliteScepticisme": 0.15,
+
+  // Nombre de générations retenues dans une chronique de lignée avant archivage (lecture seule, pas une limite de simulation).
+  "generationsChroniqueLignee": 10
+}

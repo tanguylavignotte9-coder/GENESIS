@@ -1,0 +1,58 @@
+# Genesis
+
+Simulateur de civilisation humaine profonde, pixel art vu de haut. V1 : un monde vivant sans guerre, où le joueur est un **pur observateur** — la valeur du jeu est dans les histoires qui émergent seules.
+
+## Stack
+
+- **Electron + TypeScript** : exécutable Windows autonome (`npm run pack` produit un `.exe` via electron-builder).
+- **PixiJS (WebGL)** pour le rendu ; **Web Worker** pour la simulation.
+- Cœur de simulation en **TypeScript pur**, indépendant du rendu, testable en Node (`src/sim/`). Electron/PixiJS ne font que rendre et saisir.
+- **Variables externalisées** dans `config/*.jsonc` (un fichier par domaine, commentaires en français, unités indiquées) : aucune valeur de calibrage en dur dans le code. Validation au chargement avec messages d'erreur clairs ; empreinte des fichiers embarquée dans la sauvegarde (reprise exacte garantie, avertissement explicite sinon).
+- **Déterminisme** : RNG seedé sérialisable, état complet sérialisable, format de sauvegarde versionné avec migrations.
+
+## Commandes
+
+```bash
+npm install        # télécharge les dépendances (dont le binaire Electron)
+npm start          # build + lance le jeu en dev (fenêtre Electron)
+npm run pack       # package un exécutable Windows (.exe) dans dist/
+npm test           # tests vitest (déterminisme, sauvegarde, monde, config, temps, journal)
+npm run typecheck  # tsc --noEmit
+npm run bench      # banc de performance headless (résultats dans banc/dernier-banc.json)
+node dist/scripts/banc.js --seed 7 --mois 48 --individus 5000   # banc personnalisé
+```
+
+## Arborescence
+
+```
+config/               variables de calibrage (jsonc commentés, français)
+src/sim/              cœur de simulation (TypeScript pur, zéro dépendance au rendu)
+  monde/              tuiles (6 niveaux, matières, gisements), générateur, climat, météo, végétation
+  temps/              calendrier (mois), saisons par latitude, pause + vitesses ×1..×50
+  entites/            individu (besoins, personnalité, génétique, mémoire), actions extensibles
+  groupes/            bandes → nations, territoire émergent
+  savoir/             connaissances atomiques à prérequis (graphe)
+  economie/           objets individuels avec histoire, stocks physiques
+  culture/            langues (divergence), religions génératives
+  batiments/          entités bâtiments (chantier, usure, stocks)
+  journal/            journal d'événements — lecture seule pour la simulation
+  sauvegarde/         format versionné + migrations + empreinte config
+  worker/             Web Worker : boucle de simulation
+  simulation.ts       orchestrateur : les systèmes ne parlent que via l'état partagé
+  banc.ts             banc de performance (mesures headless)
+src/main/             processus principal Electron (fenêtre, protocole app://, IPC sauvegardes)
+src/preload/          contextBridge (API sécurisée vers le renderer)
+src/renderer/         PixiJS : carte, caméra/zoom continu, barre de vitesses, panneau journal
+scripts/banc.ts       CLI du banc de performance
+tests/                tests vitest
+docs/                 design doc et rapports d'interprétation
+```
+
+## Principes d'architecture (figés)
+
+- Les systèmes ne s'appellent jamais directement : ils lisent/écrivent uniquement **l'état partagé** (tuiles, individus, objets, bâtiments, groupes). L'individu est le hub de tout.
+- Le **journal est en lecture seule** : il constate, il n'influence jamais.
+- **Zéro hard cap** : seules des constantes biologiques/physiques (dans `config/`), jamais des plafonds de gameplay.
+- Le joueur ne modifie jamais la simulation en V1.
+
+Voir `docs/INTERPRETATIONS.md` pour les choix d'interprétation faits sur les zones ouvertes du design doc.

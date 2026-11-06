@@ -1,0 +1,32 @@
+{
+  // ============================================================
+  // SOCIÉTÉ — paramètres des groupes et de la gouvernance émergente.
+  // Aucun seuil de population n'est imposé : un campement devient
+  // village par la sédentarisation décidée, pas par un cap.
+  // ============================================================
+
+  // Nombre de bandes initiales au démarrage (tirage entre min et max, configurable aussi par le joueur).
+  "bandesInitialesMin": 1,
+  "bandesInitialesMax": 5,
+
+  // Taille d'une bande initiale, en nombre d'individus (tirage entre min et max).
+  "tailleBandeInitialeMin": 8,
+  "tailleBandeInitialeMax": 25,
+
+  // Politiques paramétrées dont dispose un dirigeant (liste extensible, jamais un script).
+  "politiquesDisponibles": [
+    "repartitionTravail",
+    "prelevements",
+    "autorisationMigration",
+    "reservesCommunes"
+  ],
+
+  // Rayon d'activité autour du campement pour le calcul du territoire émergent, en tuiles.
+  "rayonTerritoireDefautTuiles": 12,
+
+  // Probabilité qu'un individu suive un dirigeant charismatique lors d'une décision collective, par point de charisme au-dessus de la moyenne (0 à 1).
+  "suiviParCharisme": 0.004,
+
+  // Seuil de mécontentement (bonheur moyen du groupe sous cette valeur) qui pousse à la contestation, 0 à 100.
+  "seuilMecontentementGroupe": 30
+}

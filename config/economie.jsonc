@@ -1,0 +1,33 @@
+{
+  // ============================================================
+  // ÉCONOMIE — constantes de valeur, de périssabilité et d'échange.
+  // La valeur est subjective par défaut (évaluée par chaque
+  // individu) ; aucun prix global ni table figée.
+  // ============================================================
+
+  // Valeur subjective de base d'un bien (ancrage initial avant émergence des repères communs).
+  "valeurSubjectiveBase": 10,
+
+  // Durée de conservation des aliments avant dégradation, en jours de jeu, selon leur type.
+  // Constantes biologiques : la viande se dégrade vite, le grain lent.
+  "perissabiliteJours": {
+    "viande": 10,
+    "recolte": 60,
+    "cueillette": 15,
+    "grain": 180,
+    "fume": 120,
+    "fermente": 240
+  },
+
+  // Multiplicateur de conservation apporté par le fumoir.
+  "multiplicateurConservationFumoir": 4,
+
+  // Multiplicateur de conservation apporté par la fermentation.
+  "multiplicateurConservationFermentation": 6,
+
+  // Seuil de négociation d'un échange : écart minimal de valeur subjective perçu entre les deux biens (0 à 100).
+  "seuilEcartValeurPourEchange": 1,
+
+  // Portée d'un marché (rayon d'attraction des échanges formalisés), en tuiles.
+  "porteeMarcheTuiles": 20
+}

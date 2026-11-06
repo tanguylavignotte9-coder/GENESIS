@@ -1,0 +1,94 @@
+{
+  // ============================================================
+  // INDIVIDUS — constantes biologiques de l'espèce humaine simulée.
+  // Ce sont des constantes biologiques/physiques, jamais des
+  // plafonds de gameplay : aucun âge maximal de mort n'est défini,
+  // la sénescence émerge de la dégradation de la santé.
+  // ============================================================
+
+  // Âge moyen de maturité, en années (modulé par la génétique et la santé).
+  "ageMaturiteMoyenAnnees": 15,
+
+  // Durée d'une grossesse, en mois.
+  "dureeGestationMois": 9,
+
+  // Probabilité de mutation aléatoire sur un trait héritable à la naissance (0 à 1).
+  "tauxMutationParTrait": 0.02,
+
+  // Amplitude d'une mutation (écart maximal appliqué au trait, 0 à 100).
+  "amplitudeMutation": 5,
+
+  // Risque de mutation négative supplémentaire en cas de consanguinité (reproduction entre proches parents), 0 à 1.
+  "risqueMutationNegativeConsanguinite": 0.25,
+
+  // Seuil de faim (0 à 100, 100 = famine extrême) à partir duquel le cannibalisme de morts devient possible.
+  // Constante biologique de survie extrême ; jamais une source de nourriture normale.
+  "seuilCannibalismeFaim": 95,
+
+  // Perte de santé par mois à faim maximale (0 à 100), constante biologique.
+  "perteSanteFamineParMois": 8,
+
+  // Perte de santé par mois à soif maximale, en points de santé.
+  "perteSanteDeshydratationParMois": 12,
+
+  // Perte de santé par mois sans sommeil, en points de santé.
+  "perteSanteFatigueParMois": 3,
+
+  // Perte de santé par mois au froid extrême (température très inférieure au seuil de confort), en points.
+  "perteSanteFroidParMois": 5,
+
+  // Température de confort minimale du corps humain non protégé, en degrés Celsius.
+  "temperatureConfortCelsius": 10,
+
+  // Dégradation de la force par an à partir de l'âge de sénescence, en points (la sénescence émerge de la santé).
+  "debutSenescenceAnnees": 60,
+  "perteForceParAnSenescence": 0.6,
+  "perteEnduranceParAnSenescence": 0.8,
+
+  // Pondérations des besoins dans la décision individuelle (poids relatifs, pas des seuils).
+  "poidsBesoins": {
+    "faim": 3.0,
+    "soif": 3.5,
+    "sommeil": 2.0,
+    "stress": 1.5,
+    "securite": 2.5,
+    "social": 1.0,
+    "reproduction": 0.8
+  },
+
+  // Compétences de départ (moyenne, entre min et max, 0 à 100) maîtrisées dès le point de départ.
+  "competencesInitiales": {
+    "chasse": { "min": 20, "max": 45 },
+    "agriculture": { "min": 30, "max": 55 },
+    "elevage": { "min": 30, "max": 55 },
+    "construction": { "min": 25, "max": 50 },
+    "artisanat": { "min": 15, "max": 40 },
+    "social": { "min": 20, "max": 50 }
+  },
+
+  // Attributs innés à la naissance (tirage entre min et max, 0 à 100).
+  "attributsInnes": {
+    "intelligence": { "min": 20, "max": 80 },
+    "charisme": { "min": 20, "max": 80 },
+    "force": { "min": 20, "max": 80 },
+    "endurance": { "min": 20, "max": 80 },
+    "vitesse": { "min": 20, "max": 80 },
+    "sante": { "min": 60, "max": 100 },
+    "bonheur": { "min": 40, "max": 70 }
+  },
+
+  // Portée de perception d'un individu, en tuiles (il ne voit que sa zone locale).
+  "porteePerceptionTuiles": 8,
+
+  // Vitesse de déplacement de base d'un individu, en tuiles par mois (calibrée au banc pour des distances crédibles).
+  "vitesseDeplacementBaseTuilesParMois": 12,
+
+  // Taux d'apprentissage d'une compétence par mois de pratique (0 à 1 = fraction de l'écart au 100).
+  "tauxApprentissageParMois": 0.02,
+
+  // Capacité de mémoire d'un individu (nombre d'événements marquants retenus ; les détails s'estompent avec le temps).
+  "capaciteMemoireEvenements": 40,
+
+  // Taux d'oubli par an (fraction des souvenirs qui s'estompent), pondéré par l'intelligence.
+  "tauxOubliParAn": 0.05
+}

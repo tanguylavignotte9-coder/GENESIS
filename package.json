@@ -1,0 +1,45 @@
+{
+  "name": "genesis",
+  "version": "0.1.0",
+  "description": "Genesis — simulateur de civilisation humaine profonde, pixel art vu de haut. V1 : monde vivant sans guerre, joueur pur observateur.",
+  "license": "MIT",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "bench": "npm run build && node dist/scripts/banc.js",
+    "start": "npm run build && electron .",
+    "pack": "npm run build && electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.genesis.simulateur",
+    "productName": "Genesis",
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      "config/**/*"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "Genesis-${version}-setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "pixi.js": "8.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

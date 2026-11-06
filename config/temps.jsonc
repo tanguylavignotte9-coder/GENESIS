@@ -1,0 +1,25 @@
+{
+  // ============================================================
+  // TEMPS — échelle du temps de jeu et vitesses.
+  // Le temps est comptabilisé en mois ; le calendrier démarre
+  // à l'an 1, mois 1 (origine = départ des bandes initiales).
+  // ============================================================
+
+  // Durée d'un mois de jeu en secondes réelles à vitesse ×1.
+  "secondesParMoisAX1": 300,
+
+  // Nombre de jours dans un mois de jeu.
+  "joursParMois": 30,
+
+  // Multiplicateurs de vitesse disponibles (avec la pause, gérée à part).
+  "vitessesDisponibles": [1, 5, 10, 25, 50],
+
+  // Pas de temps réel entre deux ticks de simulation, en secondes (boucle du worker).
+  "pasDeTempsSecondesReel": 0.1,
+
+  // Durée moyenne d'une génération humaine, en années (référence pour les chroniques, pas un plafond).
+  "anneesParGeneration": 25,
+
+  // Nombre de mois dans une année.
+  "moisParAn": 12
+}

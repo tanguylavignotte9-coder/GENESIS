@@ -1,0 +1,141 @@
+export interface PlageEntiers {
+  min: number;
+  max: number;
+}
+
+export interface ConfigMonde {
+  tailleGrille: number;
+  niveauxElevationMax: number;
+  nbContinentsMin: number;
+  nbContinentsMax: number;
+  nbIlesMin: number;
+  nbIlesMax: number;
+  epaisseurBordEauSalee: number;
+  temperaturePoleCelsius: number;
+  temperatureEquateurCelsius: number;
+  refroidissementParNiveauCelsius: number;
+  amplitudeSaisonniereTempereeCelsius: number;
+  amplitudeSaisonniereTropicaleCelsius: number;
+  amplitudeSaisonnierePolaireCelsius: number;
+  limiteZoneTropicale: number;
+  limiteZonePolaire: number;
+  elevationMinSourceRiviere: number;
+  nbSourcesRivieresParContinentMin: number;
+  nbSourcesRivieresParContinentMax: number;
+  probabilitePluieHumiditeMax: number;
+  gainHumiditePluie: number;
+  perteHumiditeSecheresse: number;
+  seuilNeigeCelsius: number;
+  seuilGelEauCelsius: number;
+  gisements: Record<
+    'charbon' | 'gaz' | 'uranium' | 'petrole' | 'fer' | 'cuivre' | 'etain' | 'or' | 'argent' | 'sel',
+    { nbMin: number; nbMax: number; quantiteMin: number; quantiteMax: number }
+  >;
+}
+
+export interface ConfigTemps {
+  secondesParMoisAX1: number;
+  joursParMois: number;
+  vitessesDisponibles: number[];
+  pasDeTempsSecondesReel: number;
+  anneesParGeneration: number;
+  moisParAn: number;
+}
+
+export interface ConfigIndividus {
+  ageMaturiteMoyenAnnees: number;
+  dureeGestationMois: number;
+  tauxMutationParTrait: number;
+  amplitudeMutation: number;
+  risqueMutationNegativeConsanguinite: number;
+  seuilCannibalismeFaim: number;
+  perteSanteFamineParMois: number;
+  perteSanteDeshydratationParMois: number;
+  perteSanteFatigueParMois: number;
+  perteSanteFroidParMois: number;
+  temperatureConfortCelsius: number;
+  debutSenescenceAnnees: number;
+  perteForceParAnSenescence: number;
+  perteEnduranceParAnSenescence: number;
+  poidsBesoins: Record<'faim' | 'soif' | 'sommeil' | 'stress' | 'securite' | 'social' | 'reproduction', number>;
+  competencesInitiales: Record<string, PlageEntiers>;
+  attributsInnes: Record<'intelligence' | 'charisme' | 'force' | 'endurance' | 'vitesse' | 'sante' | 'bonheur', PlageEntiers>;
+  porteePerceptionTuiles: number;
+  vitesseDeplacementBaseTuilesParMois: number;
+  tauxApprentissageParMois: number;
+  capaciteMemoireEvenements: number;
+  tauxOubliParAn: number;
+}
+
+export interface ConfigFauneFlore {
+  probabilitePousseVegetationParMois: number;
+  probabiliteDegradationVegetationParMois: number;
+  animauxParTuileMin: number;
+  animauxParTuileMax: number;
+  probabiliteReproductionFauneParMois: number;
+  consommationVegetationParAnimalParMois: number;
+  biomasseVegetationMax: number;
+  rendementCueilletteParMois: number;
+  rendementChasseParMois: number;
+}
+
+export interface ConfigSociete {
+  bandesInitialesMin: number;
+  bandesInitialesMax: number;
+  tailleBandeInitialeMin: number;
+  tailleBandeInitialeMax: number;
+  politiquesDisponibles: string[];
+  rayonTerritoireDefautTuiles: number;
+  suiviParCharisme: number;
+  seuilMecontentementGroupe: number;
+}
+
+export interface ConfigEconomie {
+  valeurSubjectiveBase: number;
+  perissabiliteJours: Record<string, number>;
+  multiplicateurConservationFumoir: number;
+  multiplicateurConservationFermentation: number;
+  seuilEcartValeurPourEchange: number;
+  porteeMarcheTuiles: number;
+}
+
+export interface ConfigBatiments {
+  dureeConstructionBaseJours: number;
+  usureParMois: number;
+  capaciteGrenierBase: number;
+  types: Record<string, { materiaux: Record<string, number>; dureeJours: number }>;
+}
+
+export interface ConfigRecit {
+  notificationsParPage: number;
+  tauxDivergenceLangueParSiecle: number;
+  malusCooperationLangueDifferente: number;
+  seuilCharismeProphete: number;
+  tauxPropagationReligionParMois: number;
+  probabiliteScepticisme: number;
+  generationsChroniqueLignee: number;
+}
+
+export interface ConfigComplete {
+  monde: ConfigMonde;
+  temps: ConfigTemps;
+  individus: ConfigIndividus;
+  fauneFlore: ConfigFauneFlore;
+  societe: ConfigSociete;
+  economie: ConfigEconomie;
+  batiments: ConfigBatiments;
+  recit: ConfigRecit;
+}
+
+export const NOMS_FICHIERS_CONFIG = [
+  'monde',
+  'temps',
+  'individus',
+  'faune-flore',
+  'societe',
+  'economie',
+  'batiments',
+  'recit',
+] as const;
+
+export type NomFichierConfig = (typeof NOMS_FICHIERS_CONFIG)[number];

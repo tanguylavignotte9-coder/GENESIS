@@ -1,0 +1,33 @@
+{
+  // ============================================================
+  // BÂTIMENTS — coûts et durées de construction (travail réel).
+  // Un bâtiment devient constructible quand le groupe maîtrise
+  // les connaissances nécessaires ; pas de déverrouillage par âge.
+  // ============================================================
+
+  // Durée de construction de base d'un chantier, en jours de travail d'un individu (avant compétence).
+  "dureeConstructionBaseJours": 5,
+
+  // Usure d'un bâtiment par mois d'utilisation (0 à 1 = fraction de durabilité perdue).
+  "usureParMois": 0.002,
+
+  // Capacité de stockage d'un grenier de base, en unités de nourriture.
+  "capaciteGrenierBase": 200,
+
+  // Bâtiments de l'âge premier et de la sédentarisation : matériaux requis et durée de chantier en jours.
+  "types": {
+    "feuDeCamp": { "materiaux": { "bois": 2 }, "dureeJours": 0.2 },
+    "hutte": { "materiaux": { "bois": 10, "pierre": 4 }, "dureeJours": 3 },
+    "grenier": { "materiaux": { "bois": 8 }, "dureeJours": 2 },
+    "depot": { "materiaux": { "bois": 8 }, "dureeJours": 2 },
+    "puits": { "materiaux": { "pierre": 12 }, "dureeJours": 4 },
+    "enclos": { "materiaux": { "bois": 14 }, "dureeJours": 3 },
+    "champ": { "materiaux": {}, "dureeJours": 1 },
+    "fumoir": { "materiaux": { "bois": 6, "pierre": 6 }, "dureeJours": 3 },
+    "atelier": { "materiaux": { "bois": 16, "pierre": 8 }, "dureeJours": 6 },
+    "marche": { "materiaux": { "bois": 20, "pierre": 10 }, "dureeJours": 5 },
+    "ecole": { "materiaux": { "bois": 24, "pierre": 12 }, "dureeJours": 8 },
+    "forge": { "materiaux": { "pierre": 20, "bois": 10 }, "dureeJours": 8 },
+    "moulin": { "materiaux": { "bois": 18, "pierre": 6 }, "dureeJours": 6 }
+  }
+}

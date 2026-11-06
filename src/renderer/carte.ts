@@ -1,0 +1,77 @@
+import { Application, Container, Sprite, Texture } from 'pixi.js';
+
+export class Carte {
+  app: Application;
+  monde: Container;
+  sprite: Sprite;
+  canvas: HTMLCanvasElement;
+  ctx2d: CanvasRenderingContext2D;
+  texture: Texture;
+  zoomMin = 0.5;
+  zoomMax = 64;
+
+  private constructor(app: Application, canvas: HTMLCanvasElement) {
+    this.app = app;
+    this.canvas = canvas;
+    this.ctx2d = canvas.getContext('2d', { willReadFrequently: false })!;
+    this.monde = new Container();
+    this.texture = Texture.from(canvas);
+    this.sprite = new Sprite(this.texture);
+    this.sprite.texture = this.texture;
+    this.monde.addChild(this.sprite);
+    app.stage.addChild(this.monde);
+    this.centrer();
+  }
+
+  static async creer(hote: HTMLElement, tailleMonde: number): Promise<Carte> {
+    const app = new Application();
+    await app.init({ resizeTo: window, background: 0x0b0e13, antialias: false, preference: 'webgl' });
+    hote.appendChild(app.canvas as HTMLCanvasElement);
+    const canvas = document.createElement('canvas');
+    canvas.width = tailleMonde;
+    canvas.height = tailleMonde;
+    const carte = new Carte(app, canvas);
+    carte.redimensionner(tailleMonde);
+    return carte;
+  }
+
+  redimensionner(tailleMonde: number): void {
+    this.canvas.width = tailleMonde;
+    this.canvas.height = tailleMonde;
+    this.sprite.width = tailleMonde;
+    this.sprite.height = tailleMonde;
+    this.centrer();
+  }
+
+  centrer(): void {
+    const echelle = Math.min(this.app.screen.width / this.canvas.width, this.app.screen.height / this.canvas.height) * 0.95;
+    this.monde.scale.set(echelle);
+    this.monde.position.set(
+      (this.app.screen.width - this.canvas.width * echelle) / 2,
+      (this.app.screen.height - this.canvas.height * echelle) / 2 + 22,
+    );
+  }
+
+  appliquerDigest(couleurs: Uint32Array): void {
+    const image = this.ctx2d.createImageData(this.canvas.width, this.canvas.height);
+    image.data.set(new Uint8Array(couleurs.buffer, couleurs.byteOffset, couleurs.byteLength));
+    this.ctx2d.putImageData(image, 0, 0);
+    this.texture.source.update();
+  }
+
+  zoomAutour(pointeurX: number, pointeurY: number, facteur: number): void {
+    const ancien = this.monde.scale.x;
+    const nouveau = Math.max(this.zoomMin, Math.min(this.zoomMax, ancien * facteur));
+    if (nouveau === ancien) return;
+    const mondeX = (pointeurX - this.monde.x) / ancien;
+    const mondeY = (pointeurY - this.monde.y) / ancien;
+    this.monde.scale.set(nouveau);
+    this.monde.x = pointeurX - mondeX * nouveau;
+    this.monde.y = pointeurY - mondeY * nouveau;
+  }
+
+  deplacer(dx: number, dy: number): void {
+    this.monde.x += dx;
+    this.monde.y += dy;
+  }
+}

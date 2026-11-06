@@ -1,0 +1,87 @@
+{
+  // ============================================================
+  // MONDE — constantes physiques et de génération du monde.
+  // Toute valeur de calibrage vit ici, jamais dans le code.
+  // Chaque variable indique son unité et son rôle en français.
+  // ============================================================
+
+  // Taille de la grille du monde, en tuiles (carrée : taille x taille).
+  "tailleGrille": 1000,
+
+  // Nombre de niveaux d'élévation possibles par tuile (niveaux 0 à niveauxElevationMax - 1).
+  // Le niveau 0 est toujours le socle de pierre.
+  "niveauxElevationMax": 6,
+
+  // Nombre de continents générés (tirage aléatoire entre min et max).
+  // Paramètre de génération, pas un plafond de simulation.
+  "nbContinentsMin": 3,
+  "nbContinentsMax": 6,
+
+  // Nombre d'îles générées en plus des continents.
+  "nbIlesMin": 8,
+  "nbIlesMax": 24,
+
+  // Épaisseur de la ceinture d'eau salée sur les bords de la carte, en tuiles.
+  // Les bords de la carte sont infranchissables (pas de bouclage de planète).
+  "epaisseurBordEauSalee": 6,
+
+  // Température de base au pôle, en degrés Celsius.
+  "temperaturePoleCelsius": -25,
+
+  // Température de base à l'équateur, en degrés Celsius.
+  "temperatureEquateurCelsius": 30,
+
+  // Refroidissement par niveau d'élévation au-dessus du niveau 1, en degrés Celsius par niveau.
+  "refroidissementParNiveauCelsius": -4,
+
+  // Amplitude saisonnière des températures en zone tempérée, en degrés Celsius (± autour de la moyenne annuelle).
+  "amplitudeSaisonniereTempereeCelsius": 12,
+
+  // Amplitude saisonnière en zone tropicale, en degrés Celsius.
+  "amplitudeSaisonniereTropicaleCelsius": 3,
+
+  // Amplitude saisonnière aux pôles, en degrés Celsius.
+  "amplitudeSaisonnierePolaireCelsius": 10,
+
+  // Limite entre zone tropicale et zone tempérée, exprimée en fraction de la distance équateur-pôle (0 = équateur, 1 = pôle).
+  "limiteZoneTropicale": 0.3,
+
+  // Limite entre zone tempérée et zone polaire, même unité.
+  "limiteZonePolaire": 0.7,
+
+  // Élévation minimale d'une source de rivière, en niveaux (une rivière naît en altitude et coule vers la mer).
+  "elevationMinSourceRiviere": 3,
+
+  // Nombre de sources de rivières par continent (tirage entre min et max).
+  "nbSourcesRivieresParContinentMin": 2,
+  "nbSourcesRivieresParContinentMax": 6,
+
+  // Probabilité qu'une tuile reçoive de la pluie un mois donné, pour une humidité de 100 % (0 à 1).
+  "probabilitePluieHumiditeMax": 0.55,
+
+  // Quantité d'humidité gagnée par tuile de terre après un mois de pluie, en points de pourcentage.
+  "gainHumiditePluie": 6,
+
+  // Quantité d'humidité perdue par évaporation un mois sans pluie, en points de pourcentage.
+  "perteHumiditeSecheresse": 4,
+
+  // Seuil de température en dessous duquel la neige tombe au lieu de la pluie, en degrés Celsius.
+  "seuilNeigeCelsius": 0,
+
+  // Seuil de température en dessous duquel l'eau douce gèle visuellement, en degrés Celsius (l'eau reste buvable en V1).
+  "seuilGelEauCelsius": -2,
+
+  // Gisements : pour chaque ressource, nombre de gisements (min, max) et quantité initiale extractible (min, max, en unités de ressource).
+  "gisements": {
+    "charbon": { "nbMin": 20, "nbMax": 60, "quantiteMin": 500, "quantiteMax": 5000 },
+    "gaz": { "nbMin": 10, "nbMax": 30, "quantiteMin": 500, "quantiteMax": 4000 },
+    "uranium": { "nbMin": 4, "nbMax": 12, "quantiteMin": 200, "quantiteMax": 1500 },
+    "petrole": { "nbMin": 10, "nbMax": 30, "quantiteMin": 500, "quantiteMax": 4000 },
+    "fer": { "nbMin": 30, "nbMax": 80, "quantiteMin": 500, "quantiteMax": 6000 },
+    "cuivre": { "nbMin": 20, "nbMax": 50, "quantiteMin": 300, "quantiteMax": 3000 },
+    "etain": { "nbMin": 15, "nbMax": 40, "quantiteMin": 300, "quantiteMax": 3000 },
+    "or": { "nbMin": 10, "nbMax": 25, "quantiteMin": 100, "quantiteMax": 1200 },
+    "argent": { "nbMin": 10, "nbMax": 25, "quantiteMin": 200, "quantiteMax": 2000 },
+    "sel": { "nbMin": 15, "nbMax": 40, "quantiteMin": 300, "quantiteMax": 3000 }
+  }
+}

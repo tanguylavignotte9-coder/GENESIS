@@ -92,3 +92,28 @@ Bandes initiales posées réellement (individus créés selon `parametresDepart`
 - **Nourriture du groupe** : stock commun simple (nombre) par bande en J3 ; la périssabilité par type d'aliment et les greniers physiques détaillés arrivent avec l'économie (J4/J6) — noté pour le banc.
 - **Perception** : scan local limité (`porteePerceptionTuiles`) pour eau/biomasse ; la mémoire des lieux hors vue et les rumeurs sont J5.
 - **Prédation sur humains** : la fuite est simulée (boucle individuelle) ; la faune tue surtout d'autres animaux en J3, la mort d'humain par prédateur sera branchée avec les campements en J4.
+
+---
+
+# Rapport J4 — premières sociétés : sédentarisation, bâtiments, troc, gouvernance, territoires
+
+## Ce qui a été livré (J4)
+
+- **Bâtiments réels avec chantier** (`batiments/systemeBatiments.ts`, `batiments/chantier.ts`) : décision mensuelle par groupe (feu de camp → hutte → puits si pas d'eau proche → grenier si stock > seuil → champ si village), un ouvrier (meilleure compétence construction) est assigné (`individu.chantierId`) et **travaille à chaque tick** : les jours de chantier sont consommés au prorata de sa compétence. Matériaux prélevés réellement à la pose (bois = biomasse défrichée autour du site, pierre = socle). Usure mensuelle, **effondrement** consigné au journal.
+- **Sédentarisation émergente** : dès que `nbHuttesPourSedentarisation` hutte(s) permanente(s) est/sont posée(s), la bande devient **village** (pas de seuil de population) — événement « Sédentarisation » au journal. Les champs accélèrent la pousse de végétation (×3).
+- **Stocks physiques** : nourriture/bois dans les stocks communs du groupe, plafonnés par la capacité du grenier s'il existe (`capaciteGrenierBase`), sinon par le fond de hutte.
+- **Objets individuels avec histoire** (`economie/objet.ts` + `systemeEconomie.ts`) : fabrication mensuelle par l'artisan du groupe (compétence artisanat), usure, casse ; **troc intra-groupe** entre membres proches quand les valeurs subjectives sont compatibles — chaque objet garde son historique de propriétaires.
+- **Gouvernance primaire** (`groupes/gouvernance.ts`) : à la mort/départ du dirigeant, succession par score âge × poids + charisme × poids (influence émergente), politiques par défaut depuis la config, événement au journal.
+- **Territoire émergent** : recalculé chaque mois depuis l'activité réelle (positions des membres + bâtiments + rayon autour des bâtiments), exposé dans le digest avec une couleur par groupe.
+- **Interface** : **frontières colorées affichées en vue éloignée** (zoom < seuil) et estompées en vue rapprochée ; clic sur un territoire → **fiche groupe** (niveau, dirigeant, membres, bonheur, stocks, bâtiments, politiques) ; **filtre du journal** par type ; fiches individus toujours au clic.
+
+## Mesures banc J4 (48 mois, 3 bandes × 25, graine 42)
+
+- 3 bandes → **3 villages**, **11 bâtiments**, **46 objets**, 38 naissances, 31 morts, 82 vivants ; sim complète ~79 ms/mois.
+
+## Choix d'interprétation J4 (zones ouvertes)
+
+- **Décision de construire** : mensuelle, par le groupe, dans l'ordre feu → hutte → puits → grenier → champ, avec un seul chantier à la fois par groupe. C'est une politique de société paramétrable (`config/societe.jsonc`), pas un script de gameplay.
+- **Matériaux** : le bois provient réellement de la biomasse défrichée autour du chantier ; la pierre du socle (carrières = J6 avec la métallurgie).
+- **Valeur des objets** : subjective par type (base en config) × (1 − usure) ; le troc n'a lieu que si les valeurs sont proches (seuil en config) — aucun prix global.
+- **Village = huttes permanentes** (seuil de bâtiments en config), conformément au doc : aucun seuil de population.

@@ -29,5 +29,26 @@
   "seuilEcartValeurPourEchange": 1,
 
   // Portée d'un marché (rayon d'attraction des échanges formalisés), en tuiles.
-  "porteeMarcheTuiles": 20
+  "porteeMarcheTuiles": 20,
+
+  // Valeur subjective de base par type d'objet fabriquable (avant usure et besoin du moment).
+  "valeurBaseObjets": {
+    "hache": 15,
+    "silex": 8,
+    "houe": 12,
+    "poterie": 10,
+    "panier": 6,
+    "outre": 9,
+    "vetement": 14,
+    "bijou": 30
+  },
+
+  // Probabilité de fabrication d'un objet par mois et par groupe sédentaire (modulée par la compétence artisanat), 0 à 1.
+  "chanceFabricationParMois": 0.5,
+
+  // Probabilité de troc entre deux membres proches d'un même groupe, par mois, 0 à 1.
+  "chanceTrocParMois": 0.4,
+
+  // Usure d'un objet par mois d'utilisation (0 à 1 = fraction de valeur perdue).
+  "usureObjetParMois": 0.01
 }

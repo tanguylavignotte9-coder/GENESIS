@@ -30,6 +30,7 @@ export interface EtatPartage {
   religions: Map<number, Religion>;
   savoir: GrapheSavoir;
   animaux: Map<number, Animal>;
+  champs: Set<number>;
   parametresDepart: ParametresDepart;
   prochainIdIndividu: number;
   prochainIdAnimal: number;

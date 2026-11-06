@@ -6,6 +6,8 @@ export class Carte {
   sprite: Sprite;
   coucheAnimaux: Graphics;
   coucheHumains: Graphics;
+  coucheTerritoires: Graphics;
+  seuilZoomFrontieres = 5;
   canvas: HTMLCanvasElement;
   ctx2d: CanvasRenderingContext2D;
   texture: Texture;
@@ -22,6 +24,8 @@ export class Carte {
     this.sprite.texture = this.texture;
     this.coucheAnimaux = new Graphics();
     this.coucheHumains = new Graphics();
+    this.coucheTerritoires = new Graphics();
+    this.monde.addChild(this.coucheTerritoires);
     this.monde.addChild(this.sprite);
     this.monde.addChild(this.coucheAnimaux);
     this.monde.addChild(this.coucheHumains);
@@ -63,6 +67,17 @@ export class Carte {
     image.data.set(new Uint8Array(couleurs.buffer, couleurs.byteOffset, couleurs.byteLength));
     this.ctx2d.putImageData(image, 0, 0);
     this.texture.source.update();
+    this.coucheTerritoires.visible = this.monde.scale.x < this.seuilZoomFrontieres;
+  }
+
+  appliquerTerritoires(territoires: Array<{ id: number; couleur: number; tuiles: number[] }>): void {
+    this.coucheTerritoires.clear();
+    for (const t of territoires) {
+      for (let i = 0; i + 1 < t.tuiles.length; i += 2) {
+        this.coucheTerritoires.rect(t.tuiles[i], t.tuiles[i + 1], 1, 1).fill({ color: t.couleur, alpha: 0.22 });
+      }
+    }
+    this.coucheTerritoires.visible = this.monde.scale.x < this.seuilZoomFrontieres;
   }
 
   appliquerAnimaux(donnees: number[]): void {
@@ -100,6 +115,7 @@ export class Carte {
     this.monde.scale.set(nouveau);
     this.monde.x = pointeurX - mondeX * nouveau;
     this.monde.y = pointeurY - mondeY * nouveau;
+    this.coucheTerritoires.visible = nouveau < this.seuilZoomFrontieres;
   }
 
   deplacer(dx: number, dy: number): void {

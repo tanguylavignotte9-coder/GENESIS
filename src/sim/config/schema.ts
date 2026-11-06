@@ -128,6 +128,13 @@ export interface ConfigSociete {
   rayonTerritoireDefautTuiles: number;
   suiviParCharisme: number;
   seuilMecontentementGroupe: number;
+  seuilStockNourriturePourGrenier: number;
+  capaciteStockSansGrenier: number;
+  nbHuttesPourSedentarisation: number;
+  ageMaxDirigeantAnnees: number;
+  poidsAgeDirigeant: number;
+  poidsCharismeDirigeant: number;
+  rayonTerritoireBatimentsTuiles: number;
 }
 
 export interface ConfigEconomie {
@@ -137,6 +144,10 @@ export interface ConfigEconomie {
   multiplicateurConservationFermentation: number;
   seuilEcartValeurPourEchange: number;
   porteeMarcheTuiles: number;
+  valeurBaseObjets: Record<string, number>;
+  chanceFabricationParMois: number;
+  chanceTrocParMois: number;
+  usureObjetParMois: number;
 }
 
 export interface ConfigBatiments {

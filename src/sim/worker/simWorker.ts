@@ -34,6 +34,7 @@ function envoyerDigest(forcer: boolean): void {
       couleurs: couleurs.buffer,
       animaux: sim.digestAnimaux(),
       individus: sim.digestIndividus(),
+      territoires: sim.digestTerritoires(),
       taille: sim.etat.monde.taille,
       an: cal.an,
       mois: cal.mois,
@@ -145,6 +146,39 @@ ctx.onmessage = (e: MessageEvent) => {
             pereRegistreNom: ind.pereRegistre !== null ? sim.etat.individus.get(ind.pereRegistre)?.nom ?? null : null,
             pereBiologiqueNom: ind.pereBiologique !== null ? sim.etat.individus.get(ind.pereBiologique)?.nom ?? null : null,
             mereNom: ind.mere !== null ? sim.etat.individus.get(ind.mere)?.nom ?? null : null,
+          },
+        });
+        break;
+      }
+      case 'inspecterGroupe': {
+        if (!sim) break;
+        const g = sim.etat.groupes.get(msg.id as number);
+        if (!g) {
+          ctx.postMessage({ type: 'ficheGroupe', id: msg.id, trouve: false });
+          break;
+        }
+        const vivants = g.membres.map((id) => sim!.etat.individus.get(id)).filter((i) => i && i.vivant);
+        const dirigeant = g.dirigeantId !== null ? sim!.etat.individus.get(g.dirigeantId) : undefined;
+        ctx.postMessage({
+          type: 'ficheGroupe',
+          id: g.id,
+          trouve: true,
+          fiche: {
+            nom: g.nom,
+            niveau: g.niveau,
+            fondeLe: g.fondeLe,
+            parentId: g.parentId,
+            couleur: g.couleur,
+            dirigeantNom: dirigeant?.nom ?? null,
+            membresVivants: vivants.length,
+            membresTotal: g.membres.length,
+            bonheurMoyen: Math.round(g.bonheurMoyen(sim!.etat.individus)),
+            stocksCommuns: { ...g.stocksCommuns },
+            territoireTaille: g.territoire.length,
+            batiments: Array.from(sim!.etat.batiments.values())
+              .filter((b) => b.groupeId === g.id)
+              .map((b) => ({ type: b.type, x: b.x, y: b.y, durabilite: Math.round(b.durabilite * 100), enConstruction: b.enConstruction })),
+            politiques: { ...g.politiques },
           },
         });
         break;

@@ -110,6 +110,8 @@ export class Individu {
   grossesse: Grossesse;
   dernierActeCannibalisme: DateJeu | null;
   nomFamille: string;
+  chantierId: number | null;
+  objetIds: number[];
 
   constructor(id: number, nom: string) {
     this.id = id;
@@ -149,6 +151,8 @@ export class Individu {
     this.grossesse = null;
     this.dernierActeCannibalisme = null;
     this.nomFamille = '';
+    this.chantierId = null;
+    this.objetIds = [];
   }
 
   get estMature(): boolean {

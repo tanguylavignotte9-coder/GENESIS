@@ -16,6 +16,9 @@ import { peuplerMonde, miseAJourMensuelleFaune, empreinteAnimaux } from './faune
 import { construireEspeces } from './faune/especes';
 import { poserBandesInitiales } from './entites/bandes';
 import { tickIndividu, indexAnimauxPourTick } from './entites/boucleIndividu';
+import { decisionConstructionMensuelle, usureMensuelleBatiments } from './batiments/systemeBatiments';
+import { fabricationMensuelle, trocMensuel } from './economie/systemeEconomie';
+import { gouvernanceMensuelle, recalculerTerritoires } from './groupes/gouvernance';
 import { empreinteOctets } from './hash';
 import type { ConfigComplete } from './config/schema';
 import type { EtatPartage, ParametresDepart } from './etat';
@@ -42,6 +45,7 @@ export class Simulation {
       religions: new Map(),
       savoir: new GrapheSavoir(),
       animaux: new Map(),
+      champs: new Set(),
       parametresDepart: { seed, nbBandes: config.societe.bandesInitialesMin, tailleBande: config.societe.tailleBandeInitialeMin },
       prochainIdIndividu: 1,
       prochainIdAnimal: 1,
@@ -113,8 +117,14 @@ export class Simulation {
 
   private tickMensuel(): void {
     miseAJourMeteoMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.etat.rng);
-    miseAJourVegetationMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.config.fauneFlore, this.etat.rng);
+    miseAJourVegetationMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.config.fauneFlore, this.etat.rng, this.etat.champs);
     miseAJourMensuelleFaune(this.etat, this.config.fauneFlore);
+    gouvernanceMensuelle(this.etat, this.config);
+    decisionConstructionMensuelle(this.etat, this.config);
+    usureMensuelleBatiments(this.etat, this.config);
+    fabricationMensuelle(this.etat, this.config);
+    trocMensuel(this.etat, this.config);
+    recalculerTerritoires(this.etat, this.config);
     this.moisDernierTick = this.etat.calendrier.mois;
     const vivants = Array.from(this.etat.individus.values()).filter((i) => i.vivant).length;
     if (vivants === 0 && this.etat.individus.size > 0) {
@@ -166,6 +176,21 @@ export class Simulation {
       arr[i++] = ind.groupeId ?? 0;
     }
     return empreinteOctets(arr);
+  }
+
+  digestTerritoires(): Array<{ id: number; couleur: number; tuiles: number[] }> {
+    const out: Array<{ id: number; couleur: number; tuiles: number[] }> = [];
+    const t = this.etat.monde.taille;
+    for (const g of this.etat.groupes.values()) {
+      const tuiles: number[] = [];
+      for (const p of g.territoire) {
+        if (tuiles.length >= 800) break;
+        tuiles.push(p.x, p.y);
+      }
+      out.push({ id: g.id, couleur: g.couleur, tuiles });
+      void t;
+    }
+    return out;
   }
 
   digestIndividus(): number[] {

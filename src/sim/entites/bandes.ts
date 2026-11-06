@@ -96,7 +96,7 @@ export function poserBandesInitiales(etat: EtatPartage, config: ConfigComplete):
         .sort((a, b) => b.ageAnnees - a.ageAnnees);
       groupe.dirigeantId = (adultes[0] ?? etat.individus.get(groupe.membres[0])!).id;
     }
-    groupe.recalculerTerritoire(monde, etat.individus, cfgS.rayonTerritoireDefautTuiles);
+    groupe.recalculerTerritoire(monde, etat.individus, etat.batiments, cfgS.rayonTerritoireDefautTuiles, cfgS.rayonTerritoireBatimentsTuiles);
     etat.journal.ajouter({
       date,
       type: TypeEvenement.Fondation,

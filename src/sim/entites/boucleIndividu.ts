@@ -7,6 +7,7 @@ import { TypeEvenement } from '../journal/journal';
 import { animauxProches, construireIndexSpatial } from '../faune/systemeFaune';
 import { construireEspeces } from '../faune/especes';
 import { genererPrenom, nomComplet } from '../culture/noms';
+import { tickIndividuOuvrier } from '../batiments/chantier';
 
 export type IndexAnimaux = Map<number, number[]>;
 
@@ -20,6 +21,10 @@ function clamp100(v: number): number {
 
 export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Individu, jours: number, indexAnimaux: IndexAnimaux): void {
   if (!ind.vivant) return;
+  if (ind.chantierId !== null) {
+    tickIndividuOuvrier(etat, config, ind, jours);
+    return;
+  }
   const cfg = config.individus;
   const monde = etat.monde;
   const rng = etat.rng;
@@ -117,7 +122,11 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
         const comp = ind.competences[Competence.Agriculture] ?? 0;
         const pris = Math.min(monde.biomasseVegetation[i], config.fauneFlore.rendementCueilletteParMois * (1 + comp / 100) * facteurMois * config.temps.joursParMois * 0.1);
         monde.biomasseVegetation[i] -= pris;
-        if (groupe) groupe.stocksCommuns.nourriture = (groupe.stocksCommuns.nourriture ?? 0) + pris;
+        if (groupe) {
+          const capacite = groupe.aUnBatiment('grenier', etat.batiments) ? config.batiments.capaciteGrenierBase : config.societe.capaciteStockSansGrenier;
+          groupe.ajouterStock('nourriture', pris, capacite);
+          groupe.ajouterStock('bois', pris * 0.5, 100000);
+        }
         ind.besoins.faim = clamp100(ind.besoins.faim - 40);
         ind.competences[Competence.Agriculture] = Math.min(100, comp + cfg.tauxApprentissageParMois * 10 * facteurMois);
       } else {
@@ -133,7 +142,10 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
             victime.vivant = false;
             victime.causeMort = 'chasse';
             const butin = ve ? ve.tailleCarcasse : 5;
-            if (groupe) groupe.stocksCommuns.nourriture = (groupe.stocksCommuns.nourriture ?? 0) + butin;
+            if (groupe) {
+              const capacite = groupe.aUnBatiment('grenier', etat.batiments) ? config.batiments.capaciteGrenierBase : config.societe.capaciteStockSansGrenier;
+              groupe.ajouterStock('nourriture', butin, capacite);
+            }
             monde.carcasseNourriture[monde.index(Math.round(victime.positionX), Math.round(victime.positionY))] += butin * 0.2;
             ind.besoins.faim = clamp100(ind.besoins.faim - 50);
             ind.competences[Competence.Chasse] = Math.min(100, comp + cfg.tauxApprentissageParMois * 12 * facteurMois);

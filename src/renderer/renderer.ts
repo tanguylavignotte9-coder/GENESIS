@@ -42,6 +42,7 @@ async function demarrer(): Promise<void> {
   let carte: Carte | null = null;
   let worker: Worker | null = null;
   let derniersIndividus: number[] = [];
+  let derniersTerritoires: Array<{ id: number; couleur: number; tuiles: number[] }> = [];
   let seed = Number(inputSeed.value) || 42;
 
   const vitesses = vitessesDisponibles(config.temps);
@@ -60,6 +61,8 @@ async function demarrer(): Promise<void> {
           carte.appliquerAnimaux((msg.animaux as number[]) ?? []);
           derniersIndividus = (msg.individus as number[]) ?? [];
           carte.appliquerIndividus(derniersIndividus);
+          derniersTerritoires = (msg.territoires as Array<{ id: number; couleur: number; tuiles: number[] }>) ?? [];
+          carte.appliquerTerritoires(derniersTerritoires);
         }
         const stats = msg.stats as { individus: number; animaux: number; evenements: number } | undefined;
         $('date').textContent = `An ${msg.an}, mois ${msg.mois} — ×${msg.vitesse} — ${stats ? `${stats.individus} humains · ${stats.animaux} animaux · ${stats.evenements} événements` : ''}`;
@@ -74,6 +77,8 @@ async function demarrer(): Promise<void> {
         if (av.length > 0) alert(av.join('\n'));
       } else if (msg.type === 'fiche') {
         afficherFiche(msg);
+      } else if (msg.type === 'ficheGroupe') {
+        afficherFicheGroupe(msg);
       } else if (msg.type === 'erreur') {
         console.error(msg.message);
       }
@@ -149,6 +154,30 @@ async function demarrer(): Promise<void> {
     $('ficheContenu').innerHTML = html;
   }
 
+  function afficherFicheGroupe(msg: Record<string, unknown>): void {
+    const fiche = msg.fiche as Record<string, unknown> | undefined;
+    const panneau = $('fiche');
+    if (!fiche || msg.trouve === false) {
+      panneau.style.display = 'none';
+      return;
+    }
+    panneau.style.display = 'flex';
+    const niveaux = ['Bande', 'Tribu', 'Village', 'Ville', 'Nation'];
+    $('ficheTitre').textContent = String(fiche.nom);
+    const bats = (fiche.batiments as Array<{ type: string; x: number; y: number; durabilite: number; enConstruction: boolean }>) ?? [];
+    const html = [
+      ligne('Niveau', niveaux[Number(fiche.niveau)] ?? fiche.niveau),
+      ligne('Dirigeant', fiche.dirigeantNom ?? '—'),
+      ligne('Membres vivants', `${fiche.membresVivants} / ${fiche.membresTotal}`),
+      ligne('Bonheur moyen', `${fiche.bonheurMoyen}/100`),
+      ligne('Territoire', `${fiche.territoireTaille} tuiles d'activité`),
+      ligne('Stocks communs', Object.entries(fiche.stocksCommuns as Record<string, number>).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ') || '—'),
+      ligne('Bâtiments', bats.map((b) => `${b.type}${b.enConstruction ? ' (chantier)' : ''} @(${b.x},${b.y}) ${b.durabilite}%`).join(', ') || '—'),
+      ligne('Politiques', Object.keys(fiche.politiques as Record<string, unknown>).join(', ') || '—'),
+    ].join('');
+    $('ficheContenu').innerHTML = html;
+  }
+
   function lancerMonde(graine: number): void {
     seed = graine;
     if (worker) worker.terminate();
@@ -179,6 +208,12 @@ async function demarrer(): Promise<void> {
 
   $('ficheFermer').addEventListener('click', () => {
     $('fiche').style.display = 'none';
+  });
+
+  $('filtreJournal').addEventListener('change', (e) => {
+    const valeur = (e.target as HTMLSelectElement).value;
+    $('listeJournal').innerHTML = '';
+    worker?.postMessage({ type: 'filtrerJournal', filtre: valeur ? { types: [valeur] } : {} });
   });
 
   const hote = $('app');
@@ -213,7 +248,19 @@ async function demarrer(): Promise<void> {
         bestId = derniersIndividus[i];
       }
     }
-    if (bestId >= 0) worker?.postMessage({ type: 'inspecterIndividu', id: bestId });
+    if (bestId >= 0) {
+      worker?.postMessage({ type: 'inspecterIndividu', id: bestId });
+    } else {
+      const p2 = p;
+      for (const t of derniersTerritoires) {
+        for (let i = 0; i + 1 < t.tuiles.length; i += 2) {
+          if (Math.abs(t.tuiles[i] - p2.x) <= 1 && Math.abs(t.tuiles[i + 1] - p2.y) <= 1) {
+            worker?.postMessage({ type: 'inspecterGroupe', id: t.id });
+            return;
+          }
+        }
+      }
+    }
   });
   window.addEventListener('pointermove', (e) => {
     if (!glisser || !carte) return;

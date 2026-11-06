@@ -385,6 +385,13 @@ function validerSociete(o: Record<string, unknown>, erreurs: Erreurs) {
     rayonTerritoireDefautTuiles: exigerNombre(o, 'rayonTerritoireDefautTuiles', b, { min: 1, max: 500, entier: true }, erreurs)!,
     suiviParCharisme: exigerNombre(o, 'suiviParCharisme', b, { min: 0, max: 1 }, erreurs)!,
     seuilMecontentementGroupe: exigerNombre(o, 'seuilMecontentementGroupe', b, { min: 0, max: 100 }, erreurs)!,
+    seuilStockNourriturePourGrenier: exigerNombre(o, 'seuilStockNourriturePourGrenier', b, { min: 0, max: 1000000 }, erreurs)!,
+    capaciteStockSansGrenier: exigerNombre(o, 'capaciteStockSansGrenier', b, { min: 0, max: 1000000 }, erreurs)!,
+    nbHuttesPourSedentarisation: exigerNombre(o, 'nbHuttesPourSedentarisation', b, { min: 1, max: 100, entier: true }, erreurs)!,
+    ageMaxDirigeantAnnees: exigerNombre(o, 'ageMaxDirigeantAnnees', b, { min: 40, max: 120, entier: true }, erreurs)!,
+    poidsAgeDirigeant: exigerNombre(o, 'poidsAgeDirigeant', b, { min: 0, max: 1 }, erreurs)!,
+    poidsCharismeDirigeant: exigerNombre(o, 'poidsCharismeDirigeant', b, { min: 0, max: 1 }, erreurs)!,
+    rayonTerritoireBatimentsTuiles: exigerNombre(o, 'rayonTerritoireBatimentsTuiles', b, { min: 0, max: 100, entier: true }, erreurs)!,
   };
 }
 
@@ -397,6 +404,10 @@ function validerEconomie(o: Record<string, unknown>, erreurs: Erreurs) {
     multiplicateurConservationFermentation: exigerNombre(o, 'multiplicateurConservationFermentation', b, { min: 1, max: 1000 }, erreurs)!,
     seuilEcartValeurPourEchange: exigerNombre(o, 'seuilEcartValeurPourEchange', b, { min: 0, max: 100 }, erreurs)!,
     porteeMarcheTuiles: exigerNombre(o, 'porteeMarcheTuiles', b, { min: 1, max: 1000, entier: true }, erreurs)!,
+    valeurBaseObjets: exigerRecordNombres(o, 'valeurBaseObjets', b, { min: 0 }, erreurs)!,
+    chanceFabricationParMois: exigerNombre(o, 'chanceFabricationParMois', b, { min: 0, max: 1 }, erreurs)!,
+    chanceTrocParMois: exigerNombre(o, 'chanceTrocParMois', b, { min: 0, max: 1 }, erreurs)!,
+    usureObjetParMois: exigerNombre(o, 'usureObjetParMois', b, { min: 0, max: 1 }, erreurs)!,
   };
 }
 

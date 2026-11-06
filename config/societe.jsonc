@@ -28,5 +28,24 @@
   "suiviParCharisme": 0.004,
 
   // Seuil de mécontentement (bonheur moyen du groupe sous cette valeur) qui pousse à la contestation, 0 à 100.
-  "seuilMecontentementGroupe": 30
+  "seuilMecontentementGroupe": 30,
+
+  // Stock de nourriture au-delà duquel le groupe fait construire un grenier, en unités.
+  "seuilStockNourriturePourGrenier": 120,
+
+  // Capacité de stockage sans grenier (fond de hutte), en unités de nourriture.
+  "capaciteStockSansGrenier": 25,
+
+  // Nombre de huttes permanentes posées à partir duquel une bande est considérée comme sédentarisée (village). Ce n'est pas un seuil de population.
+  "nbHuttesPourSedentarisation": 1,
+
+  // Âge au-delà duquel un dirigeant cède sa place, en années.
+  "ageMaxDirigeantAnnees": 80,
+
+  // Poids de l'âge et du charisme dans le choix du dirigeant (influence émergente : les autres suivent).
+  "poidsAgeDirigeant": 0.5,
+  "poidsCharismeDirigeant": 0.5,
+
+  // Rayon d'activité ajouté autour des bâtiments pour le calcul du territoire, en tuiles.
+  "rayonTerritoireBatimentsTuiles": 4
 }

@@ -5,21 +5,25 @@ export class EntiteBatiment {
   type: string;
   x: number;
   y: number;
+  groupeId: number | null;
   materiaux: Record<string, number>;
   durabilite: number;
   stocks: Record<string, number>;
   chantierRestantJours: number;
+  enConstruction: boolean;
   fondeLe: DateJeu;
 
-  constructor(id: number, type: string, x: number, y: number, materiaux: Record<string, number>, date: DateJeu) {
+  constructor(id: number, type: string, x: number, y: number, materiaux: Record<string, number>, date: DateJeu, groupeId: number | null = null, dureeJours = 0) {
     this.id = id;
     this.type = type;
     this.x = x;
     this.y = y;
+    this.groupeId = groupeId;
     this.materiaux = { ...materiaux };
     this.durabilite = 1;
     this.stocks = {};
-    this.chantierRestantJours = 0;
+    this.chantierRestantJours = dureeJours;
+    this.enConstruction = dureeJours > 0;
     this.fondeLe = { ...date };
   }
 

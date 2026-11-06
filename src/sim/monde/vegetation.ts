@@ -24,7 +24,7 @@ export function vegetationPourClimat(temperatureCelsius: number, humiditePourcen
   return humiditePourcent > 50 ? Vegetation.Savane : Vegetation.Desert;
 }
 
-export function miseAJourVegetationMensuelle(monde: Monde, calendrier: Calendrier, configMonde: ConfigMonde, configFauneFlore: ConfigFauneFlore, rng: Rng): void {
+export function miseAJourVegetationMensuelle(monde: Monde, calendrier: Calendrier, configMonde: ConfigMonde, configFauneFlore: ConfigFauneFlore, rng: Rng, champs?: Set<number>): void {
   const t = monde.taille;
   for (let y = 0; y < t; y++) {
     for (let x = 0; x < t; x++) {
@@ -34,8 +34,10 @@ export function miseAJourVegetationMensuelle(monde: Monde, calendrier: Calendrie
       const saison = calendrier.saisonPourDistanceEquateur(distEq, y < t / 2);
       const elev = monde.elevation[i];
       const temp = temperatureBaseCelsius(configMonde, distEq) + decalageSaisonnierCelsius(configMonde, distEq, saison, calendrier.mois, 12) - Math.max(0, elev - 1) * configMonde.refroidissementParNiveauCelsius;
-      if (rng.chance(configFauneFlore.probabilitePousseVegetationParMois)) {
-        monde.biomasseVegetation[i] = Math.min(configFauneFlore.biomasseVegetationMax, monde.biomasseVegetation[i] + 10);
+      const estChamp = champs !== undefined && champs.has(i);
+      const pousse = configFauneFlore.probabilitePousseVegetationParMois * (estChamp ? 3 : 1);
+      if (rng.chance(pousse)) {
+        monde.biomasseVegetation[i] = Math.min(configFauneFlore.biomasseVegetationMax, monde.biomasseVegetation[i] + (estChamp ? 15 : 10));
       }
       if (rng.chance(configFauneFlore.probabiliteDegradationVegetationParMois)) {
         monde.biomasseVegetation[i] = Math.max(0, monde.biomasseVegetation[i] - 8);

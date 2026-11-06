@@ -9,6 +9,7 @@ export class Objet {
   id: number;
   type: string;
   fabricantId: number | null;
+  proprietaireId: number | null;
   proprietaires: ProprietaireHistorique[];
   usure: number;
   casse: boolean;
@@ -19,6 +20,7 @@ export class Objet {
     this.id = id;
     this.type = type;
     this.fabricantId = fabricantId;
+    this.proprietaireId = fabricantId;
     this.proprietaires = fabricantId !== null ? [{ individuId: fabricantId, depuis: { ...date } }] : [];
     this.usure = 0;
     this.casse = false;

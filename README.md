@@ -63,7 +63,7 @@ Voir `docs/INTERPRETATIONS.md` pour les choix d'interprétation faits sur les zo
 - **J1 ✅** — socle technique, monde minimal, banc, tests (commit initial).
 - **J2 ✅** — monde complet (relief, rivières, climat, saisons, météo, végétation, gisements), faune simulée, écran de démarrage seed/bandes/taille.
 - **J3 ✅** — bandes initiales, individus vivants (besoins, survie, reproduction + génétique, sénescence émergente, morts avec causes, cannibalisme de famine), fiche inspectable au clic.
-- **J4 ⬜** — premières sociétés, gouvernance, troc, journal d'inspection.
+- **J4 ✅** — sédentarisation (campement→village par huttes permanentes), chantiers réels, objets + troc, gouvernance (succession), territoires selon le zoom, fiches groupe, filtre journal.
 - **J5 ⬜** — langues, religions, santé mentale, chroniques.
 - **J6 ⬜** — ères jusqu'à l'ère moderne, monnaie, pollution, écrans dédiés.
 - **J7 ⬜** — sauvegarde exacte en jeu, écran de fin (extinction), calibration ~20 h au banc.

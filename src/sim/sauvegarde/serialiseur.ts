@@ -35,6 +35,7 @@ export function serialiserSimulation(sim: Simulation, empreinteConfig: Record<st
       religions: Array.from(etat.religions.values()),
       savoir: etat.savoir.serialiser(),
       animaux: Array.from(etat.animaux.values()).map((a) => a.serialiser()),
+      champs: Array.from(etat.champs),
       parametresDepart: { ...etat.parametresDepart },
       prochainIdAnimal: etat.prochainIdAnimal,
       prochainIdIndividu: etat.prochainIdIndividu,
@@ -99,6 +100,7 @@ export function deserialiserSimulation(
   savoir.restaurer(e.savoir as never[]);
   const animaux = new Map<number, Animal>();
   for (const d of (e.animaux as Record<string, unknown>[]) ?? []) animaux.set(d.id as number, Animal.restaurer(d));
+  const champs = new Set<number>((e.champs as number[]) ?? []);
   const sim = new Simulation(config, brut.seed);
   sim.etat.monde = monde;
   sim.etat.calendrier = calendrier;
@@ -112,6 +114,7 @@ export function deserialiserSimulation(
   sim.etat.religions = religions;
   sim.etat.savoir = savoir;
   sim.etat.animaux = animaux;
+  sim.etat.champs = champs;
   sim.etat.parametresDepart = (e.parametresDepart as ParametresDepart) ?? { seed: brut.seed, nbBandes: config.societe.bandesInitialesMin, tailleBande: config.societe.tailleBandeInitialeMin };
   sim.etat.prochainIdIndividu = e.prochainIdIndividu as number;
   sim.etat.prochainIdAnimal = e.prochainIdAnimal as number;

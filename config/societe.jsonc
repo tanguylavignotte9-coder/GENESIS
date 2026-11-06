@@ -47,5 +47,47 @@
   "poidsCharismeDirigeant": 0.5,
 
   // Rayon d'activité ajouté autour des bâtiments pour le calcul du territoire, en tuiles.
-  "rayonTerritoireBatimentsTuiles": 4
+  "rayonTerritoireBatimentsTuiles": 4,
+
+  // Intelligence (0 à 100) à partir de laquelle un individu peut être un génie inventeur.
+  "seuilIntelligenceGenie": 85,
+
+  // Probabilité de percée technologique par mois et par génie potentiel (modulée par l'intelligence), 0 à 1.
+  "chancePerceeParMois": 0.08,
+
+  // Probabilité de transmission d'un savoir d'un maître à un élève proche, par mois, 0 à 1.
+  "tauxTransmissionMaitreParMois": 0.3,
+
+  // Probabilité de transmission passive d'un savoir à tout le groupe quand l'écriture est maîtrisée, par mois, 0 à 1.
+  "tauxTransmissionEcritureParMois": 0.05,
+
+  // Probabilité de transmission accélérée par école (bâtiment + savoir écriture), par mois, 0 à 1.
+  "tauxTransmissionEcoleParMois": 0.5,
+
+  // Quantité extraite d'un gisement par mois et par mine, en unités de ressource (le gisement s'épuise réellement).
+  "extractionParMoisParMine": 10,
+
+  // Taille du territoire (en tuiles d'activité) à partir de laquelle un village devient une nation.
+  "seuilTerritoireNationTuiles": 120,
+
+  // Pollution ajoutée par mois autour de chaque bâtiment polluant (mine, forge, centrale, raffinerie), 0 à 1.
+  "pollutionParMoisParBatimentPolluant": 0.05,
+
+  // Niveau de pollution d'une tuile au-delà duquel la santé des individus baisse.
+  "seuilPollutionSante": 0.3,
+
+  // Perte de santé par mois d'un individu sur une tuile polluée au-delà du seuil, en points.
+  "perteSantePollutionParMois": 4,
+
+  // Perte de biomasse de végétation par mois sur une tuile polluée au-delà du seuil.
+  "perteBiomassePollutionParMois": 5,
+
+  // Charbon consommé par mois par une centrale à charbon (si le stock est vide, la centrale s'arrête), en unités.
+  "consommationCharbonCentraleParMois": 20,
+
+  // Probabilité de frappe de monnaie (pièces) par mois quand la monnaie métallique est maîtrisée et une forge/banque existe, 0 à 1.
+  "chanceFrappeMonnaieParMois": 0.5,
+
+  // Rayon de recherche d'un gisement autour du camp pour y poser une mine, en tuiles.
+  "rayonRechercheGisementTuiles": 60
 }

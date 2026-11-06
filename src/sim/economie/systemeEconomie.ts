@@ -2,7 +2,9 @@ import type { ConfigComplete } from '../config/schema';
 import type { EtatPartage } from '../etat';
 import { Objet } from './objet';
 import { Competence } from '../types';
+import { TypeEvenement } from '../journal/journal';
 import { TypeRelation } from '../entites/individu';
+import { connaissancesGroupe } from '../savoir/systemeSavoir';
 
 export function valeurObjet(etat: EtatPartage, config: ConfigComplete, objet: Objet): number {
   const base = config.economie.valeurBaseObjets[objet.type] ?? config.economie.valeurSubjectiveBase;
@@ -29,6 +31,29 @@ export function fabricationMensuelle(etat: EtatPartage, config: ConfigComplete):
       etat.objets.set(objet.id, objet);
       artisan.objetIds.push(objet.id);
       artisan.competences[Competence.Artisanat] = Math.min(100, comp + config.individus.tauxApprentissageParMois * 6);
+    }
+    const idMonnaie = etat.savoir.tous().find((c) => c.nom === 'monnaie-metallique')?.id;
+    if (idMonnaie !== undefined && connaissancesGroupe(etat, groupe.id).has(idMonnaie) && (groupe.aUnBatiment('forge', etat.batiments) || groupe.aUnBatiment('banque', etat.batiments))) {
+      if (etat.rng.chance(config.societe.chanceFrappeMonnaieParMois)) {
+        const date = { an: etat.calendrier.an, mois: etat.calendrier.mois };
+        const piece = new Objet(etat.prochainIdObjet++, 'piece', groupe.dirigeantId, date);
+        piece.valeurAffective = config.economie.valeurPiece;
+        etat.objets.set(piece.id, piece);
+        groupe.stocksCommuns.monnaie = (groupe.stocksCommuns.monnaie ?? 0) + config.economie.valeurPiece;
+        const dejaFrappe = (groupe.stocksCommuns.monnaieFrappee ?? 0) > 0;
+        if (!dejaFrappe) {
+          groupe.stocksCommuns.monnaieFrappee = 1;
+          etat.journal.ajouter({
+            date,
+            type: TypeEvenement.Decouverte,
+            sujet: 'Monnaie',
+            description: `${groupe.nom} frappe ses premières pièces : la monnaie émerge comme objets physiques réels.`,
+            individusImpliques: [...groupe.membres],
+            tuileX: null,
+            tuileY: null,
+          });
+        }
+      }
     }
   }
   for (const objet of etat.objets.values()) {

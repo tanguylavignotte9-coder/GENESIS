@@ -40,8 +40,12 @@
     "panier": 6,
     "outre": 9,
     "vetement": 14,
-    "bijou": 30
+    "bijou": 30,
+    "piece": 5
   },
+
+  // Valeur d'une pièce de monnaie frappée (objet physique réel, possédé, transporté, volable).
+  "valeurPiece": 5,
 
   // Probabilité de fabrication d'un objet par mois et par groupe sédentaire (modulée par la compétence artisanat), 0 à 1.
   "chanceFabricationParMois": 0.5,

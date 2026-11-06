@@ -5,6 +5,7 @@ import { Individu } from './individu';
 import { Groupe } from '../groupes/groupe';
 import { genererNomFamille, genererPrenom, nomComplet } from '../culture/noms';
 import { TypeEvenement } from '../journal/journal';
+import { initialiserArbre } from '../savoir/arbreTechnologique';
 
 const SAVOIRS_DEPART = ['agriculture', 'construction-hutte', 'feu', 'vetements-basiques', 'elevage'];
 
@@ -15,12 +16,8 @@ export function poserBandesInitiales(etat: EtatPartage, config: ConfigComplete):
   const cfgS = config.societe;
   const t = monde.taille;
 
-  for (const nomSavoir of SAVOIRS_DEPART) {
-    if (!etat.savoir.tous().some((c) => c.nom === nomSavoir)) {
-      etat.savoir.ajouter(nomSavoir, []);
-    }
-  }
-  const idsSavoirsDepart = etat.savoir.tous().filter((c) => SAVOIRS_DEPART.includes(c.nom)).map((c) => c.id);
+  const idsArbre = initialiserArbre(etat.savoir);
+  const idsSavoirsDepart = SAVOIRS_DEPART.map((n) => idsArbre.get(n)!).filter((id) => id !== undefined);
 
   const nbBandes = etat.parametresDepart.nbBandes;
   const tailleBande = etat.parametresDepart.tailleBande;

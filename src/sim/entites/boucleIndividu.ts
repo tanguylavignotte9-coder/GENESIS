@@ -100,6 +100,7 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
   ind.besoins.securite = predateurs.length > 0 ? 100 : clamp100(ind.besoins.securite - 10 * facteurMois);
 
   if (temp < cfg.temperatureConfortCelsius) ind.sante.valeur -= cfg.perteSanteFroidParMois * facteurMois;
+  if (monde.pollution[i] > config.societe.seuilPollutionSante) ind.sante.valeur -= config.societe.perteSantePollutionParMois * facteurMois;
   if (ind.besoins.faim >= 80) ind.sante.valeur -= cfg.perteSanteFamineParMois * facteurMois;
   if (ind.besoins.soif >= 80) ind.sante.valeur -= cfg.perteSanteDeshydratationParMois * facteurMois;
   if (ind.besoins.sommeil >= 90) ind.sante.valeur -= cfg.perteSanteFatigueParMois * facteurMois;

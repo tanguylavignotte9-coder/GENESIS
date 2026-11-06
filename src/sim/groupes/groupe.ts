@@ -18,6 +18,7 @@ export class Groupe {
   stocksCommuns: Record<string, number>;
   chantierEnCours: number | null;
   couleur: number;
+  ere: number;
 
   constructor(id: number, nom: string, niveau: NiveauGroupe, langueId: number, date: DateJeu) {
     this.id = id;
@@ -33,6 +34,7 @@ export class Groupe {
     this.territoire = [];
     this.stocksCommuns = {};
     this.chantierEnCours = null;
+    this.ere = 0;
     const teinte = (id * 2654435761) % 360;
     this.couleur = hslVersRgb(teinte / 360, 0.65, 0.55);
   }

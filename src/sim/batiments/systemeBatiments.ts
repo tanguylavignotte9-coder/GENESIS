@@ -1,9 +1,13 @@
-import { Competence, NiveauGroupe } from '../types';
+import { Competence, NiveauGroupe, Matiere, estGisement } from '../types';
 import type { ConfigComplete } from '../config/schema';
 import type { EtatPartage } from '../etat';
 import { EntiteBatiment } from './batiment';
 import { TypeEvenement } from '../journal/journal';
 import type { Individu } from '../entites/individu';
+import { SAVOIR_PAR_BATIMENT, RESSOURCE_PAR_MATIERE } from '../savoir/arbreTechnologique';
+
+import { connaissancesGroupe } from '../savoir/systemeSavoir';
+import { matiereGisement } from '../monde/generateur';
 
 export function decisionConstructionMensuelle(etat: EtatPartage, config: ConfigComplete): void {
   const cfgB = config.batiments;
@@ -34,6 +38,29 @@ export function decisionConstructionMensuelle(etat: EtatPartage, config: ConfigC
         type = 'champ';
         tx = champ.x;
         ty = champ.y;
+      }
+    }
+    if (!type) {
+      const connus = connaissancesGroupe(etat, groupe.id);
+      for (const [typeBat, savoirNom] of Object.entries(SAVOIR_PAR_BATIMENT)) {
+        if (groupe.aUnBatiment(typeBat, etat.batiments)) continue;
+        const idSavoir = etat.savoir.tous().find((c) => c.nom === savoirNom)?.id;
+        if (idSavoir === undefined || !connus.has(idSavoir)) continue;
+        const def = cfgB.types[typeBat];
+        if (!def) continue;
+        if (def.ressource) {
+          const gisement = trouverGisement(monde, campX, campY, def.ressource, config.societe.rayonRechercheGisementTuiles);
+          if (!gisement) continue;
+          tx = gisement.x;
+          ty = gisement.y;
+        } else {
+          const voisin = trouverCaseLibre(monde, campX, campY);
+          if (!voisin) continue;
+          tx = voisin.x;
+          ty = voisin.y;
+        }
+        type = typeBat;
+        break;
       }
     }
     if (!type) continue;
@@ -146,6 +173,117 @@ export function usureMensuelleBatiments(etat: EtatPartage, config: ConfigComplet
       tuileX: b.x,
       tuileY: b.y,
     });
+  }
+}
+
+function trouverGisement(monde: EtatPartage['monde'], x: number, y: number, ressource: string, rayon: number): { x: number; y: number } | null {
+  const matiereCible = matiereGisement(ressource);
+  for (let r = 2; r <= rayon; r += 2) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!monde.dansLimites(nx, ny)) continue;
+        const elev = monde.elevationTuile(nx, ny);
+        if (monde.matiereNiveau(nx, ny, elev) === matiereCible && monde.quantiteGisement[monde.indexNiveau(nx, ny, elev)] > 0) {
+          return { x: nx, y: ny };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function trouverCaseLibre(monde: EtatPartage['monde'], x: number, y: number): { x: number; y: number } | null {
+  for (const [nx, ny] of monde.voisins8(x, y)) {
+    if (!monde.estEau(nx, ny) && !estGisement(monde.matiereNiveau(nx, ny, monde.elevationTuile(nx, ny)))) return { x: nx, y: ny };
+  }
+  if (!monde.estEau(x, y)) return { x, y };
+  return null;
+}
+
+export function extractionMensuelle(etat: EtatPartage, config: ConfigComplete): void {
+  const cfgB = config.batiments;
+  const cfgS = config.societe;
+  for (const b of etat.batiments.values()) {
+    if (b.enConstruction) continue;
+    const def = cfgB.types[b.type];
+    if (!def || !def.ressource) continue;
+    const monde = etat.monde;
+    const i = monde.index(b.x, b.y);
+    const elev = monde.elevationTuile(b.x, b.y);
+    const idxNiveau = monde.indexNiveau(b.x, b.y, elev);
+    const m = monde.matiereNiveau(b.x, b.y, elev);
+    if (!estGisement(m) || RESSOURCE_PAR_MATIERE_ENUM[m] !== def.ressource) continue;
+    const dispo = monde.quantiteGisement[idxNiveau];
+    const pris = Math.min(dispo, cfgS.extractionParMoisParMine);
+    monde.quantiteGisement[idxNiveau] = dispo - pris;
+    const groupe = b.groupeId !== null ? etat.groupes.get(b.groupeId) : undefined;
+    if (groupe) groupe.stocksCommuns[def.ressource] = (groupe.stocksCommuns[def.ressource] ?? 0) + pris;
+    if (monde.quantiteGisement[idxNiveau] <= 0) {
+      monde.matiere[idxNiveau] = Matiere.Terre;
+      etat.journal.ajouter({
+        date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
+        type: TypeEvenement.Monde,
+        sujet: 'Gisement épuisé',
+        description: `Le gisement de ${def.ressource} près de (${b.x}, ${b.y}) est épuisé.`,
+        individusImpliques: [],
+        tuileX: b.x,
+        tuileY: b.y,
+      });
+    }
+    void i;
+  }
+}
+
+const RESSOURCE_PAR_MATIERE_ENUM: Partial<Record<Matiere, string>> = {
+  [Matiere.Charbon]: 'charbon',
+  [Matiere.Gaz]: 'gaz',
+  [Matiere.Uranium]: 'uranium',
+  [Matiere.Petrole]: 'petrole',
+  [Matiere.Fer]: 'fer',
+  [Matiere.Cuivre]: 'cuivre',
+  [Matiere.Etain]: 'etain',
+  [Matiere.Or]: 'or',
+  [Matiere.Argent]: 'argent',
+  [Matiere.Sel]: 'sel',
+};
+
+void RESSOURCE_PAR_MATIERE;
+
+export function pollutionMensuelle(etat: EtatPartage, config: ConfigComplete): void {
+  const cfgB = config.batiments;
+  const cfgS = config.societe;
+  const monde = etat.monde;
+  for (const b of etat.batiments.values()) {
+    if (b.enConstruction) continue;
+    const def = cfgB.types[b.type];
+    if (!def || !def.polluant) continue;
+    if (b.type === 'centrale-charbon') {
+      const groupe = b.groupeId !== null ? etat.groupes.get(b.groupeId) : undefined;
+      const stock = groupe?.stocksCommuns.charbon ?? 0;
+      if (stock < cfgS.consommationCharbonCentraleParMois) continue;
+      if (groupe) groupe.stocksCommuns.charbon = stock - cfgS.consommationCharbonCentraleParMois;
+    }
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        const nx = b.x + dx;
+        const ny = b.y + dy;
+        if (!monde.dansLimites(nx, ny)) continue;
+        const d = Math.hypot(dx, dy);
+        if (d > 3) continue;
+        const i = monde.index(nx, ny);
+        monde.pollution[i] = Math.min(1, monde.pollution[i] + cfgS.pollutionParMoisParBatimentPolluant * (1 - d / 4));
+        if (monde.pollution[i] > cfgS.seuilPollutionSante) {
+          monde.biomasseVegetation[i] = Math.max(0, monde.biomasseVegetation[i] - cfgS.perteBiomassePollutionParMois);
+        }
+      }
+    }
+  }
+  const t = monde.taille;
+  for (let i = 0; i < t * t; i++) {
+    if (monde.pollution[i] > 0) monde.pollution[i] = Math.max(0, monde.pollution[i] - 0.01);
   }
 }
 

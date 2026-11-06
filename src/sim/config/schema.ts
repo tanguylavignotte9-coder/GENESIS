@@ -135,6 +135,20 @@ export interface ConfigSociete {
   poidsAgeDirigeant: number;
   poidsCharismeDirigeant: number;
   rayonTerritoireBatimentsTuiles: number;
+  seuilIntelligenceGenie: number;
+  chancePerceeParMois: number;
+  tauxTransmissionMaitreParMois: number;
+  tauxTransmissionEcritureParMois: number;
+  tauxTransmissionEcoleParMois: number;
+  extractionParMoisParMine: number;
+  seuilTerritoireNationTuiles: number;
+  pollutionParMoisParBatimentPolluant: number;
+  seuilPollutionSante: number;
+  perteSantePollutionParMois: number;
+  perteBiomassePollutionParMois: number;
+  consommationCharbonCentraleParMois: number;
+  chanceFrappeMonnaieParMois: number;
+  rayonRechercheGisementTuiles: number;
 }
 
 export interface ConfigEconomie {
@@ -145,6 +159,7 @@ export interface ConfigEconomie {
   seuilEcartValeurPourEchange: number;
   porteeMarcheTuiles: number;
   valeurBaseObjets: Record<string, number>;
+  valeurPiece: number;
   chanceFabricationParMois: number;
   chanceTrocParMois: number;
   usureObjetParMois: number;
@@ -154,7 +169,7 @@ export interface ConfigBatiments {
   dureeConstructionBaseJours: number;
   usureParMois: number;
   capaciteGrenierBase: number;
-  types: Record<string, { materiaux: Record<string, number>; dureeJours: number }>;
+  types: Record<string, { materiaux: Record<string, number>; dureeJours: number; polluant?: boolean; ressource?: string }>;
 }
 
 export interface ConfigRecit {

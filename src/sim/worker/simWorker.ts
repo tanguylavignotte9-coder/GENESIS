@@ -1,6 +1,7 @@
 import { Simulation } from '../simulation';
 import { TypeEvenement, type Evenement } from '../journal/journal';
 import { sagaDuMoment, biographie, chroniqueGroupe } from '../recit/chroniques';
+import { ereGroupe } from '../savoir/systemeSavoir';
 import type { ConfigComplete } from '../config/schema';
 import { serialiserSimulation, deserialiserSimulation } from '../sauvegarde/serialiseur';
 
@@ -176,6 +177,7 @@ ctx.onmessage = (e: MessageEvent) => {
           fiche: {
             nom: g.nom,
             niveau: g.niveau,
+            ere: ereGroupe(sim.etat, g.id).nom,
             fondeLe: g.fondeLe,
             parentId: g.parentId,
             couleur: g.couleur,
@@ -191,6 +193,64 @@ ctx.onmessage = (e: MessageEvent) => {
             politiques: { ...g.politiques },
           },
         });
+        break;
+      }
+      case 'ecranEconomie': {
+        if (!sim) break;
+        const objetsParType: Record<string, number> = {};
+        let monnaieTotale = 0;
+        for (const o of sim.etat.objets.values()) objetsParType[o.type] = (objetsParType[o.type] ?? 0) + 1;
+        const stocks = Array.from(sim.etat.groupes.values()).map((g) => {
+          monnaieTotale += g.stocksCommuns.monnaie ?? 0;
+          return { nom: g.nom, stocks: { ...g.stocksCommuns } };
+        });
+        ctx.postMessage({ type: 'ecranEconomie', donnees: { objetsParType, nbObjets: sim.etat.objets.size, monnaieTotale, stocks } });
+        break;
+      }
+      case 'ecranReligions': {
+        if (!sim) break;
+        const religions = Array.from(sim.etat.religions.values()).map((r) => {
+          const parent = r.parentId !== null ? sim!.etat.religions.get(r.parentId) : undefined;
+          const prophete = sim!.etat.individus.get(r.propheteId);
+          const croyants = Array.from(sim!.etat.individus.values()).filter((i) => i.religionId === r.id && i.vivant).length;
+          return {
+            id: r.id, nom: r.nom, propheteNom: prophete?.nom ?? '?', dieux: r.dieux, tabous: r.tabous,
+            joursSacres: r.joursSacres, parentNom: parent?.nom ?? null, croyants, fondeeLe: r.fondeeLe,
+          };
+        });
+        ctx.postMessage({ type: 'ecranReligions', donnees: religions });
+        break;
+      }
+      case 'ecranLangues': {
+        if (!sim) break;
+        const langues = Array.from(sim.etat.langues.values()).map((l) => {
+          const parent = l.parentId !== null ? sim!.etat.langues.get(l.parentId) : undefined;
+          const groupes = Array.from(sim!.etat.groupes.values()).filter((g) => g.langueId === l.id).length;
+          const individus = Array.from(sim!.etat.individus.values()).filter((i) => i.langueId === l.id && i.vivant).length;
+          return { id: l.id, nom: l.nom, parentNom: parent?.nom ?? null, divergence: Math.round(l.divergence * 100) / 100, groupes, individus };
+        });
+        ctx.postMessage({ type: 'ecranLangues', donnees: langues });
+        break;
+      }
+      case 'genealogie': {
+        if (!sim) break;
+        const arbre = (id: number, profondeur: number): unknown => {
+          if (profondeur > 5) return null;
+          const ind = sim!.etat.individus.get(id);
+          if (!ind) return null;
+          return {
+            id: ind.id,
+            nom: ind.nom,
+            age: Math.round(ind.ageAnnees),
+            sexe: ind.sexe === 0 ? 'H' : 'F',
+            vivant: ind.vivant,
+            causeMort: ind.causeMort,
+            pere: ind.pereRegistre !== null ? arbre(ind.pereRegistre, profondeur + 1) : null,
+            mere: ind.mere !== null ? arbre(ind.mere, profondeur + 1) : null,
+            enfants: ind.enfants.map((e) => arbre(e, profondeur + 1)).filter((x) => x !== null),
+          };
+        };
+        ctx.postMessage({ type: 'genealogie', id: msg.id, arbre: arbre(msg.id as number, 0) });
         break;
       }
       case 'chronique': {

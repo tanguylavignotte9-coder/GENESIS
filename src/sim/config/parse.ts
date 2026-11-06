@@ -392,6 +392,20 @@ function validerSociete(o: Record<string, unknown>, erreurs: Erreurs) {
     poidsAgeDirigeant: exigerNombre(o, 'poidsAgeDirigeant', b, { min: 0, max: 1 }, erreurs)!,
     poidsCharismeDirigeant: exigerNombre(o, 'poidsCharismeDirigeant', b, { min: 0, max: 1 }, erreurs)!,
     rayonTerritoireBatimentsTuiles: exigerNombre(o, 'rayonTerritoireBatimentsTuiles', b, { min: 0, max: 100, entier: true }, erreurs)!,
+    seuilIntelligenceGenie: exigerNombre(o, 'seuilIntelligenceGenie', b, { min: 50, max: 100 }, erreurs)!,
+    chancePerceeParMois: exigerNombre(o, 'chancePerceeParMois', b, { min: 0, max: 1 }, erreurs)!,
+    tauxTransmissionMaitreParMois: exigerNombre(o, 'tauxTransmissionMaitreParMois', b, { min: 0, max: 1 }, erreurs)!,
+    tauxTransmissionEcritureParMois: exigerNombre(o, 'tauxTransmissionEcritureParMois', b, { min: 0, max: 1 }, erreurs)!,
+    tauxTransmissionEcoleParMois: exigerNombre(o, 'tauxTransmissionEcoleParMois', b, { min: 0, max: 1 }, erreurs)!,
+    extractionParMoisParMine: exigerNombre(o, 'extractionParMoisParMine', b, { min: 0.1, max: 10000 }, erreurs)!,
+    seuilTerritoireNationTuiles: exigerNombre(o, 'seuilTerritoireNationTuiles', b, { min: 10, max: 100000, entier: true }, erreurs)!,
+    pollutionParMoisParBatimentPolluant: exigerNombre(o, 'pollutionParMoisParBatimentPolluant', b, { min: 0, max: 1 }, erreurs)!,
+    seuilPollutionSante: exigerNombre(o, 'seuilPollutionSante', b, { min: 0, max: 1 }, erreurs)!,
+    perteSantePollutionParMois: exigerNombre(o, 'perteSantePollutionParMois', b, { min: 0, max: 100 }, erreurs)!,
+    perteBiomassePollutionParMois: exigerNombre(o, 'perteBiomassePollutionParMois', b, { min: 0, max: 1000 }, erreurs)!,
+    consommationCharbonCentraleParMois: exigerNombre(o, 'consommationCharbonCentraleParMois', b, { min: 0, max: 100000 }, erreurs)!,
+    chanceFrappeMonnaieParMois: exigerNombre(o, 'chanceFrappeMonnaieParMois', b, { min: 0, max: 1 }, erreurs)!,
+    rayonRechercheGisementTuiles: exigerNombre(o, 'rayonRechercheGisementTuiles', b, { min: 5, max: 500, entier: true }, erreurs)!,
   };
 }
 
@@ -405,6 +419,7 @@ function validerEconomie(o: Record<string, unknown>, erreurs: Erreurs) {
     seuilEcartValeurPourEchange: exigerNombre(o, 'seuilEcartValeurPourEchange', b, { min: 0, max: 100 }, erreurs)!,
     porteeMarcheTuiles: exigerNombre(o, 'porteeMarcheTuiles', b, { min: 1, max: 1000, entier: true }, erreurs)!,
     valeurBaseObjets: exigerRecordNombres(o, 'valeurBaseObjets', b, { min: 0 }, erreurs)!,
+    valeurPiece: exigerNombre(o, 'valeurPiece', b, { min: 0.1, max: 10000 }, erreurs)!,
     chanceFabricationParMois: exigerNombre(o, 'chanceFabricationParMois', b, { min: 0, max: 1 }, erreurs)!,
     chanceTrocParMois: exigerNombre(o, 'chanceTrocParMois', b, { min: 0, max: 1 }, erreurs)!,
     usureObjetParMois: exigerNombre(o, 'usureObjetParMois', b, { min: 0, max: 1 }, erreurs)!,
@@ -420,7 +435,22 @@ function validerBatiments(o: Record<string, unknown>, erreurs: Erreurs) {
       if (!exigerObjet(v, chemin(b, `types.${k}`), erreurs)) continue;
       const materiaux = exigerRecordNombres(v, 'materiaux', chemin(b, `types.${k}`), { min: 0 }, erreurs) ?? {};
       const dureeJours = exigerNombre(v, 'dureeJours', chemin(b, `types.${k}`), { min: 0 }, erreurs);
-      if (dureeJours !== undefined) types[k] = { materiaux, dureeJours };
+      const polluant = v.polluant;
+      if (polluant !== undefined && typeof polluant !== 'boolean') {
+        erreurs.push(`${chemin(b, `types.${k}`)}.polluant: attend un booléen, reçu ${JSON.stringify(polluant)}`);
+      }
+      const ressource = v.ressource;
+      if (ressource !== undefined && typeof ressource !== 'string') {
+        erreurs.push(`${chemin(b, `types.${k}`)}.ressource: attend une chaîne, reçu ${JSON.stringify(ressource)}`);
+      }
+      if (dureeJours !== undefined) {
+        types[k] = {
+          materiaux,
+          dureeJours,
+          ...(typeof polluant === 'boolean' ? { polluant } : {}),
+          ...(typeof ressource === 'string' ? { ressource } : {}),
+        };
+      }
     }
   }
   return {

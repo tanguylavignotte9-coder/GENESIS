@@ -16,7 +16,8 @@ import { peuplerMonde, miseAJourMensuelleFaune, empreinteAnimaux } from './faune
 import { construireEspeces } from './faune/especes';
 import { poserBandesInitiales } from './entites/bandes';
 import { tickIndividu, indexAnimauxPourTick } from './entites/boucleIndividu';
-import { decisionConstructionMensuelle, usureMensuelleBatiments } from './batiments/systemeBatiments';
+import { decisionConstructionMensuelle, usureMensuelleBatiments, extractionMensuelle, pollutionMensuelle } from './batiments/systemeBatiments';
+import { perceesMensuelles, transmissionMensuelle } from './savoir/systemeSavoir';
 import { fabricationMensuelle, trocMensuel } from './economie/systemeEconomie';
 import { gouvernanceMensuelle, recalculerTerritoires } from './groupes/gouvernance';
 import { miseAJourLanguesMensuelle } from './culture/systemeLangues';
@@ -123,8 +124,12 @@ export class Simulation {
     miseAJourVegetationMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.config.fauneFlore, this.etat.rng, this.etat.champs);
     miseAJourMensuelleFaune(this.etat, this.config.fauneFlore);
     gouvernanceMensuelle(this.etat, this.config);
+    perceesMensuelles(this.etat, this.config);
+    transmissionMensuelle(this.etat, this.config);
     decisionConstructionMensuelle(this.etat, this.config);
     usureMensuelleBatiments(this.etat, this.config);
+    extractionMensuelle(this.etat, this.config);
+    pollutionMensuelle(this.etat, this.config);
     fabricationMensuelle(this.etat, this.config);
     trocMensuel(this.etat, this.config);
     miseAJourLanguesMensuelle(this.etat, this.config);

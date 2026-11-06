@@ -88,6 +88,16 @@ async function demarrer(): Promise<void> {
         banniere.innerHTML = `<span class="titre">✦ Saga du moment (an ${s.date.an}, mois ${s.date.mois})</span>${s.sujet} — ${s.description}`;
       } else if (msg.type === 'chronique') {
         afficherChronique(msg);
+      } else if (msg.type === 'ecranEconomie') {
+        afficherEcran('📊 Économie', afficherDonneesEconomie(msg.donnees as Record<string, unknown>));
+      } else if (msg.type === 'ecranReligions') {
+        afficherEcran('⛪ Religions', (msg.donnees as Array<Record<string, unknown>>).map((r) =>
+          ligne(r.nom as string, `${r.croyants} croyants — prophète ${r.propheteNom} — dieux: ${(r.dieux as string[]).join(', ')} — tabous: ${(r.tabous as string[]).join(', ')}${r.parentNom ? ` — schisme de ${r.parentNom}` : ''}`)).join('') || '<div>Aucune religion.</div>');
+      } else if (msg.type === 'ecranLangues') {
+        afficherEcran('🗣 Langues', (msg.donnees as Array<Record<string, unknown>>).map((l) =>
+          ligne(l.nom as string, `${l.individus} locuteurs, ${l.groupes} groupe(s), divergence ${l.divergence}${l.parentNom ? ` — née de ${l.parentNom}` : ''}`)).join('') || '<div>Une seule langue.</div>');
+      } else if (msg.type === 'genealogie') {
+        afficherEcran('🌳 Arborescence', arbreHtml(msg.arbre));
       } else if (msg.type === 'erreur') {
         console.error(msg.message);
       }
@@ -178,6 +188,7 @@ async function demarrer(): Promise<void> {
     const bats = (fiche.batiments as Array<{ type: string; x: number; y: number; durabilite: number; enConstruction: boolean }>) ?? [];
     const html = [
       ligne('Niveau', niveaux[Number(fiche.niveau)] ?? fiche.niveau),
+      ligne('Ère', fiche.ere ?? '—'),
       ligne('Dirigeant', fiche.dirigeantNom ?? '—'),
       ligne('Membres vivants', `${fiche.membresVivants} / ${fiche.membresTotal}`),
       ligne('Bonheur moyen', `${fiche.bonheurMoyen}/100`),
@@ -237,6 +248,47 @@ async function demarrer(): Promise<void> {
   $('btnChronique').addEventListener('click', () => {
     if (ficheCouranteId >= 0) worker?.postMessage({ type: 'chronique', id: ficheCouranteId });
   });
+
+  $('btnEco').addEventListener('click', () => worker?.postMessage({ type: 'ecranEconomie' }));
+  $('btnReligions').addEventListener('click', () => worker?.postMessage({ type: 'ecranReligions' }));
+  $('btnLangues').addEventListener('click', () => worker?.postMessage({ type: 'ecranLangues' }));
+  $('btnGenealogie').addEventListener('click', () => {
+    if (ficheCouranteId >= 0) worker?.postMessage({ type: 'genealogie', id: ficheCouranteId });
+  });
+
+  function afficherEcran(titre: string, html: string): void {
+    $('fiche').style.display = 'flex';
+    $('ficheTitre').textContent = titre;
+    ficheCouranteId = -1;
+    $('btnFavori').textContent = '⭐ Favori';
+    $('ficheContenu').innerHTML = html;
+  }
+
+  function afficherDonneesEconomie(d: Record<string, unknown>): string {
+    const parType = Object.entries(d.objetsParType as Record<string, number>).map(([k, v]) => `${k} ×${v}`).join(', ');
+    const stocks = (d.stocks as Array<{ nom: string; stocks: Record<string, number> }>).map((g) => {
+      const s = Object.entries(g.stocks).map(([k, v]) => `${k} ${Math.round(v)}`).join(', ');
+      return `<div style="margin:4px 0;"><b>${g.nom}</b><br/><span style="color:#9fb0d0;">${s || '—'}</span></div>`;
+    }).join('');
+    return [
+      ligne('Objets fabriqués', `${d.nbObjets} (${parType || '—'})`),
+      ligne('Monnaie totale (pièces)', `${Math.round((d.monnaieTotale as number) * 10) / 10}`),
+      '<h3 style="margin:8px 0 4px 0;font-size:12px;color:#9fb0d0;">Stocks par groupe</h3>',
+      stocks || '<div>—</div>',
+    ].join('');
+  }
+
+  function arbreHtml(noeud: unknown, profondeur = 0): string {
+    if (!noeud) return '';
+    const n = noeud as { id: number; nom: string; age: number; sexe: string; vivant: boolean; causeMort: string | null; pere: unknown; mere: unknown; enfants: unknown[] };
+    const indent = '&nbsp;'.repeat(profondeur * 4);
+    const etat = n.vivant ? `${n.age} ans` : `mort (${n.causeMort})`;
+    let html = `<div style="margin:2px 0;">${indent}${n.sexe} <b>${n.nom}</b> <span style="color:#9fb0d0;">${etat}</span></div>`;
+    html += arbreHtml(n.pere, profondeur + 1);
+    html += arbreHtml(n.mere, profondeur + 1);
+    for (const e of n.enfants) html += arbreHtml(e, profondeur + 1);
+    return html;
+  }
 
   function afficherChronique(msg: Record<string, unknown>): void {
     const evenements = (msg.evenements as Evenement[]) ?? [];

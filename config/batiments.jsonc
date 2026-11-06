@@ -28,6 +28,26 @@
     "marche": { "materiaux": { "bois": 20, "pierre": 10 }, "dureeJours": 5 },
     "ecole": { "materiaux": { "bois": 24, "pierre": 12 }, "dureeJours": 8 },
     "forge": { "materiaux": { "pierre": 20, "bois": 10 }, "dureeJours": 8 },
-    "moulin": { "materiaux": { "bois": 18, "pierre": 6 }, "dureeJours": 6 }
+    "moulin": { "materiaux": { "bois": 18, "pierre": 6 }, "dureeJours": 6 },
+    "atelier": { "materiaux": { "bois": 16, "pierre": 8 }, "dureeJours": 6 },
+    "marche": { "materiaux": { "bois": 20, "pierre": 10 }, "dureeJours": 5 },
+    "ecole": { "materiaux": { "bois": 24, "pierre": 12 }, "dureeJours": 8 },
+    "forge": { "materiaux": { "pierre": 20, "bois": 10 }, "dureeJours": 8, "polluant": true },
+    "banque": { "materiaux": { "pierre": 30, "bois": 12 }, "dureeJours": 10 },
+    "carriere": { "materiaux": { "bois": 6 }, "dureeJours": 3 },
+    "mine-fer": { "materiaux": { "bois": 14, "pierre": 6 }, "dureeJours": 8, "polluant": true, "ressource": "fer" },
+    "mine-cuivre": { "materiaux": { "bois": 14, "pierre": 6 }, "dureeJours": 8, "polluant": true, "ressource": "cuivre" },
+    "mine-etain": { "materiaux": { "bois": 14, "pierre": 6 }, "dureeJours": 8, "polluant": true, "ressource": "etain" },
+    "mine-or": { "materiaux": { "bois": 12, "pierre": 6 }, "dureeJours": 8, "polluant": true, "ressource": "or" },
+    "mine-argent": { "materiaux": { "bois": 12, "pierre": 6 }, "dureeJours": 8, "polluant": true, "ressource": "argent" },
+    "mine-sel": { "materiaux": { "bois": 8 }, "dureeJours": 4, "ressource": "sel" },
+    "mine-charbon": { "materiaux": { "bois": 16, "pierre": 8 }, "dureeJours": 9, "polluant": true, "ressource": "charbon" },
+    "puits-gaz": { "materiaux": { "bois": 16, "pierre": 10 }, "dureeJours": 10, "polluant": true, "ressource": "gaz" },
+    "puits-petrole": { "materiaux": { "bois": 18, "pierre": 12 }, "dureeJours": 12, "polluant": true, "ressource": "petrole" },
+    "mine-uranium": { "materiaux": { "pierre": 20, "bois": 10 }, "dureeJours": 12, "polluant": true, "ressource": "uranium" },
+    "centrale-charbon": { "materiaux": { "pierre": 40, "bois": 20 }, "dureeJours": 15, "polluant": true },
+    "centrale-gaz": { "materiaux": { "pierre": 40, "bois": 20 }, "dureeJours": 15, "polluant": true },
+    "centrale-nucleaire": { "materiaux": { "pierre": 60, "bois": 20 }, "dureeJours": 20, "polluant": true },
+    "raffinerie": { "materiaux": { "pierre": 35, "bois": 15 }, "dureeJours": 14, "polluant": true }
   }
 }

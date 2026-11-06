@@ -1,9 +1,29 @@
 import { app, BrowserWindow, ipcMain, protocol } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 
 import { lireDossierConfig } from '../sim/config/lireDisque';
 import { parserConfig, ErreurConfig } from '../sim/config/parse';
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, bypassCSP: false } },
+]);
+
+function journaliserErreur(source: string, err: unknown): void {
+  const ligne = `[${new Date().toISOString()}] ${source}: ${(err as Error)?.stack ?? String(err)}\n`;
+  console.error(ligne);
+  try {
+    const dossier = app && app.isReady() ? app.getPath('userData') : os.tmpdir();
+    fs.mkdirSync(dossier, { recursive: true });
+    fs.appendFileSync(path.join(dossier, 'genesis-erreur.log'), ligne);
+  } catch {
+    /* ignore */
+  }
+}
+
+process.on('uncaughtException', (err) => journaliserErreur('uncaughtException', err));
+process.on('unhandledRejection', (err) => journaliserErreur('unhandledRejection', err));
 
 const DOSSIER_RENDERER = path.resolve(__dirname, '../renderer');
 
@@ -30,14 +50,11 @@ const TYPES_MIME: Record<string, string> = {
 };
 
 function enregistrerProtocole(): void {
-  protocol.registerSchemesAsPrivileged([
-    { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
-  ]);
   protocol.handle('app', (requete) => {
     const url = new URL(requete.url);
     let cheminRel = decodeURIComponent(url.pathname);
     if (cheminRel === '/' || cheminRel === '/index.html') cheminRel = '/index.html';
-    const fichier = path.join(DOSSIER_RENDERER, cheminRel);
+    const fichier = path.normalize(path.join(DOSSIER_RENDERER, cheminRel));
     if (!fichier.startsWith(DOSSIER_RENDERER)) {
       return new Response('Interdit', { status: 403 });
     }
@@ -104,7 +121,21 @@ function creerFenetre(): void {
       nodeIntegration: false,
     },
   });
-  fenetre.loadURL('app://index.html');
+  fenetre.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    journaliserErreur('did-fail-load', new Error(`${code} ${desc} ${url}`));
+  });
+  fenetre.webContents.on('render-process-gone', (_e, details) => {
+    journaliserErreur('render-process-gone', new Error(JSON.stringify(details)));
+  });
+  fenetre.loadURL('app://index.html').catch((err) => {
+    journaliserErreur('loadURL', err);
+    fenetre.loadURL(
+      'data:text/html;charset=utf-8,' +
+        encodeURIComponent(
+          `<html><body style="background:#14100a;color:#f0d9a8;font-family:sans-serif;padding:40px"><h1>Genesis n'a pas pu charger</h1><p>${String(err)}</p><p>Journal : genesis-erreur.log dans le dossier des données.</p></body></html>`,
+        ),
+    );
+  });
 }
 
 app.whenReady().then(() => {

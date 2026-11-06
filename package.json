@@ -9,35 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "bench": "npm run build && node dist/scripts/banc.js",
-    "start": "npm run build && electron .",
-    "pack": "npm run build && electron-builder --win --x64 --publish never",
-    "pack:portable": "npm run build && electron-builder --win --x64 --publish never --config.win.target=portable"
-  },
-  "build": {
-    "appId": "com.genesis.simulateur",
-    "productName": "Genesis",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      "config/**/*"
-    ],
-    "win": {
-      "target": ["portable", "nsis"],
-      "artifactName": "Genesis-${version}-win-x64.${ext}"
-    },
-    "portable": {
-      "artifactName": "Genesis-${version}-portable.exe"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "artifactName": "Genesis-${version}-setup.exe"
-    }
+    "start": "npm run build && electron ."
   },
   "dependencies": {
     "pixi.js": "8.22.0"
@@ -45,7 +17,6 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "electron": "45.2.3",
-    "electron-builder": "26.18.0",
     "esbuild": "0.28.2",
     "typescript": "5.9.3",
     "vitest": "5.1.0"

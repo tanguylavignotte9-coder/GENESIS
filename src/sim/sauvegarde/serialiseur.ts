@@ -10,6 +10,7 @@ import { Langue } from '../culture/langue';
 import type { Religion } from '../culture/religion';
 import { GrapheSavoir } from '../savoir/connaissance';
 import { Animal } from '../faune/animal';
+import { EntiteVehicule } from '../transport/vehicule';
 import type { ConfigComplete } from '../config/schema';
 import type { ParametresDepart } from '../etat';
 import { Simulation } from '../simulation';
@@ -35,7 +36,9 @@ export function serialiserSimulation(sim: Simulation, empreinteConfig: Record<st
       religions: Array.from(etat.religions.values()),
       savoir: etat.savoir.serialiser(),
       animaux: Array.from(etat.animaux.values()).map((a) => a.serialiser()),
+      vehicules: Array.from(etat.vehicules.values()).map((v) => v.serialiser()),
       champs: Array.from(etat.champs),
+      prochainIdVehicule: etat.prochainIdVehicule,
       parametresDepart: { ...etat.parametresDepart },
       prochainIdAnimal: etat.prochainIdAnimal,
       prochainIdIndividu: etat.prochainIdIndividu,
@@ -101,6 +104,8 @@ export function deserialiserSimulation(
   const animaux = new Map<number, Animal>();
   for (const d of (e.animaux as Record<string, unknown>[]) ?? []) animaux.set(d.id as number, Animal.restaurer(d));
   const champs = new Set<number>((e.champs as number[]) ?? []);
+  const vehicules = new Map<number, EntiteVehicule>();
+  for (const d of (e.vehicules as Record<string, unknown>[]) ?? []) vehicules.set(d.id as number, EntiteVehicule.restaurer(d));
   const sim = new Simulation(config, brut.seed);
   sim.etat.monde = monde;
   sim.etat.calendrier = calendrier;
@@ -114,7 +119,9 @@ export function deserialiserSimulation(
   sim.etat.religions = religions;
   sim.etat.savoir = savoir;
   sim.etat.animaux = animaux;
+  sim.etat.vehicules = vehicules;
   sim.etat.champs = champs;
+  sim.etat.prochainIdVehicule = (e.prochainIdVehicule as number) ?? 1;
   sim.etat.parametresDepart = (e.parametresDepart as ParametresDepart) ?? { seed: brut.seed, nbBandes: config.societe.bandesInitialesMin, tailleBande: config.societe.tailleBandeInitialeMin };
   sim.etat.prochainIdIndividu = e.prochainIdIndividu as number;
   sim.etat.prochainIdAnimal = e.prochainIdAnimal as number;

@@ -10,6 +10,7 @@ import type { Langue } from './culture/langue';
 import type { Religion } from './culture/religion';
 import type { GrapheSavoir } from './savoir/connaissance';
 import type { Animal } from './faune/animal';
+import type { EntiteVehicule } from './transport/vehicule';
 
 export interface ParametresDepart {
   seed: number;
@@ -30,10 +31,12 @@ export interface EtatPartage {
   religions: Map<number, Religion>;
   savoir: GrapheSavoir;
   animaux: Map<number, Animal>;
+  vehicules: Map<number, EntiteVehicule>;
   champs: Set<number>;
   parametresDepart: ParametresDepart;
   prochainIdIndividu: number;
   prochainIdAnimal: number;
+  prochainIdVehicule: number;
   prochainIdGroupe: number;
   prochainIdObjet: number;
   prochainIdBatiment: number;

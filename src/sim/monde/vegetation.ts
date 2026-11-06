@@ -46,6 +46,13 @@ export function miseAJourVegetationMensuelle(monde: Monde, calendrier: Calendrie
       if (nouvelle !== monde.vegetation[i] && (saison === Saison.Hiver || monde.biomasseVegetation[i] > 30 || nouvelle === Vegetation.Aucun || nouvelle === Vegetation.Desert)) {
         monde.vegetation[i] = nouvelle;
       }
+      if (monde.passage[i] > 0) {
+        monde.passage[i] = Math.max(0, monde.passage[i] - configMonde.decroissancePassageParMois);
+      }
+      if (monde.passage[i] >= configMonde.seuilPassageSentier && !monde.estEau(x, y)) {
+        if (monde.vegetation[i] !== Vegetation.Aucun) monde.vegetation[i] = Vegetation.Aucun;
+        monde.biomasseVegetation[i] = Math.min(monde.biomasseVegetation[i], 10);
+      }
     }
   }
 }

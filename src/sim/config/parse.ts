@@ -229,6 +229,8 @@ function validerMonde(o: Record<string, unknown>, erreurs: Erreurs) {
     perteHumiditeSecheresse: exigerNombre(o, 'perteHumiditeSecheresse', b, { min: 0, max: 100 }, erreurs)!,
     seuilNeigeCelsius: exigerNombre(o, 'seuilNeigeCelsius', b, { min: -30, max: 30 }, erreurs)!,
     seuilGelEauCelsius: exigerNombre(o, 'seuilGelEauCelsius', b, { min: -30, max: 10 }, erreurs)!,
+    seuilPassageSentier: exigerNombre(o, 'seuilPassageSentier', b, { min: 1, max: 65535, entier: true }, erreurs)!,
+    decroissancePassageParMois: exigerNombre(o, 'decroissancePassageParMois', b, { min: 0, max: 1000 }, erreurs)!,
     gisements: gisements as ConfigComplete['monde']['gisements'],
   };
 }
@@ -409,6 +411,12 @@ function validerSociete(o: Record<string, unknown>, erreurs: Erreurs) {
     consommationCharbonCentraleParMois: exigerNombre(o, 'consommationCharbonCentraleParMois', b, { min: 0, max: 100000 }, erreurs)!,
     chanceFrappeMonnaieParMois: exigerNombre(o, 'chanceFrappeMonnaieParMois', b, { min: 0, max: 1 }, erreurs)!,
     rayonRechercheGisementTuiles: exigerNombre(o, 'rayonRechercheGisementTuiles', b, { min: 5, max: 500, entier: true }, erreurs)!,
+    seuilBonheurDepart: exigerNombre(o, 'seuilBonheurDepart', b, { min: 0, max: 100 }, erreurs)!,
+    chanceDepartIndividuelParMois: exigerNombre(o, 'chanceDepartIndividuelParMois', b, { min: 0, max: 1 }, erreurs)!,
+    chanceSchismeParMois: exigerNombre(o, 'chanceSchismeParMois', b, { min: 0, max: 1 }, erreurs)!,
+    seuilBiomasseMigration: exigerNombre(o, 'seuilBiomasseMigration', b, { min: 0, max: 100000 }, erreurs)!,
+    porteeRechercheNouvelleTerreTuiles: exigerNombre(o, 'porteeRechercheNouvelleTerreTuiles', b, { min: 10, max: 2000, entier: true }, erreurs)!,
+    chanceNaufrageParMois: exigerNombre(o, 'chanceNaufrageParMois', b, { min: 0, max: 1 }, erreurs)!,
   };
 }
 
@@ -426,6 +434,8 @@ function validerEconomie(o: Record<string, unknown>, erreurs: Erreurs) {
     chanceFabricationParMois: exigerNombre(o, 'chanceFabricationParMois', b, { min: 0, max: 1 }, erreurs)!,
     chanceTrocParMois: exigerNombre(o, 'chanceTrocParMois', b, { min: 0, max: 1 }, erreurs)!,
     usureObjetParMois: exigerNombre(o, 'usureObjetParMois', b, { min: 0, max: 1 }, erreurs)!,
+    chanceFermentationParMois: exigerNombre(o, 'chanceFermentationParMois', b, { min: 0, max: 1 }, erreurs)!,
+    chanceConsommationFermenteParMois: exigerNombre(o, 'chanceConsommationFermenteParMois', b, { min: 0, max: 1 }, erreurs)!,
   };
 }
 
@@ -446,12 +456,22 @@ function validerBatiments(o: Record<string, unknown>, erreurs: Erreurs) {
       if (ressource !== undefined && typeof ressource !== 'string') {
         erreurs.push(`${chemin(b, `types.${k}`)}.ressource: attend une chaîne, reçu ${JSON.stringify(ressource)}`);
       }
+      const vehicule = v.vehicule;
+      if (vehicule !== undefined && typeof vehicule !== 'boolean') {
+        erreurs.push(`${chemin(b, `types.${k}`)}.vehicule: attend un booléen, reçu ${JSON.stringify(vehicule)}`);
+      }
+      const capacite = v.capacite;
+      if (capacite !== undefined && (typeof capacite !== 'number' || capacite < 0)) {
+        erreurs.push(`${chemin(b, `types.${k}`)}.capacite: attend un nombre >= 0, reçu ${JSON.stringify(capacite)}`);
+      }
       if (dureeJours !== undefined) {
         types[k] = {
           materiaux,
           dureeJours,
           ...(typeof polluant === 'boolean' ? { polluant } : {}),
           ...(typeof ressource === 'string' ? { ressource } : {}),
+          ...(typeof vehicule === 'boolean' ? { vehicule } : {}),
+          ...(typeof capacite === 'number' ? { capacite } : {}),
         };
       }
     }
@@ -482,13 +502,81 @@ function validerRecit(o: Record<string, unknown>, erreurs: Erreurs) {
     moisStressMaxAvantFolie: exigerNombre(o, 'moisStressMaxAvantFolie', b, { min: 1, max: 100, entier: true }, erreurs)!,
     chanceFolieParMois: exigerNombre(o, 'chanceFolieParMois', b, { min: 0, max: 1 }, erreurs)!,
     chanceErranceFolie: exigerNombre(o, 'chanceErranceFolie', b, { min: 0, max: 1 }, erreurs)!,
+    chanceTransmissionRumeurParMois: exigerNombre(o, 'chanceTransmissionRumeurParMois', b, { min: 0, max: 1 }, erreurs)!,
   };
+}
+
+export function detecterClesDupliquees(texte: string): string[] {
+  const sansCommentaires = depouillerCommentaires(texte);
+  const doublons: string[] = [];
+  const pile: Array<Set<string>> = [];
+  let i = 0;
+  let dansChaine = false;
+  let chaine = '';
+  while (i < sansCommentaires.length) {
+    const c = sansCommentaires[i];
+    if (dansChaine) {
+      if (c === '\\') {
+        i += 2;
+        continue;
+      }
+      if (c === chaine) dansChaine = false;
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      dansChaine = true;
+      chaine = c;
+      i++;
+      continue;
+    }
+    if (c === '{') {
+      pile.push(new Set());
+      i++;
+      continue;
+    }
+    if (c === '}') {
+      pile.pop();
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      i++;
+      continue;
+    }
+    if (c === ':' && pile.length > 0) {
+      let j = i - 1;
+      while (j >= 0 && (sansCommentaires[j] === ' ' || sansCommentaires[j] === '\t' || sansCommentaires[j] === '\n' || sansCommentaires[j] === '\r')) j--;
+      if (j >= 0 && (sansCommentaires[j] === '"' || sansCommentaires[j] === "'")) {
+        const fin = sansCommentaires[j];
+        let k = j - 1;
+        let cle = '';
+        while (k >= 0 && sansCommentaires[k] !== fin) {
+          cle = sansCommentaires[k] + cle;
+          k--;
+        }
+        const niveau = pile[pile.length - 1];
+        if (niveau.has(cle)) doublons.push(cle);
+        else niveau.add(cle);
+      }
+    }
+    i++;
+  }
+  return doublons;
 }
 
 export function parserConfig(textes: Record<string, string>): { config: ConfigComplete; empreintes: Record<string, string> } {
   const empreintes: Record<string, string> = {};
+  const erreursInit: string[] = [];
   for (const nom of NOMS_FICHIERS_CONFIG) {
     empreintes[nom] = empreinteTexte(textes[nom] ?? '');
+    const doublons = detecterClesDupliquees(textes[nom] ?? '');
+    for (const d of doublons) {
+      erreursInit.push(`${nom}.jsonc: clé dupliquée "${d}" (la seconde écrase la première)`);
+    }
+  }
+  if (erreursInit.length > 0) {
+    throw new ErreurConfig(erreursInit);
   }
   const erreurs: Erreurs = [];
   const config: ConfigComplete = {

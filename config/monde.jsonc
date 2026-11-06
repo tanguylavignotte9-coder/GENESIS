@@ -71,6 +71,12 @@
   // Seuil de température en dessous duquel l'eau douce gèle visuellement, en degrés Celsius (l'eau reste buvable en V1).
   "seuilGelEauCelsius": -2,
 
+  // Nombre de passages au-delà duquel une tuile devient un sentier visible (usure de la végétation par piétinement).
+  "seuilPassageSentier": 200,
+
+  // Disparition du sentier par mois (repousse lente), en points de passage.
+  "decroissancePassageParMois": 5,
+
   // Gisements : pour chaque ressource, nombre de gisements (min, max) et quantité initiale extractible (min, max, en unités de ressource).
   "gisements": {
     "charbon": { "nbMin": 20, "nbMax": 60, "quantiteMin": 500, "quantiteMax": 5000 },

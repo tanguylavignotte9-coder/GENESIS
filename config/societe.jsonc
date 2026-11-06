@@ -89,5 +89,23 @@
   "chanceFrappeMonnaieParMois": 0.5,
 
   // Rayon de recherche d'un gisement autour du camp pour y poser une mine, en tuiles.
-  "rayonRechercheGisementTuiles": 60
+  "rayonRechercheGisementTuiles": 60,
+
+  // Bonheur sous lequel un individu peut décider de quitter son groupe (départ individuel), 0 à 100.
+  "seuilBonheurDepart": 35,
+
+  // Probabilité de départ individuel par mois quand le seuil de bonheur est franchi, 0 à 1.
+  "chanceDepartIndividuelParMois": 0.05,
+
+  // Probabilité de schisme collectif par mois quand le bonheur moyen du groupe est sous le seuil de mécontentement, 0 à 1.
+  "chanceSchismeParMois": 0.03,
+
+  // Biomasse moyenne du territoire sous laquelle un groupe envisage une migration collective, 0 à biomasse max.
+  "seuilBiomasseMigration": 15,
+
+  // Rayon de recherche d'une nouvelle terre pour une migration collective, en tuiles.
+  "porteeRechercheNouvelleTerreTuiles": 120,
+
+  // Probabilité de naufrage par mois pour un bateau en mer, 0 à 1.
+  "chanceNaufrageParMois": 0.02
 }

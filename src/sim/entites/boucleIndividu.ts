@@ -8,8 +8,10 @@ import { animauxProches, construireIndexSpatial } from '../faune/systemeFaune';
 import { construireEspeces } from '../faune/especes';
 import { genererPrenom, nomComplet } from '../culture/noms';
 import { tickIndividuOuvrier } from '../batiments/chantier';
+import { travailVehicule } from '../transport/systemeTransport';
 import { peutCooperer } from '../culture/systemeLangues';
 import { religionsCompatibles } from '../culture/systemeReligion';
+import { aUnBateau } from '../transport/systemeTransport';
 
 export type IndexAnimaux = Map<number, number[]>;
 
@@ -48,6 +50,10 @@ export function santeMentaleMensuelle(etat: EtatPartage, config: ConfigComplete)
 export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Individu, jours: number, indexAnimaux: IndexAnimaux): void {
   if (!ind.vivant) return;
   if (ind.chantierId !== null) {
+    if (ind.chantierId < 0) {
+      travailVehicule(etat, config, ind, jours);
+      return;
+    }
     tickIndividuOuvrier(etat, config, ind, jours);
     return;
   }
@@ -130,6 +136,17 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
   }
 
   const groupe = ind.groupeId !== null ? etat.groupes.get(ind.groupeId) : undefined;
+  const hasBateau = groupe ? aUnBateau(etat, groupe.id) : false;
+
+  if (groupe?.migrationCible && ind.besoins.faim < 60 && rng.chance(facteurMois)) {
+    deplacerVers(etat, config, ind, groupe.migrationCible, jours, hasBateau);
+    return;
+  }
+
+  if (groupe && ind.bonheur < config.societe.seuilBonheurDepart && rng.chance(config.societe.chanceDepartIndividuelParMois * facteurMois * 30)) {
+    partirDuGroupe(etat, config, ind, groupe);
+    return;
+  }
 
   switch (besoinMax) {
     case 'faim': {
@@ -186,7 +203,7 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
             ind.competences[Competence.Chasse] = Math.min(100, comp + cfg.tauxApprentissageParMois * 12 * facteurMois);
           }
         } else {
-          deplacerVers(etat, config, ind, meilleureBiomasse(etat, ind, cfg.porteePerceptionTuiles), jours);
+          deplacerVers(etat, config, ind, meilleureBiomasse(etat, ind, cfg.porteePerceptionTuiles), jours, hasBateau);
         }
       }
       break;
@@ -203,7 +220,7 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
       if (eauProche) {
         ind.besoins.soif = clamp100(ind.besoins.soif - 80);
       } else {
-        deplacerVers(etat, config, ind, plusProcheEau(etat, ind, cfg.porteePerceptionTuiles), jours);
+        deplacerVers(etat, config, ind, plusProcheEau(etat, ind, cfg.porteePerceptionTuiles), jours, hasBateau);
       }
       break;
     }
@@ -214,8 +231,13 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
     }
     case 'securite': {
       if (predateurs.length > 0) {
+        const adjacent = predateurs.filter((p) => Math.hypot(p.positionX - ind.positionX, p.positionY - ind.positionY) <= 2.5);
+        if (adjacent.length > 0 && rng.chance(config.fauneFlore.chanceKillPredateurParMois * facteurMois * 100)) {
+          mourir(etat, config, ind, 'prédation');
+          return;
+        }
         const p = predateurs[0];
-        deplacerVers(etat, config, ind, { x: Math.round(ind.positionX + Math.sign(ind.positionX - p.positionX) * 5), y: Math.round(ind.positionY + Math.sign(ind.positionY - p.positionY) * 5) }, jours);
+        deplacerVers(etat, config, ind, { x: Math.round(ind.positionX + Math.sign(ind.positionX - p.positionX) * 5), y: Math.round(ind.positionY + Math.sign(ind.positionY - p.positionY) * 5) }, jours, hasBateau);
         ind.besoins.securite = clamp100(ind.besoins.securite - 40);
       }
       break;
@@ -244,6 +266,7 @@ export function tickIndividu(etat: EtatPartage, config: ConfigComplete, ind: Ind
           ind.besoins.social = clamp100(ind.besoins.social - 30 * coop);
           ind.ajouterRelation(autre.id, TypeRelation.Amical, 5 * coop);
           ind.bonheur = clamp100(ind.bonheur + 3 * coop * facteurMois);
+          transmettreRumeur(etat, config, ind, autre);
         }
       }
     }
@@ -338,6 +361,75 @@ export function mourir(etat: EtatPartage, config: ConfigComplete, ind: Individu,
       }
     }
   }
+
+  heriter(etat, config, ind);
+  prendreEnChargeOrphelins(etat, config, ind);
+}
+
+function heriter(etat: EtatPartage, config: ConfigComplete, ind: Individu): void {
+  if (ind.objetIds.length === 0) return;
+  const mature = config.individus.ageMaturiteMoyenAnnees;
+  const heritierId =
+    ind.enfants.find((e) => {
+      const e2 = etat.individus.get(e);
+      return e2 && e2.vivant;
+    }) ??
+    ind.partenaires.find((p) => etat.individus.get(p)?.vivant) ??
+    [ind.mere, ind.pereRegistre].find((p) => p !== null && etat.individus.get(p!)?.vivant) ??
+    (ind.groupeId !== null ? etat.groupes.get(ind.groupeId)?.dirigeantId : null);
+  const date = { an: etat.calendrier.an, mois: etat.calendrier.mois };
+  for (const oid of ind.objetIds) {
+    const objet = etat.objets.get(oid);
+    if (!objet) continue;
+    if (heritierId !== undefined && heritierId !== null) {
+      objet.changerProprietaire(heritierId, date);
+      objet.proprietaireId = heritierId;
+      objet.valeurAffective += 10;
+      const heritier = etat.individus.get(heritierId);
+      if (heritier && heritier.vivant) heritier.objetIds.push(oid);
+    }
+  }
+  const nb = ind.objetIds.length;
+  ind.objetIds = [];
+  etat.journal.ajouter({
+    date,
+    type: TypeEvenement.Autre,
+    sujet: 'Héritage',
+    description: `${ind.nom} transmet ${nb} objet(s) à ${heritierId !== undefined && heritierId !== null ? etat.individus.get(heritierId)?.nom ?? `#${heritierId}` : 'son groupe'}.`,
+    individusImpliques: [ind.id, ...(heritierId !== undefined && heritierId !== null ? [heritierId] : [])],
+    tuileX: Math.round(ind.positionX),
+    tuileY: Math.round(ind.positionY),
+  });
+  void mature;
+}
+
+function prendreEnChargeOrphelins(etat: EtatPartage, config: ConfigComplete, ind: Individu): void {
+  const mature = config.individus.ageMaturiteMoyenAnnees;
+  for (const eid of ind.enfants) {
+    const enfant = etat.individus.get(eid);
+    if (!enfant || !enfant.vivant || enfant.ageAnnees >= mature) continue;
+    const autreParent = enfant.mere === ind.id ? enfant.pereRegistre : enfant.mere;
+    const parentVivant = autreParent !== null && etat.individus.get(autreParent)?.vivant;
+    if (parentVivant) continue;
+    const groupe = enfant.groupeId !== null ? etat.groupes.get(enfant.groupeId) : undefined;
+    const tuteurId = groupe?.dirigeantId ?? null;
+    if (tuteurId !== null && tuteurId !== enfant.id) {
+      const tuteur = etat.individus.get(tuteurId);
+      if (tuteur && tuteur.vivant) {
+        tuteur.ajouterRelation(enfant.id, TypeRelation.Famille, 70);
+        enfant.ajouterRelation(tuteur.id, TypeRelation.Famille, 70);
+      }
+    }
+    etat.journal.ajouter({
+      date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
+      type: TypeEvenement.Drame,
+      sujet: 'Orphelin',
+      description: `${enfant.nom} perd ses deux parents et est pris en charge par ${groupe?.nom ?? 'sa bande'}.`,
+      individusImpliques: [enfant.id, ind.id],
+      tuileX: Math.round(enfant.positionX),
+      tuileY: Math.round(enfant.positionY),
+    });
+  }
 }
 
 function trouverPartenaire(etat: EtatPartage, ind: Individu, config: ConfigComplete): Individu | undefined {
@@ -404,7 +496,7 @@ function plusProcheEau(etat: EtatPartage, ind: Individu, portee: number): { x: n
   return bestPos;
 }
 
-function deplacerVers(etat: EtatPartage, config: ConfigComplete, ind: Individu, cible: { x: number; y: number } | null, jours: number): void {
+function deplacerVers(etat: EtatPartage, config: ConfigComplete, ind: Individu, cible: { x: number; y: number } | null, jours: number, aBateau = false): void {
   if (!cible) return;
   const monde = etat.monde;
   const facteurMois = jours / config.temps.joursParMois;
@@ -422,13 +514,76 @@ function deplacerVers(etat: EtatPartage, config: ConfigComplete, ind: Individu, 
   const ry = Math.round(ind.positionY);
   const tx = Math.round(nx);
   const ty = Math.round(ny);
-  if (monde.dansLimites(tx, ty) && monde.estTraversable(rx, ry, tx, ty, false)) {
+  let arrive = false;
+  if (monde.dansLimites(tx, ty) && monde.estTraversable(rx, ry, tx, ty, aBateau)) {
     ind.positionX = nx;
     ind.positionY = ny;
-  } else if (monde.dansLimites(tx, ry) && monde.estTraversable(rx, ry, tx, ry, false)) {
+    arrive = true;
+  } else if (monde.dansLimites(tx, ry) && monde.estTraversable(rx, ry, tx, ry, aBateau)) {
     ind.positionX = nx;
-  } else if (monde.dansLimites(rx, ty) && monde.estTraversable(rx, ry, rx, ty, false)) {
+    arrive = true;
+  } else if (monde.dansLimites(rx, ty) && monde.estTraversable(rx, ry, rx, ty, aBateau)) {
     ind.positionY = ny;
+    arrive = true;
   }
+  if (arrive) {
+    const ax = Math.round(ind.positionX);
+    const ay = Math.round(ind.positionY);
+    if (monde.dansLimites(ax, ay)) {
+      const pi = monde.index(ax, ay);
+      if (monde.passage[pi] < 65535) monde.passage[pi]++;
+    }
+  }
+}
+
+function partirDuGroupe(etat: EtatPartage, config: ConfigComplete, ind: Individu, groupe: { id: number; nom: string; membres: number[] }): void {
+  const idx = groupe.membres.indexOf(ind.id);
+  if (idx >= 0) groupe.membres.splice(idx, 1);
+  const ancienGroupe = groupe.nom;
+  ind.groupeId = null;
+  let rejoint: string | null = null;
+  for (const g of etat.groupes.values()) {
+    if (g.id === groupe.id) continue;
+    const vivants = g.membres.map((id) => etat.individus.get(id)).filter((i) => i && i.vivant);
+    if (vivants.length === 0) continue;
+    const cx = vivants.reduce((s, i) => s + i!.positionX, 0) / vivants.length;
+    const cy = vivants.reduce((s, i) => s + i!.positionY, 0) / vivants.length;
+    if (Math.hypot(cx - ind.positionX, cy - ind.positionY) < 30) {
+      ind.groupeId = g.id;
+      g.membres.push(ind.id);
+      rejoint = g.nom;
+      break;
+    }
+  }
+  etat.journal.ajouter({
+    date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
+    type: TypeEvenement.Autre,
+    sujet: 'Départ',
+    description: `${ind.nom} quitte ${ancienGroupe}${rejoint ? ` et rejoint ${rejoint}` : ' et part seul'}.`,
+    individusImpliques: [ind.id],
+    tuileX: Math.round(ind.positionX),
+    tuileY: Math.round(ind.positionY),
+  });
+}
+
+const DISTORSIONS: Array<(s: string) => string> = [
+  (s) => s,
+  (s) => s.replace(/loup/gi, 'grand loup').replace(/homme/gi, 'géant'),
+  (s) => s.replace(/loup/gi, 'bête monstrueuse').replace(/mort/gi, 'massacre').replace(/homme/gi, 'démon'),
+  (s) => `${s} (on dit que c'était pire)`,
+  (s) => s.replace(/\b\w{4,}\b/g, "quelque chose d'immense"),
+];
+
+export function transmettreRumeur(etat: EtatPartage, config: ConfigComplete, source: Individu, cible: Individu): void {
+  const rumeurs = source.memoire.filter((m) => m.intensite >= 40);
+  if (rumeurs.length === 0) return;
+  if (!etat.rng.chance(config.recit.chanceTransmissionRumeurParMois)) return;
+  const m = etat.rng.choix(rumeurs);
+  const distorsion = (m.distorsion ?? 0) + 1 + (source.langueId !== cible.langueId ? 1 : 0);
+  const applique = DISTORSIONS[Math.min(distorsion, DISTORSIONS.length - 1)];
+  cible.ajouterMemoire(m.evenementId, applique(m.souvenir), Math.max(10, m.intensite - 10 * distorsion), { an: etat.calendrier.an, mois: etat.calendrier.mois }, config.individus.capaciteMemoireEvenements);
+  const mem = cible.memoire[cible.memoire.length - 1];
+  mem.estRumeur = true;
+  mem.distorsion = distorsion;
 }
 

@@ -1,10 +1,11 @@
 import { Saison, Vegetation } from '../types';
 import type { Rng } from '../rng';
-import type { ConfigFauneFlore } from '../config/schema';
+import type { ConfigComplete, ConfigFauneFlore } from '../config/schema';
 import type { EtatPartage } from '../etat';
 import { Animal } from './animal';
 import { construireEspeces, poidsTotalPourVegetation, type Espece } from './especes';
 import { empreinteOctets } from '../hash';
+import { mourir } from '../entites/boucleIndividu';
 
 export function peuplerMonde(etat: EtatPartage, config: ConfigFauneFlore): void {
   const { monde, rng } = etat;
@@ -98,7 +99,8 @@ export function animauxProches(etat: EtatPartage, index: Map<number, number[]>, 
   return res;
 }
 
-export function miseAJourMensuelleFaune(etat: EtatPartage, cfg: ConfigFauneFlore): void {
+export function miseAJourMensuelleFaune(etat: EtatPartage, config: ConfigComplete): void {
+  const cfg = config.fauneFlore;
   const monde = etat.monde;
   const rng = etat.rng;
   const especes = construireEspeces(cfg);
@@ -206,6 +208,8 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, cfg: ConfigFauneFlore
       if (monde.dansLimites(nx, ny) && monde.estTraversable(x, y, nx, ny, false)) {
         a.positionX = nx;
         a.positionY = ny;
+        const pi = monde.index(nx, ny);
+        if (monde.passage[pi] < 65535) monde.passage[pi] += 2;
       }
     }
 
@@ -219,6 +223,45 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, cfg: ConfigFauneFlore
     else if (a.ageAnnees >= espece.ageMaxAnnees) tuerAnimal(etat, a, 'vieillesse');
   }
   for (const bebe of naissances) etat.animaux.set(bebe.id, bebe);
+
+  preditationSurHumains(etat, config);
+}
+
+function preditationSurHumains(etat: EtatPartage, config: ConfigComplete): void {
+  const cfg = config.fauneFlore;
+  const especes = construireEspeces(cfg);
+  const monde = etat.monde;
+  const t = monde.taille;
+  const indexHumains = new Map<number, number[]>();
+  for (const ind of etat.individus.values()) {
+    if (!ind.vivant) continue;
+    const cle = Math.round(ind.positionY) * t + Math.round(ind.positionX);
+    const arr = indexHumains.get(cle);
+    if (arr) arr.push(ind.id);
+    else indexHumains.set(cle, [ind.id]);
+  }
+  for (const a of etat.animaux.values()) {
+    if (!a.vivant) continue;
+    const e = especes.get(a.especeId);
+    if (!e || e.regime !== 'predateur') continue;
+    const x = Math.round(a.positionX);
+    const y = Math.round(a.positionY);
+    for (let dy = -3; dy <= 3; dy++) {
+      for (let dx = -3; dx <= 3; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (!monde.dansLimites(nx, ny)) continue;
+        const arr = indexHumains.get(ny * t + nx);
+        if (!arr) continue;
+        for (const hid of arr) {
+          const h = etat.individus.get(hid);
+          if (h && h.vivant && Math.hypot(h.positionX - a.positionX, h.positionY - a.positionY) <= 3 && etat.rng.chance(cfg.chanceKillPredateurParMois)) {
+            mourir(etat, config, h, 'prédation');
+          }
+        }
+      }
+    }
+  }
 }
 
 function tuerAnimal(etat: EtatPartage, a: Animal, cause: string): void {

@@ -19,6 +19,7 @@ export class Groupe {
   chantierEnCours: number | null;
   couleur: number;
   ere: number;
+  migrationCible: { x: number; y: number } | null;
 
   constructor(id: number, nom: string, niveau: NiveauGroupe, langueId: number, date: DateJeu) {
     this.id = id;
@@ -35,6 +36,7 @@ export class Groupe {
     this.stocksCommuns = {};
     this.chantierEnCours = null;
     this.ere = 0;
+    this.migrationCible = null;
     const teinte = (id * 2654435761) % 360;
     this.couleur = hslVersRgb(teinte / 360, 0.65, 0.55);
   }

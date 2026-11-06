@@ -6,6 +6,7 @@ export class Carte {
   sprite: Sprite;
   coucheAnimaux: Graphics;
   coucheHumains: Graphics;
+  coucheVehicules: Graphics;
   coucheTerritoires: Graphics;
   seuilZoomFrontieres = 5;
   canvas: HTMLCanvasElement;
@@ -24,10 +25,12 @@ export class Carte {
     this.sprite.texture = this.texture;
     this.coucheAnimaux = new Graphics();
     this.coucheHumains = new Graphics();
+    this.coucheVehicules = new Graphics();
     this.coucheTerritoires = new Graphics();
     this.monde.addChild(this.coucheTerritoires);
     this.monde.addChild(this.sprite);
     this.monde.addChild(this.coucheAnimaux);
+    this.monde.addChild(this.coucheVehicules);
     this.monde.addChild(this.coucheHumains);
     app.stage.addChild(this.monde);
     this.centrer();
@@ -87,6 +90,13 @@ export class Carte {
       const y = donnees[i + 1] / 10;
       const couleur = donnees[i + 2];
       this.coucheAnimaux.circle(x, y, 1.4).fill({ color: couleur, alpha: 0.95 });
+    }
+  }
+
+  appliquerVehicules(donnees: number[]): void {
+    this.coucheVehicules.clear();
+    for (let i = 0; i + 2 < donnees.length; i += 3) {
+      this.coucheVehicules.rect(donnees[i] / 10 - 1.5, donnees[i + 1] / 10 - 1.5, 3, 3).fill({ color: donnees[i + 2], alpha: 0.95 });
     }
   }
 

@@ -64,6 +64,7 @@ async function demarrer(): Promise<void> {
           carte.appliquerAnimaux((msg.animaux as number[]) ?? []);
           derniersIndividus = (msg.individus as number[]) ?? [];
           carte.appliquerIndividus(derniersIndividus);
+          carte.appliquerVehicules((msg.vehicules as number[]) ?? []);
           derniersTerritoires = (msg.territoires as Array<{ id: number; couleur: number; tuiles: number[] }>) ?? [];
           carte.appliquerTerritoires(derniersTerritoires);
         }

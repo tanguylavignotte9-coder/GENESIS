@@ -64,6 +64,8 @@ export interface MemoireEvenement {
   souvenir: string;
   intensite: number;
   date: DateJeu;
+  estRumeur?: boolean;
+  distorsion?: number;
 }
 
 export type Grossesse = {

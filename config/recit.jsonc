@@ -48,5 +48,8 @@
   "chanceFolieParMois": 0.3,
 
   // Probabilité qu'un individu devienne fou (malus) et erre au lieu d'agir normalement, une fois 'folie' acquise (0 à 1 par tick).
-  "chanceErranceFolie": 0.3
+  "chanceErranceFolie": 0.3,
+
+  // Probabilité de transmission d'une nouvelle (rumeur) entre deux individus proches, par mois (0 à 1). La distorsion augmente à chaque retransmission.
+  "chanceTransmissionRumeurParMois": 0.2
 }

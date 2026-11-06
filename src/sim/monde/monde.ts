@@ -17,6 +17,7 @@ export class Monde {
   readonly gele: Uint8Array;
   readonly pollution: Float32Array;
   readonly carcasseNourriture: Float32Array;
+  readonly passage: Uint16Array;
 
   constructor(config: ConfigMonde) {
     this.taille = config.tailleGrille;
@@ -33,6 +34,7 @@ export class Monde {
     this.gele = new Uint8Array(n);
     this.pollution = new Float32Array(n);
     this.carcasseNourriture = new Float32Array(n);
+    this.passage = new Uint16Array(n);
   }
 
   index(x: number, y: number): number {
@@ -132,6 +134,7 @@ export class Monde {
     h += empreinteOctets(this.gele);
     h += empreinteOctets(this.pollution);
     h += empreinteOctets(this.carcasseNourriture);
+    h += empreinteOctets(this.passage);
     return h;
   }
 
@@ -150,11 +153,12 @@ export class Monde {
       gele: Array.from(this.gele),
       pollution: Array.from(this.pollution),
       carcasseNourriture: Array.from(this.carcasseNourriture),
+      passage: Array.from(this.passage),
     };
   }
 
   restaurer(d: Record<string, unknown>, config: ConfigMonde): void {
-    const copie = (src: unknown, dst: Uint8Array | Float32Array) => {
+    const copie = (src: unknown, dst: Uint8Array | Uint16Array | Float32Array) => {
       const arr = src as number[];
       for (let i = 0; i < dst.length; i++) (dst as unknown as number[])[i] = arr[i];
     };
@@ -169,6 +173,7 @@ export class Monde {
     copie(d.gele, this.gele);
     copie(d.pollution, this.pollution);
     copie(d.carcasseNourriture, this.carcasseNourriture);
+    copie(d.passage, this.passage);
     void config;
   }
 }

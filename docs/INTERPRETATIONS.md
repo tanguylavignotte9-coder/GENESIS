@@ -199,4 +199,22 @@ Aucun réglage n'est calé sur une seule graine : chaque monde est unique et vol
 
 ## V1 terminée
 
-J1–J7 livrés : monde complet, faune, individus vivants, sociétés, culture, ères jusqu'à l'ère moderne, économie/monnaie, pollution, récits, sauvegardes exactes, écran de fin, joueur pur observateur. 72 tests verts. V2 balisée dans le design doc (guerre, catastrophes, pouvoirs divins…).
+J1–J7 livrés : monde complet, faune, individus vivants, sociétés, culture, ères jusqu'à l'ère moderne, économie/monnaie, pollution, récits, sauvegardes exactes, écran de fin, joueur pur observateur. V2 balisée dans le design doc (guerre, catastrophes, pouvoirs divins…).
+
+---
+
+# Round de conformité V1 (revu code vs design doc)
+
+Tous les points relevés ont été implémentés et testés (`tests/conformite.test.ts`, 11 tests) :
+
+1. **Transport & navigation (§3 bis)** : nouveaux atomes `construction-navale` / `port` / `charrette`, bâtiments `ponton`/`port` + véhicules entités réelles (`bateau`, `charrette` avec capacité et passagers, chantier réel). Décision mensuelle : groupe côtier + savoir naval → ponton → port → bateau. **L'eau salée devient traversable avec un bateau** (`estTraversable(..., aBateau)` branché dans la boucle individu) → les îles deviennent accessibles. **Naufrage** mensuel possible (bateau coulé + passagers morts, journal). Véhicules rendus sur la carte (carrés bleus/marron).
+2. **Migrations humaines** : départ individuel (bonheur < seuil → quitte le groupe, rejoint un groupe proche ou part seul, journal « Départ ») ; **schisme collectif** (bonheur moyen < seuil de mécontentement → un meneur charismatique fonde un nouveau groupe avec `parentId`, part du stock, journal « Schisme ») ; **migration collective** quand la biomasse du territoire s'épuise (le groupe cible les meilleures terres à portée).
+3. **Rumeurs avec distorsion (§2-C)** : pass mensuel entre individus proches — chaque retransmission déforme la nouvelle (niveaux de distorsion : « loup » → « grand loup » → « bête monstrueuse »…, barrière de langue = +1), stockée dans la mémoire avec `estRumeur`/`distorsion`. Jamais au journal (le journal reste factuel).
+4. **Héritage & orphelins (§3)** : à la mort, les objets vont à l'héritier (enfant > partenaire > parent > dirigeant du groupe), historique + valeur affective, journal « Héritage » ; orphelins (deux parents morts) pris en charge par la bande (tuteur = dirigeant, relation famille, journal « Orphelin »).
+5. **Prédation sur humains** : brancheurs maintenant — au tick (prédateur au contact → mort « prédation ») et en mensuel (rayon 3 autour du prédateur).
+6. **Sentiers par piétinement (§3 bis)** : couche `passage` par tuile incrémentée à chaque déplacement (humains et faune), sentier visible + végétation rasée au-delà du seuil, décroissance lente, rendu brun sur la carte.
+7. **Fermentation (§3 ter)** : atome `fermentation` (prérequis poterie + agriculture) → bière/vin/hydromel fabriqués (objets réels, valeur en config), consommation en fête (bonheur +, ivresse = malus, journal « Fête »).
+8. **Bug config** : clés `atelier`/`marche`/`ecole`/`forge`/`banque`/`moulin` dupliquées dans `batiments.jsonc` → dédupliqué, et **détecteur de clés dupliquées** ajouté au parseur (refus au chargement avec le nom de la clé).
+9. **Échanges inter-groupes (§4)** : troc inter-groupes entre groupes proches (nourriture contre monnaie), journal « Échange inter-groupes ».
+
+Vérif : tsc OK, build OK, **83/83 tests**, banc 200 mois (monde 500) : ère numérique au mois 141 (~12 h à ×1), 195 pièces, 3 villages, 201 humains vivants, faune 856 (équilibre proie-prédateur avec la chasse humaine).

@@ -39,6 +39,7 @@ function envoyerDigest(forcer: boolean): void {
       couleurs: couleurs.buffer,
       animaux: sim.digestAnimaux(),
       individus: sim.digestIndividus(),
+      vehicules: sim.digestVehicules(),
       territoires: sim.digestTerritoires(),
       taille: sim.etat.monde.taille,
       an: cal.an,

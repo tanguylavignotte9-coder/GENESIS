@@ -20,7 +20,11 @@ import { decisionConstructionMensuelle, usureMensuelleBatiments, extractionMensu
 import { perceesMensuelles, transmissionMensuelle } from './savoir/systemeSavoir';
 import { fabricationMensuelle, trocMensuel } from './economie/systemeEconomie';
 import { gouvernanceMensuelle, recalculerTerritoires } from './groupes/gouvernance';
+import { migrationsMensuelles } from './groupes/migrations';
+import { decisionTransportMensuelle, naufrageMensuel } from './transport/systemeTransport';
+import { fermentationMensuelle, trocInterGroupesMensuel } from './economie/systemeEconomie';
 import { miseAJourLanguesMensuelle } from './culture/systemeLangues';
+import { rumeursMensuelles } from './culture/systemeRumeurs';
 import { miseAJourReligionsMensuelle } from './culture/systemeReligion';
 import { santeMentaleMensuelle } from './entites/boucleIndividu';
 import { empreinteOctets } from './hash';
@@ -50,10 +54,12 @@ export class Simulation {
       religions: new Map(),
       savoir: new GrapheSavoir(),
       animaux: new Map(),
+      vehicules: new Map(),
       champs: new Set(),
       parametresDepart: { seed, nbBandes: config.societe.bandesInitialesMin, tailleBande: config.societe.tailleBandeInitialeMin },
       prochainIdIndividu: 1,
       prochainIdAnimal: 1,
+      prochainIdVehicule: 1,
       prochainIdGroupe: 1,
       prochainIdObjet: 1,
       prochainIdBatiment: 1,
@@ -123,7 +129,7 @@ export class Simulation {
   private tickMensuel(): void {
     miseAJourMeteoMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.etat.rng);
     miseAJourVegetationMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.config.fauneFlore, this.etat.rng, this.etat.champs);
-    miseAJourMensuelleFaune(this.etat, this.config.fauneFlore);
+    miseAJourMensuelleFaune(this.etat, this.config);
     gouvernanceMensuelle(this.etat, this.config);
     perceesMensuelles(this.etat, this.config);
     transmissionMensuelle(this.etat, this.config);
@@ -133,7 +139,13 @@ export class Simulation {
     pollutionMensuelle(this.etat, this.config);
     fabricationMensuelle(this.etat, this.config);
     trocMensuel(this.etat, this.config);
+    fermentationMensuelle(this.etat, this.config);
+    trocInterGroupesMensuel(this.etat, this.config);
+    migrationsMensuelles(this.etat, this.config);
+    decisionTransportMensuelle(this.etat, this.config);
+    naufrageMensuel(this.etat, this.config);
     miseAJourLanguesMensuelle(this.etat, this.config);
+    rumeursMensuelles(this.etat, this.config);
     miseAJourReligionsMensuelle(this.etat, this.config);
     santeMentaleMensuelle(this.etat, this.config);
     recalculerTerritoires(this.etat, this.config);
@@ -203,6 +215,15 @@ export class Simulation {
       }
       out.push({ id: g.id, couleur: g.couleur, tuiles });
       void t;
+    }
+    return out;
+  }
+
+  digestVehicules(): number[] {
+    const out: number[] = [];
+    for (const v of this.etat.vehicules.values()) {
+      if (v.coule || v.enConstruction) continue;
+      out.push(Math.round(v.x * 10), Math.round(v.y * 10), v.type === 'bateau' ? 0x4488ff : 0xcc8844);
     }
     return out;
   }
@@ -317,6 +338,11 @@ export class Simulation {
           r = Math.round(r * (1 - f * 0.5) + 60 * f * 0.5);
           g = Math.round(g * (1 - f * 0.6) + 50 * f * 0.4);
           b = Math.round(b * (1 - f * 0.7) + 45 * f * 0.3);
+        }
+        if (monde.passage[i] >= this.config.monde.seuilPassageSentier && m !== Matiere.EauSalee && m !== Matiere.EauDouce) {
+          r = 150;
+          g = 118;
+          b = 84;
         }
         out[i] = (255 << 24) | (b << 16) | (g << 8) | r;
       }

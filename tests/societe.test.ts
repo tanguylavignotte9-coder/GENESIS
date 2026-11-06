@@ -77,7 +77,8 @@ describe('J4 — premières sociétés', () => {
 
   it('des objets sont fabriqués avec une histoire (fabricant, propriétaire)', () => {
     const sim = nouvelleSim(42, { nbBandes: 1, tailleBande: 12 });
-    avancer(sim, 12);
+    sim.config.economie.chanceFabricationParMois = 1;
+    avancer(sim, 24);
     expect(sim.etat.objets.size).toBeGreaterThan(0);
     const objet = sim.etat.objets.values().next().value!;
     expect(objet.fabricantId).not.toBeNull();

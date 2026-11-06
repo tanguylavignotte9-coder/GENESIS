@@ -27,6 +27,8 @@ export interface ConfigMonde {
   perteHumiditeSecheresse: number;
   seuilNeigeCelsius: number;
   seuilGelEauCelsius: number;
+  seuilPassageSentier: number;
+  decroissancePassageParMois: number;
   gisements: Record<
     'charbon' | 'gaz' | 'uranium' | 'petrole' | 'fer' | 'cuivre' | 'etain' | 'or' | 'argent' | 'sel',
     { nbMin: number; nbMax: number; quantiteMin: number; quantiteMax: number }
@@ -152,6 +154,12 @@ export interface ConfigSociete {
   consommationCharbonCentraleParMois: number;
   chanceFrappeMonnaieParMois: number;
   rayonRechercheGisementTuiles: number;
+  seuilBonheurDepart: number;
+  chanceDepartIndividuelParMois: number;
+  chanceSchismeParMois: number;
+  seuilBiomasseMigration: number;
+  porteeRechercheNouvelleTerreTuiles: number;
+  chanceNaufrageParMois: number;
 }
 
 export interface ConfigEconomie {
@@ -166,13 +174,15 @@ export interface ConfigEconomie {
   chanceFabricationParMois: number;
   chanceTrocParMois: number;
   usureObjetParMois: number;
+  chanceFermentationParMois: number;
+  chanceConsommationFermenteParMois: number;
 }
 
 export interface ConfigBatiments {
   dureeConstructionBaseJours: number;
   usureParMois: number;
   capaciteGrenierBase: number;
-  types: Record<string, { materiaux: Record<string, number>; dureeJours: number; polluant?: boolean; ressource?: string }>;
+  types: Record<string, { materiaux: Record<string, number>; dureeJours: number; polluant?: boolean; ressource?: string; vehicule?: boolean; capacite?: number }>;
 }
 
 export interface ConfigRecit {
@@ -191,6 +201,7 @@ export interface ConfigRecit {
   moisStressMaxAvantFolie: number;
   chanceFolieParMois: number;
   chanceErranceFolie: number;
+  chanceTransmissionRumeurParMois: number;
 }
 
 export interface ConfigComplete {

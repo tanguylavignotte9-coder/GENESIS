@@ -120,7 +120,7 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
   const memoireMB = (typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().heapUsed : 0) / 1024 / 1024;
 
   const tFaune = performance.now();
-  miseAJourMensuelleFaune(sim.etat, opts.config.fauneFlore);
+  miseAJourMensuelleFaune(sim.etat, opts.config);
   const msFaune = performance.now() - tFaune;
 
   return {

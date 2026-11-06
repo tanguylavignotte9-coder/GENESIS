@@ -9,6 +9,13 @@ import type { EntiteBatiment } from './batiments/batiment';
 import type { Langue } from './culture/langue';
 import type { Religion } from './culture/religion';
 import type { GrapheSavoir } from './savoir/connaissance';
+import type { Animal } from './faune/animal';
+
+export interface ParametresDepart {
+  seed: number;
+  nbBandes: number;
+  tailleBande: number;
+}
 
 export interface EtatPartage {
   monde: Monde;
@@ -22,7 +29,10 @@ export interface EtatPartage {
   langues: Map<number, Langue>;
   religions: Map<number, Religion>;
   savoir: GrapheSavoir;
+  animaux: Map<number, Animal>;
+  parametresDepart: ParametresDepart;
   prochainIdIndividu: number;
+  prochainIdAnimal: number;
   prochainIdGroupe: number;
   prochainIdObjet: number;
   prochainIdBatiment: number;

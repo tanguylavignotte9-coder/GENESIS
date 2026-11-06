@@ -9,7 +9,9 @@ import { EntiteBatiment } from '../batiments/batiment';
 import { Langue } from '../culture/langue';
 import type { Religion } from '../culture/religion';
 import { GrapheSavoir } from '../savoir/connaissance';
+import { Animal } from '../faune/animal';
 import type { ConfigComplete } from '../config/schema';
+import type { ParametresDepart } from '../etat';
 import { Simulation } from '../simulation';
 import { MIGRATIONS, VERSION_SAUVEGARDE, type SauvegardeBrute } from './format';
 
@@ -32,6 +34,9 @@ export function serialiserSimulation(sim: Simulation, empreinteConfig: Record<st
       langues: Array.from(etat.langues.values()).map((l) => l.serialiser()),
       religions: Array.from(etat.religions.values()),
       savoir: etat.savoir.serialiser(),
+      animaux: Array.from(etat.animaux.values()).map((a) => a.serialiser()),
+      parametresDepart: { ...etat.parametresDepart },
+      prochainIdAnimal: etat.prochainIdAnimal,
       prochainIdIndividu: etat.prochainIdIndividu,
       prochainIdGroupe: etat.prochainIdGroupe,
       prochainIdObjet: etat.prochainIdObjet,
@@ -92,6 +97,8 @@ export function deserialiserSimulation(
   for (const d of e.religions as Religion[]) religions.set(d.id, { ...d, fondeeLe: { ...d.fondeeLe }, dieux: [...d.dieux], tabous: [...d.tabous], joursSacres: [...d.joursSacres] });
   const savoir = new GrapheSavoir();
   savoir.restaurer(e.savoir as never[]);
+  const animaux = new Map<number, Animal>();
+  for (const d of (e.animaux as Record<string, unknown>[]) ?? []) animaux.set(d.id as number, Animal.restaurer(d));
   const sim = new Simulation(config, brut.seed);
   sim.etat.monde = monde;
   sim.etat.calendrier = calendrier;
@@ -104,7 +111,10 @@ export function deserialiserSimulation(
   sim.etat.langues = langues;
   sim.etat.religions = religions;
   sim.etat.savoir = savoir;
+  sim.etat.animaux = animaux;
+  sim.etat.parametresDepart = (e.parametresDepart as ParametresDepart) ?? { seed: brut.seed, nbBandes: config.societe.bandesInitialesMin, tailleBande: config.societe.tailleBandeInitialeMin };
   sim.etat.prochainIdIndividu = e.prochainIdIndividu as number;
+  sim.etat.prochainIdAnimal = e.prochainIdAnimal as number;
   sim.etat.prochainIdGroupe = e.prochainIdGroupe as number;
   sim.etat.prochainIdObjet = e.prochainIdObjet as number;
   sim.etat.prochainIdBatiment = e.prochainIdBatiment as number;

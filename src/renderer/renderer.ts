@@ -29,9 +29,19 @@ async function demarrer(): Promise<void> {
   const config = reponse.config;
   const empreintes = reponse.empreintes;
 
+  const inputSeed = $('inputSeed') as HTMLInputElement;
+  const inputBandes = $('inputBandes') as HTMLInputElement;
+  const inputTaille = $('inputTailleBande') as HTMLInputElement;
+  inputBandes.min = String(config.societe.bandesInitialesMin);
+  inputBandes.max = String(config.societe.bandesInitialesMax);
+  inputBandes.value = String(config.societe.bandesInitialesMin);
+  inputTaille.min = String(config.societe.tailleBandeInitialeMin);
+  inputTaille.max = String(config.societe.tailleBandeInitialeMax);
+  inputTaille.value = String(Math.round((config.societe.tailleBandeInitialeMin + config.societe.tailleBandeInitialeMax) / 2));
+
   let carte: Carte | null = null;
   let worker: Worker | null = null;
-  let seed = Number(($('inputSeed') as HTMLInputElement).value) || 42;
+  let seed = Number(inputSeed.value) || 42;
 
   const vitesses = vitessesDisponibles(config.temps);
 
@@ -44,9 +54,12 @@ async function demarrer(): Promise<void> {
         $('barre').style.display = 'flex';
         $('journal').style.display = 'flex';
       } else if (msg.type === 'digest') {
-        if (carte) carte.appliquerDigest(new Uint32Array(msg.couleurs as ArrayBuffer));
-        const stats = msg.stats as { individus: number; evenements: number } | undefined;
-        $('date').textContent = `An ${msg.an}, mois ${msg.mois} — ×${msg.vitesse} — ${stats ? `${stats.individus} individus · ${stats.evenements} événements` : ''}`;
+        if (carte) {
+          carte.appliquerDigest(new Uint32Array(msg.couleurs as ArrayBuffer));
+          carte.appliquerAnimaux((msg.animaux as number[]) ?? []);
+        }
+        const stats = msg.stats as { individus: number; animaux: number; evenements: number } | undefined;
+        $('date').textContent = `An ${msg.an}, mois ${msg.mois} — ×${msg.vitesse} — ${stats ? `${stats.individus} humains · ${stats.animaux} animaux · ${stats.evenements} événements` : ''}`;
       } else if (msg.type === 'journal') {
         ajouterEvenements(msg.evenements as Evenement[]);
       } else if (msg.type === 'sauvegarde') {
@@ -85,15 +98,22 @@ async function demarrer(): Promise<void> {
     liste.scrollTop = liste.scrollHeight;
   }
 
+  function optionsDepart() {
+    return {
+      nbBandes: Number(inputBandes.value) || config.societe.bandesInitialesMin,
+      tailleBande: Number(inputTaille.value) || config.societe.tailleBandeInitialeMin,
+    };
+  }
+
   function lancerMonde(graine: number): void {
     seed = graine;
     if (worker) worker.terminate();
     worker = connecter();
-    worker.postMessage({ type: 'init', seed: graine, config, empreintes });
+    worker.postMessage({ type: 'init', seed: graine, options: optionsDepart(), config, empreintes });
   }
 
   $('btnLancer').addEventListener('click', () => {
-    lancerMonde(Number(($('inputSeed') as HTMLInputElement).value) || 42);
+    lancerMonde(Number(inputSeed.value) || 42);
   });
 
   $('btnPause').addEventListener('click', () => worker?.postMessage({ type: 'commande', commande: 'pause' }));

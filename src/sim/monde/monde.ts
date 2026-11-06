@@ -16,6 +16,7 @@ export class Monde {
   readonly meteo: Uint8Array;
   readonly gele: Uint8Array;
   readonly pollution: Float32Array;
+  readonly carcasseNourriture: Float32Array;
 
   constructor(config: ConfigMonde) {
     this.taille = config.tailleGrille;
@@ -31,6 +32,7 @@ export class Monde {
     this.meteo = new Uint8Array(n).fill(Meteo.Soleil);
     this.gele = new Uint8Array(n);
     this.pollution = new Float32Array(n);
+    this.carcasseNourriture = new Float32Array(n);
   }
 
   index(x: number, y: number): number {
@@ -129,6 +131,7 @@ export class Monde {
     h += empreinteOctets(this.meteo);
     h += empreinteOctets(this.gele);
     h += empreinteOctets(this.pollution);
+    h += empreinteOctets(this.carcasseNourriture);
     return h;
   }
 
@@ -146,6 +149,7 @@ export class Monde {
       meteo: Array.from(this.meteo),
       gele: Array.from(this.gele),
       pollution: Array.from(this.pollution),
+      carcasseNourriture: Array.from(this.carcasseNourriture),
     };
   }
 
@@ -164,6 +168,7 @@ export class Monde {
     copie(d.meteo, this.meteo);
     copie(d.gele, this.gele);
     copie(d.pollution, this.pollution);
+    copie(d.carcasseNourriture, this.carcasseNourriture);
     void config;
   }
 }

@@ -290,18 +290,66 @@ function validerIndividus(o: Record<string, unknown>, erreurs: Erreurs) {
   };
 }
 
+const BIOMES_CONNUS = ['Toundra', 'Taiga', 'Foret', 'Prairie', 'Savane', 'Jungle', 'Desert', 'Neige', 'Aucun'];
+const REGIMES_CONNUS = ['herbivore', 'predateur', 'charognard'];
+
+function validerEspece(v: unknown, base: string, erreurs: Erreurs): ConfigComplete['fauneFlore']['especes'][string] | undefined {
+  if (!exigerObjet(v, base, erreurs)) return undefined;
+  const regime = v.regime;
+  if (typeof regime !== 'string' || !REGIMES_CONNUS.includes(regime)) {
+    erreurs.push(`${base}.regime: attend l'un de ${REGIMES_CONNUS.join(', ')}, reçu ${JSON.stringify(regime)}`);
+    return undefined;
+  }
+  const nom = v.nom;
+  if (typeof nom !== 'string' || nom.length === 0) {
+    erreurs.push(`${base}.nom: attend une chaîne non vide`);
+    return undefined;
+  }
+  const poids = exigerRecordNombres(v, 'poidsBiomes', base, { min: 0 }, erreurs) ?? {};
+  for (const k of Object.keys(poids)) {
+    if (!BIOMES_CONNUS.includes(k)) erreurs.push(`${base}.poidsBiomes.${k}: biome inconnu (attendu : ${BIOMES_CONNUS.join(', ')})`);
+  }
+  return {
+    nom,
+    regime: regime as ConfigComplete['fauneFlore']['especes'][string]['regime'],
+    vitesseTuilesParMois: exigerNombre(v, 'vitesseTuilesParMois', base, { min: 0.1, max: 100 }, erreurs)!,
+    faimParMois: exigerNombre(v, 'faimParMois', base, { min: 0, max: 100 }, erreurs)!,
+    ageMaxAnnees: exigerNombre(v, 'ageMaxAnnees', base, { min: 1, max: 200, entier: true }, erreurs)!,
+    reproductionParMois: exigerNombre(v, 'reproductionParMois', base, { min: 0, max: 1 }, erreurs)!,
+    tailleCarcasse: exigerNombre(v, 'tailleCarcasse', base, { min: 0, max: 10000 }, erreurs)!,
+    poidsBiomes: poids,
+  };
+}
+
 function validerFauneFlore(o: Record<string, unknown>, erreurs: Erreurs) {
   const b = 'faune-flore';
+  const especes: Record<string, ConfigComplete['fauneFlore']['especes'][string]> = {};
+  const e = o.especes;
+  if (exigerObjet(e, chemin(b, 'especes'), erreurs)) {
+    for (const [k, v] of Object.entries(e)) {
+      const espece = validerEspece(v, chemin(b, `especes.${k}`), erreurs);
+      if (espece) especes[k] = espece;
+    }
+  }
+  if (Object.keys(especes).length === 0 && erreurs.length === 0) {
+    erreurs.push(`${b}.especes: au moins une espèce est requise`);
+  }
   return {
+    effectifInitialMin: exigerNombre(o, 'effectifInitialMin', b, { min: 0, max: 1000000, entier: true }, erreurs)!,
+    effectifInitialMax: exigerNombre(o, 'effectifInitialMax', b, { min: 0, max: 1000000, entier: true }, erreurs)!,
     probabilitePousseVegetationParMois: exigerNombre(o, 'probabilitePousseVegetationParMois', b, { min: 0, max: 1 }, erreurs)!,
     probabiliteDegradationVegetationParMois: exigerNombre(o, 'probabiliteDegradationVegetationParMois', b, { min: 0, max: 1 }, erreurs)!,
-    animauxParTuileMin: exigerNombre(o, 'animauxParTuileMin', b, { min: 0, max: 100, entier: true }, erreurs)!,
-    animauxParTuileMax: exigerNombre(o, 'animauxParTuileMax', b, { min: 0, max: 100, entier: true }, erreurs)!,
-    probabiliteReproductionFauneParMois: exigerNombre(o, 'probabiliteReproductionFauneParMois', b, { min: 0, max: 1 }, erreurs)!,
-    consommationVegetationParAnimalParMois: exigerNombre(o, 'consommationVegetationParAnimalParMois', b, { min: 0, max: 100 }, erreurs)!,
-    biomasseVegetationMax: exigerNombre(o, 'biomasseVegetationMax', b, { min: 1, max: 1000 }, erreurs)!,
+    consommationVegetationParAnimalParMois: exigerNombre(o, 'consommationVegetationParAnimalParMois', b, { min: 0, max: 1000 }, erreurs)!,
+    biomasseVegetationMax: exigerNombre(o, 'biomasseVegetationMax', b, { min: 1, max: 100000 }, erreurs)!,
+    decroissanceCarcasseParMois: exigerNombre(o, 'decroissanceCarcasseParMois', b, { min: 0, max: 1 }, erreurs)!,
+    perteSanteFroidFauneParMois: exigerNombre(o, 'perteSanteFroidFauneParMois', b, { min: 0, max: 100 }, erreurs)!,
+    seuilFroidFauneCelsius: exigerNombre(o, 'seuilFroidFauneCelsius', b, { min: -60, max: 40 }, erreurs)!,
+    perteSanteFamineFauneParMois: exigerNombre(o, 'perteSanteFamineFauneParMois', b, { min: 0, max: 100 }, erreurs)!,
+    porteeChassePredateurTuiles: exigerNombre(o, 'porteeChassePredateurTuiles', b, { min: 1, max: 50, entier: true }, erreurs)!,
+    chanceKillPredateurParMois: exigerNombre(o, 'chanceKillPredateurParMois', b, { min: 0, max: 1 }, erreurs)!,
     rendementCueilletteParMois: exigerNombre(o, 'rendementCueilletteParMois', b, { min: 0, max: 1000 }, erreurs)!,
     rendementChasseParMois: exigerNombre(o, 'rendementChasseParMois', b, { min: 0, max: 1000 }, erreurs)!,
+    especes,
   };
 }
 

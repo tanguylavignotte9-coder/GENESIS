@@ -1,9 +1,10 @@
-import { Application, Container, Sprite, Texture } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Texture } from 'pixi.js';
 
 export class Carte {
   app: Application;
   monde: Container;
   sprite: Sprite;
+  coucheAnimaux: Graphics;
   canvas: HTMLCanvasElement;
   ctx2d: CanvasRenderingContext2D;
   texture: Texture;
@@ -18,7 +19,9 @@ export class Carte {
     this.texture = Texture.from(canvas);
     this.sprite = new Sprite(this.texture);
     this.sprite.texture = this.texture;
+    this.coucheAnimaux = new Graphics();
     this.monde.addChild(this.sprite);
+    this.monde.addChild(this.coucheAnimaux);
     app.stage.addChild(this.monde);
     this.centrer();
   }
@@ -57,6 +60,16 @@ export class Carte {
     image.data.set(new Uint8Array(couleurs.buffer, couleurs.byteOffset, couleurs.byteLength));
     this.ctx2d.putImageData(image, 0, 0);
     this.texture.source.update();
+  }
+
+  appliquerAnimaux(donnees: number[]): void {
+    this.coucheAnimaux.clear();
+    for (let i = 0; i + 2 < donnees.length; i += 3) {
+      const x = donnees[i] / 10;
+      const y = donnees[i + 1] / 10;
+      const couleur = donnees[i + 2];
+      this.coucheAnimaux.circle(x, y, 1.4).fill({ color: couleur, alpha: 0.95 });
+    }
   }
 
   zoomAutour(pointeurX: number, pointeurY: number, facteur: number): void {

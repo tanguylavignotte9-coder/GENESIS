@@ -12,8 +12,10 @@ import { Objet } from './economie/objet';
 import { EntiteBatiment } from './batiments/batiment';
 import { Langue } from './culture/langue';
 import { GrapheSavoir } from './savoir/connaissance';
+import { peuplerMonde, miseAJourMensuelleFaune, empreinteAnimaux } from './faune/systemeFaune';
+import { construireEspeces } from './faune/especes';
 import type { ConfigComplete } from './config/schema';
-import type { EtatPartage } from './etat';
+import type { EtatPartage, ParametresDepart } from './etat';
 import { Matiere, Meteo, Vegetation } from './types';
 
 export class Simulation {
@@ -36,7 +38,10 @@ export class Simulation {
       langues: new Map(),
       religions: new Map(),
       savoir: new GrapheSavoir(),
+      animaux: new Map(),
+      parametresDepart: { seed, nbBandes: config.societe.bandesInitialesMin, tailleBande: config.societe.tailleBandeInitialeMin },
       prochainIdIndividu: 1,
+      prochainIdAnimal: 1,
       prochainIdGroupe: 1,
       prochainIdObjet: 1,
       prochainIdBatiment: 1,
@@ -50,15 +55,30 @@ export class Simulation {
     this.moisDernierTick = 1;
   }
 
-  initialiser(): void {
+  initialiser(options?: { nbBandes?: number; tailleBande?: number }): void {
     genererMonde(this.etat.monde, this.config.monde, this.etat.rng);
+    peuplerMonde(this.etat, this.config.fauneFlore);
+    const s = this.config.societe;
+    const nbBandes = Math.max(s.bandesInitialesMin, Math.min(s.bandesInitialesMax, Math.round(options?.nbBandes ?? s.bandesInitialesMin)));
+    const tailleBande = Math.max(s.tailleBandeInitialeMin, Math.min(s.tailleBandeInitialeMax, Math.round(options?.tailleBande ?? s.tailleBandeInitialeMin)));
+    this.etat.parametresDepart = { seed: this.etat.seed, nbBandes, tailleBande };
     const langueMere = new Langue(this.etat.prochainIdLangue++, 'langue-mère', null);
     this.etat.langues.set(langueMere.id, langueMere);
+    const vivants = Array.from(this.etat.animaux.values()).filter((a) => a.vivant).length;
     this.etat.journal.ajouter({
       date: { an: this.etat.calendrier.an, mois: this.etat.calendrier.mois },
       type: TypeEvenement.Monde,
       sujet: 'Génération du monde',
-      description: `Monde généré depuis la graine ${this.etat.seed} : ${this.etat.monde.taille}x${this.etat.monde.taille} tuiles, ${this.etat.langues.size} langue-mère.`,
+      description: `Monde généré depuis la graine ${this.etat.seed} : ${this.etat.monde.taille}x${this.etat.monde.taille} tuiles, ${vivants} animaux, langue-mère parlée par toutes les bandes.`,
+      individusImpliques: [],
+      tuileX: null,
+      tuileY: null,
+    });
+    this.etat.journal.ajouter({
+      date: { an: this.etat.calendrier.an, mois: this.etat.calendrier.mois },
+      type: TypeEvenement.Monde,
+      sujet: 'Départ des bandes',
+      description: `${nbBandes} bande(s) de ${tailleBande} individus chacune apparaîtront sur le monde (an 1, mois 1 = origine du temps).`,
       individusImpliques: [],
       tuileX: null,
       tuileY: null,
@@ -90,6 +110,7 @@ export class Simulation {
   private tickMensuel(): void {
     miseAJourMeteoMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.etat.rng);
     miseAJourVegetationMensuelle(this.etat.monde, this.etat.calendrier, this.config.monde, this.config.fauneFlore, this.etat.rng);
+    miseAJourMensuelleFaune(this.etat, this.config.fauneFlore);
     this.moisDernierTick = this.etat.calendrier.mois;
     const vivants = Array.from(this.etat.individus.values()).filter((i) => i.vivant).length;
     if (vivants === 0 && this.etat.individus.size > 0) {
@@ -123,6 +144,23 @@ export class Simulation {
 
   empreinteMonde(): string {
     return this.etat.monde.empreinte;
+  }
+
+  empreinteAnimaux(): string {
+    return empreinteAnimaux(this.etat);
+  }
+
+  digestAnimaux(): number[] {
+    const especes = construireEspeces(this.config.fauneFlore);
+    const out: number[] = [];
+    const max = 20000;
+    for (const a of this.etat.animaux.values()) {
+      if (!a.vivant) continue;
+      if (out.length >= max * 3) break;
+      const e = especes.get(a.especeId);
+      out.push(Math.round(a.positionX * 10), Math.round(a.positionY * 10), e?.couleur ?? 0xffffff);
+    }
+    return out;
   }
 
   digestCouleurs(): Uint32Array {

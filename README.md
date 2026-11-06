@@ -30,6 +30,7 @@ src/sim/              cœur de simulation (TypeScript pur, zéro dépendance au 
   monde/              tuiles (6 niveaux, matières, gisements), générateur, climat, météo, végétation
   temps/              calendrier (mois), saisons par latitude, pause + vitesses ×1..×50
   entites/            individu (besoins, personnalité, génétique, mémoire), actions extensibles
+  faune/              animaux individuellement simulés : espèces par biome, prédation, carcasses, migrations
   groupes/            bandes → nations, territoire émergent
   savoir/             connaissances atomiques à prérequis (graphe)
   economie/           objets individuels avec histoire, stocks physiques
@@ -56,3 +57,13 @@ docs/                 design doc et rapports d'interprétation
 - Le joueur ne modifie jamais la simulation en V1.
 
 Voir `docs/INTERPRETATIONS.md` pour les choix d'interprétation faits sur les zones ouvertes du design doc.
+
+## Jalons
+
+- **J1 ✅** — socle technique, monde minimal, banc, tests (commit initial).
+- **J2 ✅** — monde complet (relief, rivières, climat, saisons, météo, végétation, gisements), faune simulée, écran de démarrage seed/bandes/taille.
+- **J3 ⬜** — bandes initiales, individus vivants (besoins, survie, reproduction, génétique, sénescence).
+- **J4 ⬜** — premières sociétés, gouvernance, troc, journal d'inspection.
+- **J5 ⬜** — langues, religions, santé mentale, chroniques.
+- **J6 ⬜** — ères jusqu'à l'ère moderne, monnaie, pollution, écrans dédiés.
+- **J7 ⬜** — sauvegarde exacte en jeu, écran de fin (extinction), calibration ~20 h au banc.

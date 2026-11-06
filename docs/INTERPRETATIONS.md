@@ -36,3 +36,31 @@ Le squelette couvre **J1 en entier** (monde + temps + rendu minimal + banc + con
 ## 5. Non fait en J1 (volontairement)
 
 Pas de boucle comportementale des individus (J3), pas de faunes entités (J2), pas d'UI d'inspection avancée (J4+), pas d'autosave périodique en jeu (J7), pas de pouvoirs divins (V2), pas d'audio (V1 = silence total, décision).
+
+---
+
+# Rapport J2 — générateur de monde complet + faune + écran de démarrage
+
+## Ce qui a été livré (J2)
+
+- **Faune individuellement simulée** (`src/sim/faune/`) : 7 espèces réelles (cerf, bison, sanglier, lapin, loup, ours, vautour) réparties à la génération selon le biome (poids par type de végétation, dans `config/faune-flore.jsonc`). Chaque animal a âge, faim, santé, position, sexe.
+- **Boucle faune mensuelle** (système qui ne touche que l'état partagé) : faim croissante → l'herbivore mange la biomasse de sa tuile (la végétation s'épuise réellement), le charognard mange les carcasses, le prédateur chasse une proie dans sa portée (index spatial reconstruit chaque mois) ; reproduction conditionnée à la faim/santé/âge ; morts naturelles par **famine, froid et vieillesse** → **carcasse déposée sur la tuile** qui se décompose chaque mois ; **migrations saisonnières** (les animaux fuient le froid hivernal vers l'équateur, les herbivores fuient vers la meilleure biomasse voisine, les prédateurs poursuivent les proies), en respectant la traversabilité (falaises/eau salée infranchissables).
+- **Équilibres émergents testés** : sans végétation, la faune meurt de faim et laisse des carcasses (test) ; avec biomasse max, la population croît (test) — boucle proie-prédateur non régulée par code.
+- **Écran de démarrage fonctionnel** : graine + nombre de bandes + taille des bandes, champs bornés par `config/societe.jsonc`, transmis au worker → `Simulation.initialiser({nbBandes, tailleBande})`, paramètres bornés, stockés dans l'état (`parametresDepart`, sérialisés) et consignés au journal. Les bandes/individus eux-mêmes apparaîtront en J3.
+- **Rendu** : météo visible (pluie/neige/nuages/ensoleillement + gel hivernal des eaux douces), zoom continu, et **animaux visibles** (points colorés par espèce sur une couche PixiJS, envoyés dans le digest) ; barre d'état : date, vitesse, humains/animaux/événements.
+- **Banc** : mesure dédiée faune (tick mensuel ~25 ms pour ~3 400 animaux ; 36 mois simulés headless : 3 394 → 3 082 vivants).
+
+## Choix d'interprétation J2 (zones ouvertes)
+
+- **Effectif faune** : « animaux par tuile 0–3 » du premier jet aurait donné jusqu'à 3 M d'entités — irréaliste en entités individuelles. Interprété comme un **effectif total initial** (1 500–4 000, config) réparti au prorata des poids de biome par espèce.
+- **Tick faune mensuel** (et non à chaque pas de 0,1 s) : la migration saisonnière et la prédation sont des phénomènes mensuels ; le LOD par zone active s'appliquera aux individus humains en J3. Le banc mesure ce choix (~25 ms/mois pour la faune seule sur toute la carte).
+- **Carcasses** : stockées comme une couche de nourriture par tuile (`carcasseNourriture`), consommée par charognards (et plus tard chasseurs humains en J3), avec décroissance mensuelle — émergence, pas de table.
+- **Météo visible** : rendu par tuile (pluie assombrit, neige blanchit, gel des lacs/rivières en hiver) + état `meteo` par tuile dans l'état partagé.
+
+## Mesures banc J2 (Node 22, sandbox)
+
+- Génération monde + faune : **~1,1 s** ; simulation 36 mois : **~41 ms/mois** dont ~26 ms de tick faune (~3 400 animaux) ; débit tuiles ~24 M/s.
+
+## Reste pour J3
+
+Bandes initiales posées réellement (individus créés selon `parametresDepart`), boucle individuelle complète (besoins, perception locale, décisions, actions), survie (faim/soif/sommeil/froid), reproduction humaine, génétique, sénescence, fiches inspectables.

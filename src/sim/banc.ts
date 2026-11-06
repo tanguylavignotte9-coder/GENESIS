@@ -1,6 +1,7 @@
 import { Simulation } from './simulation';
 import { Individu } from './entites/individu';
 import { serialiserSimulation, deserialiserSimulation } from './sauvegarde/serialiseur';
+import { miseAJourMensuelleFaune } from './faune/systemeFaune';
 import type { ConfigComplete } from './config/schema';
 
 export interface OptionsBanc {
@@ -15,8 +16,12 @@ export interface ResultatBanc {
   seed: number;
   tailleGrille: number;
   nbTuiles: number;
+  animauxInitiaux: number;
+  animauxVivantsApres: number;
+  moisSimules: number;
   msGenerationMonde: number;
   msParMoisMoyen: number;
+  msParMoisFaune: number;
   tuilesMiseAJourParSeconde: number;
   msParMoisParMillionTuiles: number;
   individusCrees: number;
@@ -26,6 +31,7 @@ export interface ResultatBanc {
   msSerialisation: number;
   msDeserialisation: number;
   empreinteMondeApres: string;
+  empreinteAnimauxApres: string;
   memoireMB: number;
 }
 
@@ -39,6 +45,7 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
   const vitesseMax = Math.max(...opts.config.temps.vitessesDisponibles);
   sim.definirVitesse(vitesseMax);
   const pas = opts.config.temps.pasDeTempsSecondesReel;
+  const animauxInitiaux = Array.from(sim.etat.animaux.values()).filter((a) => a.vivant).length;
   const t2 = performance.now();
   const moisDepart = { an: sim.etat.calendrier.an, mois: sim.etat.calendrier.mois };
   let ticks = 0;
@@ -49,6 +56,7 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
   }
   const t3 = performance.now();
   const msSimulation = t3 - t2;
+  const animauxApres = Array.from(sim.etat.animaux.values()).filter((a) => a.vivant).length;
   const msParMois = opts.mois > 0 ? msSimulation / opts.mois : 0;
   const nbTuiles = sim.etat.monde.taille * sim.etat.monde.taille;
   const tuilesParSeconde = opts.mois > 0 ? (nbTuiles * opts.mois) / (msSimulation / 1000) : 0;
@@ -75,12 +83,20 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
 
   const memoireMB = (typeof process !== 'undefined' && process.memoryUsage ? process.memoryUsage().heapUsed : 0) / 1024 / 1024;
 
+  const tFaune = performance.now();
+  miseAJourMensuelleFaune(sim.etat, opts.config.fauneFlore);
+  const msFaune = performance.now() - tFaune;
+
   return {
     seed: opts.seed,
     tailleGrille: sim.etat.monde.taille,
     nbTuiles,
+    animauxInitiaux,
+    animauxVivantsApres: animauxApres,
+    moisSimules: opts.mois,
     msGenerationMonde: msGeneration,
     msParMoisMoyen: msParMois,
+    msParMoisFaune: msFaune,
     tuilesMiseAJourParSeconde: Math.round(tuilesParSeconde),
     msParMoisParMillionTuiles: nbTuiles > 0 ? (msParMois * 1e6) / nbTuiles : 0,
     individusCrees: nbInd,
@@ -90,6 +106,7 @@ export function runBanc(opts: OptionsBanc): ResultatBanc {
     msSerialisation,
     msDeserialisation,
     empreinteMondeApres: sim2.empreinteMonde(),
+    empreinteAnimauxApres: sim2.empreinteAnimaux(),
     memoireMB: Math.round(memoireMB * 10) / 10,
   };
 }
@@ -101,6 +118,7 @@ export function formaterBanc(r: ResultatBanc): string {
     `Génération du monde : ${r.msGenerationMonde.toFixed(1)} ms`,
     `Simulation : ${r.msParMoisMoyen.toFixed(2)} ms/mois en moyenne (${r.msParMoisParMillionTuiles.toFixed(3)} ms/mois/M tuiles)`,
     `Débit tuiles : ${r.tuilesMiseAJourParSeconde.toLocaleString('fr-FR')} tuiles/s (météo + végétation mensuelles)`,
+    `Faune : ${r.animauxInitiaux.toLocaleString('fr-FR')} animaux initiaux → ${r.animauxVivantsApres.toLocaleString('fr-FR')} vivants après ${r.moisSimules} mois (tick faune : ${r.msParMoisFaune.toFixed(2)} ms/mois)`,
     `Individus (modèle) : ${r.individusCrees.toLocaleString('fr-FR')} créés en ${r.msCreationIndividus.toFixed(1)} ms (${r.individusParSeconde.toLocaleString('fr-FR')}/s)`,
     `Sauvegarde : ${(r.tailleSauvegardeOctets / 1024).toFixed(1)} Ko, sérialisation ${r.msSerialisation.toFixed(1)} ms, reprise ${r.msDeserialisation.toFixed(1)} ms`,
     `Empreinte du monde après banc : ${r.empreinteMondeApres}`,

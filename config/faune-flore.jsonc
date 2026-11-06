@@ -5,28 +5,120 @@
   // proie-prédateur émergent, jamais régulés par code.
   // ============================================================
 
-  // Probabilité qu'une tuile fasse pousser sa végétation d'un cran un mois donné (0 à 1), selon climat et saison.
+  // Effectif total d'animaux créés à la génération du monde (tirage entre min et max),
+  // réparti sur les tuiles terrestres au prorata des poids de biome de chaque espèce.
+  "effectifInitialMin": 1500,
+  "effectifInitialMax": 4000,
+
+  // Probabilité qu'une tuile fasse pousser sa végétation d'un cran un mois donné (0 à 1).
   "probabilitePousseVegetationParMois": 0.3,
 
-  // Probabilité qu'une tuile défrichée naturellement (par le climat) perde sa végétation un mois donné (0 à 1).
+  // Probabilité qu'une tuile perde de la biomasse un mois donné (0 à 1).
   "probabiliteDegradationVegetationParMois": 0.05,
 
-  // Nombre initial d'animaux par tuile de terre (tirage entre min et max à la génération).
-  "animauxParTuileMin": 0,
-  "animauxParTuileMax": 3,
-
-  // Probabilité de reproduction d'un animal par mois quand ses besoins sont remplis (0 à 1).
-  "probabiliteReproductionFauneParMois": 0.08,
-
-  // Consommation de végétation par animal et par mois, en points de biomasse de la tuile (0 à 100).
+  // Consommation de biomasse de la tuile par herbivore et par mois (échelle biomasse 0 à biomasseVegetationMax).
   "consommationVegetationParAnimalParMois": 5,
 
-  // Biomasse de végétation maximale d'une tuile (échelle 0 à 100, constante biologique du biome).
+  // Biomasse de végétation maximale d'une tuile (constante biologique du biome).
   "biomasseVegetationMax": 100,
 
-  // Rendement de cueillette par individu et par mois sur une tuile, en unités de nourriture.
+  // Fraction de la carcasse restante qui disparaît chaque mois (décomposition), 0 à 1.
+  "decroissanceCarcasseParMois": 0.15,
+
+  // Perte de santé d'un animal par mois quand la température de sa tuile est sous le seuil de froid, en points.
+  "perteSanteFroidFauneParMois": 6,
+
+  // Température sous laquelle un animal souffre du froid, en degrés Celsius.
+  "seuilFroidFauneCelsius": 0,
+
+  // Perte de santé d'un animal par mois à faim maximale, en points (mort par famine émerge).
+  "perteSanteFamineFauneParMois": 15,
+
+  // Portée de chasse d'un prédateur, en tuiles (il détecte les proies dans ce rayon).
+  "porteeChassePredateurTuiles": 3,
+
+  // Probabilité qu'un prédateur tue une proie détectée, par mois (0 à 1).
+  "chanceKillPredateurParMois": 0.5,
+
+  // Rendement de cueillette par individu humain et par mois sur une tuile, en unités de nourriture.
   "rendementCueilletteParMois": 2,
 
-  // Rendement de chasse par individu et par mois (avant probabilité de succès), en unités de nourriture.
-  "rendementChasseParMois": 3
+  // Rendement de chasse par individu humain et par mois (avant probabilité de succès), en unités de nourriture.
+  "rendementChasseParMois": 3,
+
+  // Espèces réelles, peuplées selon le biome (poids par type de végétation :
+  // Toundra, Taiga, Foret, Prairie, Savane, Jungle, Desert, Neige).
+  // regime : herbivore | predateur | charognard.
+  "especes": {
+    "cerf": {
+      "nom": "Cerf",
+      "regime": "herbivore",
+      "vitesseTuilesParMois": 6,
+      "faimParMois": 6,
+      "ageMaxAnnees": 18,
+      "reproductionParMois": 0.1,
+      "tailleCarcasse": 30,
+      "poidsBiomes": { "Foret": 3, "Prairie": 2, "Taiga": 2, "Savane": 1 }
+    },
+    "bison": {
+      "nom": "Bison",
+      "regime": "herbivore",
+      "vitesseTuilesParMois": 4,
+      "faimParMois": 8,
+      "ageMaxAnnees": 22,
+      "reproductionParMois": 0.08,
+      "tailleCarcasse": 60,
+      "poidsBiomes": { "Prairie": 4, "Savane": 2 }
+    },
+    "sanglier": {
+      "nom": "Sanglier",
+      "regime": "herbivore",
+      "vitesseTuilesParMois": 5,
+      "faimParMois": 7,
+      "ageMaxAnnees": 20,
+      "reproductionParMois": 0.12,
+      "tailleCarcasse": 25,
+      "poidsBiomes": { "Foret": 4, "Taiga": 3, "Jungle": 2 }
+    },
+    "lapin": {
+      "nom": "Lapin",
+      "regime": "herbivore",
+      "vitesseTuilesParMois": 8,
+      "faimParMois": 4,
+      "ageMaxAnnees": 8,
+      "reproductionParMois": 0.25,
+      "tailleCarcasse": 2,
+      "poidsBiomes": { "Prairie": 4, "Savane": 3, "Toundra": 1 }
+    },
+    "loup": {
+      "nom": "Loup",
+      "regime": "predateur",
+      "vitesseTuilesParMois": 9,
+      "faimParMois": 5,
+      "ageMaxAnnees": 14,
+      "reproductionParMois": 0.07,
+      "tailleCarcasse": 20,
+      "poidsBiomes": { "Taiga": 4, "Foret": 3, "Toundra": 2, "Prairie": 1 }
+    },
+    "ours": {
+      "nom": "Ours",
+      "regime": "predateur",
+      "vitesseTuilesParMois": 5,
+      "faimParMois": 9,
+      "ageMaxAnnees": 28,
+      "reproductionParMois": 0.05,
+      "tailleCarcasse": 50,
+      "poidsBiomes": { "Taiga": 3, "Foret": 3, "Toundra": 1 }
+    },
+    "vautour": {
+      "nom": "Vautour",
+      "regime": "charognard",
+      "vitesseTuilesParMois": 10,
+      "faimParMois": 4,
+      "ageMaxAnnees": 25,
+      "reproductionParMois": 0.06,
+      "tailleCarcasse": 5,
+      "poidsBiomes": { "Savane": 3, "Prairie": 2, "Desert": 2 }
+    }
+  }
 }

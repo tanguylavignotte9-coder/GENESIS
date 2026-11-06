@@ -67,16 +67,35 @@ export interface ConfigIndividus {
   tauxOubliParAn: number;
 }
 
+export type RegimeFaune = 'herbivore' | 'predateur' | 'charognard';
+
+export interface EspeceFaune {
+  nom: string;
+  regime: RegimeFaune;
+  vitesseTuilesParMois: number;
+  faimParMois: number;
+  ageMaxAnnees: number;
+  reproductionParMois: number;
+  tailleCarcasse: number;
+  poidsBiomes: Record<string, number>;
+}
+
 export interface ConfigFauneFlore {
+  effectifInitialMin: number;
+  effectifInitialMax: number;
   probabilitePousseVegetationParMois: number;
   probabiliteDegradationVegetationParMois: number;
-  animauxParTuileMin: number;
-  animauxParTuileMax: number;
-  probabiliteReproductionFauneParMois: number;
   consommationVegetationParAnimalParMois: number;
   biomasseVegetationMax: number;
+  decroissanceCarcasseParMois: number;
+  perteSanteFroidFauneParMois: number;
+  seuilFroidFauneCelsius: number;
+  perteSanteFamineFauneParMois: number;
+  porteeChassePredateurTuiles: number;
+  chanceKillPredateurParMois: number;
   rendementCueilletteParMois: number;
   rendementChasseParMois: number;
+  especes: Record<string, EspeceFaune>;
 }
 
 export interface ConfigSociete {

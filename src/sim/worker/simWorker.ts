@@ -32,6 +32,7 @@ function envoyerDigest(forcer: boolean): void {
     {
       type: 'digest',
       couleurs: couleurs.buffer,
+      animaux: sim.digestAnimaux(),
       taille: sim.etat.monde.taille,
       an: cal.an,
       mois: cal.mois,
@@ -39,6 +40,7 @@ function envoyerDigest(forcer: boolean): void {
       stats: {
         tuiles: sim.etat.monde.taille * sim.etat.monde.taille,
         individus: Array.from(sim.etat.individus.values()).filter((i) => i.vivant).length,
+        animaux: Array.from(sim.etat.animaux.values()).filter((a) => a.vivant).length,
         evenements: sim.etat.journal.taille,
         empreinte: sim.empreinteMonde(),
       },
@@ -75,11 +77,12 @@ ctx.onmessage = (e: MessageEvent) => {
         config = msg.config as ConfigComplete;
         empreintes = msg.empreintes as Record<string, string>;
         sim = new Simulation(config, msg.seed as number);
-        sim.initialiser();
+        const opts = (msg.options ?? {}) as { nbBandes?: number; tailleBande?: number };
+        sim.initialiser({ nbBandes: opts.nbBandes, tailleBande: opts.tailleBande });
         dernierJournalId = 0;
         envoyerJournal();
         envoyerDigest(true);
-        ctx.postMessage({ type: 'pret', seed: msg.seed });
+        ctx.postMessage({ type: 'pret', seed: msg.seed, parametres: sim.etat.parametresDepart });
         demarrerBoucle();
         break;
       }
@@ -93,11 +96,13 @@ ctx.onmessage = (e: MessageEvent) => {
       case 'nouveauMonde': {
         if (!config) break;
         sim = new Simulation(config, msg.seed as number);
-        sim.initialiser();
+        const opts = (msg.options ?? {}) as { nbBandes?: number; tailleBande?: number };
+        sim.initialiser({ nbBandes: opts.nbBandes, tailleBande: opts.tailleBande });
         dernierDigestMois = -1;
         dernierJournalId = 0;
         envoyerJournal();
         envoyerDigest(true);
+        ctx.postMessage({ type: 'pret', seed: msg.seed, parametres: sim.etat.parametresDepart });
         break;
       }
       case 'sauvegarder': {

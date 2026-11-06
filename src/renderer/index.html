@@ -61,6 +61,23 @@
         border-bottom: 1px solid #232a3a;
       }
       #listeJournal { flex: 1; overflow-y: auto; padding: 6px 0; }
+      #fiche {
+        position: fixed;
+        top: 44px; left: 0; bottom: 0;
+        width: 340px;
+        background: rgba(11, 14, 19, 0.95);
+        border-right: 1px solid #232a3a;
+        z-index: 9;
+        display: none;
+        flex-direction: column;
+        padding: 10px 14px;
+        overflow-y: auto;
+        font-size: 13px;
+      }
+      #fiche h2 { font-size: 14px; color: #e8b64c; margin: 0 0 8px 0; }
+      #fiche .ligne { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #161b28; }
+      #fiche .ligne .cle { color: #9fb0d0; }
+      #ficheFermer { margin-top: 10px; background: #1a2030; color: #d8dce6; border: 1px solid #2c3550; border-radius: 4px; padding: 6px; cursor: pointer; }
       .evenement { padding: 6px 12px; border-bottom: 1px solid #161b28; font-size: 12px; }
       .evenement .date { color: #6f7ea0; margin-right: 6px; }
       .evenement .type { color: #e8b64c; margin-right: 6px; }
@@ -105,6 +122,11 @@
     <div id="journal" style="display: none">
       <h2>Journal</h2>
       <div id="listeJournal"></div>
+    </div>
+    <div id="fiche" style="display: none">
+      <h2 id="ficheTitre">Individu</h2>
+      <div id="ficheContenu"></div>
+      <button id="ficheFermer">Fermer</button>
     </div>
     <div id="ecranDemarrage">
       <h1>GENESIS</h1>

@@ -66,6 +66,12 @@ export interface MemoireEvenement {
   date: DateJeu;
 }
 
+export type Grossesse = {
+  pereRegistreId: number;
+  pereBiologiqueId: number;
+  moisRestants: number;
+} | null;
+
 export class Individu {
   id: number;
   nom: string;
@@ -101,6 +107,9 @@ export class Individu {
   causeMort: string | null;
   neLe: DateJeu;
   mortLe: DateJeu | null;
+  grossesse: Grossesse;
+  dernierActeCannibalisme: DateJeu | null;
+  nomFamille: string;
 
   constructor(id: number, nom: string) {
     this.id = id;
@@ -137,6 +146,9 @@ export class Individu {
     this.causeMort = null;
     this.neLe = { an: 1, mois: 1 };
     this.mortLe = null;
+    this.grossesse = null;
+    this.dernierActeCannibalisme = null;
+    this.nomFamille = '';
   }
 
   get estMature(): boolean {

@@ -5,6 +5,7 @@ export class Carte {
   monde: Container;
   sprite: Sprite;
   coucheAnimaux: Graphics;
+  coucheHumains: Graphics;
   canvas: HTMLCanvasElement;
   ctx2d: CanvasRenderingContext2D;
   texture: Texture;
@@ -20,8 +21,10 @@ export class Carte {
     this.sprite = new Sprite(this.texture);
     this.sprite.texture = this.texture;
     this.coucheAnimaux = new Graphics();
+    this.coucheHumains = new Graphics();
     this.monde.addChild(this.sprite);
     this.monde.addChild(this.coucheAnimaux);
+    this.monde.addChild(this.coucheHumains);
     app.stage.addChild(this.monde);
     this.centrer();
   }
@@ -70,6 +73,22 @@ export class Carte {
       const couleur = donnees[i + 2];
       this.coucheAnimaux.circle(x, y, 1.4).fill({ color: couleur, alpha: 0.95 });
     }
+  }
+
+  appliquerIndividus(donnees: number[]): void {
+    this.coucheHumains.clear();
+    for (let i = 0; i + 2 < donnees.length; i += 3) {
+      const x = donnees[i + 1] / 10;
+      const y = donnees[i + 2] / 10;
+      this.coucheHumains.circle(x, y, 1.8).fill({ color: 0xffffff, alpha: 0.95 });
+    }
+  }
+
+  ecranVersMonde(sx: number, sy: number): { x: number; y: number } {
+    return {
+      x: (sx - this.monde.x) / this.monde.scale.x,
+      y: (sy - this.monde.y) / this.monde.scale.y,
+    };
   }
 
   zoomAutour(pointeurX: number, pointeurY: number, facteur: number): void {

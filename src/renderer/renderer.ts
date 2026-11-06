@@ -41,6 +41,7 @@ async function demarrer(): Promise<void> {
 
   let carte: Carte | null = null;
   let worker: Worker | null = null;
+  let derniersIndividus: number[] = [];
   let seed = Number(inputSeed.value) || 42;
 
   const vitesses = vitessesDisponibles(config.temps);
@@ -57,6 +58,8 @@ async function demarrer(): Promise<void> {
         if (carte) {
           carte.appliquerDigest(new Uint32Array(msg.couleurs as ArrayBuffer));
           carte.appliquerAnimaux((msg.animaux as number[]) ?? []);
+          derniersIndividus = (msg.individus as number[]) ?? [];
+          carte.appliquerIndividus(derniersIndividus);
         }
         const stats = msg.stats as { individus: number; animaux: number; evenements: number } | undefined;
         $('date').textContent = `An ${msg.an}, mois ${msg.mois} — ×${msg.vitesse} — ${stats ? `${stats.individus} humains · ${stats.animaux} animaux · ${stats.evenements} événements` : ''}`;
@@ -69,6 +72,8 @@ async function demarrer(): Promise<void> {
       } else if (msg.type === 'charge') {
         const av = msg.avertissements as string[];
         if (av.length > 0) alert(av.join('\n'));
+      } else if (msg.type === 'fiche') {
+        afficherFiche(msg);
       } else if (msg.type === 'erreur') {
         console.error(msg.message);
       }
@@ -105,6 +110,45 @@ async function demarrer(): Promise<void> {
     };
   }
 
+  function ligne(cle: string, valeur: unknown): string {
+    return `<div class="ligne"><span class="cle">${cle}</span><span>${valeur}</span></div>`;
+  }
+
+  function afficherFiche(msg: Record<string, unknown>): void {
+    const fiche = msg.fiche as Record<string, unknown> | undefined;
+    const panneau = $('fiche');
+    if (!fiche || msg.trouve === false) {
+      panneau.style.display = 'none';
+      return;
+    }
+    panneau.style.display = 'flex';
+    $('ficheTitre').textContent = String(fiche.nom);
+    const besoins = fiche.besoins as Record<string, number>;
+    const comp = fiche.competences as Record<string, number>;
+    const sante = fiche.sante as { valeur: number; blessures: unknown[]; maladies: unknown[] };
+    const relations = (fiche.relationsNoms as Array<{ nom: string; type: string; intensite: number }>) ?? [];
+    const html = [
+      ligne('Sexe', fiche.sexe === 0 ? 'Homme' : 'Femme'),
+      ligne('Âge', `${Number(fiche.ageAnnees).toFixed(1)} ans`),
+      ligne('Groupe', fiche.groupeNom ? `${fiche.groupeNom}${fiche.dirigeant ? ' (dirigeant)' : ''}` : '—'),
+      ligne('État', fiche.vivant ? 'Vivant' : `Mort (${fiche.causeMort})`),
+      ligne('Santé', `${sante.valeur.toFixed(0)}/100`),
+      ligne('Faim / Soif / Sommeil', `${besoins.faim.toFixed(0)} / ${besoins.soif.toFixed(0)} / ${besoins.sommeil.toFixed(0)}`),
+      ligne('Stress / Sécurité / Social', `${besoins.stress.toFixed(0)} / ${besoins.securite.toFixed(0)} / ${besoins.social.toFixed(0)}`),
+      ligne('Bonheur', `${Number(fiche.bonheur).toFixed(0)}/100`),
+      ligne('Force / Endurance / Vitesse', `${Number(fiche.force).toFixed(0)} / ${Number(fiche.endurance).toFixed(0)} / ${Number(fiche.vitesse).toFixed(0)}`),
+      ligne('Intelligence / Charisme', `${Number(fiche.intelligence).toFixed(0)} / ${Number(fiche.charisme).toFixed(0)}`),
+      ligne('Compétences', Object.entries(comp).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(', ') || '—'),
+      ligne('Père (registre)', fiche.pereRegistreNom ?? '—'),
+      ligne('Père (biologique)', fiche.pereBiologiqueNom ?? '—'),
+      ligne('Mère', fiche.mereNom ?? '—'),
+      ligne('Enfants', Array.isArray(fiche.enfants) ? fiche.enfants.length : 0),
+      ligne('Relations', relations.map((r) => `${r.nom} (${r.type} ${r.intensite})`).join(', ') || '—'),
+      ligne('Connaissances', Array.isArray(fiche.connaissances) ? fiche.connaissances.length : 0),
+    ].join('');
+    $('ficheContenu').innerHTML = html;
+  }
+
   function lancerMonde(graine: number): void {
     seed = graine;
     if (worker) worker.terminate();
@@ -133,6 +177,10 @@ async function demarrer(): Promise<void> {
     else alert('Aucune sauvegarde disponible.');
   });
 
+  $('ficheFermer').addEventListener('click', () => {
+    $('fiche').style.display = 'none';
+  });
+
   const hote = $('app');
   const configPremierePasse = config;
   const tailleMonde = configPremierePasse.monde.tailleGrille;
@@ -150,6 +198,22 @@ async function demarrer(): Promise<void> {
     glisser = true;
     dernierX = e.clientX;
     dernierY = e.clientY;
+  });
+  canvas.addEventListener('click', (e) => {
+    if (!carte || derniersIndividus.length === 0) return;
+    const p = carte.ecranVersMonde(e.clientX, e.clientY);
+    let bestId = -1;
+    let bestDist = 3;
+    for (let i = 0; i + 2 < derniersIndividus.length; i += 3) {
+      const x = derniersIndividus[i + 1] / 10;
+      const y = derniersIndividus[i + 2] / 10;
+      const d = Math.hypot(x - p.x, y - p.y);
+      if (d < bestDist) {
+        bestDist = d;
+        bestId = derniersIndividus[i];
+      }
+    }
+    if (bestId >= 0) worker?.postMessage({ type: 'inspecterIndividu', id: bestId });
   });
   window.addEventListener('pointermove', (e) => {
     if (!glisser || !carte) return;

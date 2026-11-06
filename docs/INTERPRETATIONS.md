@@ -64,3 +64,31 @@ Pas de boucle comportementale des individus (J3), pas de faunes entités (J2), p
 ## Reste pour J3
 
 Bandes initiales posées réellement (individus créés selon `parametresDepart`), boucle individuelle complète (besoins, perception locale, décisions, actions), survie (faim/soif/sommeil/froid), reproduction humaine, génétique, sénescence, fiches inspectables.
+
+---
+
+# Rapport J3 — individus vivants, survie, reproduction, fiches inspectables
+
+## Ce qui a été livré (J3)
+
+- **Bandes initiales posées réellement** (`entites/bandes.ts`) : `nbBandes` × `tailleBande` individus (depuis l'écran de démarrage), placés sur des terres proches d'eau douce et tempérées, âges réalistes (jeunes/adultes/anciens), compétences initiales et **5 savoirs de départ** (agriculture, hutte, feu, vêtements, élevage) portés individuellement, langue-mère commune, nom de lignée, stock commun de nourriture, dirigeant = l'aîné, journal de fondation.
+- **Boucle individuelle complète** (`entites/boucleIndividu.ts`), exécutée à chaque tick pour chaque individu vivant (LOD par zone active prêt) :
+  - **Besoins** qui montent avec le temps (faim, soif, sommeil, stress, sécurité, social, reproduction), allaitement des nourrissons par la mère.
+  - **Décision pondérée** (besoins × poids de `config/individus.jsonc`) → action du besoin dominant : manger (stock du groupe), **cannibalisme d'un mort uniquement si faim ≥ seuil extrême et aucune autre nourriture** (traumatisme + événement « drame » au journal), cueillir (épuisement réel de la biomasse de la tuile), chasser (proie tuée → stock de viande), boire (eau douce de la tuile/voisine), chercher l'eau/la meilleure végétation dans la perception locale, dormir, **fuir un prédateur** détecté, socialiser (relations), se reproduire.
+  - **Santé et sénescence émergentes** : pertes de santé par faim/déshydratation/fatigue/stress/froid ; au-delà de l'âge de sénescence, force/endurance baissent chaque année et la santé décline jusqu'à la **mort naturelle** (aucun âge plafond codé). Causes consignées au journal avec carcasse déposée sur la tuile.
+  - **Reproduction réaliste** : couple de sexes opposés proches → grossesse de 9 mois (suivie sur la mère, père de registre + père biologique) → naissance avec **génétique** (mix + mutations, consanguinité, compétences jamais héritées), relations familiales, journal.
+  - **Deuil** : mort d'un proche → stress et souvenir chez les survivants.
+- **Extinction totale réelle** : si plus aucun humain vivant → `extinctionTotale` + événement journal (écran de fin en J7).
+- **Fiche inspectable** : clic sur un humain (point blanc sur la carte) → panneau latéral complet (identité, âge, groupe/dirigeant, santé, besoins, attributs, compétences, parents registre/biologique, mère, enfants, relations nommées, connaissances).
+- **Rendu** : humains en points blancs (digest `individus` id/x/y), animaux colorés, tout suit la caméra/zoom.
+
+## Mesures banc J3 (36 mois, 3 bandes × 25, graine 42)
+
+- 75 humains posés → **27 naissances, 29 morts, 73 vivants** en 36 mois ; simulation complète ~82 ms/mois (monde 1M tuiles + faune ~3 400 + humains inclus).
+
+## Choix d'interprétation J3 (zones ouvertes)
+
+- **Une action par tick** (pas de file d'ordres longue) : la boucle réactive « besoin dominant → action immédiate » est l'interprétation la plus proche d'un comportement réel à cette granularité ; la planification longue arrive avec l'intelligence (J5/J6).
+- **Nourriture du groupe** : stock commun simple (nombre) par bande en J3 ; la périssabilité par type d'aliment et les greniers physiques détaillés arrivent avec l'économie (J4/J6) — noté pour le banc.
+- **Perception** : scan local limité (`porteePerceptionTuiles`) pour eau/biomasse ; la mémoire des lieux hors vue et les rumeurs sont J5.
+- **Prédation sur humains** : la fuite est simulée (boucle individuelle) ; la faune tue surtout d'autres animaux en J3, la mort d'humain par prédateur sera branchée avec les campements en J4.

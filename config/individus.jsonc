@@ -45,6 +45,57 @@
   "perteForceParAnSenescence": 0.6,
   "perteEnduranceParAnSenescence": 0.8,
 
+  // Accroissement des besoins par mois de jeu (0 à 100, 100 = critique).
+  "faimParMois": 8,
+  "soifParMois": 12,
+  "sommeilParMois": 6,
+  "stressParMois": 1,
+
+  // Seuils à partir desquels l'individu agit (0 à 100).
+  "seuilFaimManger": 55,
+  "seuilSoifBoire": 55,
+  "seuilSommeilDormir": 70,
+  "seuilSecuriteFuir": 60,
+
+  // Quantité de nourriture placée dans le stock commun de chaque bande initiale, en unités.
+  "stockNourritureInitialParBande": 80,
+
+  // Nourriture qu'un repas retire au stock (ou que la cueillette apporte), en unités.
+  "consommationNourritureParRepas": 3,
+
+  // Quantité de nourriture que représente le corps d'un humain mort (cannibalisme de famine uniquement), en unités.
+  "tailleCarcasseHumain": 40,
+
+  // Durée de l'allaitement pendant laquelle le nourrisson est nourri par sa mère, en années.
+  "allaitementAnnees": 2,
+
+  // Probabilité de fécondation par mois quand un couple compatible est proche et le besoin de reproduction élevé (0 à 1).
+  "chanceReproductionParMois": 0.3,
+
+  // Distance maximale entre partenaires pour la reproduction, en tuiles.
+  "distanceMaxPartenaireTuiles": 4,
+
+  // Portée de chasse d'un humain (détection des proies), en tuiles.
+  "porteeChasseHumaineTuiles": 4,
+
+  // Probabilité de tuer une proie détectée par mois de chasse, modulée par la compétence chasse (0 à 1).
+  "chanceChasseParMois": 0.6,
+
+  // Portée de détection d'un prédateur qui déclenche la fuite, en tuiles.
+  "porteeFuitePredateurTuiles": 6,
+
+  // Stress subi à la mort d'un proche (relation forte), en points.
+  "stressDeuilProche": 25,
+
+  // Stress subi après un acte de cannibalisme, en points.
+  "stressCannibalisme": 30,
+
+  // Perte de santé par mois à stress maximal, en points.
+  "perteSanteStressMaxParMois": 3,
+
+  // Perte de santé supplémentaire par mois au-delà de l'âge de sénescence, en points.
+  "perteSanteSenescenceParMois": 1.5,
+
   // Pondérations des besoins dans la décision individuelle (poids relatifs, pas des seuils).
   "poidsBesoins": {
     "faim": 3.0,

@@ -33,6 +33,7 @@ function envoyerDigest(forcer: boolean): void {
       type: 'digest',
       couleurs: couleurs.buffer,
       animaux: sim.digestAnimaux(),
+      individus: sim.digestIndividus(),
       taille: sim.etat.monde.taille,
       an: cal.an,
       mois: cal.mois,
@@ -120,6 +121,32 @@ ctx.onmessage = (e: MessageEvent) => {
         envoyerJournal();
         envoyerDigest(true);
         ctx.postMessage({ type: 'charge', avertissements: res.avertissements });
+        break;
+      }
+      case 'inspecterIndividu': {
+        if (!sim) break;
+        const ind = sim.etat.individus.get(msg.id as number);
+        if (!ind) {
+          ctx.postMessage({ type: 'fiche', id: msg.id, trouve: false });
+          break;
+        }
+        const groupe = ind.groupeId !== null ? sim.etat.groupes.get(ind.groupeId) : undefined;
+        ctx.postMessage({
+          type: 'fiche',
+          id: ind.id,
+          trouve: true,
+          fiche: {
+            ...ind.serialiser(),
+            connaissances: Array.from(ind.connaissances),
+            groupeNom: groupe?.nom ?? null,
+            groupeNiveau: groupe?.niveau ?? null,
+            dirigeant: groupe?.dirigeantId === ind.id,
+            relationsNoms: ind.relations.map((r) => ({ vers: r.vers, type: r.type, intensite: r.intensite, nom: sim!.etat.individus.get(r.vers)?.nom ?? `#${r.vers}` })),
+            pereRegistreNom: ind.pereRegistre !== null ? sim.etat.individus.get(ind.pereRegistre)?.nom ?? null : null,
+            pereBiologiqueNom: ind.pereBiologique !== null ? sim.etat.individus.get(ind.pereBiologique)?.nom ?? null : null,
+            mereNom: ind.mere !== null ? sim.etat.individus.get(ind.mere)?.nom ?? null : null,
+          },
+        });
         break;
       }
       case 'filtrerJournal': {

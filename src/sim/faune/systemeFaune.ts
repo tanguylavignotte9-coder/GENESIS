@@ -64,7 +64,7 @@ function choisirEspece(especes: Map<string, Espece>, vegetation: Vegetation, rng
   return liste[liste.length - 1];
 }
 
-function construireIndexSpatial(etat: EtatPartage): Map<number, number[]> {
+export function construireIndexSpatial(etat: EtatPartage): Map<number, number[]> {
   const index = new Map<number, number[]>();
   const t = etat.monde.taille;
   for (const a of etat.animaux.values()) {
@@ -77,7 +77,7 @@ function construireIndexSpatial(etat: EtatPartage): Map<number, number[]> {
   return index;
 }
 
-function animauxProches(etat: EtatPartage, index: Map<number, number[]>, x: number, y: number, rayon: number, filtre?: (a: Animal) => boolean): Animal[] {
+export function animauxProches(etat: EtatPartage, index: Map<number, number[]>, x: number, y: number, rayon: number, filtre?: (a: Animal) => boolean): Animal[] {
   const t = etat.monde.taille;
   const res: Animal[] = [];
   const x0 = Math.max(0, Math.floor(x - rayon));

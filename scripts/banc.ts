@@ -16,12 +16,14 @@ function arg(nom: string, defaut: string): string {
 const seed = Number(arg('seed', '42'));
 const mois = Number(arg('mois', '24'));
 const nbIndividus = Number(arg('individus', '1000'));
+const nbBandes = Number(arg('bandes', '3'));
+const tailleBande = Number(arg('taille', '25'));
 const dossierConfig = path.resolve(racine, arg('config', 'config'));
 
 const textes = lireDossierConfig(dossierConfig);
 const { config, empreintes } = parserConfig(textes);
 
-const resultat: ResultatBanc = runBanc({ seed, mois, config, empreintes, nbIndividusTest: nbIndividus });
+const resultat: ResultatBanc = runBanc({ seed, mois, config, empreintes, nbIndividusTest: nbIndividus, nbBandes, tailleBande });
 
 console.log(formaterBanc(resultat));
 

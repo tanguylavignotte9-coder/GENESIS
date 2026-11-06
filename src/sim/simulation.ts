@@ -14,6 +14,9 @@ import { Langue } from './culture/langue';
 import { GrapheSavoir } from './savoir/connaissance';
 import { peuplerMonde, miseAJourMensuelleFaune, empreinteAnimaux } from './faune/systemeFaune';
 import { construireEspeces } from './faune/especes';
+import { poserBandesInitiales } from './entites/bandes';
+import { tickIndividu, indexAnimauxPourTick } from './entites/boucleIndividu';
+import { empreinteOctets } from './hash';
 import type { ConfigComplete } from './config/schema';
 import type { EtatPartage, ParametresDepart } from './etat';
 import { Matiere, Meteo, Vegetation } from './types';
@@ -56,14 +59,15 @@ export class Simulation {
   }
 
   initialiser(options?: { nbBandes?: number; tailleBande?: number }): void {
-    genererMonde(this.etat.monde, this.config.monde, this.etat.rng);
-    peuplerMonde(this.etat, this.config.fauneFlore);
     const s = this.config.societe;
     const nbBandes = Math.max(s.bandesInitialesMin, Math.min(s.bandesInitialesMax, Math.round(options?.nbBandes ?? s.bandesInitialesMin)));
     const tailleBande = Math.max(s.tailleBandeInitialeMin, Math.min(s.tailleBandeInitialeMax, Math.round(options?.tailleBande ?? s.tailleBandeInitialeMin)));
     this.etat.parametresDepart = { seed: this.etat.seed, nbBandes, tailleBande };
     const langueMere = new Langue(this.etat.prochainIdLangue++, 'langue-mère', null);
     this.etat.langues.set(langueMere.id, langueMere);
+    genererMonde(this.etat.monde, this.config.monde, this.etat.rng);
+    peuplerMonde(this.etat, this.config.fauneFlore);
+    poserBandesInitiales(this.etat, this.config);
     const vivants = Array.from(this.etat.animaux.values()).filter((a) => a.vivant).length;
     this.etat.journal.ajouter({
       date: { an: this.etat.calendrier.an, mois: this.etat.calendrier.mois },
@@ -130,7 +134,7 @@ export class Simulation {
   private tickIndividus(joursAvances: number): void {
     if (joursAvances <= 0) return;
     const zone = this.etat.zoneActive;
-    const joursParAn = this.config.temps.joursParMois * this.config.temps.moisParAn;
+    const indexAnimaux = indexAnimauxPourTick(this.etat);
     for (const ind of this.etat.individus.values()) {
       if (!ind.vivant) continue;
       if (zone) {
@@ -138,7 +142,7 @@ export class Simulation {
           ind.positionX >= zone.x0 && ind.positionX <= zone.x1 && ind.positionY >= zone.y0 && ind.positionY <= zone.y1;
         if (!dedans) continue;
       }
-      ind.ageAnnees += joursAvances / joursParAn;
+      tickIndividu(this.etat, this.config, ind, joursAvances, indexAnimaux);
     }
   }
 
@@ -148,6 +152,29 @@ export class Simulation {
 
   empreinteAnimaux(): string {
     return empreinteAnimaux(this.etat);
+  }
+
+  empreinteIndividus(): string {
+    const arr = new Uint32Array(this.etat.individus.size * 6);
+    let i = 0;
+    for (const ind of this.etat.individus.values()) {
+      arr[i++] = ind.id;
+      arr[i++] = Math.round(ind.positionX * 16) * 65536 + Math.round(ind.positionY * 16);
+      arr[i++] = Math.round(ind.ageAnnees * 100) + (ind.vivant ? 100000 : 0);
+      arr[i++] = Math.round(ind.sante.valeur * 100);
+      arr[i++] = Math.round(ind.besoins.faim * 100) + Math.round(ind.besoins.soif);
+      arr[i++] = ind.groupeId ?? 0;
+    }
+    return empreinteOctets(arr);
+  }
+
+  digestIndividus(): number[] {
+    const out: number[] = [];
+    for (const ind of this.etat.individus.values()) {
+      if (!ind.vivant) continue;
+      out.push(ind.id, Math.round(ind.positionX * 10), Math.round(ind.positionY * 10));
+    }
+    return out;
   }
 
   digestAnimaux(): number[] {

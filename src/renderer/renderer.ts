@@ -1,3 +1,4 @@
+import 'pixi.js/unsafe-eval';
 import { Carte } from './carte';
 import type { ConfigComplete } from '../sim/config/schema';
 import { vitessesDisponibles } from '../sim/temps/boucleTemps';

@@ -40,6 +40,8 @@ export interface ConfigTemps {
   pasDeTempsSecondesReel: number;
   anneesParGeneration: number;
   moisParAn: number;
+  autosaveIntervalleSecondesReel: number;
+  lodTicksHorsZone: number;
 }
 
 export interface ConfigIndividus {
@@ -107,6 +109,7 @@ export interface ConfigFauneFlore {
   probabilitePousseVegetationParMois: number;
   probabiliteDegradationVegetationParMois: number;
   consommationVegetationParAnimalParMois: number;
+  multiplicateurReproductionFaune: number;
   biomasseVegetationMax: number;
   decroissanceCarcasseParMois: number;
   perteSanteFroidFauneParMois: number;

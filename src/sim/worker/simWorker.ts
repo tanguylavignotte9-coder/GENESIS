@@ -1,6 +1,6 @@
 import { Simulation } from '../simulation';
 import { TypeEvenement, type Evenement } from '../journal/journal';
-import { sagaDuMoment, biographie, chroniqueGroupe } from '../recit/chroniques';
+import { sagaDuMoment, biographie, chroniqueGroupe, chroniqueEspece } from '../recit/chroniques';
 import { ereGroupe } from '../savoir/systemeSavoir';
 import type { ConfigComplete } from '../config/schema';
 import { serialiserSimulation, deserialiserSimulation } from '../sauvegarde/serialiseur';
@@ -21,6 +21,8 @@ let dernierDigestMois = -1;
 let ticksDepuisDigest = 0;
 let dernierJournalId = 0;
 let dernierMoisSaga = -1;
+let extinctionPostee = false;
+let dernierAutosave = 0;
 
 function envoyerDigest(forcer: boolean): void {
   if (!sim) return;
@@ -67,8 +69,19 @@ function demarrerBoucle(): void {
   if (!sim || !config) return;
   const pas = config.temps.pasDeTempsSecondesReel;
   ctx.setInterval(() => {
-    if (!sim) return;
+    if (!sim || !config) return;
     sim.tick(pas);
+    const maintenant = Date.now();
+    if (maintenant - dernierAutosave >= config.temps.autosaveIntervalleSecondesReel * 1000) {
+      dernierAutosave = maintenant;
+      if (!sim.etat.extinctionTotale) {
+        ctx.postMessage({ type: 'sauvegarde', slot: 'auto', contenu: serialiserSimulation(sim, empreintes, new Date().toISOString()) });
+      }
+    }
+    if (sim.etat.extinctionTotale && !extinctionPostee) {
+      extinctionPostee = true;
+      ctx.postMessage({ type: 'extinction', chronique: chroniqueEspece(sim.etat) });
+    }
     const cleMois = sim.etat.calendrier.an * 12 + sim.etat.calendrier.mois;
     if (cleMois !== dernierMoisSaga) {
       dernierMoisSaga = cleMois;
@@ -120,8 +133,15 @@ ctx.onmessage = (e: MessageEvent) => {
       }
       case 'sauvegarder': {
         if (!sim) break;
+        const slot = (msg.slot as string) ?? 'auto';
         const contenu = serialiserSimulation(sim, empreintes, new Date().toISOString());
-        ctx.postMessage({ type: 'sauvegarde', contenu });
+        ctx.postMessage({ type: 'sauvegarde', slot, contenu });
+        break;
+      }
+      case 'zoneActive': {
+        if (!sim) break;
+        const z = msg.zone as { x0: number; y0: number; x1: number; y1: number } | null;
+        sim.etat.zoneActive = z;
         break;
       }
       case 'charger': {

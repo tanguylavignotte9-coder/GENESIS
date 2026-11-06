@@ -56,9 +56,11 @@ describe('faune (J2)', () => {
   it('les animaux meurent de faim quand la végétation est épuisée et laissent des carcasses', () => {
     const sim = nouvelleSim(5);
     const monde = sim.etat.monde;
+    sim.config.fauneFlore.probabilitePousseVegetationParMois = 0;
+    sim.config.fauneFlore.probabiliteDegradationVegetationParMois = 0;
     monde.biomasseVegetation.fill(0);
     const avant = Array.from(sim.etat.animaux.values()).filter((a) => a.vivant).length;
-    avancer(sim, 36);
+    avancer(sim, 60);
     const apres = Array.from(sim.etat.animaux.values());
     const morts = apres.filter((a) => !a.vivant);
     expect(morts.length).toBeGreaterThan(0);

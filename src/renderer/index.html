@@ -84,6 +84,21 @@
         color: #f0d9a8; padding: 8px 16px; font-size: 13px; text-align: center;
       }
       #saga .titre { color: #e8b64c; font-weight: 600; margin-right: 8px; }
+      #fin {
+        position: fixed; inset: 0; z-index: 200;
+        background: rgba(8, 6, 10, 0.97);
+        display: none; overflow-y: auto; padding: 60px 20px;
+      }
+      #finCarte { max-width: 720px; margin: 0 auto; color: #d8dce6; }
+      #fin h1 { color: #e8b64c; letter-spacing: 2px; font-size: 28px; text-align: center; }
+      #finContenu { font-size: 14px; line-height: 1.6; }
+      #finContenu .ligne { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #232a3a; }
+      #finContenu .ligne .cle { color: #9fb0d0; }
+      #finContenu h3 { color: #e8b64c; font-size: 14px; margin: 18px 0 6px 0; }
+      #btnNouveauMonde {
+        display: block; margin: 30px auto 0; background: #e8b64c; color: #14100a; border: none;
+        border-radius: 4px; padding: 10px 24px; font-size: 15px; font-weight: 600; cursor: pointer;
+      }
       .evenement.favori { background: rgba(232, 182, 76, 0.12); border-left: 2px solid #e8b64c; }
       .evenement { padding: 6px 12px; border-bottom: 1px solid #161b28; font-size: 12px; }
       .evenement .date { color: #6f7ea0; margin-right: 6px; }
@@ -122,8 +137,16 @@
       <button id="btnX10" class="vitesse">×10</button>
       <button id="btnX25" class="vitesse">×25</button>
       <button id="btnX50" class="vitesse">×50</button>
-      <button id="btnSauvegarder" title="Sauvegarder (slot auto)">💾 Sauvegarder</button>
-      <button id="btnCharger" title="Reprendre la sauvegarde auto">📂 Reprendre</button>
+      <button class="btnSlot" data-slot="1" title="Sauvegarder dans le slot 1">💾1</button>
+      <button class="btnSlot" data-slot="2" title="Sauvegarder dans le slot 2">💾2</button>
+      <button class="btnSlot" data-slot="3" title="Sauvegarder dans le slot 3">💾3</button>
+      <select id="slotCharger" title="Slot à reprendre" style="background:#1a2030;color:#d8dce6;border:1px solid #2c3550;border-radius:4px;font-size:12px;padding:4px;">
+        <option value="auto">auto (autosave)</option>
+        <option value="1">slot 1</option>
+        <option value="2">slot 2</option>
+        <option value="3">slot 3</option>
+      </select>
+      <button id="btnCharger" title="Reprendre la sauvegarde choisie">📂 Reprendre</button>
       <span style="border-left:1px solid #2c3550;height:20px;margin:0 4px;"></span>
       <button id="btnEco" title="Écran économie">📊 Éco</button>
       <button id="btnReligions" title="Écran religions">⛪ Religions</button>
@@ -153,6 +176,13 @@
       <div id="ficheContenu"></div>
     </div>
     <div id="saga" style="display: none"></div>
+    <div id="fin" style="display: none">
+      <div id="finCarte">
+        <h1>L'ESPÈCE S'EST ÉTEINTE</h1>
+        <div id="finContenu"></div>
+        <button id="btnNouveauMonde">Générer un nouveau monde</button>
+      </div>
+    </div>
     <div id="ecranDemarrage">
       <h1>GENESIS</h1>
       <label for="inputSeed">Graine du monde</label>

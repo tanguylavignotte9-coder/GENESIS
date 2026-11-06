@@ -17,7 +17,10 @@
   "probabiliteDegradationVegetationParMois": 0.05,
 
   // Consommation de biomasse de la tuile par herbivore et par mois (échelle biomasse 0 à biomasseVegetationMax).
-  "consommationVegetationParAnimalParMois": 5,
+  "consommationVegetationParAnimalParMois": 3,
+
+  // Multiplicateur global de reproduction de la faune (calibration équilibres proie-prédateur au banc).
+  "multiplicateurReproductionFaune": 6,
 
   // Biomasse de végétation maximale d'une tuile (constante biologique du biome).
   "biomasseVegetationMax": 100,
@@ -41,7 +44,7 @@
   "chanceKillPredateurParMois": 0.5,
 
   // Rendement de cueillette par individu humain et par mois sur une tuile, en unités de nourriture.
-  "rendementCueilletteParMois": 2,
+  "rendementCueilletteParMois": 3,
 
   // Rendement de chasse par individu humain et par mois (avant probabilité de succès), en unités de nourriture.
   "rendementChasseParMois": 3,

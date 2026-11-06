@@ -18,10 +18,14 @@ const mois = Number(arg('mois', '24'));
 const nbIndividus = Number(arg('individus', '1000'));
 const nbBandes = Number(arg('bandes', '3'));
 const tailleBande = Number(arg('taille', '25'));
+const tailleMonde = arg('tailleMonde', '');
 const dossierConfig = path.resolve(racine, arg('config', 'config'));
 
 const textes = lireDossierConfig(dossierConfig);
 const { config, empreintes } = parserConfig(textes);
+if (tailleMonde !== '') {
+  config.monde.tailleGrille = Number(tailleMonde);
+}
 
 const resultat: ResultatBanc = runBanc({ seed, mois, config, empreintes, nbIndividusTest: nbIndividus, nbBandes, tailleBande });
 

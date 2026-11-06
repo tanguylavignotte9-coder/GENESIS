@@ -71,9 +71,12 @@ async function demarrer(): Promise<void> {
       } else if (msg.type === 'journal') {
         ajouterEvenements(msg.evenements as Evenement[]);
       } else if (msg.type === 'sauvegarde') {
-        void window.genesis.ecrireSauvegarde('auto', msg.contenu as string).then(() => {
-          $('date').textContent += ' — 💾 sauvegardé';
+        const slot = (msg.slot as string) ?? 'auto';
+        void window.genesis.ecrireSauvegarde(slot, msg.contenu as string).then(() => {
+          if (slot !== 'auto') $('date').textContent += ` — 💾 slot ${slot} sauvegardé`;
         });
+      } else if (msg.type === 'extinction') {
+        afficherFin(msg.chronique as Record<string, unknown>);
       } else if (msg.type === 'charge') {
         const av = msg.avertissements as string[];
         if (av.length > 0) alert(av.join('\n'));
@@ -221,12 +224,47 @@ async function demarrer(): Promise<void> {
       btn.classList.add('actif');
     });
   }
-  $('btnSauvegarder').addEventListener('click', () => worker?.postMessage({ type: 'sauvegarder' }));
-  $('btnCharger').addEventListener('click', async () => {
-    const contenu = await window.genesis.lireSauvegarde('auto');
-    if (contenu) worker?.postMessage({ type: 'charger', contenu });
-    else alert('Aucune sauvegarde disponible.');
+  document.querySelectorAll<HTMLButtonElement>('.btnSlot').forEach((b) => {
+    b.addEventListener('click', () => worker?.postMessage({ type: 'sauvegarder', slot: b.dataset.slot }));
   });
+  $('btnCharger').addEventListener('click', async () => {
+    const slot = ($('slotCharger') as HTMLSelectElement).value;
+    const contenu = await window.genesis.lireSauvegarde(slot);
+    if (contenu) worker?.postMessage({ type: 'charger', contenu });
+    else alert('Aucune sauvegarde dans ce slot.');
+  });
+
+  $('btnNouveauMonde').addEventListener('click', () => window.location.reload());
+
+  function afficherFin(c: Record<string, unknown>): void {
+    const fin = $('fin');
+    fin.style.display = 'block';
+    const figures = (c.figures as Array<{ nom: string; evenements: number; mort: string | null }>) ?? [];
+    const derniers = (c.derniersEvenements as Evenement[]) ?? [];
+    $('finContenu').innerHTML = [
+      '<div class="ligne"><span class="cle">Durée de l\'espèce</span><span>an ' + c.anFin + ', mois ' + c.moisFin + '</span></div>',
+      '<div class="ligne"><span class="cle">Naissances</span><span>' + c.naissances + '</span></div>',
+      '<div class="ligne"><span class="cle">Morts</span><span>' + c.morts + '</span></div>',
+      '<div class="ligne"><span class="cle">Groupes fondés</span><span>' + c.groupesFondes + '</span></div>',
+      '<div class="ligne"><span class="cle">Découvertes</span><span>' + c.decouvertes + '</span></div>',
+      '<div class="ligne"><span class="cle">Religions</span><span>' + c.religions + '</span></div>',
+      '<div class="ligne"><span class="cle">Langues</span><span>' + c.langues + '</span></div>',
+      '<h3>Figures marquantes</h3>',
+      ...figures.map((f) => `<div class="ligne"><span class="cle">${f.nom}</span><span>${f.evenements} événements${f.mort ? ` — mort de ${f.mort}` : ''}</span></div>`),
+      '<h3>Derniers événements</h3>',
+      ...derniers.slice(-12).map((e) => `<div class="ligne"><span class="cle">An ${e.date.an}, M${e.date.mois} — ${e.type}</span><span>${e.sujet}</span></div>`),
+    ].join('');
+  }
+
+  setInterval(() => {
+    if (!carte || !worker) return;
+    const s = carte.monde.scale.x;
+    const x0 = Math.max(0, Math.floor(-carte.monde.x / s));
+    const y0 = Math.max(0, Math.floor(-carte.monde.y / s));
+    const x1 = Math.min(carte.canvas.width - 1, Math.ceil((carte.app.screen.width - carte.monde.x) / s));
+    const y1 = Math.min(carte.canvas.height - 1, Math.ceil((carte.app.screen.height - carte.monde.y) / s));
+    worker.postMessage({ type: 'zoneActive', zone: { x0, y0, x1, y1 } });
+  }, 500);
 
   $('ficheFermer').addEventListener('click', () => {
     $('fiche').style.display = 'none';

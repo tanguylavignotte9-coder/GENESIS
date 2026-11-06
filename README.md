@@ -65,5 +65,5 @@ Voir `docs/INTERPRETATIONS.md` pour les choix d'interprétation faits sur les zo
 - **J3 ✅** — bandes initiales, individus vivants (besoins, survie, reproduction + génétique, sénescence émergente, morts avec causes, cannibalisme de famine), fiche inspectable au clic.
 - **J4 ✅** — sédentarisation (campement→village par huttes permanentes), chantiers réels, objets + troc, gouvernance (succession), territoires selon le zoom, fiches groupe, filtre journal.
 - **J5 ✅** — langues divergentes (nouvelle langue à l'isolement), religions génératives (prophète, propagation, schisme, sceptiques), santé mentale (traumatismes, folie), biographies factuelles, saga du moment, favoris.
-- **J6 ⬜** — ères jusqu'à l'ère moderne, monnaie, pollution, écrans dédiés.
-- **J7 ⬜** — sauvegarde exacte en jeu, écran de fin (extinction), calibration ~20 h au banc.
+- **J6 ✅** — arbre tech à prérequis, percées de génies, transmission, mines épuisables, monnaie (pièces), pollution industrielle, nations, écrans éco/religions/langues/généalogies.
+- **J7 ✅ — V1 TERMINÉE** — autosave + 3 slots manuels avec reprise exacte, écran de fin extinction + chronique de l'espèce, LOD par zone caméra, calibration multi-graines au banc, 72 tests verts.

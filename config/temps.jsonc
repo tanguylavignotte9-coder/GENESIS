@@ -21,5 +21,11 @@
   "anneesParGeneration": 25,
 
   // Nombre de mois dans une année.
-  "moisParAn": 12
+  "moisParAn": 12,
+
+  // Intervalle d'autosauvegarde en secondes réelles quand la simulation tourne.
+  "autosaveIntervalleSecondesReel": 60,
+
+  // Un individu hors de la zone active (caméra) est simulé 1 tick sur N (LOD de simulation, jamais statistique).
+  "lodTicksHorsZone": 10
 }

@@ -125,6 +125,8 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, cfg: ConfigFauneFlore
     const temp = monde.temperature[i];
     if (temp < cfg.seuilFroidFauneCelsius) {
       a.sante -= cfg.perteSanteFroidFauneParMois;
+    } else if (a.faim < 50) {
+      a.sante = Math.min(100, a.sante + 5);
     }
 
     if (a.faim >= 70) {
@@ -157,9 +159,19 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, cfg: ConfigFauneFlore
 
     const saison = etat.calendrier.saisonPourDistanceEquateur(monde.distanceEquateur(y), y < t / 2);
     const froid = saison === Saison.Hiver && temp < cfg.seuilFroidFauneCelsius;
+    const predateurProche = especes.get(a.especeId)?.regime !== 'predateur'
+      ? animauxProches(etat, index, a.positionX, a.positionY, 4, (p) => {
+          const pe = especes.get(p.especeId);
+          return pe !== undefined && pe.regime === 'predateur';
+        })
+      : [];
     let dx = 0;
     let dy = 0;
-    if (froid) {
+    if (predateurProche.length > 0) {
+      const p = predateurProche[0];
+      dx = Math.sign(a.positionX - p.positionX);
+      dy = Math.sign(a.positionY - p.positionY);
+    } else if (froid) {
       dy = y < t / 2 ? 1 : -1;
     } else if (espece.regime === 'herbivore' && a.faim > 40) {
       let meilleur = -1;
@@ -197,7 +209,7 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, cfg: ConfigFauneFlore
       }
     }
 
-    if (a.faim < 50 && a.sante > 60 && a.ageAnnees > 2 && a.ageAnnees < espece.ageMaxAnnees * 0.8 && rng.chance(espece.reproductionParMois)) {
+    if (a.faim < 50 && a.sante > 60 && a.ageAnnees > 2 && a.ageAnnees < espece.ageMaxAnnees * 0.8 && rng.chance(espece.reproductionParMois * cfg.multiplicateurReproductionFaune)) {
       const bebe = new Animal(etat.prochainIdAnimal++, a.especeId, a.positionX, a.positionY);
       bebe.ageAnnees = 0;
       naissances.push(bebe);

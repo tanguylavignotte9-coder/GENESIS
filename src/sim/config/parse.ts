@@ -242,6 +242,8 @@ function validerTemps(o: Record<string, unknown>, erreurs: Erreurs) {
     pasDeTempsSecondesReel: exigerNombre(o, 'pasDeTempsSecondesReel', b, { min: 0.001, max: 10 }, erreurs)!,
     anneesParGeneration: exigerNombre(o, 'anneesParGeneration', b, { min: 1, max: 200 }, erreurs)!,
     moisParAn: exigerNombre(o, 'moisParAn', b, { min: 1, max: 24, entier: true }, erreurs)!,
+    autosaveIntervalleSecondesReel: exigerNombre(o, 'autosaveIntervalleSecondesReel', b, { min: 5, max: 3600, entier: true }, erreurs)!,
+    lodTicksHorsZone: exigerNombre(o, 'lodTicksHorsZone', b, { min: 2, max: 1000, entier: true }, erreurs)!,
   };
 }
 
@@ -361,6 +363,7 @@ function validerFauneFlore(o: Record<string, unknown>, erreurs: Erreurs) {
     probabilitePousseVegetationParMois: exigerNombre(o, 'probabilitePousseVegetationParMois', b, { min: 0, max: 1 }, erreurs)!,
     probabiliteDegradationVegetationParMois: exigerNombre(o, 'probabiliteDegradationVegetationParMois', b, { min: 0, max: 1 }, erreurs)!,
     consommationVegetationParAnimalParMois: exigerNombre(o, 'consommationVegetationParAnimalParMois', b, { min: 0, max: 1000 }, erreurs)!,
+    multiplicateurReproductionFaune: exigerNombre(o, 'multiplicateurReproductionFaune', b, { min: 0, max: 100 }, erreurs)!,
     biomasseVegetationMax: exigerNombre(o, 'biomasseVegetationMax', b, { min: 1, max: 100000 }, erreurs)!,
     decroissanceCarcasseParMois: exigerNombre(o, 'decroissanceCarcasseParMois', b, { min: 0, max: 1 }, erreurs)!,
     perteSanteFroidFauneParMois: exigerNombre(o, 'perteSanteFroidFauneParMois', b, { min: 0, max: 100 }, erreurs)!,

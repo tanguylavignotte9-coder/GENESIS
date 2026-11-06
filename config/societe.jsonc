@@ -50,10 +50,10 @@
   "rayonTerritoireBatimentsTuiles": 4,
 
   // Intelligence (0 à 100) à partir de laquelle un individu peut être un génie inventeur.
-  "seuilIntelligenceGenie": 85,
+  "seuilIntelligenceGenie": 78,
 
-  // Probabilité de percée technologique par mois et par génie potentiel (modulée par l'intelligence), 0 à 1.
-  "chancePerceeParMois": 0.08,
+  // Probabilité de percée technologique par mois et par génie potentiel (modulée par l'intelligence), 0 à 1. Calibré au banc pour ~20 h de zéro à l'ère moderne.
+  "chancePerceeParMois": 0.11,
 
   // Probabilité de transmission d'un savoir d'un maître à un élève proche, par mois, 0 à 1.
   "tauxTransmissionMaitreParMois": 0.3,

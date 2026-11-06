@@ -140,3 +140,63 @@ Bandes initiales posées réellement (individus créés selon `parametresDepart`
 - **Déclencheur de prophète** : charisme ≥ seuil **et** souvenir d'un drame récent (intensité ≥ 60) — la révélation naît des événements vécus, pas du hasard seul ; probabilité mensuelle en config (`chanceRevelationParMois`), calibrée au banc.
 - **Divergence** : proportionnelle à l'isolement géographique mesuré entre centres de groupes — les îles/continents sans navigation (V1) divergent le plus, conformément à la boucle 3 du doc.
 - **Folie** : seuil = N mois à stress 100 (config), puis probabilité mensuelle ; comportement = errance aléatoire (pas de script de dialogues).
+
+---
+
+# Rapport J6 — ères & économie : percées, extraction, monnaie, pollution, nations, écrans
+
+## Ce qui a été livré (J6)
+
+- **Arbre technologique** (`savoir/arbreTechnologique.ts`) : ~30 connaissances atomiques avec prérequis (pierre → bronze → fer → Antiquité → Moyen Âge → industrielle → moderne → numérique), 8 ères nommées. « Le groupe connaît » = union des connaissances réelles de ses membres.
+- **Percées par génies** (`savoir/systemeSavoir.ts`) : chaque mois, chaque membre d'intelligence ≥ seuil tente une percée (probabilité × intelligence) sur un atome dont le groupe maîtrise les prérequis → consigné « Découverte » au journal. **Transmission** : maître → élève proche, accélérée par l'écriture (passif) et l'école (bâtiment). Changement d'ère journalisé.
+- **Extraction réelle** : les mines ne se posent que sur un gisement de la bonne ressource proche du camp (rayon en config) ET si le groupe connaît l'usage ; le gisement **s'épuise réellement** (quantité → 0 = terre, événement journal).
+- **Monnaie émergente** : quand `monnaie-metallique` est maîtrisée + forge/banque, des **pièces (objets physiques réels)** sont frappées, thésaurisées dans les stocks du groupe, journal « Monnaie ».
+- **Pollution (9e boucle)** : bâtiments polluants (mines, forge, centrales, raffinerie) → couche `pollution` des tuiles autour, qui **dégrade la végétation et la santé** des individus ; la centrale à charbon consomme réellement le stock de charbon (s'arrête si vide) ; décroissance lente.
+- **Nations** : un village dont le territoire d'activité dépasse le seuil (config) devient nation, journalisé avec son ère.
+- **Écrans dédiés** (worker + renderer) : 📊 **Économie** (objets par type, monnaie totale, stocks par groupe), ⛪ **Religions** (prophète, dieux, tabous, croyants, schismes), 🗣 **Langues** (divergence, locuteurs, arbre des langues), 🌳 **Généalogie** (arborescence parents/enfants du personnage inspecté). L'ère du groupe s'affiche dans sa fiche.
+
+## Mesures banc J6 (600 mois = 50 ans, 4 bandes × 30, graine 42)
+
+- Config par défaut (percée 0,08/mois, seuil génie 85) : ère max « Âge de pierre » — la chaîne tech est lente, à calibrer.
+- Config boostée (percée 0,6, seuil 70) : **ère max « Ère numérique », monnaie 465 pièces, pollution max 0,34** — la chaîne complète fonctionne de bout en bout.
+- **Calibration notée pour J7** : faune éteinte en 50 ans (sur-chasse humaine) ; ~600 ms/mois à 3 500 humains → LOD de simulation à activer hors zone active ; cible ~20 h de zéro à l'ère moderne à tenir au banc.
+
+## Choix d'interprétation J6 (zones ouvertes)
+
+- **Percée** : un génie ne choisit pas « l'ère suivante » — il invente un atome aléatoire parmi ceux dont les prérequis sont connus ; la progression émerge de l'accumulation. Un génie = intelligence ≥ seuil (config), pas de quota.
+- **Mine** : posée sur le gisement réel le plus proche ; sans gisement à portée, pas d'extraction (géographie émergente).
+- **Monnaie** = objets `piece` + stock commun du groupe (objets physiques, pas un chiffre abstrait).
+- **Nation** = seuil de **territoire** (pas de population) pour rester conforme au « zéro hard cap » démographique.
+
+---
+
+# Rapport J7 — finalisation V1 : sauvegardes en jeu, écran de fin, LOD, calibration multi-graines
+
+## Ce qui a été livré (J7)
+
+- **Sauvegarde exacte en jeu** : autosauvegarde périodique (slot `auto`, intervalle en config `temps.jsonc`) + **3 slots manuels** (💾1/2/3) + reprise par slot (📂). Le worker sérialise l'état complet versionné (empreinte config incluse) et le renderer l'écrit sur disque via le bridge ; avertissement explicite si la config a changé entre-temps. Test : sauvegarde à un instant quelconque → reprise bit-à-bit identique après continuation.
+- **Écran de fin (extinction totale)** : quand plus aucun humain ne vit, le worker envoie la **chronique complète de l'espèce** (durée, naissances, morts, groupes fondés, découvertes, religions, langues, figures marquantes = individus les plus cités au journal, derniers événements) → overlay plein écran + bouton « nouveau monde ». C'est la seule fin possible.
+- **LOD de simulation** : la caméra envoie sa zone visible au worker (`zoneActive`) ; hors zone, les individus sont simulés 1 tick sur N (`lodTicksHorsZone`, config) — jamais de simulation statistique. Test : un individu hors zone vieillit > 3× moins vite.
+- **Calibration au banc, multi-graines** (voir tableau ci-dessous).
+
+## Philosophie de calibration (réponse à Tanguy)
+
+Aucun réglage n'est calé sur une seule graine : chaque monde est unique et volontairement imparfait. **Chaque système est individuellement équilibré** (vérifié isolément), et c'est le récit émergent qui fait le reste :
+
+- **Diagnostic faune isolée** (humains retirés, 600×600, 400 mois) : 1 651 → **2 468 animaux vivants, 0 morts**, toutes espèces présentes → la boucle faune est stable seule. Sur les grandes cartes, l'extinction de la faune vient de la **sur-chasse humaine émergente** (boucle malthusienne) — conservé tel quel.
+- **Humains** : stock de départ relevé à 150 (les petites cartes provoquaient des extinctions précoces systématiques) ; sur 1000×1000, 3 graines → 357 / 566 / 39 vivants après 400 mois, aucune extinction.
+- **Technologie** : taux de percée 0,11/mois, seuil génie 78. Distribution sur graines (monde 1000, 400 mois) : graine 99 → **Ère numérique au mois 123 (≈ 10 h à ×1)**, graine 42 → Antiquité, graine 1 → Âge de pierre. La variance est **voulue** : certaines civilisations restent primitives, d'autres filent jusqu'à l'ère moderne — ordre de grandeur ~20 h respecté, sans calage sur une graine.
+
+| Graine (monde 1000, 400 mois) | Ère max | Ère moderne atteinte | Monnaie | Humains vivants | Extinction |
+|---|---|---|---|---|---|
+| 1 | Âge de pierre | — | 0 | 357 | non |
+| 42 | Antiquité | — | 0 | 566 | non |
+| 99 | Ère numérique | mois 123 (~10 h à ×1) | 665 pièces | 39 | non |
+
+## Perf
+
+- Monde 1000×1000 : génération ~1,1 s ; simulation ~60–130 ms/mois selon population (LOD caméra actif en jeu) ; sauvegarde ~70 Mo JSON (~1 s), reprise ~0,5 s. Le format binaire reste une option J+ si le banc le demande.
+
+## V1 terminée
+
+J1–J7 livrés : monde complet, faune, individus vivants, sociétés, culture, ères jusqu'à l'ère moderne, économie/monnaie, pollution, récits, sauvegardes exactes, écran de fin, joueur pur observateur. 72 tests verts. V2 balisée dans le design doc (guerre, catastrophes, pouvoirs divins…).

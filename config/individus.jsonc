@@ -58,7 +58,7 @@
   "seuilSecuriteFuir": 60,
 
   // Quantité de nourriture placée dans le stock commun de chaque bande initiale, en unités.
-  "stockNourritureInitialParBande": 80,
+  "stockNourritureInitialParBande": 150,
 
   // Nourriture qu'un repas retire au stock (ou que la cueillette apporte), en unités.
   "consommationNourritureParRepas": 3,
@@ -76,10 +76,10 @@
   "distanceMaxPartenaireTuiles": 4,
 
   // Portée de chasse d'un humain (détection des proies), en tuiles.
-  "porteeChasseHumaineTuiles": 4,
+  "porteeChasseHumaineTuiles": 3,
 
   // Probabilité de tuer une proie détectée par mois de chasse, modulée par la compétence chasse (0 à 1).
-  "chanceChasseParMois": 0.6,
+  "chanceChasseParMois": 0.2,
 
   // Portée de détection d'un prédateur qui déclenche la fuite, en tuiles.
   "porteeFuitePredateurTuiles": 6,

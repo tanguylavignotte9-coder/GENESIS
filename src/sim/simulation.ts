@@ -33,6 +33,7 @@ export class Simulation {
   config: ConfigComplete;
   boucleTemps: BoucleTemps;
   private moisDernierTick: number;
+  private tickCount: number = 0;
 
   constructor(config: ConfigComplete, seed: number) {
     this.config = config;
@@ -154,14 +155,16 @@ export class Simulation {
 
   private tickIndividus(joursAvances: number): void {
     if (joursAvances <= 0) return;
+    this.tickCount++;
     const zone = this.etat.zoneActive;
+    const lod = this.config.temps.lodTicksHorsZone;
     const indexAnimaux = indexAnimauxPourTick(this.etat);
     for (const ind of this.etat.individus.values()) {
       if (!ind.vivant) continue;
       if (zone) {
         const dedans =
           ind.positionX >= zone.x0 && ind.positionX <= zone.x1 && ind.positionY >= zone.y0 && ind.positionY <= zone.y1;
-        if (!dedans) continue;
+        if (!dedans && this.tickCount % lod !== 0) continue;
       }
       tickIndividu(this.etat, this.config, ind, joursAvances, indexAnimaux);
     }

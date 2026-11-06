@@ -15,12 +15,18 @@ Simulateur de civilisation humaine profonde, pixel art vu de haut. V1 : un monde
 ```bash
 npm install        # télécharge les dépendances (dont le binaire Electron)
 npm start          # build + lance le jeu en dev (fenêtre Electron)
-npm run pack       # package un exécutable Windows (.exe) dans dist/
+npm run pack       # package un exécutable Windows autonome dans release/ (portable + installateur)
+npm run pack:portable  # uniquement le .exe portable unique (1 clic)
 npm test           # tests vitest (déterminisme, sauvegarde, monde, config, temps, journal)
 npm run typecheck  # tsc --noEmit
 npm run bench      # banc de performance headless (résultats dans banc/dernier-banc.json)
 node dist/scripts/banc.js --seed 7 --mois 48 --individus 5000   # banc personnalisé
 ```
+
+## Lancer le jeu en 1 clic (Windows)
+
+- **Depuis un clone du dépôt** : double-clic sur **`Genesis.bat`** → installe les dépendances si besoin, compile, lance la fenêtre (ou lance directement l'exécutable packagé s'il existe dans `release/`).
+- **Exécutable autonome** : `npm run pack:portable` produit `release/Genesis-0.1.0-portable.exe` (~250 Mo, embarque Chromium + Node + le jeu + la config) — un seul fichier à copier où tu veux et à double-cliquer, **sans rien installer**.
 
 ## Arborescence
 

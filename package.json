@@ -10,11 +10,15 @@
     "test": "vitest run",
     "bench": "npm run build && node dist/scripts/banc.js",
     "start": "npm run build && electron .",
-    "pack": "npm run build && electron-builder --win --x64"
+    "pack": "npm run build && electron-builder --win --x64 --publish never",
+    "pack:portable": "npm run build && electron-builder --win --x64 --publish never --config.win.target=portable"
   },
   "build": {
     "appId": "com.genesis.simulateur",
     "productName": "Genesis",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**/*",
       "package.json"
@@ -23,12 +27,16 @@
       "config/**/*"
     ],
     "win": {
-      "target": ["nsis"],
-      "artifactName": "Genesis-${version}-setup.${ext}"
+      "target": ["portable", "nsis"],
+      "artifactName": "Genesis-${version}-win-x64.${ext}"
+    },
+    "portable": {
+      "artifactName": "Genesis-${version}-portable.exe"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Genesis-${version}-setup.exe"
     }
   },
   "dependencies": {

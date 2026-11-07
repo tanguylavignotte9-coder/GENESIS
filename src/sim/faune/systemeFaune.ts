@@ -6,6 +6,7 @@ import { Animal } from './animal';
 import { construireEspeces, poidsTotalPourVegetation, type Espece } from './especes';
 import { empreinteOctets } from '../hash';
 import { mourir } from '../entites/boucleIndividu';
+import { TypeEvenement } from '../journal/journal';
 
 export function peuplerMonde(etat: EtatPartage, config: ConfigFauneFlore): void {
   const { monde, rng } = etat;
@@ -169,7 +170,10 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, config: ConfigComplet
       : [];
     let dx = 0;
     let dy = 0;
-    if (predateurProche.length > 0) {
+    if (a.domestique) {
+      dx = 0;
+      dy = 0;
+    } else if (predateurProche.length > 0) {
       const p = predateurProche[0];
       dx = Math.sign(a.positionX - p.positionX);
       dy = Math.sign(a.positionY - p.positionY);
@@ -213,7 +217,7 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, config: ConfigComplet
       }
     }
 
-    if (a.faim < 50 && a.sante > 60 && a.ageAnnees > 2 && a.ageAnnees < espece.ageMaxAnnees * 0.8 && rng.chance(espece.reproductionParMois * cfg.multiplicateurReproductionFaune)) {
+    if (!a.domestique && a.faim < 50 && a.sante > 60 && a.ageAnnees > 2 && a.ageAnnees < espece.ageMaxAnnees * 0.8 && rng.chance(espece.reproductionParMois * cfg.multiplicateurReproductionFaune)) {
       const bebe = new Animal(etat.prochainIdAnimal++, a.especeId, a.positionX, a.positionY);
       bebe.ageAnnees = 0;
       naissances.push(bebe);
@@ -224,7 +228,62 @@ export function miseAJourMensuelleFaune(etat: EtatPartage, config: ConfigComplet
   }
   for (const bebe of naissances) etat.animaux.set(bebe.id, bebe);
 
+  elevageMensuel(etat, config);
   preditationSurHumains(etat, config);
+}
+
+function elevageMensuel(etat: EtatPartage, config: ConfigComplete): void {
+  const cfg = config.fauneFlore;
+  const monde = etat.monde;
+  const especes = construireEspeces(cfg);
+  for (const groupe of etat.groupes.values()) {
+    if (!groupe.aUnBatiment('enclos', etat.batiments)) continue;
+    const enclos = Array.from(etat.batiments.values()).find((b) => b.groupeId === groupe.id && b.type === 'enclos' && !b.enConstruction);
+    if (!enclos) continue;
+    let troupeau = 0;
+    for (const a of etat.animaux.values()) {
+      if (!a.vivant || a.groupeId !== groupe.id || !a.domestique) continue;
+      troupeau++;
+      const distEnclos = Math.hypot(a.positionX - enclos.x, a.positionY - enclos.y);
+      if (distEnclos > 3 && etat.rng.chance(0.5)) {
+        a.positionX = enclos.x + etat.rng.reel(-1, 1);
+        a.positionY = enclos.y + etat.rng.reel(-1, 1);
+      }
+      if (a.faim < 60 && a.sante > 60 && a.ageAnnees > 1 && etat.rng.chance((especes.get(a.especeId)?.reproductionParMois ?? 0.1) * cfg.multiplicateurReproductionEnclos * cfg.multiplicateurReproductionFaune)) {
+        const bebe = new Animal(etat.prochainIdAnimal++, a.especeId, enclos.x, enclos.y);
+        bebe.domestique = true;
+        bebe.groupeId = groupe.id;
+        bebe.ageAnnees = 0;
+        etat.animaux.set(bebe.id, bebe);
+        troupeau++;
+      }
+      groupe.stocksCommuns.lait = (groupe.stocksCommuns.lait ?? 0) + cfg.productionAnimalParMois;
+      groupe.ajouterStock('nourriture', cfg.productionAnimalParMois, config.batiments.capaciteGrenierBase);
+    }
+    const proie = animauxProches(etat, construireIndexSpatial(etat), enclos.x, enclos.y, 5, (a) => {
+      const e = especes.get(a.especeId);
+      return e !== undefined && e.regime !== 'predateur' && !a.domestique;
+    });
+    for (const p of proie) {
+      if (etat.rng.chance(cfg.chanceCaptureParMois)) {
+        p.domestique = true;
+        p.groupeId = groupe.id;
+        p.positionX = enclos.x;
+        p.positionY = enclos.y;
+        etat.journal.ajouter({
+          date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
+          type: TypeEvenement.Autre,
+          sujet: 'Capture',
+          description: `${groupe.nom} capture un ${p.especeId} dans son enclos.`,
+          individusImpliques: [],
+          tuileX: enclos.x,
+          tuileY: enclos.y,
+        });
+      }
+    }
+    void monde;
+    void troupeau;
+  }
 }
 
 function preditationSurHumains(etat: EtatPartage, config: ConfigComplete): void {

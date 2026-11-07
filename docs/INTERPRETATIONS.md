@@ -218,3 +218,16 @@ Tous les points relevés ont été implémentés et testés (`tests/conformite.t
 9. **Échanges inter-groupes (§4)** : troc inter-groupes entre groupes proches (nourriture contre monnaie), journal « Échange inter-groupes ».
 
 Vérif : tsc OK, build OK, **83/83 tests**, banc 200 mois (monde 500) : ère numérique au mois 141 (~12 h à ×1), 195 pièces, 3 villages, 201 humains vivants, faune 856 (équilibre proie-prédateur avec la chasse humaine).
+
+---
+
+# Round de conformité V1 n°2 (relecture code vs doc)
+
+4 points corrigés, testés dans `tests/conformite2.test.ts` (5 tests) :
+
+1. **Élevage fonctionnel** : `enclos` branché dans la table savoir→bâtiment (savoir `elevage` de départ) et construit par les villages ; **capture** d'animaux sauvages proches de l'enclos (`chanceCaptureParMois`, journal « Capture »), animaux `domestique` attachés au groupe ; **reproduction accélérée en enclos** (`multiplicateurReproductionEnclos`), les domestiqués restent près de l'enclos ; **produits animaux** (lait → stocks du groupe, `productionAnimalParMois`).
+2. **Prélèvements du dirigeant** : la politique `prelevements` prélève chaque mois une fraction des stocks communs (`prelevementPourcentReserve`) vers la **réserve** du groupe, qui finance réellement les chantiers en cours (bonus de progression dans `travailChantier`) ; journal « Prélèvement » au-delà du seuil.
+3. **Noyade au gué** : à chaque arrivée sur une tuile d'eau douce à pied, risque réel de noyade (`chanceNoyadeParTraverseeGue`, augmenté si faible endurance) → mort « noyade ». L'eau salée reste infranchissable sans bateau (naufrage séparé).
+4. **Bug affichage naufrage** : le compteur de passagers était vidé avant l'écriture du message → « 0 passager(s) » ; corrigé (compteur capturé avant vidage, ids impliqués au journal).
+
+Vérif : tsc OK, build OK, **88/88 tests**.

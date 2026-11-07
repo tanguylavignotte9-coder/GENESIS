@@ -11,6 +11,26 @@ export function gouvernanceMensuelle(etat: EtatPartage, config: ConfigComplete):
     if (Object.keys(groupe.politiques).length === 0) {
       for (const p of cfgS.politiquesDisponibles) groupe.politiques[p] = true;
     }
+
+    if (groupe.politiques.prelevements) {
+      const stock = groupe.stocksCommuns.nourriture ?? 0;
+      const prelevement = Math.floor(stock * cfgS.prelevementPourcentReserve);
+      if (prelevement > 0) {
+        groupe.stocksCommuns.nourriture = stock - prelevement;
+        groupe.stocksCommuns.reserve = (groupe.stocksCommuns.reserve ?? 0) + prelevement;
+        if (prelevement >= cfgS.seuilJournalPrelevement) {
+          etat.journal.ajouter({
+            date: { an: etat.calendrier.an, mois: etat.calendrier.mois },
+            type: TypeEvenement.Autre,
+            sujet: 'Prélèvement',
+            description: `Le dirigeant de ${groupe.nom} prélève ${prelevement} nourriture sur les stocks communs (réserve : ${groupe.stocksCommuns.reserve}).`,
+            individusImpliques: groupe.dirigeantId !== null ? [groupe.dirigeantId] : [],
+            tuileX: null,
+            tuileY: null,
+          });
+        }
+      }
+    }
     const dirigeant = groupe.dirigeantId !== null ? etat.individus.get(groupe.dirigeantId) : undefined;
     if (!dirigeant || !dirigeant.vivant || dirigeant.ageAnnees >= cfgS.ageMaxDirigeantAnnees) {
       const adultes = groupe.membres

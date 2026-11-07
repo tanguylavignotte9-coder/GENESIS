@@ -110,6 +110,7 @@ export const SAVOIR_PAR_BATIMENT: Record<string, string> = {
   port: 'port',
   bateau: 'construction-navale',
   charrette: 'charrette',
+  enclos: 'elevage',
   ecole: 'ecole',
   forge: 'forge',
   banque: 'banque',

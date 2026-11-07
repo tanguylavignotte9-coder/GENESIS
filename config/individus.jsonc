@@ -84,6 +84,9 @@
   // Portée de détection d'un prédateur qui déclenche la fuite, en tuiles.
   "porteeFuitePredateurTuiles": 6,
 
+  // Probabilité de noyade à chaque traversée d'une rivière à gué (risque réel), 0 à 1.
+  "chanceNoyadeParTraverseeGue": 0.003,
+
   // Stress subi à la mort d'un proche (relation forte), en points.
   "stressDeuilProche": 25,
 

@@ -11,6 +11,8 @@ export class Animal {
   positionY: number;
   vivant: boolean;
   causeMort: string | null;
+  domestique: boolean;
+  groupeId: number | null;
 
   constructor(id: number, especeId: string, x: number, y: number) {
     this.id = id;
@@ -23,6 +25,8 @@ export class Animal {
     this.positionY = y;
     this.vivant = true;
     this.causeMort = null;
+    this.domestique = false;
+    this.groupeId = null;
   }
 
   serialiser(): Record<string, unknown> {

@@ -107,5 +107,11 @@
   "porteeRechercheNouvelleTerreTuiles": 120,
 
   // Probabilité de naufrage par mois pour un bateau en mer, 0 à 1.
-  "chanceNaufrageParMois": 0.02
+  "chanceNaufrageParMois": 0.02,
+
+  // Fraction des stocks communs prélevée chaque mois par le dirigeant quand la politique 'prelevements' est active (0 à 1), vers sa réserve (financement des chantiers).
+  "prelevementPourcentReserve": 0.1,
+
+  // Montant de prélèvement à partir duquel un événement est consigné au journal, en unités.
+  "seuilJournalPrelevement": 20
 }

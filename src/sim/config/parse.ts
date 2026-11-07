@@ -286,6 +286,7 @@ function validerIndividus(o: Record<string, unknown>, erreurs: Erreurs) {
     porteeChasseHumaineTuiles: exigerNombre(o, 'porteeChasseHumaineTuiles', b, { min: 1, max: 50, entier: true }, erreurs)!,
     chanceChasseParMois: exigerNombre(o, 'chanceChasseParMois', b, { min: 0, max: 1 }, erreurs)!,
     porteeFuitePredateurTuiles: exigerNombre(o, 'porteeFuitePredateurTuiles', b, { min: 1, max: 50, entier: true }, erreurs)!,
+    chanceNoyadeParTraverseeGue: exigerNombre(o, 'chanceNoyadeParTraverseeGue', b, { min: 0, max: 1 }, erreurs)!,
     stressDeuilProche: exigerNombre(o, 'stressDeuilProche', b, { min: 0, max: 100 }, erreurs)!,
     stressCannibalisme: exigerNombre(o, 'stressCannibalisme', b, { min: 0, max: 100 }, erreurs)!,
     perteSanteStressMaxParMois: exigerNombre(o, 'perteSanteStressMaxParMois', b, { min: 0, max: 100 }, erreurs)!,
@@ -366,6 +367,9 @@ function validerFauneFlore(o: Record<string, unknown>, erreurs: Erreurs) {
     probabiliteDegradationVegetationParMois: exigerNombre(o, 'probabiliteDegradationVegetationParMois', b, { min: 0, max: 1 }, erreurs)!,
     consommationVegetationParAnimalParMois: exigerNombre(o, 'consommationVegetationParAnimalParMois', b, { min: 0, max: 1000 }, erreurs)!,
     multiplicateurReproductionFaune: exigerNombre(o, 'multiplicateurReproductionFaune', b, { min: 0, max: 100 }, erreurs)!,
+    chanceCaptureParMois: exigerNombre(o, 'chanceCaptureParMois', b, { min: 0, max: 1 }, erreurs)!,
+    multiplicateurReproductionEnclos: exigerNombre(o, 'multiplicateurReproductionEnclos', b, { min: 1, max: 100 }, erreurs)!,
+    productionAnimalParMois: exigerNombre(o, 'productionAnimalParMois', b, { min: 0, max: 1000 }, erreurs)!,
     biomasseVegetationMax: exigerNombre(o, 'biomasseVegetationMax', b, { min: 1, max: 100000 }, erreurs)!,
     decroissanceCarcasseParMois: exigerNombre(o, 'decroissanceCarcasseParMois', b, { min: 0, max: 1 }, erreurs)!,
     perteSanteFroidFauneParMois: exigerNombre(o, 'perteSanteFroidFauneParMois', b, { min: 0, max: 100 }, erreurs)!,
@@ -417,6 +421,8 @@ function validerSociete(o: Record<string, unknown>, erreurs: Erreurs) {
     seuilBiomasseMigration: exigerNombre(o, 'seuilBiomasseMigration', b, { min: 0, max: 100000 }, erreurs)!,
     porteeRechercheNouvelleTerreTuiles: exigerNombre(o, 'porteeRechercheNouvelleTerreTuiles', b, { min: 10, max: 2000, entier: true }, erreurs)!,
     chanceNaufrageParMois: exigerNombre(o, 'chanceNaufrageParMois', b, { min: 0, max: 1 }, erreurs)!,
+    prelevementPourcentReserve: exigerNombre(o, 'prelevementPourcentReserve', b, { min: 0, max: 1 }, erreurs)!,
+    seuilJournalPrelevement: exigerNombre(o, 'seuilJournalPrelevement', b, { min: 0, max: 1000000 }, erreurs)!,
   };
 }
 

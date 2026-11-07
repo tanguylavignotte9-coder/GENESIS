@@ -78,6 +78,7 @@ export interface ConfigIndividus {
   porteeChasseHumaineTuiles: number;
   chanceChasseParMois: number;
   porteeFuitePredateurTuiles: number;
+  chanceNoyadeParTraverseeGue: number;
   stressDeuilProche: number;
   stressCannibalisme: number;
   perteSanteStressMaxParMois: number;
@@ -112,6 +113,9 @@ export interface ConfigFauneFlore {
   probabiliteDegradationVegetationParMois: number;
   consommationVegetationParAnimalParMois: number;
   multiplicateurReproductionFaune: number;
+  chanceCaptureParMois: number;
+  multiplicateurReproductionEnclos: number;
+  productionAnimalParMois: number;
   biomasseVegetationMax: number;
   decroissanceCarcasseParMois: number;
   perteSanteFroidFauneParMois: number;
@@ -160,6 +164,8 @@ export interface ConfigSociete {
   seuilBiomasseMigration: number;
   porteeRechercheNouvelleTerreTuiles: number;
   chanceNaufrageParMois: number;
+  prelevementPourcentReserve: number;
+  seuilJournalPrelevement: number;
 }
 
 export interface ConfigEconomie {

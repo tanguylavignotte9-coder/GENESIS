@@ -22,6 +22,15 @@
   // Multiplicateur global de reproduction de la faune (calibration équilibres proie-prédateur au banc).
   "multiplicateurReproductionFaune": 6,
 
+  // Probabilité de capturer un animal sauvage proche d'un enclos, par mois (domestication), 0 à 1.
+  "chanceCaptureParMois": 0.15,
+
+  // Multiplicateur de reproduction des animaux domestiqués en enclos.
+  "multiplicateurReproductionEnclos": 3,
+
+  // Nourriture produite par animal domestiqué et par mois (lait, etc.), en unités.
+  "productionAnimalParMois": 1,
+
   // Biomasse de végétation maximale d'une tuile (constante biologique du biome).
   "biomasseVegetationMax": 100,
 

@@ -532,6 +532,12 @@ function deplacerVers(etat: EtatPartage, config: ConfigComplete, ind: Individu, 
     if (monde.dansLimites(ax, ay)) {
       const pi = monde.index(ax, ay);
       if (monde.passage[pi] < 65535) monde.passage[pi]++;
+      if (monde.matiereNiveau(ax, ay, monde.elevationTuile(ax, ay)) === Matiere.EauDouce && !aBateau) {
+        if (etat.rng.chance(config.individus.chanceNoyadeParTraverseeGue * (1 + (100 - ind.endurance) / 200))) {
+          mourir(etat, config, ind, 'noyade');
+          return;
+        }
+      }
     }
   }
 }

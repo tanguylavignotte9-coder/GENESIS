@@ -140,6 +140,8 @@ export function naufrageMensuel(etat: EtatPartage, config: ConfigComplete): void
     if (!etat.rng.chance(config.societe.chanceNaufrageParMois)) continue;
     v.coule = true;
     const date = { an: etat.calendrier.an, mois: etat.calendrier.mois };
+    const nbPassagers = v.passagers.length;
+    const idsPassagers = [...v.passagers];
     for (const pid of v.passagers) {
       const p = etat.individus.get(pid);
       if (p && p.vivant) {
@@ -153,8 +155,8 @@ export function naufrageMensuel(etat: EtatPartage, config: ConfigComplete): void
       date,
       type: TypeEvenement.Drame,
       sujet: 'Naufrage',
-      description: `Le bateau près de (${Math.round(v.x)}, ${Math.round(v.y)}) a coulé. ${v.passagers.length} passager(s) à bord.`,
-      individusImpliques: [],
+      description: `Le bateau près de (${Math.round(v.x)}, ${Math.round(v.y)}) a coulé. ${nbPassagers} passager(s) à bord.`,
+      individusImpliques: idsPassagers,
       tuileX: Math.round(v.x),
       tuileY: Math.round(v.y),
     });

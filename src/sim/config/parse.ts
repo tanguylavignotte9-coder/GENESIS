@@ -205,13 +205,22 @@ function validerMonde(o: Record<string, unknown>, erreurs: Erreurs) {
       }
     }
   }
+  const niveauxElevationMax = exigerNombre(o, 'niveauxElevationMax', b, { min: 2, max: 16, entier: true }, erreurs)!;
+  const seuilsNiveauxTerre = exigerTableauNombres(o, 'seuilsNiveauxTerre', b, { min: 0, max: 1, minLongueur: 2 }, erreurs);
+  if (niveauxElevationMax !== undefined && seuilsNiveauxTerre !== undefined) {
+    if (seuilsNiveauxTerre.length !== niveauxElevationMax - 2) {
+      erreurs.push(`${b}.seuilsNiveauxTerre: attend exactement ${niveauxElevationMax - 2} seuils (niveauxElevationMax - 2), reçu ${seuilsNiveauxTerre.length}`);
+    }
+    for (let i = 1; i < seuilsNiveauxTerre.length; i++) {
+      if (seuilsNiveauxTerre[i] <= seuilsNiveauxTerre[i - 1]) {
+        erreurs.push(`${b}.seuilsNiveauxTerre: doit être strictement croissant`);
+        break;
+      }
+    }
+  }
   return {
     tailleGrille: exigerNombre(o, 'tailleGrille', b, { min: 100, max: 5000, entier: true }, erreurs)!,
-    niveauxElevationMax: exigerNombre(o, 'niveauxElevationMax', b, { min: 2, max: 16, entier: true }, erreurs)!,
-    nbContinentsMin: exigerNombre(o, 'nbContinentsMin', b, { min: 1, max: 20, entier: true }, erreurs)!,
-    nbContinentsMax: exigerNombre(o, 'nbContinentsMax', b, { min: 1, max: 20, entier: true }, erreurs)!,
-    nbIlesMin: exigerNombre(o, 'nbIlesMin', b, { min: 0, max: 500, entier: true }, erreurs)!,
-    nbIlesMax: exigerNombre(o, 'nbIlesMax', b, { min: 0, max: 500, entier: true }, erreurs)!,
+    niveauxElevationMax,
     epaisseurBordEauSalee: exigerNombre(o, 'epaisseurBordEauSalee', b, { min: 1, max: 50, entier: true }, erreurs)!,
     temperaturePoleCelsius: exigerNombre(o, 'temperaturePoleCelsius', b, { min: -80, max: 20 }, erreurs)!,
     temperatureEquateurCelsius: exigerNombre(o, 'temperatureEquateurCelsius', b, { min: 0, max: 60 }, erreurs)!,
@@ -221,9 +230,6 @@ function validerMonde(o: Record<string, unknown>, erreurs: Erreurs) {
     amplitudeSaisonnierePolaireCelsius: exigerNombre(o, 'amplitudeSaisonnierePolaireCelsius', b, { min: 0, max: 40 }, erreurs)!,
     limiteZoneTropicale: exigerNombre(o, 'limiteZoneTropicale', b, { min: 0, max: 1 }, erreurs)!,
     limiteZonePolaire: exigerNombre(o, 'limiteZonePolaire', b, { min: 0.01, max: 1 }, erreurs)!,
-    elevationMinSourceRiviere: exigerNombre(o, 'elevationMinSourceRiviere', b, { min: 1, max: 15, entier: true }, erreurs)!,
-    nbSourcesRivieresParContinentMin: exigerNombre(o, 'nbSourcesRivieresParContinentMin', b, { min: 0, max: 50, entier: true }, erreurs)!,
-    nbSourcesRivieresParContinentMax: exigerNombre(o, 'nbSourcesRivieresParContinentMax', b, { min: 0, max: 50, entier: true }, erreurs)!,
     probabilitePluieHumiditeMax: exigerNombre(o, 'probabilitePluieHumiditeMax', b, { min: 0, max: 1 }, erreurs)!,
     gainHumiditePluie: exigerNombre(o, 'gainHumiditePluie', b, { min: 0, max: 100 }, erreurs)!,
     perteHumiditeSecheresse: exigerNombre(o, 'perteHumiditeSecheresse', b, { min: 0, max: 100 }, erreurs)!,
@@ -231,6 +237,50 @@ function validerMonde(o: Record<string, unknown>, erreurs: Erreurs) {
     seuilGelEauCelsius: exigerNombre(o, 'seuilGelEauCelsius', b, { min: -30, max: 10 }, erreurs)!,
     seuilPassageSentier: exigerNombre(o, 'seuilPassageSentier', b, { min: 1, max: 65535, entier: true }, erreurs)!,
     decroissancePassageParMois: exigerNombre(o, 'decroissancePassageParMois', b, { min: 0, max: 1000 }, erreurs)!,
+    fractionTerreCible: exigerNombre(o, 'fractionTerreCible', b, { min: 0.05, max: 0.6 }, erreurs)!,
+    longueurOndeContinentaleFraction: exigerNombre(o, 'longueurOndeContinentaleFraction', b, { min: 0.05, max: 0.9 }, erreurs)!,
+    octavesBruitRelief: exigerNombre(o, 'octavesBruitRelief', b, { min: 2, max: 8, entier: true }, erreurs)!,
+    gainBruitRelief: exigerNombre(o, 'gainBruitRelief', b, { min: 0.1, max: 0.9 }, erreurs)!,
+    lacunariteBruitRelief: exigerNombre(o, 'lacunariteBruitRelief', b, { min: 1.5, max: 3 }, erreurs)!,
+    intensiteDomainWarpingFraction: exigerNombre(o, 'intensiteDomainWarpingFraction', b, { min: 0, max: 0.5 }, erreurs)!,
+    largeurMargeOceanPeripheriqueFraction: exigerNombre(o, 'largeurMargeOceanPeripheriqueFraction', b, { min: 0, max: 0.4 }, erreurs)!,
+    longueurOndeCretesFraction: exigerNombre(o, 'longueurOndeCretesFraction', b, { min: 0.02, max: 0.5 }, erreurs)!,
+    poidsCretesMontagne: exigerNombre(o, 'poidsCretesMontagne', b, { min: 0, max: 1 }, erreurs)!,
+    seuilsNiveauxTerre: (seuilsNiveauxTerre ?? []) as number[],
+    seuilPlateauContinentalTuiles: exigerNombre(o, 'seuilPlateauContinentalTuiles', b, { min: 0, max: 500 }, erreurs)!,
+    seuilPenteContinentaleTuiles: exigerNombre(o, 'seuilPenteContinentaleTuiles', b, { min: 0, max: 2000 }, erreurs)!,
+    seuilAbysseTuiles: exigerNombre(o, 'seuilAbysseTuiles', b, { min: 0, max: 5000 }, erreurs)!,
+    profondeurMaxOceanNiveaux: exigerNombre(o, 'profondeurMaxOceanNiveaux', b, { min: 1, max: 15, entier: true }, erreurs)!,
+    largeurMaxPlageTuiles: exigerNombre(o, 'largeurMaxPlageTuiles', b, { min: 1, max: 10, entier: true }, erreurs)!,
+    niveauMaxPlage: exigerNombre(o, 'niveauMaxPlage', b, { min: 1, max: 15, entier: true }, erreurs)!,
+    seuilPentePlageNiveaux: exigerNombre(o, 'seuilPentePlageNiveaux', b, { min: 0, max: 15, entier: true }, erreurs)!,
+    temperatureMinPlageCelsius: exigerNombre(o, 'temperatureMinPlageCelsius', b, { min: -40, max: 40 }, erreurs)!,
+    seuilNiveauRoche: exigerNombre(o, 'seuilNiveauRoche', b, { min: 1, max: 15, entier: true }, erreurs)!,
+    humiditeEquateurPourcent: exigerNombre(o, 'humiditeEquateurPourcent', b, { min: 0, max: 100 }, erreurs)!,
+    humiditePolePourcent: exigerNombre(o, 'humiditePolePourcent', b, { min: 0, max: 100 }, erreurs)!,
+    centreSecheresseSubtropicaleFraction: exigerNombre(o, 'centreSecheresseSubtropicaleFraction', b, { min: 0, max: 1 }, erreurs)!,
+    largeurSecheresseSubtropicaleFraction: exigerNombre(o, 'largeurSecheresseSubtropicaleFraction', b, { min: 0.01, max: 0.5 }, erreurs)!,
+    amplitudeSecheresseSubtropicalePourcent: exigerNombre(o, 'amplitudeSecheresseSubtropicalePourcent', b, { min: 0, max: 100 }, erreurs)!,
+    longueurOndeHumiditeGrandeTuiles: exigerNombre(o, 'longueurOndeHumiditeGrandeTuiles', b, { min: 8, max: 5000 }, erreurs)!,
+    octavesBruitHumidite: exigerNombre(o, 'octavesBruitHumidite', b, { min: 1, max: 8, entier: true }, erreurs)!,
+    gainBruitHumidite: exigerNombre(o, 'gainBruitHumidite', b, { min: 0.1, max: 0.9 }, erreurs)!,
+    amplitudeBruitHumiditePourcent: exigerNombre(o, 'amplitudeBruitHumiditePourcent', b, { min: 0, max: 100 }, erreurs)!,
+    bonusHumiditeProcheEauPourcent: exigerNombre(o, 'bonusHumiditeProcheEauPourcent', b, { min: 0, max: 100 }, erreurs)!,
+    largeurBonusHumiditeEauTuiles: exigerNombre(o, 'largeurBonusHumiditeEauTuiles', b, { min: 1, max: 500 }, erreurs)!,
+    margeTemperatureEcotoneCelsius: exigerNombre(o, 'margeTemperatureEcotoneCelsius', b, { min: 0, max: 30 }, erreurs)!,
+    margeHumiditeEcotonePourcent: exigerNombre(o, 'margeHumiditeEcotonePourcent', b, { min: 0, max: 50 }, erreurs)!,
+    longueurOndeEcotoneTuiles: exigerNombre(o, 'longueurOndeEcotoneTuiles', b, { min: 4, max: 500 }, erreurs)!,
+    elevationMinSourceRiviere: exigerNombre(o, 'elevationMinSourceRiviere', b, { min: 1, max: 15, entier: true }, erreurs)!,
+    nbSourcesRivieresMin: exigerNombre(o, 'nbSourcesRivieresMin', b, { min: 0, max: 1000, entier: true }, erreurs)!,
+    nbSourcesRivieresMax: exigerNombre(o, 'nbSourcesRivieresMax', b, { min: 0, max: 5000, entier: true }, erreurs)!,
+    densiteSourcesRivieresParMillierTuilesTerre: exigerNombre(o, 'densiteSourcesRivieresParMillierTuilesTerre', b, { min: 0, max: 100 }, erreurs)!,
+    inertieDirectionnelleRiviere: exigerNombre(o, 'inertieDirectionnelleRiviere', b, { min: 0, max: 1 }, erreurs)!,
+    seuilDebitElargissement: exigerNombre(o, 'seuilDebitElargissement', b, { min: 1, max: 255, entier: true }, erreurs)!,
+    tailleMinLacTuiles: exigerNombre(o, 'tailleMinLacTuiles', b, { min: 1, max: 10000, entier: true }, erreurs)!,
+    tailleMaxLacTuiles: exigerNombre(o, 'tailleMaxLacTuiles', b, { min: 1, max: 100000, entier: true }, erreurs)!,
+    pasMaxRiviere: exigerNombre(o, 'pasMaxRiviere', b, { min: 10, max: 100000, entier: true }, erreurs)!,
+    facteurMontagneGisementsMetalliques: exigerNombre(o, 'facteurMontagneGisementsMetalliques', b, { min: 0, max: 1 }, erreurs)!,
+    facteurPlaineGisementsSedimentaires: exigerNombre(o, 'facteurPlaineGisementsSedimentaires', b, { min: 0, max: 1 }, erreurs)!,
     gisements: gisements as ConfigComplete['monde']['gisements'],
   };
 }

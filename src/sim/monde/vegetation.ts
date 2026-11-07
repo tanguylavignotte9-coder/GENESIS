@@ -24,6 +24,21 @@ export function vegetationPourClimat(temperatureCelsius: number, humiditePourcen
   return humiditePourcent > 50 ? Vegetation.Savane : Vegetation.Desert;
 }
 
+// Classification avec écotones : les entrées (température, humidité) sont bruitées à petite
+// maille, de sorte qu'aux frontières entre deux biomes le bruit tranche tuile par tuile
+// (mosaïque de transition) au lieu d'une limite nette.
+export function vegetationPourClimatAvecEcotone(
+  config: ConfigMonde,
+  temperatureCelsius: number,
+  humiditePourcent: number,
+  bruitTemperature: number,
+  bruitHumidite: number,
+): Vegetation {
+  const t = temperatureCelsius + (bruitTemperature - 0.5) * 2 * config.margeTemperatureEcotoneCelsius;
+  const h = humiditePourcent + (bruitHumidite - 0.5) * 2 * config.margeHumiditeEcotonePourcent;
+  return vegetationPourClimat(t, h);
+}
+
 export function miseAJourVegetationMensuelle(monde: Monde, calendrier: Calendrier, configMonde: ConfigMonde, configFauneFlore: ConfigFauneFlore, rng: Rng, champs?: Set<number>): void {
   const t = monde.taille;
   for (let y = 0; y < t; y++) {

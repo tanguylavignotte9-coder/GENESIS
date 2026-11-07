@@ -473,3 +473,116 @@ Décisions validées avec Tanguy après diagnostic dans Work.
    2×1 ; cadence restante 500 ms / météo 150-200 ms.
 
 Vérif : tsc OK, build OK, **101/101 tests**. Aucun changement de sim.
+
+---
+
+# Rapport « Rework monde pré-V2 » — rework complet de la génération du monde
+
+Patch demandé par Work/Tanguy (décisions validées le 2026-11-07) : le diagnostic V1 (continents
+cercles, plages immenses, biomes découpés au laser, montagnes en dômes, eau profonde seulement en
+ceinture de bord, rivières en zigzag sans confluences) venait de l'algorithme, pas des constantes.
+Rework complet de `generateur.ts`, `climat.ts`, `vegetation.ts`, du schéma de config et de
+`config/monde.jsonc`. **Aucune autre logique de sim n'a été touchée** (contrat de sorties
+intact : élévation 0-5 en piles avec socle de pierre, matières par niveau, enum végétation à
+9 valeurs, température/humidité par tuile avec saisonnalité par latitude inchangée, rivières en
+EauDouce de surface, gisements sur terre).
+
+## Périmètre et interprétations (§0)
+
+- **« Schéma de config » = `src/sim/config/schema.ts` + `src/sim/config/parse.ts`** (le schéma et
+  son validateur sont un même bloc) : `nbContinentsMin/Max`, `nbIlesMin/Max` et
+  `nbSourcesRivieresParContinentMin/Max` supprimés, remplacés par des seuils physiques. Aucun
+  autre fichier hors la liste autorisée n'a été modifié ; `limiteZoneTropicale/Polaire` sont
+  conservés car `meteo.ts` et `calendrier.ts` s'en servent pour la **saisonnalité** (inchangée).
+- **Profondeur de l'océan dans l'élévation de la tuile d'eau** : la profondeur se lit dans
+  `elevation` (1 = plateau/littoral, +1 par étage jusqu'à `profondeurMaxOceanNiveaux`), avec
+  remplissage en Pierre sous l'EauSalee et un clamp 1-Lipschitzien (8 voisins) pour que la mer
+  reste franchissable par paliers d'un niveau même avec un bateau. Le rendu colore déjà l'eau
+  profonde via `profond` (voisinage 100 % eau) et l'ombrage de relief assombrit l'abysse.
+- **Fraction de terre par quantile** : le seuil de niveau de la mer n'est plus une constante mais
+  le quantile du champ continental calé pour viser `fractionTerreCible` (0,30) sur l'intérieur de
+  la carte — robuste à toute graine et toute taille (testé de 100x100 à 1000x1000).
+- **Longueurs d'onde** : celles du relief (continents, crêtes) sont en **fraction de la taille de
+  la carte** (elles doivent suivre la taille du monde, sinon les petits mondes de test seraient
+  dégénérés) ; celles du climat (humidité, écotones) et les seuils océan/plages sont en **tuiles
+  absolues**, comme demandé (zones humides de 100-300 tuiles).
+- **Bruit apériodique** : chaque octave a sa propre grille de valeurs semée par le Rng de la sim,
+  dimensionnée pour couvrir toute la carte sans bouclage (un premier essai avec grilles périodiques
+  produisait un continent répété 3x — détecté en carte ASCII et corrigé).
+- **Rivières** : écoulement vers le voisin de plus basse élévation, avec méandre autorisé en palier
+  (sinon les plaines inondées en « lacs » de 70 000 tuiles) ; inertie directionnelle par score
+  `clé - alignement x inertie` ; confluence = rejoindre une rivière existante (débit cumulé) ;
+  tronc aval élargi à 2 tuiles au-delà de `seuilDebitElargissement` ; dépression fermée = lac de
+  `tailleMinLacTuiles` à `tailleMaxLacTuiles` avec émissaire si le bord de la cuvette descend plus
+  bas. Sources tirées en favorisant l'altitude. Le bonus d'humidité **+25** des tuiles de rivière
+  est conservé de la V1 (le test de continuité exclut donc les tuiles d'eau : c'est un effet local
+  de rivière, pas une ligne de latitude).
+- **Gisements** : placement conservé (rejet aléatoire sur terre), pondéré par le relief —
+  minerais métalliques (fer, cuivre, étain, or, argent, uranium) favorisés en montagne
+  (`facteurMontagneGisementsMetalliques`), charbon/pétrole/gaz favorisés en plaine
+  (`facteurPlaineGisementsSedimentaires`), sel sans préférence.
+- **Empreinte de config changée** : `monde.jsonc` ayant changé, les anciennes sauvegardes sont
+  refusées avec l'avertissement prévu (empreinte FNV-1a par fichier embarquée dans la
+  sauvegarde) — comportement normal du format versionné, accepté pré-V2. Documenté ici.
+
+## Ce qui a été livré (correspondance avec la méthode cible)
+
+1. **Relief fractal organique** : fBm 5 octaves + domain warping (2 champs de déformation) +
+   marge d'océan périphérique en fondu ; côtes avec fjords, baies, péninsules, mers intérieures,
+   archipels (12-22 masses > 2 000 tuiles + ~1 400 îles sur 1000x1000 selon la graine). Plus aucun
+   cercle. **Chaînes de montagnes** : bruit ridged orienté par un champ d'angle (crêtes allongées,
+   pas de dômes). Quantification en niveaux 0-5 via `seuilsNiveauxTerre` (config).
+2. **Océan à étages** : profondeur = distance de chamfer à la terre (plateau < 4 tuiles, pente
+   < 14, abysse > 40), lue dans l'élévation de l'eau — plateau clair, pente, abysse au large.
+3. **Plages par pente et climat** : Sable uniquement si côte basse (`niveauMaxPlage`), à moins de
+   `largeurMaxPlageTuiles` (3) de l'eau, pente locale ≤ `seuilPentePlageNiveaux` et
+   température ≥ `temperatureMinPlageCelsius` (8 °C) ; côtes froides = Pierre, jamais de sable
+   polaire. La règle « hauteur < 0,42 → sable » est supprimée.
+4. **Climat continu** : humidité = courbe lisse équateur→pôle − ceinture sèche subtropicale
+   gaussienne (centre 0,22 ≈ 20°, amplitude 45) + fBm 4 octaves (grandes zones de ~220 tuiles) +
+   bonus d'eau dégradé linéairement sur `largeurBonusHumiditeEauTuiles`. **Plus aucun palier** :
+   saut max entre tuiles terrestres voisines < 12 points (mesuré < 6 en pratique). Température :
+   latitude + refroidissement par élévation, inchangés.
+5. **Écotones en mosaïque** : classification par seuils conservée, mais entrées bruitées à
+   petite maille (`margeTemperatureEcotoneCelsius`, `margeHumiditeEcotonePourcent`, maille
+   `longueurOndeEcotoneTuiles`) — les frontières de biomes tranchent tuile par tuile, aucune
+   ligne droite de latitude.
+6. **Rivières** : confluences avec débit cumulé, élargissement du tronc aval à 2 tuiles, lacs
+   (min 2x2) en dépression fermée avec émissaire, inertie directionnelle en plaine. Contrat
+   respecté : EauDouce en surface, sources à élévation ≥ `elevationMinSourceRiviere`.
+7. **Gisements** : voir interprétations ci-dessus.
+
+## Vérifications (rapides, côté Code — pas de longue simulation lancée)
+
+- `tsc --noEmit` OK ; `npm run build` OK.
+- `npm test` : **107/110**. Tous les tests du monde et du contrat sont verts : `monde.test.ts`
+  (invariants, ceinture de bord, falaises, eau salée à bateau), `determinisme.test.ts` (même
+  graine = même empreinte, sauvegarde versionnée), `config.test.ts`, `monde-proprietes.test.ts`
+  (**9 nouveaux tests de propriétés**, mondes 100x100 x 5 graines : fraction de terre dans la
+  fourchette, contrat de piles, ceinture de bord, tous les biomes présents, aucun sable froid,
+  plages ≤ max config, aucune discontinuité d'humidité entre voisins, océan à étages
+  1-Lipschitzien, rivières présentes, déterminisme), plus faune/individus/culture/j7/rendu/societe.
+- **3 tests en échec, recalibration Work (hors périmètre Code)** : `conformite.test.ts` « troc
+  inter-groupes », `conformite2.test.ts` « enclos construit » et « noyade au gué ». Ce sont des
+  tests de longue simulation sur monde 400x400 graine 42 avec **coordonnées codées en dur**
+  ((300,300), (305,305), première rivière trouvée par balayage) : en V1 ces cases étaient de
+  l'océan (aucun prédateur) ; sur la nouvelle carte ce sont des terres (taïga/prédation à
+  (300,300) — les 20 individus téléportés se font tuer ; première rivière en zone froide en haut
+  de carte). Causes racine tracées, à recalibrer par Work sur le nouveau monde comme prévu.
+- **Temps de génération 1000x1000 mesuré** (Node 22, sandbox, 5 graines 42/7/1234/2026/999) :
+  **347 à 513 ms** (médiane ~410 ms) — cible < 3 s respectée avec marge.
+
+## Checklist de complétude
+
+- [x] Côtes organiques, plus aucun cercle reconnaissable
+- [x] Chaînes de montagnes en crêtes, pas de dômes
+- [x] Eau profonde au large + plateaux continentaux lisibles
+- [x] Plages 1-3 tuiles, seulement côtes basses et chaudes
+- [x] Humidité continue, plus aucune ligne droite de biome
+- [x] Écotones en mosaïque aux frontières de biomes
+- [x] Rivières : confluences, lacs, troncs rectilignes en plaine
+- [x] Fraction de terre cible respectée sur plusieurs graines (29,2-29,4 % mesurées à 1000x1000)
+- [x] Contrat de sorties intact (le reste de la sim inchangé)
+- [x] Déterminisme vert, tests de propriétés verts, temps de génération mesuré (banc et
+  simulations longues : Work s'en charge après le push — 3 tests de calibration listés ci-dessus)
+- [x] Rapport INTERPRETATIONS.md rédigé, commit poussé

@@ -9,16 +9,16 @@ export function temperatureBaseCelsius(config: ConfigMonde, distanceEquateur: nu
   return config.temperatureEquateurCelsius + (config.temperaturePoleCelsius - config.temperatureEquateurCelsius) * f;
 }
 
-export function humiditeBasePourcent(config: ConfigMonde, distanceEquateur: number, bruit: number, presEau: boolean): number {
-  let base: number;
-  if (distanceEquateur < config.limiteZoneTropicale) {
-    base = 75;
-  } else if (distanceEquateur < config.limiteZonePolaire) {
-    base = 55 - Math.abs(distanceEquateur - 0.45) * 60;
-  } else {
-    base = 30;
-  }
-  let h = base + (bruit - 0.5) * 30;
-  if (presEau) h += 15;
+// Humidité de base, continue de l'équateur aux pôles (aucun palier de latitude) :
+// courbe lisse équateur -> pôle, moins une ceinture sèche subtropicale gaussienne,
+// plus un bruit multi-octaves et un bonus graduel près de l'eau (proximiteEau dans [0, 1]).
+export function humiditeBasePourcent(config: ConfigMonde, distanceEquateur: number, bruit: number, proximiteEau: number): number {
+  const d = Math.min(1, Math.max(0, distanceEquateur));
+  const lat = lisser(d);
+  let h = config.humiditeEquateurPourcent + (config.humiditePolePourcent - config.humiditeEquateurPourcent) * lat;
+  const x = (d - config.centreSecheresseSubtropicaleFraction) / config.largeurSecheresseSubtropicaleFraction;
+  h -= config.amplitudeSecheresseSubtropicalePourcent * Math.exp(-x * x);
+  h += (bruit - 0.5) * 2 * config.amplitudeBruitHumiditePourcent;
+  h += proximiteEau * config.bonusHumiditeProcheEauPourcent;
   return Math.min(100, Math.max(0, h));
 }

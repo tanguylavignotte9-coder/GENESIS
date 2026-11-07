@@ -3,23 +3,16 @@
   // MONDE — constantes physiques et de génération du monde.
   // Toute valeur de calibrage vit ici, jamais dans le code.
   // Chaque variable indique son unité et son rôle en français.
+  // (Rework pré-V2 : relief fractal, océan à étages, plages par
+  // pente et climat, climat continu, rivières à confluences.)
   // ============================================================
 
-  // Taille de la grille du monde, en tuiles (carrée : taille x taille).
+  // Taille de la grille du monde, en tuiles (carré : taille x taille).
   "tailleGrille": 1000,
 
   // Nombre de niveaux d'élévation possibles par tuile (niveaux 0 à niveauxElevationMax - 1).
   // Le niveau 0 est toujours le socle de pierre.
   "niveauxElevationMax": 6,
-
-  // Nombre de continents générés (tirage aléatoire entre min et max).
-  // Paramètre de génération, pas un plafond de simulation.
-  "nbContinentsMin": 3,
-  "nbContinentsMax": 6,
-
-  // Nombre d'îles générées en plus des continents.
-  "nbIlesMin": 8,
-  "nbIlesMax": 24,
 
   // Épaisseur de la ceinture d'eau salée sur les bords de la carte, en tuiles.
   // Les bords de la carte sont infranchissables (pas de bouclage de planète).
@@ -44,17 +37,11 @@
   "amplitudeSaisonnierePolaireCelsius": 10,
 
   // Limite entre zone tropicale et zone tempérée, exprimée en fraction de la distance équateur-pôle (0 = équateur, 1 = pôle).
+  // Sert uniquement à la saisonnalité (inchangé) ; plus aucun palier de climat n'en dépend.
   "limiteZoneTropicale": 0.3,
 
-  // Limite entre zone tempérée et zone polaire, même unité.
+  // Limite entre zone tempérée et zone polaire, même unité (saisonnalité uniquement).
   "limiteZonePolaire": 0.7,
-
-  // Élévation minimale d'une source de rivière, en niveaux (une rivière naît en altitude et coule vers la mer).
-  "elevationMinSourceRiviere": 3,
-
-  // Nombre de sources de rivières par continent (tirage entre min et max).
-  "nbSourcesRivieresParContinentMin": 2,
-  "nbSourcesRivieresParContinentMax": 6,
 
   // Probabilité qu'une tuile reçoive de la pluie un mois donné, pour une humidité de 100 % (0 à 1).
   "probabilitePluieHumiditeMax": 0.55,
@@ -76,6 +63,176 @@
 
   // Disparition du sentier par mois (repousse lente), en points de passage.
   "decroissancePassageParMois": 5,
+
+  // ============================================================
+  // RELIEF FRACTAL ORGANIQUE (aucun cercle, côtes irrégulières).
+  // ============================================================
+
+  // Fraction de tuiles terrestres visée sur l'intérieur de la carte (0 à 1).
+  // Le seuil de niveau de la mer est calé par quantile pour atteindre cette fraction.
+  "fractionTerreCible": 0.3,
+
+  // Longueur d'onde de base du masque continental, en fraction de la taille de la carte
+  // (0.3 = grandes masses d’environ 300 tuiles sur une carte 1000x1000).
+  "longueurOndeContinentaleFraction": 0.3,
+
+  // Nombre d'octaves du bruit fractal (fBm) du relief.
+  "octavesBruitRelief": 5,
+
+  // Gain d'amplitude entre octaves successives du fBm (0 à 1).
+  "gainBruitRelief": 0.6,
+
+  // Facteur de fréquence entre octaves successives du fBm (lacunarité, typiquement 2).
+  "lacunariteBruitRelief": 2.0,
+
+  // Intensité du domain warping : amplitude de la déformation des coordonnées par un second bruit,
+  // en fraction de la taille de la carte (0.1 = 100 tuiles de déformation sur 1000, produit fjords et baies).
+  "intensiteDomainWarpingFraction": 0.1,
+
+  // Largeur de la marge périphérique où le relief retombe en douceur sous la mer,
+  // en fraction de la taille de la carte (océan périphérique garanti).
+  "largeurMargeOceanPeripheriqueFraction": 0.1,
+
+  // Longueur d'onde du bruit de crêtes (ridged) produisant les chaînes de montagnes,
+  // en fraction de la taille de la carte (0.12 = arêtes d'environ 120 tuiles sur 1000).
+  "longueurOndeCretesFraction": 0.12,
+
+  // Poids des crêtes dans le relief final (0 = relief lisse, 1 = que des crêtes).
+  "poidsCretesMontagne": 0.7,
+
+  // Seuils de quantification du relief normalisé [0..1] en niveaux d'élévation terrestres :
+  // niveauxElevationMax - 2 seuils strictement croissants, le niveau 1 (côte) à 0 et le sommet au-dessus du dernier.
+  "seuilsNiveauxTerre": [0.08, 0.28, 0.5, 0.72],
+
+  // ============================================================
+  // OCÉAN À ÉTAGES (profondeur = éloignement de la terre).
+  // ============================================================
+
+  // Distance à la terre (en tuiles) en dessous de laquelle l'eau reste peu profonde : plateau continental.
+  "seuilPlateauContinentalTuiles": 4,
+
+  // Distance à la terre (en tuiles) au-delà de laquelle commence la pente continentale.
+  "seuilPenteContinentaleTuiles": 14,
+
+  // Distance à la terre (en tuiles) au-delà de laquelle l'eau devient abyssale.
+  "seuilAbysseTuiles": 40,
+
+  // Élévation maximale d'une tuile d'eau profonde, en niveaux (1 = eau de surface, le niveau 0 étant le socle).
+  "profondeurMaxOceanNiveaux": 4,
+
+  // ============================================================
+  // PLAGES (par pente et climat, jamais plus larges que le max).
+  // ============================================================
+
+  // Largeur maximale d'une plage, en tuiles (compteur depuis la ligne de côte).
+  "largeurMaxPlageTuiles": 3,
+
+  // Niveau d'élévation maximal d'une plage (une côte basse uniquement).
+  "niveauMaxPlage": 1,
+
+  // Pente locale maximale pour une plage, en niveaux d'écart d'élévation avec les tuiles voisines.
+  "seuilPentePlageNiveaux": 1,
+
+  // Température minimale pour une plage, en degrés Celsius : en dessous, la côte est rocheuse (pierre), jamais de sable polaire.
+  "temperatureMinPlageCelsius": 8,
+
+  // Niveau d'élévation à partir duquel la surface terrestre est de la roche (pierre).
+  "seuilNiveauRoche": 4,
+
+  // ============================================================
+  // CLIMAT CONTINU (aucun saut d'humidité aux limites de zones).
+  // ============================================================
+
+  // Humidité de base à l'équateur, en pourcentage.
+  "humiditeEquateurPourcent": 78,
+
+  // Humidité de base au pôle, en pourcentage.
+  "humiditePolePourcent": 22,
+
+  // Centre de la ceinture sèche subtropicale, en fraction de la distance équateur-pôle
+  // (0.22 ≈ 20° de latitude, comme les déserts subtropicaux réels).
+  "centreSecheresseSubtropicaleFraction": 0.22,
+
+  // Demi-largeur de la ceinture sèche subtropicale, même unité (courbe gaussienne continue).
+  "largeurSecheresseSubtropicaleFraction": 0.12,
+
+  // Amplitude de la ceinture sèche subtropicale, en points de pourcentage d'humidité.
+  "amplitudeSecheresseSubtropicalePourcent": 45,
+
+  // Longueur d'onde des grandes zones sèches/humides du bruit d'humidité, en tuiles
+  // (220 = ceintures de 100 à 300 tuiles sur une carte 1000x1000).
+  "longueurOndeHumiditeGrandeTuiles": 220,
+
+  // Nombre d'octaves du bruit d'humidité (grandes zones + variations locales).
+  "octavesBruitHumidite": 4,
+
+  // Gain d'amplitude entre octaves du bruit d'humidité (0 à 1).
+  "gainBruitHumidite": 0.5,
+
+  // Amplitude totale du bruit d'humidité, en points de pourcentage (crête à crête).
+  "amplitudeBruitHumiditePourcent": 26,
+
+  // Bonus d'humidité près de l'eau, en points de pourcentage (au contact de l'eau).
+  "bonusHumiditeProcheEauPourcent": 14,
+
+  // Distance sur laquelle le bonus près de l'eau décroît linéairement jusqu'à 0, en tuiles.
+  "largeurBonusHumiditeEauTuiles": 7,
+
+  // ============================================================
+  // ÉCOTONES DES BIOMES (mosaïque de transition, aucune frontière nette).
+  // ============================================================
+
+  // Amplitude du bruit de dithering appliqué à la température aux frontières de biomes, en degrés Celsius.
+  "margeTemperatureEcotoneCelsius": 6,
+
+  // Amplitude du bruit de dithering appliqué à l'humidité aux frontières de biomes, en points de pourcentage.
+  "margeHumiditeEcotonePourcent": 14,
+
+  // Longueur d'onde de la maille fine du dithering des écotones, en tuiles.
+  "longueurOndeEcotoneTuiles": 25,
+
+  // ============================================================
+  // RIVIÈRES (confluences, lacs, inertie directionnelle en aval).
+  // ============================================================
+
+  // Élévation minimale d'une source de rivière, en niveaux (une rivière naît en altitude et coule vers la mer).
+  "elevationMinSourceRiviere": 3,
+
+  // Nombre minimal de sources de rivières posées sur la carte.
+  "nbSourcesRivieresMin": 3,
+
+  // Nombre maximal de sources de rivières posées sur la carte.
+  "nbSourcesRivieresMax": 400,
+
+  // Densité de sources de rivières, en sources par millier de tuiles terrestres
+  // (0.08 = ~24 sources sur les ~300 000 tuiles de terre d'une carte 1000x1000 à 30 % de terre).
+  "densiteSourcesRivieresParMillierTuilesTerre": 0.08,
+
+  // Inertie directionnelle d'un fleuve en aval (0 = coude case par case, 1 = garde sa direction dans les plaines).
+  "inertieDirectionnelleRiviere": 1.0,
+
+  // Débit (nombre de confluences cumulées) à partir duquel le tronc aval s'élargit à 2 tuiles.
+  "seuilDebitElargissement": 3,
+
+  // Taille minimale d'un lac formé dans une dépression fermée, en tuiles (4 = 2x2).
+  "tailleMinLacTuiles": 4,
+
+  // Taille maximale d'un lac formé dans une dépression fermée, en tuiles (borne supérieure).
+  "tailleMaxLacTuiles": 300,
+
+  // Nombre maximal de pas d'écoulement d'une seule rivière, en tuiles.
+  "pasMaxRiviere": 1000,
+
+  // ============================================================
+  // GISEMENTS (pondérés par le relief : métaux en montagne, sédimentaires en plaine).
+  // ============================================================
+
+  // Facteur de préférence montagneuse des minerais métalliques : probabilité d'accepter un gisement = niveau x ce facteur.
+  "facteurMontagneGisementsMetalliques": 0.4,
+
+  // Facteur de préférence de plaine des gisements sédimentaires (charbon, pétrole, gaz) :
+  // probabilité d'accepter = 1 - niveau x ce facteur.
+  "facteurPlaineGisementsSedimentaires": 0.3,
 
   // Gisements : pour chaque ressource, nombre de gisements (min, max) et quantité initiale extractible (min, max, en unités de ressource).
   "gisements": {

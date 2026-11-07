@@ -6,10 +6,6 @@ export interface PlageEntiers {
 export interface ConfigMonde {
   tailleGrille: number;
   niveauxElevationMax: number;
-  nbContinentsMin: number;
-  nbContinentsMax: number;
-  nbIlesMin: number;
-  nbIlesMax: number;
   epaisseurBordEauSalee: number;
   temperaturePoleCelsius: number;
   temperatureEquateurCelsius: number;
@@ -19,9 +15,6 @@ export interface ConfigMonde {
   amplitudeSaisonnierePolaireCelsius: number;
   limiteZoneTropicale: number;
   limiteZonePolaire: number;
-  elevationMinSourceRiviere: number;
-  nbSourcesRivieresParContinentMin: number;
-  nbSourcesRivieresParContinentMax: number;
   probabilitePluieHumiditeMax: number;
   gainHumiditePluie: number;
   perteHumiditeSecheresse: number;
@@ -29,6 +22,57 @@ export interface ConfigMonde {
   seuilGelEauCelsius: number;
   seuilPassageSentier: number;
   decroissancePassageParMois: number;
+  // Relief fractal organique (rework pré-V2).
+  fractionTerreCible: number;
+  longueurOndeContinentaleFraction: number;
+  octavesBruitRelief: number;
+  gainBruitRelief: number;
+  lacunariteBruitRelief: number;
+  intensiteDomainWarpingFraction: number;
+  largeurMargeOceanPeripheriqueFraction: number;
+  longueurOndeCretesFraction: number;
+  poidsCretesMontagne: number;
+  seuilsNiveauxTerre: number[];
+  // Océan à étages (profondeur = éloignement de la terre, en tuiles).
+  seuilPlateauContinentalTuiles: number;
+  seuilPenteContinentaleTuiles: number;
+  seuilAbysseTuiles: number;
+  profondeurMaxOceanNiveaux: number;
+  // Plages par pente et climat.
+  largeurMaxPlageTuiles: number;
+  niveauMaxPlage: number;
+  seuilPentePlageNiveaux: number;
+  temperatureMinPlageCelsius: number;
+  seuilNiveauRoche: number;
+  // Climat continu (humidité sans palier de latitude).
+  humiditeEquateurPourcent: number;
+  humiditePolePourcent: number;
+  centreSecheresseSubtropicaleFraction: number;
+  largeurSecheresseSubtropicaleFraction: number;
+  amplitudeSecheresseSubtropicalePourcent: number;
+  longueurOndeHumiditeGrandeTuiles: number;
+  octavesBruitHumidite: number;
+  gainBruitHumidite: number;
+  amplitudeBruitHumiditePourcent: number;
+  bonusHumiditeProcheEauPourcent: number;
+  largeurBonusHumiditeEauTuiles: number;
+  // Écotones des biomes (mosaïque de transition).
+  margeTemperatureEcotoneCelsius: number;
+  margeHumiditeEcotonePourcent: number;
+  longueurOndeEcotoneTuiles: number;
+  // Rivières (confluences, lacs, inertie directionnelle).
+  elevationMinSourceRiviere: number;
+  nbSourcesRivieresMin: number;
+  nbSourcesRivieresMax: number;
+  densiteSourcesRivieresParMillierTuilesTerre: number;
+  inertieDirectionnelleRiviere: number;
+  seuilDebitElargissement: number;
+  tailleMinLacTuiles: number;
+  tailleMaxLacTuiles: number;
+  pasMaxRiviere: number;
+  // Gisements pondérés par le relief.
+  facteurMontagneGisementsMetalliques: number;
+  facteurPlaineGisementsSedimentaires: number;
   gisements: Record<
     'charbon' | 'gaz' | 'uranium' | 'petrole' | 'fer' | 'cuivre' | 'etain' | 'or' | 'argent' | 'sel',
     { nbMin: number; nbMax: number; quantiteMin: number; quantiteMax: number }

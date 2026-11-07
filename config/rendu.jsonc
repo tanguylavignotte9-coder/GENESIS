@@ -44,9 +44,12 @@
   },
 
   // Vitesses d'animation (ms par frame) et effectifs des overlays météo.
+  // msParFrame : cadence douce des sprites 2 frames (3-8 px) — 250 ms donnait un
+  // effet scintillement ; 500 ms se lit comme une vraie animation.
   "animations": {
-    "msParFrame": 250,
-    "msParFrameMeteo": 120,
+    "msParFrame": 500,
+    // Météo pluie/neige : plus vive, pour un mouvement continu des précipitations.
+    "msParFrameMeteo": 180,
     "pluieTraits": 220,
     "neigePoints": 320,
     "nuages": 6

@@ -277,16 +277,21 @@ const BATIMENTS: Record<string, { w: number; h: number; frames: number; peindre:
   },
   fumoir: {
     w: 6, h: 6, frames: 2,
-    peindre: (c, p, rng, frame) => {
+    peindre: (c, p, _rng, frame) => {
       const murs = decoderHex(p.bois.murs);
       const toit = decoderHex(p.bois.toits);
       const fumee = decoderHex(p.fumee);
       c.rect(0, 3, 6, 3, murs);
       c.rect(0, 1, 6, 2, toit);
       c.set(2, 3, decoderHex(p.bois.toitFonce));
-      const y0 = frame === 0 ? 0 : 0;
-      c.set(2 + Math.floor(rng() * 2), y0, fumee, 200);
-      c.set(3, y0 + 1, fumee, 140);
+      // Fumée animée : pixels explicitement déplacés par `frame` (base fixe).
+      if (frame === 0) {
+        c.set(2, 0, fumee, 200);
+        c.set(3, 1, fumee, 140);
+      } else {
+        c.set(3, 0, fumee, 200);
+        c.set(2, 1, fumee, 140);
+      }
     },
   },
   atelier: {
@@ -704,8 +709,12 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
   const g = rendu.graineAtlas;
   const P = rendu.palettes;
   const V = rendu.variantesParTuile;
-  const rngPour = (cle: string, v: number, frame: number = 0): (() => number) => {
-    const h = parseInt(fnv1a64(`${cle}:${v}:${frame}`).slice(0, 8), 16);
+  // Graine identique pour TOUTES les frames d'un même sprite : seuls les pixels
+  // explicitement déplacés par le paramètre `frame` (vaguelettes, flammes) peuvent
+  // différer d'une frame à l'autre. Jamais de frame dans la graine (anti-scintillement).
+  const rngPour = (cle: string, v: number = 0, frame: number = 0): (() => number) => {
+    void frame;
+    const h = parseInt(fnv1a64(`${cle}:${v}`).slice(0, 8), 16);
     return mulberry32((g ^ h) >>> 0);
   };
 
@@ -713,7 +722,7 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
     const c = new Canevas(8 * frames, 8);
     for (let f = 0; f < frames; f++) {
       const sous = new Canevas(8, 8);
-      peindre(sous, rngPour(`${cle}:v${v}`, f), f);
+      peindre(sous, rngPour(`${cle}:v${v}`), f);
       c.copierDepuis(sous, f * 8, 0);
     }
     entrees.push({ cle: `${cle}:v${v}`, c, frames });
@@ -781,7 +790,7 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
     const c = new Canevas(def.w * def.frames, def.h);
     for (let f = 0; f < def.frames; f++) {
       const sous = new Canevas(def.w, def.h);
-      def.peindre(sous, P, rngPour(`bat:${type}`, f), f, false);
+      def.peindre(sous, P, rngPour(`bat:${type}`), f, false);
       c.copierDepuis(sous, f * def.w, 0);
     }
     entrees.push({ cle: `bat:${type}`, c, frames: def.frames });

@@ -165,6 +165,47 @@ describe('atlas procédural (V1.2)', () => {
     expect(atlas.sprites['marqueur:dirigeant']).toBeDefined();
   });
 
+  it('V1.2.1 : les frames d\'un sprite partagent la même graine (base fixe, seuls les pixels animés bougent)', () => {
+    const { rendu } = chargerTout();
+    const atlas = genererAtlas(rendu);
+    const pixelsFrame = (cle: string, frame: number): Uint8ClampedArray<ArrayBuffer> => {
+      const s = atlas.sprites[cle];
+      const out = new Uint8ClampedArray(s.w / s.frames * s.h * 4);
+      const fw = s.w / s.frames;
+      for (let y = 0; y < s.h; y++) {
+        for (let x = 0; x < fw; x++) {
+          const si = ((s.y + y) * atlas.largeur + s.x + frame * fw + x) * 4;
+          const di = (y * fw + x) * 4;
+          for (let k = 0; k < 4; k++) out[di + k] = atlas.pixels[si + k];
+        }
+      }
+      return out;
+    };
+    const diff = (a: Uint8ClampedArray, b: Uint8ClampedArray): number => {
+      let n = 0;
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) n++;
+      return n;
+    };
+    // Eau : les vaguelettes glissent (frames différentes) mais le fond + taches sont fixes.
+    const eau0 = pixelsFrame('tuile:eau:v0', 0);
+    const eau1 = pixelsFrame('tuile:eau:v0', 1);
+    expect(diff(eau0, eau1)).toBeGreaterThan(0);
+    const vague = rendu.palettes.eau.vaguelettes.slice(1);
+    const vagueRgb = [parseInt(vague.slice(0, 2), 16), parseInt(vague.slice(2, 4), 16), parseInt(vague.slice(4, 6), 16)];
+    let horsVaguelettes = 0;
+    for (let p = 0; p < eau0.length / 4; p++) {
+      const estVague = (px: Uint8ClampedArray) => px[p * 4] === vagueRgb[0] && px[p * 4 + 1] === vagueRgb[1] && px[p * 4 + 2] === vagueRgb[2];
+      if (eau0[p * 4 + 3] !== eau1[p * 4 + 3] || (!estVague(eau0) && !estVague(eau1) && (eau0[p * 4] !== eau1[p * 4] || eau0[p * 4 + 1] !== eau1[p * 4 + 1] || eau0[p * 4 + 2] !== eau1[p * 4 + 2]))) horsVaguelettes++;
+    }
+    expect(horsVaguelettes).toBe(0);
+    // Feu de camp : les flammes changent bien de frame.
+    expect(diff(pixelsFrame('bat:feuDeCamp', 0), pixelsFrame('bat:feuDeCamp', 1))).toBeGreaterThan(0);
+    // Cadence V1.2.1 : sprites à 500 ms, météo plus vive (150-200 ms).
+    expect(rendu.animations.msParFrame).toBe(500);
+    expect(rendu.animations.msParFrameMeteo).toBeGreaterThanOrEqual(150);
+    expect(rendu.animations.msParFrameMeteo).toBeLessThanOrEqual(200);
+  });
+
   it('hash de variante stable et humain 3×5 conforme à la maquette', () => {
     expect(hashTuile(10, 20) % 4).toBe(hashTuile(10, 20) % 4);
     expect(hashTuile(10, 20)).not.toBe(hashTuile(10, 21));

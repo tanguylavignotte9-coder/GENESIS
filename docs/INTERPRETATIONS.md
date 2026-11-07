@@ -361,3 +361,35 @@ reprise. Changer une palette ne casse donc jamais une sauvegarde.
 - [x] Sentiers, gisements (et épuisement = entrée murée), pollution visibles sur la carte
 - [x] Zoom par paliers nets [4,8,16,32,64] + minicarte cliquable (vue + villages) + LOD par seuils en config
 - [x] npm test vert (100/100), banc sans régression (empreinte identique), rapport rédigé, commit poussé
+
+---
+
+# Rapport V1.2.1 — fix scintillement des animations (3 corrections ciblées, renderer seul)
+
+Diagnostic Work : les sprites « changeaient de forme » ~4×/s sur l'eau, les animaux et
+les humains. Trois causes corrigées :
+
+1. **Graine identique pour toutes les frames d'un sprite** (`pixelart/atlas.ts`) :
+   `rngPour(cle, v, frame)` incluait la frame dans la graine → taches/étincelles
+   redessinées ailleurs à chaque frame. Corrigé : la frame n'entre plus dans la
+   graine (`rngPour(cle, v)` dans `ajouterTuile` et l'assemblage des bâtiments) ;
+   seuls les pixels explicitement déplacés par le paramètre `frame` diffèrent
+   (vaguelettes `frame * 3`, flammes, fumée, ailes du moulin…). La fumée du fumoir
+   passe désormais par des pixels explicites par frame au lieu du rng.
+   Même règle appliquée à l'overlay météo (`cartePixel.ts#dessinerMeteo`) : hash fixe
+   par élément (index seul) + dérive continue selon la frame (pluie qui glisse,
+   neige qui tombe, nuages qui dérivent) — plus de saut de position par frame.
+   Test de non-régression : frames 0/1 de `tuile:eau:v0` ne diffèrent que sur les
+   pixels vaguelettes ; `bat:feuDeCamp` change bien de frame.
+2. **Entités immobiles non animées** (`cartePixel.ts#tick`) : l'alternance de texture
+   s'appliquait à toute entité « animable ». Désormais chaque entité stocke
+   `mobile`/`enMouvement` : au tick, une entité mobile n'alterne que si elle bouge
+   vraiment (sinon frame de repos 0, et retour à 0 quand le mouvement cesse) ;
+   les bâtiments animés (feu, forge, moulin, cheminées) et le vautour (vol en
+   permanence) gardent leur animation intrinsèque même immobiles.
+3. **Cadence plus douce** (`config/rendu.jsonc`) : `animations.msParFrame` 250 →
+   **500 ms** (sprites 3-8 px lisibles), météo pluie/neige plus vive :
+   `msParFrameMeteo` 120 → **180 ms** (précipitations continues).
+
+Vérif : tsc OK, build OK, **101/101 tests** (13 dans `tests/rendu.test.ts`). Aucun
+changement de sim ; banc inchangé (empreinte identique au commit V1.2).

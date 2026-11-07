@@ -53,6 +53,8 @@ interface Entite {
   teinte: number;
   cheveuxVal: number | null;
   grossesse: boolean;
+  mobile: boolean;
+  enMouvement: boolean;
 }
 
 const GISEMENT_PAR_TYPE_MINE: Record<string, number> = {
@@ -543,7 +545,7 @@ export class CartePixel {
     const obtenir = (i: number, id: number): Entite => {
       let e = this.entites[i];
       if (!e) {
-        e = { id, x: 0, y: 0, sprite: new Sprite(), marqueurs: [], anime: false, cleBase: '', frameActuelle: 0, teinte: 0, cheveuxVal: null, grossesse: false };
+        e = { id, x: 0, y: 0, sprite: new Sprite(), marqueurs: [], anime: false, cleBase: '', frameActuelle: 0, teinte: 0, cheveuxVal: null, grossesse: false, mobile: false, enMouvement: false };
         this.entites[i] = e;
         couche.addChild(e.sprite);
       }
@@ -580,8 +582,12 @@ export class CartePixel {
         e.sprite.position.set(x * T - 2, y * T - 2);
       }
       e.cleBase = cle;
-      e.anime = complets && !domestique && espece !== 'vautour';
-      e.frameActuelle = domestique || !enMouvement ? 0 : this.animFrame;
+      // Le vautour vole en permanence (battement d'ailes = animation intrinsèque),
+      // les autres animaux ne s'animent que s'ils se déplacent.
+      e.mobile = espece !== 'vautour';
+      e.enMouvement = enMouvement;
+      e.anime = complets && (espece === 'vautour' || !domestique);
+      e.frameActuelle = !e.anime || !enMouvement ? 0 : this.animFrame;
       const tex = this.texSprite(cle, e.frameActuelle);
       if (tex) e.sprite.texture = tex;
       this.ajusterMarqueurs(e, null, false, false, cheveuxVisibles);
@@ -617,12 +623,17 @@ export class CartePixel {
       if (!complets) {
         e.cleBase = 'marqueur:humain';
         e.anime = false;
+        e.mobile = true;
+        e.enMouvement = enMouvement;
+        e.frameActuelle = 0;
         const tex = this.texSprite('marqueur:humain');
         if (tex) e.sprite.texture = tex;
         e.sprite.position.set(x * T - 1, y * T - 1);
         this.ajusterMarqueurs(e, null, false, false, false);
       } else {
         e.cleBase = 'humain';
+        e.mobile = true;
+        e.enMouvement = enMouvement;
         e.anime = enMouvement;
         e.frameActuelle = enMouvement ? this.animFrame : 0;
         e.sprite.texture = this.texHumain(teinte, e.cheveuxVal, id, e.frameActuelle, grossesse);
@@ -645,11 +656,16 @@ export class CartePixel {
       if (!complets) {
         e.cleBase = 'marqueur:vehicule';
         e.anime = false;
+        e.mobile = true;
+        e.enMouvement = enMouvement;
+        e.frameActuelle = 0;
         const tex = this.texSprite('marqueur:vehicule');
         if (tex) e.sprite.texture = tex;
         e.sprite.position.set(x * T - 1, y * T - 1);
       } else {
         e.cleBase = `bat:${type}`;
+        e.mobile = true;
+        e.enMouvement = enMouvement;
         e.anime = enMouvement;
         e.frameActuelle = enMouvement ? this.animFrame : 0;
         const s = this.atlas.sprites[e.cleBase];
@@ -700,6 +716,8 @@ export class CartePixel {
           cle = `bat:${type}`;
         }
         e.cleBase = cle;
+        e.mobile = false;
+        e.enMouvement = false;
         e.anime = (this.atlas.sprites[cle]?.frames ?? 1) > 1;
         e.frameActuelle = 0;
         const s = this.atlas.sprites[cle];
@@ -820,12 +838,20 @@ export class CartePixel {
       this.dernierFrame = frame;
       this.animFrame = frame;
       for (const e of this.entites) {
-        if (!e.anime || !e.sprite.visible) continue;
+        if (!e.sprite.visible) continue;
+        // Entités mobiles : on n'alternance que si l'entité bouge vraiment,
+        // sinon frame de repos (0) — jamais de scintillement sur place.
+        // Bâtiments animés (feu, forge, moulin, cheminées, vautour) : animation
+        // intrinsèque, ils continuent de tourner même immobiles.
+        const f = e.mobile ? (e.enMouvement ? frame : 0) : frame;
+        if (!e.anime && !(e.mobile && e.frameActuelle !== 0)) continue;
+        if (f === e.frameActuelle) continue;
+        e.frameActuelle = f;
         if (e.cleBase === 'humain') {
-          e.sprite.texture = this.texHumain(e.teinte, e.cheveuxVal, e.id, frame, e.grossesse);
+          e.sprite.texture = this.texHumain(e.teinte, e.cheveuxVal, e.id, f, e.grossesse);
           continue;
         }
-        const tex = this.texSprite(e.cleBase, frame);
+        const tex = this.texSprite(e.cleBase, f);
         if (tex) e.sprite.texture = tex;
       }
       for (const s of this.vagues.values()) {
@@ -858,16 +884,18 @@ export class CartePixel {
     const H = this.app.screen.height;
     const A = this.rendu.animations;
     const m = this.meteoDominante;
+    // Graine fixe par élément (hash de l'index seul) + dérive continue selon la
+    // frame : les précipitations tombent/dérivent sans jamais "sauter" (anti-scintillement).
     if (m.pluie > 0.12) {
       for (let i = 0; i < A.pluieTraits; i++) {
-        const h = hashTuile(i * 7 + 1, frame * 131 + 7);
+        const h = hashTuile(i * 7 + 1, 7);
         const x = (h % 1000) / 1000 * (W + 40) - 20 + frame * 6;
         const y = ((h >> 10) % 1000) / 1000 * H;
         g.moveTo(x, y).lineTo(x - 4, y + 10).stroke({ width: 1, color: 0x7896dc, alpha: 0.35 });
       }
     } else if (m.neige > 0.12) {
       for (let i = 0; i < A.neigePoints; i++) {
-        const h = hashTuile(i * 13 + 3, frame * 17 + 11);
+        const h = hashTuile(i * 13 + 3, 11);
         const x = (h % 1000) / 1000 * W;
         const y = (((h >> 10) % 1000) / 1000 * H + frame * 22) % H;
         g.circle(x, y, 1).fill({ color: 0xffffff, alpha: 0.8 });

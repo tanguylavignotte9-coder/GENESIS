@@ -118,12 +118,14 @@ function peindreTuileEau(c: Canevas, p: ConfigRendu['palettes']['eau'], rng: () 
   const vague = decoderHex(p.vaguelettes);
   c.rect(0, 0, 8, 8, base);
   for (let i = 0; i < 4; i++) c.set(Math.floor(rng() * 8), Math.floor(rng() * 8), tache);
-  // Vaguelettes : même graine => mêmes x/largeurs à chaque frame, seul y avance
-  // de 1 px par frame (mod 8) — les vagues GLISSENT, elles ne sautent pas.
+  // Vaguelettes : motif statique décoratif (1 seule frame — V1.2.3 : l'eau est
+  // rendue uniquement par la couche terrain, aucun calque d'animation ne repeint
+  // une tuile d'eau).
+  void frame;
   for (let i = 0; i < 2; i++) {
     const w = 2 + Math.floor(rng() * 2);
     const x = Math.floor(rng() * (8 - w));
-    const y = (Math.floor(rng() * 8) + frame + i * 4) % 8;
+    const y = (Math.floor(rng() * 8) + i * 4) % 8;
     c.rect(x, y, w, 1, vague);
   }
 }
@@ -532,7 +534,7 @@ function peindrePuitsDeriv(c: Canevas, p: ConfigRendu['palettes'], teinte: Rgb):
 
 type PeintreEspece = (c: Canevas, e: ConfigRendu['palettes']['especes'][string], frame: number) => void;
 
-const ESPECES: Record<string, { w: number; h: number; peindre: PeintreEspece }> = {
+const ESPECES: Record<string, { w: number; h: number; peindre: PeintreEspece; peindrePose?: PeintreEspece }> = {
   cerf: {
     w: 6, h: 4,
     peindre: (c, e, frame) => {
@@ -631,25 +633,31 @@ const ESPECES: Record<string, { w: number; h: number; peindre: PeintreEspece }> 
   },
   vautour: {
     w: 7, h: 4,
-    peindre: (c, e, frame) => {
+    // En vol (se déplace) : silhouette de plané, 1 seule frame (pas de battement).
+    peindre: (c, e, _frame) => {
       const corps = decoderHex(e.corps);
       const clair = decoderHex(e.clair);
       const sombre = decoderHex(e.sombre);
       const detail = decoderHex(e.detail);
-      // Silhouette FIXE (plané reconnaissable) : ailes, corps, tête, bec, queue.
       c.rect(0, 1, 7, 1, corps);
       c.rect(2, 2, 2, 1, corps);
       c.set(4, 2, corps);
       c.set(5, 2, detail);
       c.set(1, 2, sombre);
-      // Seuls les 2 pixels des bouts d'ailes montent/descendent d'1 px entre frames.
-      if (frame === 0) {
-        c.set(0, 0, clair);
-        c.set(6, 0, clair);
-      } else {
-        c.set(0, 2, clair);
-        c.set(6, 2, clair);
-      }
+      c.set(0, 0, clair);
+      c.set(6, 0, clair);
+    },
+    // Posé (immobile, typiquement sur une charogne) : oiseau au sol, sans ombre.
+    peindrePose: (c, e, _frame) => {
+      const corps = decoderHex(e.corps);
+      const sombre = decoderHex(e.sombre);
+      const detail = decoderHex(e.detail);
+      c.rect(1, 2, 4, 1, corps);
+      c.set(5, 1, corps);
+      c.set(6, 1, detail);
+      c.set(0, 2, sombre);
+      c.set(2, 3, sombre);
+      c.set(4, 3, sombre);
     },
   },
 };
@@ -736,7 +744,7 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
   };
 
   for (let v = 0; v < V; v++) {
-    ajouterTuile('tuile:eau', v, (c, rng, frame) => peindreTuileEau(c, P.eau, rng, frame), 4);
+    ajouterTuile('tuile:eau', v, (c, rng, frame) => peindreTuileEau(c, P.eau, rng, frame), 1);
     ajouterTuile('tuile:eauProfonde', v, (c, rng) => {
       peindreTuileSimple(c, decoderHex(P.eauProfonde.base), P.eauProfonde.taches.map(decoderHex), 3, rng);
     });
@@ -832,9 +840,20 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
     entrees.push({ cle: `bat:${type}:ruine`, c: peindreRuine(c, { w: 6, h: 7 }, rngPour(`bat:${type}:ruine`, 0)), frames: 1 });
   }
 
-  // Espèces : 7 × 2 frames + ombre du vautour.
+  // Espèces : 7 × 2 frames (marche/repos) + ombre du vautour.
+  // V1.2.3 : le vautour a DEUX silhouettes distinctes à 1 frame chacune
+  // (posé / en vol), choisies par l'état réel de mouvement — plus de battement continu.
   for (const [id, def] of Object.entries(ESPECES)) {
     const e = P.especes[id];
+    if (id === 'vautour' && def.peindrePose) {
+      const pose = new Canevas(def.w, def.h);
+      def.peindrePose(pose, e, 0);
+      entrees.push({ cle: 'espece:vautour:pose', c: pose, frames: 1 });
+      const vol = new Canevas(def.w, def.h);
+      def.peindre(vol, e, 0);
+      entrees.push({ cle: 'espece:vautour:vol', c: vol, frames: 1 });
+      continue;
+    }
     const c = new Canevas(def.w * 2, def.h);
     for (let f = 0; f < 2; f++) {
       const sous = new Canevas(def.w, def.h);

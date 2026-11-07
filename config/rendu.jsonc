@@ -38,20 +38,16 @@
     "cheveuxPxParTuile": 32,
     // Territoires (teinte + frontières pixelisées) visibles UNIQUEMENT sous ce seuil
     // (comportement V1 conservé : seuil 5 px/tuile, donc visible au palier 4 seulement).
-    "frontieresPxParTuile": 5,
-    // Vaguelettes d'eau animées dessinées à partir de ce zoom.
-    "vaguesPxParTuile": 8
+    "frontieresPxParTuile": 5
   },
 
   // Vitesses d'animation (ms par frame) et effectifs des overlays météo.
   // msParFrame : cadence douce des sprites 2 frames (3-8 px) — 250 ms donnait un
   // effet scintillement ; 500 ms se lit comme une vraie animation.
+  // V1.2.3 : plus de calque « vagues » — l'eau est rendue uniquement par la couche
+  // terrain (chunks) ; les vaguelettes sont un motif statique de la texture.
   "animations": {
     "msParFrame": 500,
-    // Eau : 4 frames, vaguelettes glissant d'1 px par étape — l'eau dérive en continu.
-    "msParFrameEau": 350,
-    // Vautour : plané lent (~700 ms par frame, seuls les bouts d'ailes bougent d'1 px).
-    "msParFrameVautour": 700,
     // Météo pluie/neige : plus vive, pour un mouvement continu des précipitations.
     "msParFrameMeteo": 180,
     "pluieTraits": 220,

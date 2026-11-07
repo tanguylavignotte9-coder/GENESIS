@@ -310,6 +310,13 @@ vert, et un test dédié prouve que le digest V2 ne consomme pas le RNG de la si
   chargement comme les autres (`parserConfigRendu`, erreurs explicites, blocage au
   démarrage si invalide).
 
+### Règles de rendu contraignantes (inscrites en V1.2.3, applicables à tout le rendu)
+
+1. **Une seule couche de rendu est responsable d'une tuile** : un calque d'animation
+   ne doit jamais repeindre une tuile déjà rendue par la couche terrain.
+2. **Une entité ne s'anime que par son état réel** (déplacement, feu actif…),
+   jamais « par nature ».
+
 ## rendu.jsonc HORS empreinte de sauvegarde (propre et documenté)
 
 `NOMS_FICHIERS_CONFIG` (qui pilote `empreintes` et donc l'empreinte de sauvegarde)
@@ -424,5 +431,45 @@ changement de sim ; banc inchangé (empreinte identique au commit V1.2).
 3. Tests : eau = 4 frames avec diffs entre frames voisines limités aux pixels
    vaguelettes ; vautour = ≤ 4 pixels différents entre frames ; cadences
    (500 / 350 / 700 / 180 ms) assertées.
+
+Vérif : tsc OK, build OK, **101/101 tests**. Aucun changement de sim.
+
+---
+
+# Rapport V1.2.3 — eau statique (couche terrain seule) + vautour réaliste (section V1.2 graphismes)
+
+Décisions validées avec Tanguy après diagnostic dans Work.
+
+## Règles de rendu contraignantes (inscrites aussi dans la section V1.2 graphismes)
+
+1. **Une seule couche de rendu est responsable d'une tuile** : un calque d'animation
+   ne doit jamais repeindre une tuile déjà rendue par la couche terrain.
+2. **Une entité ne s'anime que par son état réel** (déplacement, feu actif…), jamais
+   « par nature ».
+
+## Corrections appliquées
+
+1. **Calque « vagues » supprimé entièrement** (`cartePixel.ts`) : `coucheVagues`,
+   `reconstruireVagues()`, la boucle vagues de `tick()`, `vaguesDirty`,
+   `dernierRebuildVagues`, et `seuils.vaguesPxParTuile` retiré de `rendu.jsonc`
+   (ainsi que les cadences mortes `msParFrameEau`/`msParFrameVautour`).
+   L'eau est rendue **uniquement par la couche terrain (chunks)** ; les vaguelettes
+   restent un **motif statique décoratif** de la texture atlas (`tuile:eau` = 1 frame).
+   Raison du bug : l'overlay repeignait toutes les tuiles d'eau (y compris l'océan
+   profond `tuile:eauProfonde`) et se reconstruisait par à-coups de 300 ms pendant
+   les déplacements de caméra → alternance de teintes entre deux calques.
+2. **Vautour posé/en vol selon l'état réel** (aucun changement de simulation — le
+   renderer connaît déjà le mouvement par delta de position entre digests) :
+   - **posé** (immobile, ex. charogne) : silhouette d'oiseau au sol, **sans ombre**,
+     1 frame statique (`espece:vautour:pose`);
+   - **en vol** (en déplacement) : silhouette de plané reconnaissable, **1 seule
+     frame** (plus de battement alterné), ombre portée légère 2×1 semi-transparente
+     nettement décalée (+3,+4) (`espece:vautour:vol` + `espece:vautour:ombre`);
+   - **hystérésis** : si l'état oscille entre deux digests, le vautour reste « en
+     vol » 3 digests après l'arrêt (`hysteresisVol`).
+   - L'animation permanente 2 frames battant en continu même posé est supprimée.
+3. Tests : eau = 1 frame statique + `vaguesPxParTuile`/`msParFrameEau` absents de la
+   config ; vautour = `pose`/`vol` en 1 frame chacune, silhouettes distinctes, ombre
+   2×1 ; cadence restante 500 ms / météo 150-200 ms.
 
 Vérif : tsc OK, build OK, **101/101 tests**. Aucun changement de sim.

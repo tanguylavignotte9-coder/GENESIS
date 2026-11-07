@@ -111,7 +111,7 @@ describe('atlas procédural (V1.2)', () => {
       }
     }
     expect(atlas.sprites['tuile:eau:v0']).toBeDefined();
-    expect(atlas.sprites['tuile:eau:v0'].frames).toBe(4);
+    expect(atlas.sprites['tuile:eau:v0'].frames).toBe(1);
     expect(atlas.sprites['tuile:eauProfonde:v0']).toBeDefined();
     expect(atlas.sprites['tuile:eauGelee:v0']).toBeDefined();
     expect(atlas.sprites['tuile:plage:v0']).toBeDefined();
@@ -155,8 +155,14 @@ describe('atlas procédural (V1.2)', () => {
     const especes = Object.keys(config.fauneFlore.especes);
     expect(especes).toHaveLength(7);
     for (const e of especes) {
-      expect(atlas.sprites[`espece:${e}`], e).toBeDefined();
-      expect(atlas.sprites[`espece:${e}`].frames).toBe(2);
+      if (e === 'vautour') {
+        // V1.2.3 : vautour = 2 silhouettes 1 frame (posé / en vol), pas de frames de battement.
+        expect(atlas.sprites['espece:vautour:pose']).toBeDefined();
+        expect(atlas.sprites['espece:vautour:vol']).toBeDefined();
+      } else {
+        expect(atlas.sprites[`espece:${e}`], e).toBeDefined();
+        expect(atlas.sprites[`espece:${e}`].frames).toBe(2);
+      }
       expect(atlas.sprites[`marqueur:espece:${e}`]).toBeDefined();
     }
     expect(atlas.sprites['espece:vautour:ombre']).toBeDefined();
@@ -186,41 +192,26 @@ describe('atlas procédural (V1.2)', () => {
       for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) n++;
       return n;
     };
-    // Eau : les vaguelettes glissent (frames différentes) mais le fond + taches sont fixes.
-    const eau0 = pixelsFrame('tuile:eau:v0', 0);
-    const eau1 = pixelsFrame('tuile:eau:v0', 1);
-    expect(diff(eau0, eau1)).toBeGreaterThan(0);
-    const vague = rendu.palettes.eau.vaguelettes.slice(1);
-    const vagueRgb = [parseInt(vague.slice(0, 2), 16), parseInt(vague.slice(2, 4), 16), parseInt(vague.slice(4, 6), 16)];
-    let horsVaguelettes = 0;
-    for (let p = 0; p < eau0.length / 4; p++) {
-      const estVague = (px: Uint8ClampedArray) => px[p * 4] === vagueRgb[0] && px[p * 4 + 1] === vagueRgb[1] && px[p * 4 + 2] === vagueRgb[2];
-      if (eau0[p * 4 + 3] !== eau1[p * 4 + 3] || (!estVague(eau0) && !estVague(eau1) && (eau0[p * 4] !== eau1[p * 4] || eau0[p * 4 + 1] !== eau1[p * 4 + 1] || eau0[p * 4 + 2] !== eau1[p * 4 + 2]))) horsVaguelettes++;
-    }
-    expect(horsVaguelettes).toBe(0);
-    // Feu de camp : les flammes changent bien de frame.
+    // V1.2.3 : eau rendue UNIQUEMENT par la couche terrain — 1 seule frame statique
+    // (vaguelettes = motif décoratif fixe), plus de calque d'animation de l'eau.
+    expect(atlas.sprites['tuile:eau:v0'].frames).toBe(1);
+    expect('vaguesPxParTuile' in rendu.seuils).toBe(false);
+    expect('msParFrameEau' in rendu.animations).toBe(false);
+    // Feu de camp : les flammes changent bien de frame (seuls les pixels de flamme).
     expect(diff(pixelsFrame('bat:feuDeCamp', 0), pixelsFrame('bat:feuDeCamp', 1))).toBeGreaterThan(0);
-    // V1.2.2 : eau en 4 frames, vaguelettes glissant d'1 px (seuls les pixels vaguelettes diffèrent entre frames voisines).
-    const eauFrames = [0, 1, 2, 3].map((f) => pixelsFrame('tuile:eau:v0', f));
-    for (let f = 0; f < 3; f++) {
-      expect(diff(eauFrames[f], eauFrames[f + 1])).toBeGreaterThan(0);
-      let horsVaguelettes = 0;
-      for (let p = 0; p < eauFrames[f].length / 4; p++) {
-        const estVague = (px: Uint8ClampedArray) => px[p * 4] === vagueRgb[0] && px[p * 4 + 1] === vagueRgb[1] && px[p * 4 + 2] === vagueRgb[2];
-        if (eauFrames[f][p * 4 + 3] !== eauFrames[f + 1][p * 4 + 3] || (!estVague(eauFrames[f]) && !estVague(eauFrames[f + 1]) && (eauFrames[f][p * 4] !== eauFrames[f + 1][p * 4] || eauFrames[f][p * 4 + 1] !== eauFrames[f + 1][p * 4 + 1] || eauFrames[f][p * 4 + 2] !== eauFrames[f + 1][p * 4 + 2]))) horsVaguelettes++;
-      }
-      expect(horsVaguelettes).toBe(0);
-    }
-    // V1.2.2 : vautour = silhouette fixe, seuls les 2 bouts d'ailes (2 px × 2 positions) bougent.
-    const v0 = pixelsFrame('espece:vautour', 0);
-    const v1 = pixelsFrame('espece:vautour', 1);
-    const diffV = diff(v0, v1) / 4;
-    expect(diffV).toBeGreaterThan(0);
-    expect(diffV).toBeLessThanOrEqual(4);
-    // Cadence : sprites 500 ms, eau 350 ms, vautour 700 ms, météo 150-200 ms.
+    // V1.2.3 : vautour = deux silhouettes distinctes à 1 frame chacune (posé / en vol).
+    const pose = atlas.sprites['espece:vautour:pose'];
+    const vol = atlas.sprites['espece:vautour:vol'];
+    expect(pose).toBeDefined();
+    expect(vol).toBeDefined();
+    expect(pose.frames).toBe(1);
+    expect(vol.frames).toBe(1);
+    expect(diff(pixelsFrame('espece:vautour:pose', 0), pixelsFrame('espece:vautour:vol', 0))).toBeGreaterThan(0);
+    const ombre = atlas.sprites['espece:vautour:ombre'];
+    expect(ombre.w).toBe(2);
+    expect(ombre.h).toBe(1);
+    // Cadence : sprites 500 ms, météo 150-200 ms.
     expect(rendu.animations.msParFrame).toBe(500);
-    expect(rendu.animations.msParFrameEau).toBe(350);
-    expect(rendu.animations.msParFrameVautour).toBe(700);
     expect(rendu.animations.msParFrameMeteo).toBeGreaterThanOrEqual(150);
     expect(rendu.animations.msParFrameMeteo).toBeLessThanOrEqual(200);
   });

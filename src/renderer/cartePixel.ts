@@ -6,7 +6,7 @@ import {
   genererAtlas, hashTuile, saisonVersIndexPalette, peindreHumain, couleurPeau, couleurCheveuxValeur, couleurTunique,
   Canevas, type Atlas,
 } from './pixelart/atlas';
-import { planTuile, estMatiereEau, estMatiereGisement, MATIERE_EAU_SALEE, MATIERE_EAU_DOUCE } from './pixelart/planTuile';
+import { planTuile, estMatiereEau, estMatiereGisement, MATIERE_EAU_SALEE } from './pixelart/planTuile';
 
 // ============================================================
 // Carte pixel art V1.2 — rendu sur le thread principal, purely
@@ -55,6 +55,8 @@ interface Entite {
   grossesse: boolean;
   mobile: boolean;
   enMouvement: boolean;
+  enVol: boolean;
+  hysteresisVol: number;
 }
 
 const GISEMENT_PAR_TYPE_MINE: Record<string, number> = {
@@ -85,7 +87,6 @@ export class CartePixel {
 
   private coucheChunks: Container;
   private coucheTerritoires: Graphics;
-  private coucheVagues: Container;
   private coucheEntites: Container;
   private coucheOverlay: Graphics;
   private coucheMeteo: Graphics;
@@ -99,14 +100,9 @@ export class CartePixel {
   private animFrame = 0;
   private dernierFrame = -1;
   private dernierFrameMeteo = -1;
-  private dernierFrameEau = -1;
-  private frameEauCourante = 0;
-  private dernierRebuildVagues = 0;
   private positionsPrecedentes = new Map<number, [number, number]>();
 
   private entites: Entite[] = [];
-  private vagues = new Map<number, Sprite>();
-  private vaguesDirty = true;
   private selectionId: number | null = null;
   private survol: { x: number; y: number } | null = null;
   private favoris = new Set<number>();
@@ -137,12 +133,10 @@ export class CartePixel {
     this.monde = new Container();
     this.coucheChunks = new Container();
     this.coucheTerritoires = new Graphics();
-    this.coucheVagues = new Container();
     this.coucheEntites = new Container();
     this.coucheOverlay = new Graphics();
     this.monde.addChild(this.coucheChunks);
     this.monde.addChild(this.coucheTerritoires);
-    this.monde.addChild(this.coucheVagues);
     this.monde.addChild(this.coucheEntites);
     this.monde.addChild(this.coucheOverlay);
     app.stage.addChild(this.monde);
@@ -275,7 +269,6 @@ export class CartePixel {
   }
 
   private apresChangementVue(): void {
-    this.vaguesDirty = true;
     this.mettreAJourVisibilite();
     this.appliquerTerritoiresVisibles();
     this.redessinerMinicarte();
@@ -343,7 +336,6 @@ export class CartePixel {
         this.fileRendu.push(c);
       }
     }
-    this.vaguesDirty = true;
     this.appliquerEntites();
     this.appliquerTerritoires();
     this.redessinerMinicarte();
@@ -493,8 +485,8 @@ export class CartePixel {
         const s = this.atlas.sprites[plan.sprite];
         if (s) {
           // Un sprite de tuile peut avoir plusieurs frames posées côte à côte dans
-          // l'atlas : le chunk statique ne dessine que la frame 0 (les vagues sont
-          // animées par la couche de sprites dédiée).
+          // l'atlas : le chunk ne dessine que la frame 0 (V1.2.3 : une seule couche,
+          // la couche terrain, est responsable de la tuile).
           const fw = s.w / s.frames;
           ctx.drawImage(this.atlasCanvas, s.x, s.y, fw, s.h, tx * T, ty * T, T, T);
         }
@@ -551,7 +543,7 @@ export class CartePixel {
     const obtenir = (i: number, id: number): Entite => {
       let e = this.entites[i];
       if (!e) {
-        e = { id, x: 0, y: 0, sprite: new Sprite(), marqueurs: [], anime: false, cleBase: '', frameActuelle: 0, teinte: 0, cheveuxVal: null, grossesse: false, mobile: false, enMouvement: false };
+        e = { id, x: 0, y: 0, sprite: new Sprite(), marqueurs: [], anime: false, cleBase: '', frameActuelle: 0, teinte: 0, cheveuxVal: null, grossesse: false, mobile: false, enMouvement: false, enVol: false, hysteresisVol: 0 };
         this.entites[i] = e;
         couche.addChild(e.sprite);
       }
@@ -581,30 +573,34 @@ export class CartePixel {
         cle = `marqueur:espece:${espece}`;
         e.sprite.position.set(x * T - 1, y * T - 1);
       } else if (espece === 'vautour') {
-        cle = 'espece:vautour';
+        // V1.2.3 : posé s'il est immobile, en vol s'il se déplace (état réel connu du
+        // renderer) + hystérésis : on reste « en vol » quelques digests après l'arrêt.
+        if (enMouvement) {
+          e.enVol = true;
+          e.hysteresisVol = 3;
+        } else if (e.enVol && --e.hysteresisVol <= 0) {
+          e.enVol = false;
+        }
+        cle = e.enVol ? 'espece:vautour:vol' : 'espece:vautour:pose';
         e.sprite.position.set(x * T - 2, y * T - 2);
       } else {
         cle = `espece:${espece}`;
         e.sprite.position.set(x * T - 2, y * T - 2);
       }
       e.cleBase = cle;
-      // Le vautour vole en permanence (battement d'ailes = animation intrinsèque),
-      // les autres animaux ne s'animent que s'ils se déplacent.
-      e.mobile = espece !== 'vautour';
+      e.mobile = true;
       e.enMouvement = enMouvement;
-      e.anime = complets && (espece === 'vautour' || !domestique);
+      e.anime = complets && !domestique && espece !== 'vautour';
       e.frameActuelle = !e.anime || !enMouvement ? 0 : this.animFrame;
       const tex = this.texSprite(cle, e.frameActuelle);
       if (tex) e.sprite.texture = tex;
       this.ajusterMarqueurs(e, null, false, false, cheveuxVisibles);
-      if (complets && espece === 'vautour') {
-        let ombre = e.marqueurs.find((m) => m.texture === this.texSprite('espece:vautour:ombre'));
-        if (!ombre) {
-          ombre = new Sprite(this.texSprite('espece:vautour:ombre')!);
-          e.marqueurs.push(ombre);
-          couche.addChild(ombre);
-        }
+      if (complets && espece === 'vautour' && e.enVol) {
+        // Ombre portée légère uniquement en vol (2×1 semi-transparent, bien décalée).
+        const ombre = new Sprite(this.texSprite('espece:vautour:ombre')!);
         ombre.position.set(x * T - 1 + 3, y * T - 2 + 4);
+        e.marqueurs.push(ombre);
+        couche.addChild(ombre);
       }
     }
     // Humains : id, x*10, y*10, teinte, cheveux, flags
@@ -765,37 +761,6 @@ export class CartePixel {
     void auDessus;
   }
 
-  // ---------- Vagues animées ----------
-
-  private reconstruireVagues(): void {
-    if (!this.digest) return;
-    this.coucheVagues.removeChildren();
-    this.vagues.clear();
-    if (this.pxParTuile < this.rendu.seuils.vaguesPxParTuile) return;
-    const d = this.digest;
-    const t = this.tailleMonde;
-    const T = this.T;
-    const v = this.tuilesVisibles();
-    for (let y = v.y0; y <= v.y1; y++) {
-      for (let x = v.x0; x <= v.x1; x++) {
-        const i = y * t + x;
-        const dm = decoderMot(d.tuiles[i]);
-        if (!estMatiereEau(dm.matiere) || dm.gele) continue;
-        if (dm.matiere === MATIERE_EAU_SALEE || dm.matiere === MATIERE_EAU_DOUCE) {
-          const variante = hashTuile(x, y) % this.rendu.variantesParTuile;
-          // Sprite créé directement à la frame courante : pas de retour visuel à la frame 0.
-          const tex = this.texSprite(`tuile:eau:v${variante}`, this.frameEauCourante);
-          if (!tex) continue;
-          const s = new Sprite(tex);
-          s.position.set(x * T, y * T);
-          this.coucheVagues.addChild(s);
-          this.vagues.set(i, s);
-        }
-      }
-    }
-    this.vaguesDirty = false;
-  }
-
   // ---------- Minicarte ----------
 
   private redessinerMinicarte(): void {
@@ -841,8 +806,6 @@ export class CartePixel {
 
   private tick(tempsMs: number): void {
     const frame = Math.floor(tempsMs / this.rendu.animations.msParFrame) % 2;
-    // Vautour : plané lent à sa propre cadence.
-    const frameVautour = Math.floor(tempsMs / this.rendu.animations.msParFrameVautour) % 2;
     if (frame !== this.dernierFrame) {
       this.dernierFrame = frame;
       this.animFrame = frame;
@@ -850,8 +813,8 @@ export class CartePixel {
         if (!e.sprite.visible) continue;
         // Entités mobiles : on n'alternance que si l'entité bouge vraiment,
         // sinon frame de repos (0) — jamais de scintillement sur place.
-        // Bâtiments animés (feu, forge, moulin, cheminées) : animation intrinsèque.
-        const f = e.cleBase === 'espece:vautour' ? frameVautour : e.mobile ? (e.enMouvement ? frame : 0) : frame;
+        // Bâtiments animés (feu, forge, moulin, cheminées) : animation par état réel.
+        const f = e.mobile ? (e.enMouvement ? frame : 0) : frame;
         if (!e.anime && !(e.mobile && e.frameActuelle !== 0)) continue;
         if (f === e.frameActuelle) continue;
         e.frameActuelle = f;
@@ -863,26 +826,10 @@ export class CartePixel {
         if (tex) e.sprite.texture = tex;
       }
     }
-    // Eau : 4 frames, vaguelettes glissant d'1 px par étape à ~350 ms — dérive continue.
-    const nbFramesEau = this.atlas.sprites['tuile:eau:v0']?.frames ?? 2;
-    const frameEau = Math.floor(tempsMs / this.rendu.animations.msParFrameEau) % nbFramesEau;
-    if (frameEau !== this.dernierFrameEau) {
-      this.dernierFrameEau = frameEau;
-      this.frameEauCourante = frameEau;
-      for (const s of this.vagues.values()) {
-        const variante = hashTuile(Math.floor(s.position.x / this.T), Math.floor(s.position.y / this.T)) % this.rendu.variantesParTuile;
-        const tex = this.texSprite(`tuile:eau:v${variante}`, frameEau);
-        if (tex) s.texture = tex;
-      }
-    }
     const frameMeteo = Math.floor(tempsMs / this.rendu.animations.msParFrameMeteo);
     if (frameMeteo !== this.dernierFrameMeteo) {
       this.dernierFrameMeteo = frameMeteo;
       this.dessinerMeteo(frameMeteo);
-    }
-    if (this.vaguesDirty && tempsMs - this.dernierRebuildVagues > 300) {
-      this.dernierRebuildVagues = tempsMs;
-      this.reconstruireVagues();
     }
     this.assurerChunksVisibles();
     this.dessinerOverlay(tempsMs);

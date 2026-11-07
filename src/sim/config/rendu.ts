@@ -34,12 +34,9 @@ export interface ConfigRendu {
     spritesCompletsPxParTuile: number;
     cheveuxPxParTuile: number;
     frontieresPxParTuile: number;
-    vaguesPxParTuile: number;
   };
   animations: {
     msParFrame: number;
-    msParFrameEau: number;
-    msParFrameVautour: number;
     msParFrameMeteo: number;
     pluieTraits: number;
     neigePoints: number;
@@ -379,12 +376,9 @@ export function parserConfigRendu(texte: string | undefined): ConfigRendu {
       spritesCompletsPxParTuile: exigerNombre(seuilsO, 'spritesCompletsPxParTuile', chemin(b, 'seuils'), { min: 1, max: 256 }, erreurs)!,
       cheveuxPxParTuile: exigerNombre(seuilsO, 'cheveuxPxParTuile', chemin(b, 'seuils'), { min: 1, max: 256 }, erreurs)!,
       frontieresPxParTuile: exigerNombre(seuilsO, 'frontieresPxParTuile', chemin(b, 'seuils'), { min: 1, max: 256 }, erreurs)!,
-      vaguesPxParTuile: exigerNombre(seuilsO, 'vaguesPxParTuile', chemin(b, 'seuils'), { min: 1, max: 256 }, erreurs)!,
     },
     animations: {
       msParFrame: exigerNombre(animO, 'msParFrame', chemin(b, 'animations'), { min: 40, max: 2000, entier: true }, erreurs)!,
-      msParFrameEau: exigerNombre(animO, 'msParFrameEau', chemin(b, 'animations'), { min: 40, max: 2000, entier: true }, erreurs)!,
-      msParFrameVautour: exigerNombre(animO, 'msParFrameVautour', chemin(b, 'animations'), { min: 40, max: 2000, entier: true }, erreurs)!,
       msParFrameMeteo: exigerNombre(animO, 'msParFrameMeteo', chemin(b, 'animations'), { min: 20, max: 2000, entier: true }, erreurs)!,
       pluieTraits: exigerNombre(animO, 'pluieTraits', chemin(b, 'animations'), { min: 10, max: 2000, entier: true }, erreurs)!,
       neigePoints: exigerNombre(animO, 'neigePoints', chemin(b, 'animations'), { min: 10, max: 4000, entier: true }, erreurs)!,

@@ -118,10 +118,12 @@ function peindreTuileEau(c: Canevas, p: ConfigRendu['palettes']['eau'], rng: () 
   const vague = decoderHex(p.vaguelettes);
   c.rect(0, 0, 8, 8, base);
   for (let i = 0; i < 4; i++) c.set(Math.floor(rng() * 8), Math.floor(rng() * 8), tache);
+  // Vaguelettes : même graine => mêmes x/largeurs à chaque frame, seul y avance
+  // de 1 px par frame (mod 8) — les vagues GLISSENT, elles ne sautent pas.
   for (let i = 0; i < 2; i++) {
     const w = 2 + Math.floor(rng() * 2);
     const x = Math.floor(rng() * (8 - w));
-    const y = (Math.floor(rng() * 6) + frame * 3 + i * 2) % 8;
+    const y = (Math.floor(rng() * 8) + frame + i * 4) % 8;
     c.rect(x, y, w, 1, vague);
   }
 }
@@ -632,17 +634,22 @@ const ESPECES: Record<string, { w: number; h: number; peindre: PeintreEspece }> 
     peindre: (c, e, frame) => {
       const corps = decoderHex(e.corps);
       const clair = decoderHex(e.clair);
+      const sombre = decoderHex(e.sombre);
       const detail = decoderHex(e.detail);
+      // Silhouette FIXE (plané reconnaissable) : ailes, corps, tête, bec, queue.
+      c.rect(0, 1, 7, 1, corps);
+      c.rect(2, 2, 2, 1, corps);
+      c.set(4, 2, corps);
+      c.set(5, 2, detail);
+      c.set(1, 2, sombre);
+      // Seuls les 2 pixels des bouts d'ailes montent/descendent d'1 px entre frames.
       if (frame === 0) {
-        c.rect(0, 1, 7, 2, corps);
-        c.set(0, 1, clair); c.set(6, 1, clair);
+        c.set(0, 0, clair);
+        c.set(6, 0, clair);
       } else {
-        c.rect(0, 0, 7, 1, corps);
-        c.rect(0, 2, 7, 1, corps);
-        c.set(0, 2, clair); c.set(6, 0, clair);
+        c.set(0, 2, clair);
+        c.set(6, 2, clair);
       }
-      c.set(3, 0, detail);
-      c.set(3, 1, corps);
     },
   },
 };
@@ -729,7 +736,7 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
   };
 
   for (let v = 0; v < V; v++) {
-    ajouterTuile('tuile:eau', v, (c, rng, frame) => peindreTuileEau(c, P.eau, rng, frame), 2);
+    ajouterTuile('tuile:eau', v, (c, rng, frame) => peindreTuileEau(c, P.eau, rng, frame), 4);
     ajouterTuile('tuile:eauProfonde', v, (c, rng) => {
       peindreTuileSimple(c, decoderHex(P.eauProfonde.base), P.eauProfonde.taches.map(decoderHex), 3, rng);
     });
@@ -837,8 +844,9 @@ export function genererAtlas(rendu: ConfigRendu): Atlas {
     entrees.push({ cle: `espece:${id}`, c, frames: 2 });
   }
   {
-    const ombre = new Canevas(3, 1);
-    ombre.rect(0, 0, 3, 1, [20, 20, 24], 110);
+    // Ombre portée du vautour : petit rectangle 2×1 semi-transparent (pas un 2e animal).
+    const ombre = new Canevas(2, 1);
+    ombre.rect(0, 0, 2, 1, [20, 20, 24], 90);
     entrees.push({ cle: 'espece:vautour:ombre', c: ombre, frames: 1 });
   }
 

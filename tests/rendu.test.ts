@@ -111,7 +111,7 @@ describe('atlas procédural (V1.2)', () => {
       }
     }
     expect(atlas.sprites['tuile:eau:v0']).toBeDefined();
-    expect(atlas.sprites['tuile:eau:v0'].frames).toBe(2);
+    expect(atlas.sprites['tuile:eau:v0'].frames).toBe(4);
     expect(atlas.sprites['tuile:eauProfonde:v0']).toBeDefined();
     expect(atlas.sprites['tuile:eauGelee:v0']).toBeDefined();
     expect(atlas.sprites['tuile:plage:v0']).toBeDefined();
@@ -200,8 +200,27 @@ describe('atlas procédural (V1.2)', () => {
     expect(horsVaguelettes).toBe(0);
     // Feu de camp : les flammes changent bien de frame.
     expect(diff(pixelsFrame('bat:feuDeCamp', 0), pixelsFrame('bat:feuDeCamp', 1))).toBeGreaterThan(0);
-    // Cadence V1.2.1 : sprites à 500 ms, météo plus vive (150-200 ms).
+    // V1.2.2 : eau en 4 frames, vaguelettes glissant d'1 px (seuls les pixels vaguelettes diffèrent entre frames voisines).
+    const eauFrames = [0, 1, 2, 3].map((f) => pixelsFrame('tuile:eau:v0', f));
+    for (let f = 0; f < 3; f++) {
+      expect(diff(eauFrames[f], eauFrames[f + 1])).toBeGreaterThan(0);
+      let horsVaguelettes = 0;
+      for (let p = 0; p < eauFrames[f].length / 4; p++) {
+        const estVague = (px: Uint8ClampedArray) => px[p * 4] === vagueRgb[0] && px[p * 4 + 1] === vagueRgb[1] && px[p * 4 + 2] === vagueRgb[2];
+        if (eauFrames[f][p * 4 + 3] !== eauFrames[f + 1][p * 4 + 3] || (!estVague(eauFrames[f]) && !estVague(eauFrames[f + 1]) && (eauFrames[f][p * 4] !== eauFrames[f + 1][p * 4] || eauFrames[f][p * 4 + 1] !== eauFrames[f + 1][p * 4 + 1] || eauFrames[f][p * 4 + 2] !== eauFrames[f + 1][p * 4 + 2]))) horsVaguelettes++;
+      }
+      expect(horsVaguelettes).toBe(0);
+    }
+    // V1.2.2 : vautour = silhouette fixe, seuls les 2 bouts d'ailes (2 px × 2 positions) bougent.
+    const v0 = pixelsFrame('espece:vautour', 0);
+    const v1 = pixelsFrame('espece:vautour', 1);
+    const diffV = diff(v0, v1) / 4;
+    expect(diffV).toBeGreaterThan(0);
+    expect(diffV).toBeLessThanOrEqual(4);
+    // Cadence : sprites 500 ms, eau 350 ms, vautour 700 ms, météo 150-200 ms.
     expect(rendu.animations.msParFrame).toBe(500);
+    expect(rendu.animations.msParFrameEau).toBe(350);
+    expect(rendu.animations.msParFrameVautour).toBe(700);
     expect(rendu.animations.msParFrameMeteo).toBeGreaterThanOrEqual(150);
     expect(rendu.animations.msParFrameMeteo).toBeLessThanOrEqual(200);
   });

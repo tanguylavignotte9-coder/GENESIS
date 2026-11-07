@@ -38,6 +38,8 @@ export interface ConfigRendu {
   };
   animations: {
     msParFrame: number;
+    msParFrameEau: number;
+    msParFrameVautour: number;
     msParFrameMeteo: number;
     pluieTraits: number;
     neigePoints: number;
@@ -381,6 +383,8 @@ export function parserConfigRendu(texte: string | undefined): ConfigRendu {
     },
     animations: {
       msParFrame: exigerNombre(animO, 'msParFrame', chemin(b, 'animations'), { min: 40, max: 2000, entier: true }, erreurs)!,
+      msParFrameEau: exigerNombre(animO, 'msParFrameEau', chemin(b, 'animations'), { min: 40, max: 2000, entier: true }, erreurs)!,
+      msParFrameVautour: exigerNombre(animO, 'msParFrameVautour', chemin(b, 'animations'), { min: 40, max: 2000, entier: true }, erreurs)!,
       msParFrameMeteo: exigerNombre(animO, 'msParFrameMeteo', chemin(b, 'animations'), { min: 20, max: 2000, entier: true }, erreurs)!,
       pluieTraits: exigerNombre(animO, 'pluieTraits', chemin(b, 'animations'), { min: 10, max: 2000, entier: true }, erreurs)!,
       neigePoints: exigerNombre(animO, 'neigePoints', chemin(b, 'animations'), { min: 10, max: 4000, entier: true }, erreurs)!,

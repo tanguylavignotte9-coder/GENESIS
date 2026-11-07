@@ -393,3 +393,36 @@ les humains. Trois causes corrigées :
 
 Vérif : tsc OK, build OK, **101/101 tests** (13 dans `tests/rendu.test.ts`). Aucun
 changement de sim ; banc inchangé (empreinte identique au commit V1.2).
+
+---
+
+# Rapport V1.2.2 — dernières animations saccadées (eau 2×/s, vautours illisibles)
+
+## Règle générale (inscrite ici, contraignante pour toute animation future)
+
+> **Entre deux frames d'animation voisines, seuls des pixels explicitement déplacés
+> par le paramètre `frame` peuvent changer — d'1 px de préférence. Jamais de
+> changement de silhouette entière.** La graine du sprite est identique pour toutes
+> ses frames (V1.2.1) : seuls les pixels adressés explicitement par `frame` bougent.
+
+## Corrections appliquées
+
+1. **Eau : glisser au lieu de sauter** (`atlas.ts#peindreTuileEau`, `cartePixel.ts`) :
+   - 4 frames au lieu de 2 ; même graine, mêmes x et largeurs entre frames, seul `y`
+   avance de **1 px par frame (mod 8)** — les vaguelettes glissent en continu.
+   - `tick()` : cadence eau dédiée `animations.msParFrameEau = 350 ms`, modulo le
+     nombre de frames du sprite eau ; `reconstruireVagues()` crée les sprites
+     directement à la frame courante (pas de retour visuel à la frame 0).
+   - Le chunk statique ne dessine que la frame 0 du sprite de tuile (sous-rect
+     `s.w / s.frames`), les vagues restent animées par la couche de sprites dédiée.
+2. **Vautour : silhouette fixe, plané lent** (`atlas.ts#ESPECES.vautour`) :
+   - Redessiné : ailes étendues, corps, tête, bec, queue **fixes** ; seuls les 2
+     pixels des bouts d'ailes montent/descendent d'1 px entre les 2 frames.
+   - Cadence dédiée `animations.msParFrameVautour = 700 ms` (plané lent).
+   - Ombre portée réduite à un rectangle **2×1 semi-transparent**, bien décalée
+     (+3,+4) — ne ressemble plus à un second animal.
+3. Tests : eau = 4 frames avec diffs entre frames voisines limités aux pixels
+   vaguelettes ; vautour = ≤ 4 pixels différents entre frames ; cadences
+   (500 / 350 / 700 / 180 ms) assertées.
+
+Vérif : tsc OK, build OK, **101/101 tests**. Aucun changement de sim.

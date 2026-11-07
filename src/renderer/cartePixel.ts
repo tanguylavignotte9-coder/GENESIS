@@ -99,6 +99,8 @@ export class CartePixel {
   private animFrame = 0;
   private dernierFrame = -1;
   private dernierFrameMeteo = -1;
+  private dernierFrameEau = -1;
+  private frameEauCourante = 0;
   private dernierRebuildVagues = 0;
   private positionsPrecedentes = new Map<number, [number, number]>();
 
@@ -490,7 +492,11 @@ export class CartePixel {
         });
         const s = this.atlas.sprites[plan.sprite];
         if (s) {
-          ctx.drawImage(this.atlasCanvas, s.x, s.y, s.w, s.h, tx * T, ty * T, T, T);
+          // Un sprite de tuile peut avoir plusieurs frames posées côte à côte dans
+          // l'atlas : le chunk statique ne dessine que la frame 0 (les vagues sont
+          // animées par la couche de sprites dédiée).
+          const fw = s.w / s.frames;
+          ctx.drawImage(this.atlasCanvas, s.x, s.y, fw, s.h, tx * T, ty * T, T, T);
         }
         for (const r of plan.rects) {
           ctx.globalAlpha = r.a;
@@ -598,7 +604,7 @@ export class CartePixel {
           e.marqueurs.push(ombre);
           couche.addChild(ombre);
         }
-        ombre.position.set(x * T - 1 + 2, y * T - 2 + 3);
+        ombre.position.set(x * T - 1 + 3, y * T - 2 + 4);
       }
     }
     // Humains : id, x*10, y*10, teinte, cheveux, flags
@@ -777,7 +783,8 @@ export class CartePixel {
         if (!estMatiereEau(dm.matiere) || dm.gele) continue;
         if (dm.matiere === MATIERE_EAU_SALEE || dm.matiere === MATIERE_EAU_DOUCE) {
           const variante = hashTuile(x, y) % this.rendu.variantesParTuile;
-          const tex = this.texSprite(`tuile:eau:v${variante}`, 0);
+          // Sprite créé directement à la frame courante : pas de retour visuel à la frame 0.
+          const tex = this.texSprite(`tuile:eau:v${variante}`, this.frameEauCourante);
           if (!tex) continue;
           const s = new Sprite(tex);
           s.position.set(x * T, y * T);
@@ -834,6 +841,8 @@ export class CartePixel {
 
   private tick(tempsMs: number): void {
     const frame = Math.floor(tempsMs / this.rendu.animations.msParFrame) % 2;
+    // Vautour : plané lent à sa propre cadence.
+    const frameVautour = Math.floor(tempsMs / this.rendu.animations.msParFrameVautour) % 2;
     if (frame !== this.dernierFrame) {
       this.dernierFrame = frame;
       this.animFrame = frame;
@@ -841,9 +850,8 @@ export class CartePixel {
         if (!e.sprite.visible) continue;
         // Entités mobiles : on n'alternance que si l'entité bouge vraiment,
         // sinon frame de repos (0) — jamais de scintillement sur place.
-        // Bâtiments animés (feu, forge, moulin, cheminées, vautour) : animation
-        // intrinsèque, ils continuent de tourner même immobiles.
-        const f = e.mobile ? (e.enMouvement ? frame : 0) : frame;
+        // Bâtiments animés (feu, forge, moulin, cheminées) : animation intrinsèque.
+        const f = e.cleBase === 'espece:vautour' ? frameVautour : e.mobile ? (e.enMouvement ? frame : 0) : frame;
         if (!e.anime && !(e.mobile && e.frameActuelle !== 0)) continue;
         if (f === e.frameActuelle) continue;
         e.frameActuelle = f;
@@ -854,13 +862,16 @@ export class CartePixel {
         const tex = this.texSprite(e.cleBase, f);
         if (tex) e.sprite.texture = tex;
       }
+    }
+    // Eau : 4 frames, vaguelettes glissant d'1 px par étape à ~350 ms — dérive continue.
+    const nbFramesEau = this.atlas.sprites['tuile:eau:v0']?.frames ?? 2;
+    const frameEau = Math.floor(tempsMs / this.rendu.animations.msParFrameEau) % nbFramesEau;
+    if (frameEau !== this.dernierFrameEau) {
+      this.dernierFrameEau = frameEau;
+      this.frameEauCourante = frameEau;
       for (const s of this.vagues.values()) {
-        const pos = s.position;
-        const t = this.tailleMonde;
-        const i = Math.floor(pos.y / this.T) * t + Math.floor(pos.x / this.T);
-        const variante = hashTuile(Math.floor(pos.x / this.T), Math.floor(pos.y / this.T)) % this.rendu.variantesParTuile;
-        const tex = this.texSprite(`tuile:eau:v${variante}`, frame);
-        void i;
+        const variante = hashTuile(Math.floor(s.position.x / this.T), Math.floor(s.position.y / this.T)) % this.rendu.variantesParTuile;
+        const tex = this.texSprite(`tuile:eau:v${variante}`, frameEau);
         if (tex) s.texture = tex;
       }
     }

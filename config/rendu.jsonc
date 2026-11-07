@@ -48,6 +48,10 @@
   // effet scintillement ; 500 ms se lit comme une vraie animation.
   "animations": {
     "msParFrame": 500,
+    // Eau : 4 frames, vaguelettes glissant d'1 px par étape — l'eau dérive en continu.
+    "msParFrameEau": 350,
+    // Vautour : plané lent (~700 ms par frame, seuls les bouts d'ailes bougent d'1 px).
+    "msParFrameVautour": 700,
     // Météo pluie/neige : plus vive, pour un mouvement continu des précipitations.
     "msParFrameMeteo": 180,
     "pluieTraits": 220,

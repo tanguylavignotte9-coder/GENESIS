@@ -4,6 +4,7 @@ export interface ReponseConfig {
   ok: boolean;
   config?: unknown;
   empreintes?: Record<string, string>;
+  rendu?: unknown;
   erreurs?: string[];
 }
 

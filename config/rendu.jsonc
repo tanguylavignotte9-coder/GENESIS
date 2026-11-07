@@ -1,0 +1,217 @@
+{
+  // ============================================================
+  // RENDU — configuration PUREMENT COSMÉTIQUE du rendu pixel art (V1.2).
+  //
+  // IMPORTANT : ce fichier est volontairement HORS empreinte de
+  // sauvegarde. Changer une palette, une taille de tuile ou un palier
+  // de zoom ne doit JAMAIS invalider une sauvegarde : il n'est donc
+  // PAS lu dans NOMS_FICHIERS_CONFIG (qui pilote les empreintes) mais
+  // via parserConfigRendu, à part. Voir docs/INTERPRETATIONS.md §V1.2.
+  // ============================================================
+
+  // Taille d'une tuile en pixels "monde" (1 tuile = tailleTuilePx × tailleTuilePx px).
+  "tailleTuilePx": 8,
+
+  // Graine PROPRE de l'atlas procédural. Ce RNG est distinct de celui de
+  // la simulation : le déterminisme de la sim ne dépend jamais de ce fichier.
+  "graineAtlas": 20240117,
+
+  // Nombre de variantes stables par type de tuile (choisie par hash(x, y) mod variantes).
+  "variantesParTuile": 4,
+
+  // Zoom par paliers nets, en px écran par tuile. La molette passe au
+  // palier suivant/précédent, centré sur le curseur. Filtrage nearest-neighbor.
+  "paliersZoomPxParTuile": [4, 8, 16, 32, 64],
+
+  // Pré-rendu du monde statique en chunks de N×N tuiles (chaque chunk = N*8 px).
+  "tailleChunkTuiles": 64,
+
+  // Nombre max de chunks conservés en cache (éviction LRU au-delà).
+  "maxChunkCache": 64,
+
+  // Seuils de LOD, en px écran par tuile.
+  "seuils": {
+    // En dessous : entités = points 1-2 px, bâtiments = carrés 2-3 px.
+    // Au-dessus ou égal : sprites complets (humains 3×5, animaux, bâtiments).
+    "spritesCompletsPxParTuile": 8,
+    // À partir de ce zoom, les cheveux (couleurCheveux) sont visibles sur les humains.
+    "cheveuxPxParTuile": 32,
+    // Territoires (teinte + frontières pixelisées) visibles UNIQUEMENT sous ce seuil
+    // (comportement V1 conservé : seuil 5 px/tuile, donc visible au palier 4 seulement).
+    "frontieresPxParTuile": 5,
+    // Vaguelettes d'eau animées dessinées à partir de ce zoom.
+    "vaguesPxParTuile": 8
+  },
+
+  // Vitesses d'animation (ms par frame) et effectifs des overlays météo.
+  "animations": {
+    "msParFrame": 250,
+    "msParFrameMeteo": 120,
+    "pluieTraits": 220,
+    "neigePoints": 320,
+    "nuages": 6
+  },
+
+  // Minicarte (bas-droite) : l'ancien rendu plat 1 tuile = 1 px, cliquable.
+  "minicarte": {
+    "taillePx": 240,
+    "opaciteFond": 0.85,
+    "couleurVue": "#ffffff",
+    "tailleMarqueurVillage": 2
+  },
+
+  // ============================================================
+  // PALETTES — valeurs exactes de la maquette validée (Annexe A),
+  // plus les dérivés (végétations, matières, marqueurs) dans le même style.
+  // ============================================================
+  "palettes": {
+    "eauProfonde": { "base": "#1a3560", "taches": ["#142c52", "#1f3d70"] },
+    "eau": {
+      "base": "#2e5d9e",
+      "taches": ["#27518c"],
+      "vaguelettes": "#4a7fbf",
+      "ecume": "#d9e8f2"
+    },
+    // Gel hivernal : eaux douces blanchies en hiver.
+    "eauGelee": { "base": "#cfe0ea", "taches": ["#bcd2e2", "#dceaf2"] },
+    "plage": { "base": "#d8c08a", "taches": ["#c4a96b", "#e6d3a3"] },
+    "prairie": { "base": "#5d9445", "taches": ["#6ca751", "#4f8138"] },
+    "foret": {
+      "base": "#5d9445",
+      "taches": ["#4f8138"],
+      "tronc": "#5a4327",
+      "troncOmbre": "#4a361f",
+      "canopee": "#2e6233",
+      "canopeeClair": "#3d7a41",
+      "canopeeOmbre": "#254f28"
+    },
+    "colline": { "base": "#6e8047", "taches": ["#5c6c3a", "#7d9052"], "roche": "#8b8b7a" },
+    "montagne": { "base": "#8a8a92", "taches": ["#9a9aa4"], "fissures": "#6c6c75", "aretes": "#a8a8b2" },
+    "neige": { "base": "#e8eef2", "taches": ["#d5dee8"] },
+    // Terre nue (végétation "Aucun", basse élévation) — dérivé, même style.
+    "terre": { "base": "#8a6f4d", "taches": ["#7a5f42", "#9a7f5c"] },
+    // Toundra : mousse clairsemée sur sol gris-vert — dérivé.
+    "toundra": { "base": "#77816b", "taches": ["#6a7460"], "mousse": ["#8fa07a", "#9aa88a"] },
+    // Taiga : conifères sombres espacés — dérivé (1 arbre par tuile).
+    "taiga": {
+      "base": "#4a6b3a",
+      "taches": ["#3f5c31", "#56784a"],
+      "tronc": "#4a361f",
+      "troncOmbre": "#3a2c18",
+      "canopee": "#24502a",
+      "canopeeClair": "#2f6335",
+      "canopeeOmbre": "#1a3d20"
+    },
+    // Savane : herbe jaune-dorée + arbres épars — dérivé.
+    "savane": { "base": "#b39a4e", "taches": ["#a3894a", "#c4ad66"], "arbre": "#6b4a2b", "canopee": "#7a8a3a" },
+    // Jungle : vert profond très dense (3 arbres par tuile) — dérivé.
+    "jungle": {
+      "base": "#2e5a2e",
+      "taches": ["#27502a", "#3a6b38"],
+      "tronc": "#4a361f",
+      "troncOmbre": "#3a2c18",
+      "canopee": "#1f4a24",
+      "canopeeClair": "#2a6030",
+      "canopeeOmbre": "#163a1c"
+    },
+    // Désert : dunes, lignes claires ombrées — dérivé.
+    "desert": { "base": "#dcc488", "taches": ["#cbb476"], "duneClair": "#e8d8a8", "duneOmbre": "#b8a068" },
+    // Sentiers : terre battue posée sur la végétation, largeur selon l'usage.
+    "sentier": { "base": "#8a6a3a", "clair": "#a8895a" },
+    // Pollution : voile brun-gris progressif (doit se LIRE sur la carte).
+    "pollution": { "couleur": "#4a4238", "alphaMax": 0.55 },
+    // Affleurements de gisements (2-3 px par tuile, zoom proche).
+    "gisement": {
+      "fer": "#b05a3a",
+      "cuivre": "#5aa88a",
+      "etain": "#c8ccd4",
+      "or": "#e8c83a",
+      "argent": "#e8ecf2",
+      "sel": "#f0f0ea",
+      "charbon": "#1a1a1e",
+      "petrole": "#14101c",
+      "uranium": "#7ae86a",
+      "gaz": "#8a7ab8"
+    },
+    // Ombrage du relief : lumière du haut-gauche (formule exacte Annexe A,
+    // alpha = min(alphaMax, |g| × coef), coef 2.2 ombre / 1.4 lumière dans le code).
+    "relief": { "ombreAlphaMax": 0.28, "lumiereAlphaMax": 0.14 },
+    // Bois / bâtiments.
+    "bois": { "murs": "#a37a4c", "toits": "#8a5a33", "toitFonce": "#5a3a22", "bois": "#6b4a2b", "poteau": "#7d5a35" },
+    "pierre": { "base": "#8a8a92", "clair": "#a8a8b2", "sombre": "#6c6c75" },
+    "metal": { "base": "#6a6f78", "clair": "#9aa0aa" },
+    // Flammes (feu de camp, forge) : du cœur vers l'extérieur.
+    "flammes": ["#ffd24a", "#ff9a2e", "#e05a1a"],
+    "fumee": "#b8bcc4",
+    // Peau humaine : base du pool, modulée par teintePeau (0..100) entre min et max.
+    "peau": { "base": "#e8b88a", "min": "#7a4a2e", "max": "#f2cda0" },
+    // Cheveux possibles (couleurCheveux 0..100 mappé sur cette rampe).
+    "cheveux": ["#2a2018", "#4a361f", "#6b4a2b", "#8a6a3a", "#b0a08a", "#d8d0c0"],
+    // Tunique d'un individu : couleur stable tirée du hash de son id (hors sim).
+    "vetements": ["#a34a3a", "#3a6ba3", "#4a8a4a", "#a38a3a", "#7a4a8a", "#3aa0a0", "#c0c4cc", "#5a5a66"],
+    "marqueurFavori": "#ffd24a",
+    "marqueurDirigeant": "#ffd24a",
+    "contourSelection": "#ffffff",
+    "contourSurvol": "#9fb0d0",
+    "chantier": { "bois": "#7d5a35", "planche": "#a8895a" },
+    // Espèces (corps / clair / sombre / détail) — teintes des sprites animaux.
+    "especes": {
+      "cerf": { "corps": "#8a5a33", "clair": "#e8dcc8", "sombre": "#5a4030", "detail": "#6f4526" },
+      "bison": { "corps": "#5a4030", "clair": "#e8dcc8", "sombre": "#3a2a20", "detail": "#8a6a50" },
+      "sanglier": { "corps": "#4a3b2a", "clair": "#6b5a44", "sombre": "#2a2018", "detail": "#8a7a66" },
+      "lapin": { "corps": "#b0a08a", "clair": "#c8bca8", "sombre": "#8a7a66", "detail": "#e8e0d8" },
+      "loup": { "corps": "#6f757c", "clair": "#c3ccd3", "sombre": "#4a4f54", "detail": "#8a8f96" },
+      "ours": { "corps": "#3a2e22", "clair": "#5a4634", "sombre": "#241c14", "detail": "#8a7458" },
+      "vautour": { "corps": "#2b2b30", "clair": "#4a4a52", "sombre": "#1a1a1e", "detail": "#c8b46a" }
+    },
+    "vehicule": { "coque": "#6b4a2b", "voile": "#e8e0cc", "roue": "#4a361f", "ecume": "#d9e8f2" }
+  },
+
+  // Quatre palettes saisonnières pour prairie / forêt / savane (générées au
+  // démarrage de l'atlas, commutation automatique selon la saison simulée).
+  "saisons": {
+    // Printemps : clair et tendre.
+    "printemps": {
+      "prairie": { "base": "#7dab54", "taches": ["#8fbc64", "#6a9a48"] },
+      "foret": {
+        "base": "#7dab54", "taches": ["#6a9a48"], "tronc": "#5a4327", "troncOmbre": "#4a361f",
+        "canopee": "#3d8a42", "canopeeClair": "#52a854", "canopeeOmbre": "#2f6e36"
+      },
+      "savane": { "base": "#c2ac5e", "taches": ["#b39a4e", "#d0bd74"] }
+    },
+    // Été : palette pleine (référence).
+    "ete": {
+      "prairie": { "base": "#5d9445", "taches": ["#6ca751", "#4f8138"] },
+      "foret": {
+        "base": "#5d9445", "taches": ["#4f8138"], "tronc": "#5a4327", "troncOmbre": "#4a361f",
+        "canopee": "#2e6233", "canopeeClair": "#3d7a41", "canopeeOmbre": "#254f28"
+      },
+      "savane": { "base": "#b39a4e", "taches": ["#a3894a", "#c4ad66"] }
+    },
+    // Automne : orangé-roux.
+    "automne": {
+      "prairie": { "base": "#a8894a", "taches": ["#bc9c58", "#948040"] },
+      "foret": {
+        "base": "#a8894a", "taches": ["#948040"], "tronc": "#5a4327", "troncOmbre": "#4a361f",
+        "canopee": "#b06a2e", "canopeeClair": "#c8842e", "canopeeOmbre": "#8a4e22"
+      },
+      "savane": { "base": "#c0a050", "taches": ["#a8894a", "#d0b468"] }
+    },
+    // Hiver : terne, prairie jaunie, forêt dénudée (troncs visibles).
+    "hiver": {
+      "prairie": { "base": "#9a9a7a", "taches": ["#8a8a6c", "#a8a88a"] },
+      "foret": {
+        "base": "#9a9a7a", "taches": ["#8a8a6c"], "tronc": "#4a361f", "troncOmbre": "#3a2c18",
+        "canopee": "#5a6a58", "canopeeClair": "#6a7a68", "canopeeOmbre": "#46544a"
+      },
+      "savane": { "base": "#b0a878", "taches": ["#a09868", "#c0b888"] }
+    }
+  },
+
+  // Tailles de sprites (px monde) — la maquette fixe 3×5 pour l'humain.
+  "taillesSprites": {
+    "humain": [3, 5],
+    "animalMax": 7,
+    "batimentMax": 10
+  }
+}

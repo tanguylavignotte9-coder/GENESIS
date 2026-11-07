@@ -231,3 +231,133 @@ Vérif : tsc OK, build OK, **83/83 tests**, banc 200 mois (monde 500) : ère num
 4. **Bug affichage naufrage** : le compteur de passagers était vidé avant l'écriture du message → « 0 passager(s) » ; corrigé (compteur capturé avant vidage, ids impliqués au journal).
 
 Vérif : tsc OK, build OK, **88/88 tests**.
+
+---
+
+# Rapport V1.2 graphismes — rendu pixel art
+
+Patch **100 % rendu** : aucune modification de la logique de `src/sim` (les seules
+touches dans `src/sim` sont du code-pont de digest, voir ci-dessous). Déterminisme
+prouvé : empreinte du monde du banc **identique** avant/après, `determinisme.test.ts`
+vert, et un test dédié prouve que le digest V2 ne consomme pas le RNG de la sim.
+
+## Architecture retenue
+
+- **Simulation dans le worker, rendu sur le thread principal** (inchangé).
+- **Pont digest V2** (`src/sim/worker/digestRendu.ts`, appelé par `simWorker.ts`) :
+  un mot de 32 bits par tuile (matière surface 4 bits, élévation 4 bits, végétation
+  4 bits, météo 2 bits, gel 1 bit, pollution quantifiée 2 bits, sentier + niveau
+  3 bits, biomasse 6 bits) + `chunkVersions` (hash FNV par chunk de 64×64 tuiles,
+  saison incluse) + entités détaillées (individus avec `teintePeau`/`couleurCheveux`/
+  flags dirigeant+grossesse, animaux avec id/espèce/domestique, véhicules, bâtiments
+  avec type/durabilité/construction) + territoires + villages + saisons Nord/Sud.
+  Le digest V1 (`digestCouleurs`, couleurs brutes 1 tuile = 1 px) est conservé tel
+  quel et sert **uniquement à la minicarte**. Aucun RNG de la sim n'est appelé.
+- **Atlas procédural pur** (`src/renderer/pixelart/atlas.ts`, sans DOM/Pixi, testable
+  en Node) : tampon RGBA + table de sprites, RNG dédié `mulberry32` grainé par
+  `rendu.graineAtlas` (jamais le RNG de la sim). Génération < 500 ms mesurée dans les
+  tests, atlas ~quelques dizaines de Ko (<< 50 Mo).
+- **Rendu par chunks** (`src/renderer/cartePixel.ts`) : chunks 64×64 tuiles
+  (canvas 512×512 px monde), rendus à la demande, invalidés par `chunkVersions`,
+  cache LRU plafonné (`maxChunkCache: 64`). Seules les tuiles/chunks visibles sont
+  dessinés ; 1 tuile = 8×8 px monde (`tailleTuilePx`).
+- **Entités = sprites Pixi** (pools réutilisés, culling par viewport) : humains 3×5
+  (décalage −1,−2), animaux (décalage −2,−2), bâtiments centrés (décalage = moitié
+  de la taille arrondie), véhicules. LOD : sous 8 px/tuile, points 2×2 (humains
+  blancs, animaux couleur espèce, bâtiments carrés 4×4 couleur type, véhicules 3×3) ;
+  à partir de 8 px/tuile sprites complets ; cheveux à partir de 32 px/tuile.
+- **Zoom par paliers nets** [4, 8, 16, 32, 64] px/tuile, molette = palier
+  suivant/précédent centré sur le curseur, `scaleMode='nearest'` sur chaque texture
+  (aucun lissage).
+- **Minicarte** bas-droite : canvas HTML 240 px, `image-rendering: pixelated`,
+  alimentée par l'ancien rendu plat (`couleurs`), rectangle de vue + marqueurs de
+  villages, clic = navigation (centrage).
+- **Météo/saisons** : voile statique par tuile (météo du digest) + surcouche écran
+  animée (pluie = traits obliques, neige = points, nuage = ombres mouvantes, selon la
+  météo dominante de la carte) ; 4 palettes saisonnières prairie/forêt/savane
+  générées dans l'atlas, commutation via `saisonNord`/`saisonSud` du digest.
+
+## Ce qui est branché
+
+- 9 végétations distinctes (4 variantes × hash(x,y) mod 4) + eau douce/salée
+  (profonde au large : 8 voisins salés), plage, terre/colline/montagne/neige selon
+  élévation, sommets enneigés (élev. ≥ 5), ombrage relief **formule exacte Annexe A**
+  (`g = (e−e_gauche)+(e−e_haut)`, voile noir `min(0.28, g×2.2)`, blanc
+  `min(0.14, −g×1.4)`), écume 1 px `#d9e8f2` côté terre, rivières/lacs avec
+  vaguelettes animées 2 frames (zoom ≥ 8), gel hivernal (eau douce blanchie).
+- Gisements : affleurement 2-3 px couleur minerai (10 minerais) ; mine `mine-*`
+  sur tuile non gisement (épuisée) = entrée **murée** ; `champ` pousses vertes →
+  dorées à maturité (biomasse) ; sentiers terre battue largeur selon l'usage
+  (bits sentier/niveau) ; pollution = voile brun-gris progressif (quantifié 0..3).
+- 33 bâtiments, chacun son sprite (spécifications pixel exactes de l'Annexe A pour
+  feuDeCamp 2 frames, hutte, grenier, puits, champ, enclos, cerf/loup/aurochs ;
+  même style pour les autres) + variante `:chantier` (échafaudage) + `:ruine`
+  (toit effondré, débris — générée à partir du sprite normal) + `:muree` (mines).
+  Animés 2 frames : feu de camp, fumoir (fumée), forge (lueur), moulin (ailes),
+  cheminées centrales, bateau (sillage d'écume), charrette (roues).
+- 7 espèces × 2 frames (marche = pattes alternées) : cerf (bois), bison (cornes),
+  sanglier (groin + dos en poils), lapin (sautille), loup, ours, vautour **en vol**
+  (battement + ombre portée décalée au sol). Domestiques = posture repos dans l'enclos.
+- Humains 3×5 : tête `teintePeau` (lerp min→max de la palette), tunique = couleur
+  stable par hash FNV de l'id (hors sim), 2 frames de marche (pieds alternés, détecté
+  par delta de position entre digests), cheveux (`couleurCheveux`) à ≥ 32 px/tuile,
+  étoile dorée 1 px favoris, couronne 1 px dirigeant, +1 px tunique grossesse.
+- Territoires : teinte alpha 0.22 + bordure pixelisée 1 px, visibles sous
+  `frontieresPxParTuile` = 5 (comportement V1 conservé : visible au palier 4 seul).
+- Sélection = contour clignotant, survol = contour discret 1 px écran.
+- `config/rendu.jsonc` : taille de tuile, palettes, paliers, seuils LOD, vitesses
+  d'animation, tailles de sprites, minicarte — commenté en français, validé au
+  chargement comme les autres (`parserConfigRendu`, erreurs explicites, blocage au
+  démarrage si invalide).
+
+## rendu.jsonc HORS empreinte de sauvegarde (propre et documenté)
+
+`NOMS_FICHIERS_CONFIG` (qui pilote `empreintes` et donc l'empreinte de sauvegarde)
+reste à 8 domaines ; `rendu.jsonc` est lu à part par `lireDossierConfig` et validé à
+part par `parserConfigRendu`, **jamais** ajouté aux empreintes. Conséquence prouvée
+par test : `empreintes` = 8 clés sans `rendu`, la sauvegarde ne contient pas
+`empreinteConfig.rendu`, et changer `rendu.jsonc` ne produit aucun avertissement à la
+reprise. Changer une palette ne casse donc jamais une sauvegarde.
+
+## Interprétations (§0) des zones ouvertes
+
+- « Eau salée plus sombre au large » : profondeur = tuile salée dont les 8 voisins
+  sont salés (le générateur met toute la mer au niveau 1, l'élévation ne distingue
+  pas la profondeur).
+- Saisons tropiques (`Seche`/`Humide`) mappées sur les palettes été/printemps.
+- LOD « points 1-2 px » : marqueurs 2×2 px monde (1 px écran au palier 4).
+- « Bâtiments en ruine » : il n'existe pas d'état « ruine » en sim (l'effondrement
+  supprime le bâtiment) → sprite dégradé quand durabilité ≤ 35 %, chantier tant que
+  `enConstruction`, entrée murée quand le gisement sous la mine est épuisé.
+- Météo animée en surcouche écran selon la météo dominante de la carte (le digest
+  garde aussi un voile statique par tuile).
+- Animations 2 frames des entités : frame choisie par delta de position entre
+  digests (déplacement) + horloge pour les bâtiments animés.
+- Taiga/jungle/toundra/désert/terre : dérivés « même style » (la maquette ne
+  spécifie que plage/prairie/forêt/colline/montagne/neige/eau).
+
+## Vérifications
+
+- `tsc --noEmit` OK ; `npm run build` OK.
+- `npm test` : **100/100** (88 V1 + 12 nouveaux `tests/rendu.test.ts` : chargement
+  et rejet de `rendu.jsonc`, rendu hors empreinte, atlas déterministe/couverture
+  9 vég. × 4 variantes + 33 bâtiments + 7 espèces × 2 frames + humain 3×5,
+  plan de tuile (relief exact, écume, sentier, pollution, gisement, gel),
+  digest V2 décodable + déterministe + sans consommation du RNG de la sim).
+- Banc 200 mois, monde 500, graine 42 (le banc n'appelle aucun digest ; le code de
+  sim n'a pas changé) :
+  - avant : **131,89 ms/mois**, empreinte `d02b4d1c…`
+  - après : 136,73 puis **134,31 ms/mois** (bruit de mesure), empreinte
+    `d02b4d1c…` **identique** → aucune régression de sim.
+
+## Checklist de complétude
+
+- [x] Les 9 végétations sont visuellement distinctes + eau douce/eau salée (profonde au large)/plage/relief ombré (formule exacte)
+- [x] Les 33 types de bâtiments ont chacun leur sprite + versions chantier/ruine (+ murée pour les mines épuisées)
+- [x] Les 7 espèces sont animées (2 frames), le vautour vole (ombre portée au sol)
+- [x] Les humains sont animés (teintePeau, tunique par hash id, cheveux ≥ 32 px/tuile, favoris, dirigeant, grossesse)
+- [x] Bateau et charrette animés (écume, roues), feu de camp, forge, moulin, cheminées
+- [x] Météo pluie/neige/nuage animée + gel hivernal + 4 saisons
+- [x] Sentiers, gisements (et épuisement = entrée murée), pollution visibles sur la carte
+- [x] Zoom par paliers nets [4,8,16,32,64] + minicarte cliquable (vue + villages) + LOD par seuils en config
+- [x] npm test vert (100/100), banc sans régression (empreinte identique), rapport rédigé, commit poussé

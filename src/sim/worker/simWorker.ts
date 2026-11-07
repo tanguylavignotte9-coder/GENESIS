@@ -4,6 +4,7 @@ import { sagaDuMoment, biographie, chroniqueGroupe, chroniqueEspece } from '../r
 import { ereGroupe } from '../savoir/systemeSavoir';
 import type { ConfigComplete } from '../config/schema';
 import { serialiserSimulation, deserialiserSimulation } from '../sauvegarde/serialiseur';
+import { digestRenduV2 } from './digestRendu';
 
 interface CtxWorker {
   onmessage: ((e: MessageEvent) => void) | null;
@@ -33,14 +34,25 @@ function envoyerDigest(forcer: boolean): void {
   dernierDigestMois = cleMois;
   ticksDepuisDigest = 0;
   const couleurs = sim.digestCouleurs();
+  const d = digestRenduV2(sim.etat, config!);
   ctx.postMessage(
     {
       type: 'digest',
       couleurs: couleurs.buffer,
-      animaux: sim.digestAnimaux(),
-      individus: sim.digestIndividus(),
-      vehicules: sim.digestVehicules(),
-      territoires: sim.digestTerritoires(),
+      tuiles: d.tuiles.buffer,
+      chunkVersions: d.chunkVersions.buffer,
+      chunkSize: d.chunkSize,
+      nbChunksX: d.nbChunksX,
+      animaux: d.animaux,
+      individus: d.individus,
+      vehicules: d.vehicules,
+      batiments: d.batiments,
+      territoires: d.territoires,
+      villages: d.villages,
+      especes: d.especes,
+      typesBatiments: d.typesBatiments,
+      saisonNord: d.saisonNord,
+      saisonSud: d.saisonSud,
       taille: sim.etat.monde.taille,
       an: cal.an,
       mois: cal.mois,
@@ -53,7 +65,7 @@ function envoyerDigest(forcer: boolean): void {
         empreinte: sim.empreinteMonde(),
       },
     },
-    [couleurs.buffer],
+    [couleurs.buffer, d.tuiles.buffer, d.chunkVersions.buffer],
   );
 }
 

@@ -1,11 +1,12 @@
 import 'pixi.js/unsafe-eval';
-import { Carte } from './carte';
+import { CartePixel } from './cartePixel';
 import type { ConfigComplete } from '../sim/config/schema';
+import type { ConfigRendu } from '../sim/config/rendu';
 import { vitessesDisponibles } from '../sim/temps/boucleTemps';
 import type { Evenement } from '../sim/journal/journal';
 
 interface BridgeGenesis {
-  obtenirConfig: () => Promise<{ ok: boolean; config?: ConfigComplete; empreintes?: Record<string, string>; erreurs?: string[] }>;
+  obtenirConfig: () => Promise<{ ok: boolean; config?: ConfigComplete; empreintes?: Record<string, string>; rendu?: ConfigRendu; erreurs?: string[] }>;
   ecrireSauvegarde: (slot: string, contenu: string) => Promise<unknown>;
   lireSauvegarde: (slot: string) => Promise<string | null>;
   listerSauvegardes: () => Promise<Array<{ slot: string; modifieLe: string; taille: number }>>;
@@ -29,6 +30,7 @@ async function demarrer(): Promise<void> {
   }
   const config = reponse.config;
   const empreintes = reponse.empreintes;
+  const rendu = reponse.rendu!;
 
   const inputSeed = $('inputSeed') as HTMLInputElement;
   const inputBandes = $('inputBandes') as HTMLInputElement;
@@ -40,7 +42,7 @@ async function demarrer(): Promise<void> {
   inputTaille.max = String(config.societe.tailleBandeInitialeMax);
   inputTaille.value = String(Math.round((config.societe.tailleBandeInitialeMin + config.societe.tailleBandeInitialeMax) / 2));
 
-  let carte: Carte | null = null;
+  let carte: CartePixel | null = null;
   let worker: Worker | null = null;
   let derniersIndividus: number[] = [];
   let derniersTerritoires: Array<{ id: number; couleur: number; tuiles: number[] }> = [];
@@ -60,13 +62,9 @@ async function demarrer(): Promise<void> {
         $('journal').style.display = 'flex';
       } else if (msg.type === 'digest') {
         if (carte) {
-          carte.appliquerDigest(new Uint32Array(msg.couleurs as ArrayBuffer));
-          carte.appliquerAnimaux((msg.animaux as number[]) ?? []);
+          carte.appliquerDigest(msg);
           derniersIndividus = (msg.individus as number[]) ?? [];
-          carte.appliquerIndividus(derniersIndividus);
-          carte.appliquerVehicules((msg.vehicules as number[]) ?? []);
           derniersTerritoires = (msg.territoires as Array<{ id: number; couleur: number; tuiles: number[] }>) ?? [];
-          carte.appliquerTerritoires(derniersTerritoires);
         }
         const stats = msg.stats as { individus: number; animaux: number; evenements: number } | undefined;
         $('date').textContent = `An ${msg.an}, mois ${msg.mois} — ×${msg.vitesse} — ${stats ? `${stats.individus} humains · ${stats.animaux} animaux · ${stats.evenements} événements` : ''}`;
@@ -152,6 +150,7 @@ async function demarrer(): Promise<void> {
     }
     panneau.style.display = 'flex';
     ficheCouranteId = Number(msg.id);
+    carte?.definirSelection(ficheCouranteId);
     $('ficheTitre').textContent = String(fiche.nom);
     $('btnFavori').textContent = favoris.has(ficheCouranteId) ? '⭐ Retirer des favoris' : '⭐ Favori';
     const besoins = fiche.besoins as Record<string, number>;
@@ -260,16 +259,13 @@ async function demarrer(): Promise<void> {
 
   setInterval(() => {
     if (!carte || !worker) return;
-    const s = carte.monde.scale.x;
-    const x0 = Math.max(0, Math.floor(-carte.monde.x / s));
-    const y0 = Math.max(0, Math.floor(-carte.monde.y / s));
-    const x1 = Math.min(carte.canvas.width - 1, Math.ceil((carte.app.screen.width - carte.monde.x) / s));
-    const y1 = Math.min(carte.canvas.height - 1, Math.ceil((carte.app.screen.height - carte.monde.y) / s));
-    worker.postMessage({ type: 'zoneActive', zone: { x0, y0, x1, y1 } });
+    const z = carte.tuilesVisibles();
+    worker.postMessage({ type: 'zoneActive', zone: z });
   }, 500);
 
   $('ficheFermer').addEventListener('click', () => {
     $('fiche').style.display = 'none';
+    carte?.definirSelection(null);
   });
 
   $('filtreJournal').addEventListener('change', (e) => {
@@ -283,6 +279,7 @@ async function demarrer(): Promise<void> {
     if (favoris.has(ficheCouranteId)) favoris.delete(ficheCouranteId);
     else favoris.add(ficheCouranteId);
     $('btnFavori').textContent = favoris.has(ficheCouranteId) ? '⭐ Retirer des favoris' : '⭐ Favori';
+    carte?.definirFavoris(favoris);
   });
 
   $('btnChronique').addEventListener('click', () => {
@@ -341,9 +338,7 @@ async function demarrer(): Promise<void> {
   }
 
   const hote = $('app');
-  const configPremierePasse = config;
-  const tailleMonde = configPremierePasse.monde.tailleGrille;
-  carte = await Carte.creer(hote, tailleMonde);
+  carte = await CartePixel.creer(hote, config, rendu);
 
   let glisser = false;
   let dernierX = 0;
@@ -351,7 +346,7 @@ async function demarrer(): Promise<void> {
   const canvas = carte.app.canvas as HTMLCanvasElement;
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
-    carte!.zoomAutour(e.clientX, e.clientY, e.deltaY < 0 ? 1.2 : 1 / 1.2);
+    carte!.zoomPalier(e.clientX, e.clientY, e.deltaY < 0 ? 1 : -1);
   }, { passive: false });
   canvas.addEventListener('pointerdown', (e) => {
     glisser = true;
@@ -363,7 +358,7 @@ async function demarrer(): Promise<void> {
     const p = carte.ecranVersMonde(e.clientX, e.clientY);
     let bestId = -1;
     let bestDist = 3;
-    for (let i = 0; i + 2 < derniersIndividus.length; i += 3) {
+    for (let i = 0; i + 5 < derniersIndividus.length; i += 6) {
       const x = derniersIndividus[i + 1] / 10;
       const y = derniersIndividus[i + 2] / 10;
       const d = Math.hypot(x - p.x, y - p.y);
@@ -373,8 +368,10 @@ async function demarrer(): Promise<void> {
       }
     }
     if (bestId >= 0) {
+      carte.definirSelection(bestId);
       worker?.postMessage({ type: 'inspecterIndividu', id: bestId });
     } else {
+      carte.definirSelection(null);
       const p2 = p;
       for (const t of derniersTerritoires) {
         for (let i = 0; i + 1 < t.tuiles.length; i += 2) {
@@ -387,13 +384,19 @@ async function demarrer(): Promise<void> {
     }
   });
   window.addEventListener('pointermove', (e) => {
-    if (!glisser || !carte) return;
+    if (!carte) return;
+    carte.definirSurvol(e.clientX, e.clientY);
+    if (!glisser) return;
     carte.deplacer(e.clientX - dernierX, e.clientY - dernierY);
     dernierX = e.clientX;
     dernierY = e.clientY;
   });
   window.addEventListener('pointerup', () => {
     glisser = false;
+  });
+  carte.canvasMinicarte.addEventListener('click', (e) => {
+    const p = carte!.minicarteVersMonde(e.clientX, e.clientY);
+    carte!.centrerSurTuile(p.x, p.y);
   });
 }
 

@@ -5,6 +5,7 @@ import os from 'node:os';
 
 import { lireDossierConfig } from '../sim/config/lireDisque';
 import { parserConfig, ErreurConfig } from '../sim/config/parse';
+import { parserConfigRendu, NOM_FICHIER_RENDU, type ConfigRendu } from '../sim/config/rendu';
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, bypassCSP: false } },
@@ -73,7 +74,10 @@ function enregistrerIpc(): void {
     try {
       const textes = lireDossierConfig(dossierConfig());
       const { config, empreintes } = parserConfig(textes);
-      return { ok: true as const, config, empreintes };
+      // rendu.jsonc est validé comme les autres mais reste HORS empreintes :
+      // empreintes ne contient que les 8 fichiers de domaine de NOMS_FICHIERS_CONFIG.
+      const rendu: ConfigRendu = parserConfigRendu(textes[NOM_FICHIER_RENDU]);
+      return { ok: true as const, config, empreintes, rendu };
     } catch (e) {
       if (e instanceof ErreurConfig) {
         return { ok: false as const, erreurs: e.erreurs };

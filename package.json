@@ -1,0 +1,28 @@
+{
+  "name": "genesis",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GENESIS — simulateur de monde et de civilisation",
+  "main": "dist/main/main.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "npm run build && electron .",
+    "build": "vite build --config vite.config.mts && tsc -p tsconfig.main.json",
+    "test": "vitest run --config vitest.config.mts",
+    "typecheck": "tsc -p tsconfig.sim.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.json && tsc -p tsconfig.node.json && tsc -p tsconfig.main.json --noEmit",
+    "sim": "tsx src/cli/sim.ts"
+  },
+  "dependencies": {
+    "pixi.js": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "electron": "45.3.4",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vitest": "5.1.0"
+  }
+}

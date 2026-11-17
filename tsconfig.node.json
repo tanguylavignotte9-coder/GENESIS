@@ -1,0 +1,9 @@
+{
+  // Node-side tooling: tests, headless CLI, build configs.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "src/cli/**/*.ts", "vite.config.mts", "vitest.config.mts"]
+}

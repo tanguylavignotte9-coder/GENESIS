@@ -1,0 +1,36 @@
+:root {
+  --background: #0b0d12;
+  --hud-text: #d8dde6;
+  --hud-panel: rgba(20, 24, 33, 0.85);
+  --error: #ff8a80;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background);
+  font-family: system-ui, 'Segoe UI', sans-serif;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--hud-panel);
+  color: var(--hud-text);
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+#hud.error {
+  color: var(--error);
+}

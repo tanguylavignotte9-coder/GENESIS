@@ -1,0 +1,14 @@
+{
+  // Electron main process, compiled to CommonJS in dist/main.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "noEmit": false,
+    "outDir": "dist/main",
+    "rootDir": "src/main"
+  },
+  "include": ["src/main/**/*.ts"]
+}

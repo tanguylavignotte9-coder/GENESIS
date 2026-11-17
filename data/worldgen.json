@@ -1,0 +1,78 @@
+{
+  "size": 1024,
+  "elevation": {
+    "continentCountMin": 3,
+    "continentCountMax": 5,
+    "continentRadiusMin": 0.13,
+    "continentRadiusMax": 0.24,
+    "continentMargin": 0.2,
+    "continentSpacing": 0.85,
+    "continentShelf": 0.45,
+    "islandCountMin": 25,
+    "islandCountMax": 45,
+    "islandRadiusMin": 0.008,
+    "islandRadiusMax": 0.03,
+    "islandStrength": 0.75,
+    "coastWarpFrequency": 3,
+    "coastWarpStrength": 0.07,
+    "detailFrequency": 4,
+    "detailOctaves": 6,
+    "detailWeight": 0.45,
+    "edgeFalloffWidth": 0.06,
+    "oceanFraction": 0.66,
+    "lowlandMaxMeters": 900,
+    "lowlandExponent": 1.6,
+    "mountainBeltFrequency": 2.5,
+    "mountainBeltThreshold": 0.0,
+    "mountainBeltWidth": 0.15,
+    "ridgeFrequency": 4,
+    "ridgeOctaves": 5,
+    "ridgeSharpness": 3,
+    "mountainMaxMeters": 5500,
+    "mountainCoastRamp": 0.15,
+    "maxOceanDepthMeters": 5000,
+    "oceanDepthExponent": 0.8
+  },
+  "temperature": {
+    "equatorCelsius": 28,
+    "poleCelsius": -28,
+    "latitudeExponent": 1.4,
+    "lapseRateCelsiusPerKm": 6.5,
+    "noiseFrequency": 8,
+    "noiseCelsius": 3
+  },
+  "humidity": {
+    "windBands": [
+      { "untilLatitude": 0.33, "direction": "fromEast" },
+      { "untilLatitude": 0.66, "direction": "fromWest" },
+      { "untilLatitude": 1, "direction": "fromEast" }
+    ],
+    "windBandBlend": 0.1,
+    "oceanEvaporation": 0.12,
+    "landRainPerTile": 0.0045,
+    "orographicRainPerMeter": 0.0007,
+    "rainRecycling": 0.55,
+    "latitudeFactors": [
+      { "latitude": 0, "factor": 1 },
+      { "latitude": 0.12, "factor": 1 },
+      { "latitude": 0.28, "factor": 0.45 },
+      { "latitude": 0.5, "factor": 0.95 },
+      { "latitude": 0.75, "factor": 0.8 },
+      { "latitude": 1, "factor": 0.45 }
+    ],
+    "reliefSmoothing": 10,
+    "blurRadius": 12,
+    "noiseFrequency": 9,
+    "noiseAmplitude": 0.16
+  },
+  "hydrology": {
+    "fillEpsilonMeters": 0.01,
+    "runoffPerKmOfAltitude": 6,
+    "riverMinFlow": 400,
+    "lakeMinDepthMeters": 3,
+    "lakeMinInflow": 150
+  },
+  "beachMaxDistance": 2,
+  "landmassMinTiles": 20,
+  "continentMinShare": 0.03
+}

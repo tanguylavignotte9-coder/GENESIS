@@ -1,4 +1,4 @@
-import { validateObject, type ObjectSchema } from './data-validation';
+import { validateData, type Schema } from './data-validation';
 
 /** Time settings, read from data/time.json. */
 export interface TimeParams {
@@ -10,14 +10,17 @@ export interface TimeParams {
   daysPerYear: number;
 }
 
-const TIME_SCHEMA: ObjectSchema = {
-  ticksPerRealSecond: { kind: 'integer', min: 1 },
-  ticksPerDay: { kind: 'integer', min: 1 },
-  daysPerYear: { kind: 'integer', min: 1 },
+const TIME_SCHEMA: Schema = {
+  kind: 'object',
+  fields: {
+    ticksPerRealSecond: { kind: 'integer', min: 1 },
+    ticksPerDay: { kind: 'integer', min: 1 },
+    daysPerYear: { kind: 'integer', min: 1 },
+  },
 };
 
 export function parseTimeParams(raw: unknown): TimeParams {
-  return validateObject<TimeParams>('data/time.json', raw, TIME_SCHEMA);
+  return validateData<TimeParams>('data/time.json', raw, TIME_SCHEMA);
 }
 
 export function ticksPerYear(params: TimeParams): number {

@@ -45,6 +45,16 @@ export class Rng {
   nextFloat(): number {
     return this.nextUint32() / UINT32_RANGE;
   }
+
+  /** Next float in [min, max). */
+  nextRange(min: number, max: number): number {
+    return min + (max - min) * this.nextFloat();
+  }
+
+  /** Next integer in [min, max] (both included). */
+  nextIntInclusive(min: number, max: number): number {
+    return min + Math.floor(this.nextFloat() * (max - min + 1));
+  }
 }
 
 /** Expands a 32-bit seed into a stream of well-mixed 32-bit values. */

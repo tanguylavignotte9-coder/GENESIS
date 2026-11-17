@@ -1,11 +1,12 @@
 /// <reference lib="webworker" />
 /**
- * Simulation thread. Owns the Simulation and drives its clock in real time
- * (x1 speed), then reports its state to the display.
+ * Simulation thread. Generates the world (without blocking the window), sends it to the display,
+ * then drives the simulation clock in real time (x1 speed).
  */
-import { loadGameData } from '../sim/core/game-data';
+import { loadGameData, type GameData } from '../sim/core/game-data';
 import { Simulation } from '../sim/core/simulation';
 import type { FromSimMessage, ToSimMessage } from '../shared/messages';
+import { snapshotWorld } from './world-snapshot';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -14,25 +15,36 @@ const LOOP_INTERVAL_MS = 50;
 const MS_PER_SECOND = 1000;
 
 let loop: ReturnType<typeof setInterval> | undefined;
+let data: GameData | undefined;
 
-function post(message: FromSimMessage): void {
-  self.postMessage(message);
+function post(message: FromSimMessage, transfer: Transferable[] = []): void {
+  self.postMessage(message, transfer);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function start(seed: number): void {
   if (loop !== undefined) clearInterval(loop);
+  loop = undefined;
+  post({ type: 'worldGenerating', seed });
 
   let simulation: Simulation;
+  const generationStart = performance.now();
   try {
-    simulation = new Simulation(seed, loadGameData());
+    data ??= loadGameData();
+    simulation = new Simulation(seed, data);
   } catch (error) {
-    post({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+    post({ type: 'error', message: errorMessage(error) });
     return;
   }
+  const generationMs = performance.now() - generationStart;
+  const { snapshot, transfer } = snapshotWorld(simulation.world);
+  post({ type: 'worldReady', seed, world: snapshot, generationMs }, transfer);
 
   const startedAt = performance.now();
   const { ticksPerRealSecond } = simulation.data.time;
-
   loop = setInterval(() => {
     const elapsedSeconds = (performance.now() - startedAt) / MS_PER_SECOND;
     const targetTick = Math.floor(elapsedSeconds * ticksPerRealSecond);

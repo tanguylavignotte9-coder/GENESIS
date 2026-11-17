@@ -10,7 +10,24 @@
   </head>
   <body>
     <div id="map"></div>
-    <div id="hud" aria-live="polite">Démarrage de la simulation…</div>
+
+    <div id="summary" class="panel" aria-live="polite">Démarrage…</div>
+
+    <form id="world-form" class="panel" autocomplete="off">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" inputmode="numeric" placeholder="au hasard" spellcheck="false" />
+      <button id="new-world" type="submit">Nouveau monde</button>
+      <div id="form-error" class="form-error" hidden></div>
+    </form>
+
+    <div id="help" class="panel">Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer</div>
+
+    <div id="tooltip" class="panel" hidden></div>
+
+    <div id="loading" hidden>
+      <div class="panel loading-box">Génération du monde…</div>
+    </div>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

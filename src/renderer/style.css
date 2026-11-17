@@ -1,7 +1,11 @@
 :root {
   --background: #0b0d12;
   --hud-text: #d8dde6;
-  --hud-panel: rgba(20, 24, 33, 0.85);
+  --hud-muted: #9aa3b2;
+  --hud-panel: rgba(16, 20, 28, 0.86);
+  --hud-border: rgba(255, 255, 255, 0.08);
+  --accent: #4f8fe0;
+  --accent-hover: #6aa2ea;
   --error: #ff8a80;
 }
 
@@ -11,7 +15,10 @@ body {
   height: 100%;
   overflow: hidden;
   background: var(--background);
+  color: var(--hud-text);
   font-family: system-ui, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  user-select: none;
 }
 
 #map {
@@ -19,18 +26,113 @@ body {
   inset: 0;
 }
 
-#hud {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: var(--hud-panel);
-  color: var(--hud-text);
-  font-size: 14px;
-  white-space: pre-line;
+#map canvas {
+  display: block;
+  cursor: grab;
 }
 
-#hud.error {
+#map canvas:active {
+  cursor: grabbing;
+}
+
+.panel {
+  position: absolute;
+  padding: 8px 12px;
+  border: 1px solid var(--hud-border);
+  border-radius: 6px;
+  background: var(--hud-panel);
+}
+
+#summary {
+  top: 12px;
+  left: 12px;
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+#summary.error {
   color: var(--error);
+  max-width: 60vw;
+}
+
+#world-form {
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+}
+
+#world-form input {
+  width: 130px;
+  padding: 5px 8px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--hud-text);
+  font: inherit;
+}
+
+#world-form button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--accent);
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+#world-form button:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+#world-form button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.form-error {
+  flex-basis: 100%;
+  color: var(--error);
+  font-size: 12px;
+}
+
+#help {
+  bottom: 12px;
+  left: 12px;
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+#tooltip {
+  pointer-events: none;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.tooltip-title {
+  font-weight: 600;
+}
+
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 13, 18, 0.45);
+}
+
+#loading[hidden],
+[hidden] {
+  display: none !important;
+}
+
+.loading-box {
+  position: static;
+  padding: 14px 22px;
+  font-size: 18px;
 }

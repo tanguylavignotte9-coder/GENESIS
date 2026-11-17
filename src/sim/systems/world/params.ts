@@ -1,4 +1,5 @@
 import { DataFileError, validateData, type Schema } from '../../core/data-validation';
+import { latitudeCurveProblem, type LatitudePoint } from './latitude-curve';
 
 /** World generation settings, read from data/worldgen.json. Distances are fractions of the map size. */
 export interface WorldgenParams {
@@ -79,7 +80,7 @@ export interface HumidityParams {
   /** Share of fallen rain that evaporates back into the air (vegetation, soil). */
   rainRecycling: number;
   /** Large-scale circulation: humidity multiplier by latitude (interpolated). */
-  latitudeFactors: { latitude: number; factor: number }[];
+  latitudeFactors: LatitudePoint[];
   /** Blur radius (tiles) of the relief seen by the winds: only large landforms cause rain shadows. */
   reliefSmoothing: number;
   blurRadius: number;
@@ -174,7 +175,7 @@ const WORLDGEN_SCHEMA: Schema = {
         latitudeFactors: {
           kind: 'array',
           minLength: 1,
-          items: { kind: 'object', fields: { latitude: FRACTION, factor: POSITIVE } },
+          items: { kind: 'object', fields: { latitude: FRACTION, value: POSITIVE } },
         },
         reliefSmoothing: { kind: 'integer', min: 0, max: 64 },
         blurRadius: { kind: 'integer', min: 0, max: 64 },
@@ -222,10 +223,8 @@ function crossFieldProblems(params: WorldgenParams): string[] {
   if (!isIncreasing(h.windBands.map((band) => band.untilLatitude)) || h.windBands.at(-1)?.untilLatitude !== 1) {
     problems.push('« humidity.windBands » : les latitudes doivent être croissantes et la dernière doit valoir 1.');
   }
-  const latitudes = h.latitudeFactors.map((point) => point.latitude);
-  if (!isIncreasing(latitudes) || latitudes[0] !== 0 || latitudes.at(-1) !== 1) {
-    problems.push('« humidity.latitudeFactors » : les latitudes doivent être croissantes, de 0 à 1.');
-  }
+  const curve = latitudeCurveProblem(h.latitudeFactors, 'humidity.latitudeFactors');
+  if (curve) problems.push(curve);
   return problems;
 }
 

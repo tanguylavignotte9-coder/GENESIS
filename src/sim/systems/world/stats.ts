@@ -40,6 +40,6 @@ export function computeWorldStats(world: World, params: WorldgenParams): WorldSt
     riverCount: world.riverCount,
     riverTiles,
     lakeCount: world.lakeCount,
-    landmasses: countLandmasses(world.ocean, world.size, params.landmassMinTiles, params.continentMinShare),
+    landmasses: countLandmasses(world.landmasses, params.landmassMinTiles),
   };
 }

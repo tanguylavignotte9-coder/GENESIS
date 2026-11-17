@@ -6,8 +6,10 @@ import { boxBlur } from './grid';
 
 const METERS_PER_KM = 1000;
 import { accumulateFlow, computeDrainage, computeSurfaceWater, countRiverMouths } from './hydrology';
+import { labelLandmasses, type LandmassMap } from './landmasses';
 import { computeOceanMask, distanceToOcean } from './ocean';
 import type { WorldgenParams } from './params';
+import { nameLandmasses } from './places';
 
 /**
  * The generated map. Every field is a compact typed array of size × size tiles,
@@ -32,6 +34,9 @@ export interface World {
   biomes: BiomeTable;
   riverCount: number;
   lakeCount: number;
+  landmasses: LandmassMap;
+  /** Descriptive name of each landmass (same order as landmasses.list). */
+  landmassNames: string[];
 }
 
 export function generateWorld(params: WorldgenParams, biomes: BiomeTable, rng: Rng): World {
@@ -60,6 +65,7 @@ export function generateWorld(params: WorldgenParams, biomes: BiomeTable, rng: R
     });
   }
 
+  const landmasses = labelLandmasses(ocean, size, params.continentMinShare);
   return {
     size,
     elevation,
@@ -72,6 +78,8 @@ export function generateWorld(params: WorldgenParams, biomes: BiomeTable, rng: R
     biomes,
     riverCount: countRiverMouths(water, drainage.flowTo),
     lakeCount,
+    landmasses,
+    landmassNames: nameLandmasses(landmasses, size),
   };
 }
 

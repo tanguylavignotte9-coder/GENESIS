@@ -1,6 +1,6 @@
 /**
  * Headless simulation (Node, no window):
- *   npm run sim -- --seed 42 --years 100   run the clock and print a summary
+ *   npm run sim -- --seed 42 --years 100   run the simulation and print a summary (abnormal years…)
  *   npm run sim -- --seed 42 --world       generate a world and print its statistics
  */
 import { performance } from 'node:perf_hooks';
@@ -52,18 +52,31 @@ function printWorld(seed: number, data: GameData): void {
   console.log(`  Temps de génération   : ${duration.toFixed(2)} s`);
 }
 
+/** Beyond this many abnormal years, only the first and last ones are listed. */
+const MAX_LISTED_ANOMALIES = 30;
+
 function printRun(seed: number, years: number, data: GameData): void {
   const startedAt = performance.now();
   const report = runHeadless(seed, years, data);
   const duration = seconds(startedAt);
+  const { anomalies } = report;
+  const total = anomalies.lines.length;
 
   console.log('GENESIS — simulation sans écran');
   console.log(`  Graine                : ${report.seed}`);
   console.log(`  Monde                 : ${report.worldSize} × ${report.worldSize} tuiles, ${report.riverCount} rivières, ${report.lakeCount} lacs`);
   console.log(`  Durée simulée         : ${fr.format(report.years)} an(s) = ${fr.format(report.ticks)} tics`);
-  console.log(`  Tic final             : ${fr.format(report.finalTick)}`);
+  console.log(`  Date finale           : ${report.finalDate}`);
   console.log('  Population            : 0 (les individus arrivent à l\'étape 4)');
-  console.log('  Événements marquants  : aucun (le journal arrive à l\'étape 2)');
+  console.log(`  Événements du journal : ${fr.format(report.journalEvents)}`);
+  console.log(`  Années anormales      : ${fr.format(total)}`);
+  for (const { name, count } of anomalies.countsByType) console.log(`    ${name.padEnd(20)} ${fr.format(count)}`);
+  if (total > 0) {
+    console.log('  Années anormales survenues :');
+    const half = MAX_LISTED_ANOMALIES / 2;
+    const listed = total <= MAX_LISTED_ANOMALIES ? anomalies.lines : [...anomalies.lines.slice(0, half), `… (${total - MAX_LISTED_ANOMALIES} autres) …`, ...anomalies.lines.slice(-half)];
+    for (const line of listed) console.log(`    ${line}`);
+  }
   console.log(`  Empreinte aléatoire   : ${report.randomFingerprint.join(' ')}`);
   console.log(`  Durée de calcul       : ${duration.toFixed(2)} s (génération du monde comprise)`);
 }

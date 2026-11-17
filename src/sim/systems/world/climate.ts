@@ -1,6 +1,7 @@
 import type { Rng } from '../../core/rng';
 import { boxBlur, rowLatitude } from './grid';
 import { Noise2D } from './noise';
+import { valueAtLatitude } from './latitude-curve';
 import type { HumidityParams, TemperatureParams, WindDirection } from './params';
 
 const METERS_PER_KM = 1000;
@@ -45,16 +46,7 @@ export function westerlyWeight(latitude: number, params: HumidityParams): number
 
 /** Large-scale circulation multiplier (wet equator, dry subtropics…), linearly interpolated. */
 export function latitudeFactor(latitude: number, params: HumidityParams): number {
-  const points = params.latitudeFactors;
-  for (let k = 1; k < points.length; k++) {
-    const a = points[k - 1];
-    const b = points[k];
-    if (a && b && latitude <= b.latitude) {
-      const t = (latitude - a.latitude) / Math.max(b.latitude - a.latitude, Number.EPSILON);
-      return a.factor + t * (b.factor - a.factor);
-    }
-  }
-  return points.at(-1)?.factor ?? 1;
+  return valueAtLatitude(params.latitudeFactors, latitude);
 }
 
 /**

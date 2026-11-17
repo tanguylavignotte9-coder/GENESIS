@@ -1,5 +1,7 @@
 {
   "ticksPerRealSecond": 10,
   "ticksPerDay": 4800,
-  "daysPerYear": 40
+  "daysPerSeason": 10,
+  "seasons": ["Printemps", "Été", "Automne", "Hiver"],
+  "speeds": [1, 5, 25, 100, 500]
 }

@@ -53,12 +53,12 @@
     "orographicRainPerMeter": 0.0007,
     "rainRecycling": 0.55,
     "latitudeFactors": [
-      { "latitude": 0, "factor": 1 },
-      { "latitude": 0.12, "factor": 1 },
-      { "latitude": 0.28, "factor": 0.45 },
-      { "latitude": 0.5, "factor": 0.95 },
-      { "latitude": 0.75, "factor": 0.8 },
-      { "latitude": 1, "factor": 0.45 }
+      { "latitude": 0, "value": 1 },
+      { "latitude": 0.12, "value": 1 },
+      { "latitude": 0.28, "value": 0.45 },
+      { "latitude": 0.5, "value": 0.95 },
+      { "latitude": 0.75, "value": 0.8 },
+      { "latitude": 1, "value": 0.45 }
     ],
     "reliefSmoothing": 10,
     "blurRadius": 12,

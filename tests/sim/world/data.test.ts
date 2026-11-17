@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import biomesJson from '../../../data/biomes.json';
+import climateJson from '../../../data/climate.json';
 import worldgenJson from '../../../data/worldgen.json';
 import { parseBiomeTable } from '../../../src/sim/systems/world/biomes';
+import { parseClimateParams } from '../../../src/sim/systems/world/climate-params';
 import { parseWorldgenParams } from '../../../src/sim/systems/world/params';
 
 function messageOf(action: () => unknown): string {
@@ -17,6 +19,13 @@ describe('world data files', () => {
   it('data/worldgen.json and data/biomes.json are valid', () => {
     expect(() => parseWorldgenParams(worldgenJson)).not.toThrow();
     expect(() => parseBiomeTable(biomesJson)).not.toThrow();
+    expect(() => parseClimateParams(climateJson)).not.toThrow();
+  });
+
+  it('requires the {lieu} placeholder in journal sentences', () => {
+    const types = climateJson.anomalies.types.map((type, k) => (k === 0 ? { ...type, startText: 'Une sécheresse.' } : type));
+    const broken = { ...climateJson, anomalies: { ...climateJson.anomalies, types } };
+    expect(messageOf(() => parseClimateParams(broken))).toContain('« anomalies.types[0].startText » doit être un texte contenant {lieu}');
   });
 
   it('explains nested errors in French with the path of the value', () => {

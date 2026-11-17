@@ -1,0 +1,117 @@
+# GENESIS — règles du projet pour Claude Code
+
+GENESIS est un simulateur de monde et de civilisation où **chaque individu est simulé**
+et où les histoires naissent de façon **émergente et systémique**. Le joueur est spectateur.
+
+- La vision complète, les systèmes et les données de contenu sont dans **`docs/design.md`**.
+  Lis-le avant toute tâche de conception ou de nouveau système.
+- Le propriétaire du projet (Tanguy) ne code pas : tout le code est écrit par Claude.
+  Explique tes choix en français simple dans les descriptions de pull request.
+
+## Les 5 piliers (ils tranchent toute décision)
+
+1. **Chaque individu compte.** Rien n'est statistique : chaque humain, animal et plante est une entité simulée.
+2. **Émergence, jamais de script.** Aucun événement écrit à l'avance.
+3. **Tout est lisible.** Chaque événement enregistre ses causes pour que le journal puisse expliquer le « pourquoi ».
+4. **Un monde cohérent.** Géographie, climat et ressources conditionnent tout.
+5. **Moteur modulaire et piloté par les données.** Systèmes séparés, variables externalisées, un concept n'est codé qu'une fois.
+
+## Stack
+
+- TypeScript (strict), Electron, PixiJS (rendu de la carte), HTML/CSS (HUD), Vite (build), Vitest (tests).
+- **Aucun moteur externe. Aucune compilation sur GitHub.** Tout le code source est dans le dépôt.
+- Le jeu se lance sous **Windows** par double-clic sur `Lancer-GENESIS.bat` (voir plus bas).
+- Dépendances minimales, versions figées dans `package-lock.json`. Toute nouvelle dépendance doit être justifiée dans la PR.
+
+## Structure du dépôt
+
+```
+Lancer-GENESIS.bat      lanceur Windows (point d'entrée du joueur)
+CLAUDE.md               ce fichier
+docs/design.md          design doc (référence de conception)
+data/                   fichiers JSON : paramètres, savoirs, recettes, bâtiments…
+src/
+  sim/                  CŒUR DE SIMULATION — TypeScript pur
+    core/               graine aléatoire, horloge, état du monde, journal d'événements
+    systems/            un dossier par système : world, individuals, groups,
+                        production, ideas, conflict
+  worker/               point d'entrée du fil de simulation (Web Worker)
+  shared/               types des messages échangés entre simulation et affichage
+  main/                 processus principal Electron
+  renderer/             affichage : carte PixiJS + HUD HTML/CSS
+tests/                  tests Vitest (unitaires + simulations sans écran)
+```
+
+## Règles d'architecture (non négociables)
+
+1. **`src/sim/` n'importe jamais** Electron, PixiJS, le DOM, ni rien de `renderer/` ou `main/`.
+   La simulation doit pouvoir tourner dans Node, sans écran, dans les tests.
+2. **La simulation tourne dans un fil séparé** (`worker/`). L'affichage reçoit des instantanés ou des
+   différences via des messages typés définis dans `shared/`.
+3. **Déterminisme.** Toute source d'aléatoire passe par le générateur à graine de `sim/core`.
+   Interdit dans `sim/` : `Math.random()`, `Date.now()`, `performance.now()` et l'ordre d'itération
+   non garanti. Même graine + mêmes données = même monde et même histoire.
+4. **Variables externalisées.** Aucun chiffre de gameplay en dur dans le code (vitesses, durées,
+   probabilités, seuils…). Tout vit dans `data/*.json`, validé au chargement par un schéma
+   (message d'erreur clair en français si un fichier est invalide).
+5. **Un système = un dossier** dans `sim/systems/`, avec un rôle unique. Les systèmes communiquent
+   par l'état du monde et par le journal d'événements, pas en s'appelant dans tous les sens.
+   Avant de créer un concept, vérifie qu'il n'existe pas déjà (ex. : savoirs, culture, langue,
+   religion et monnaie passent tous par le **système d'idées**).
+6. **Journal causal.** Tout événement notable est publié dans le journal avec : date de jeu,
+   acteurs, lieu, et les identifiants des événements qui l'ont causé.
+7. **Performance.** Chaque individu réfléchit à son rythme (réflexions réparties dans le temps,
+   pas de recalcul à chaque instant s'il n'y a rien de nouveau). Données lourdes (carte, positions,
+   besoins) stockées de façon compacte (tableaux typés). Ne jamais agréger des individus en statistiques.
+
+## Conventions de code
+
+- Identifiants, noms de fichiers et commentaires de code en **anglais**.
+- Tout texte visible par le joueur (HUD, journal, menus) en **français**.
+- TypeScript `strict`, pas de `any` sauf justification en commentaire.
+- Petites fonctions, petits fichiers ; un fichier = une responsabilité.
+
+## Scripts npm attendus
+
+- `npm start` : build puis lancement du jeu (utilisé par le lanceur).
+- `npm test` : tous les tests.
+- `npm run typecheck` : vérification des types.
+- `npm run sim -- --seed 42 --years 100` : simulation sans écran qui affiche un résumé
+  (population, événements marquants, durée de calcul). Outil principal pour vérifier
+  qu'un système fonctionne et mesurer la performance.
+
+## Le lanceur Windows `Lancer-GENESIS.bat`
+
+Doit fonctionner sur un Windows récent **sans Node installé et sans droits administrateur** :
+
+1. Utiliser `node` s'il est dans le PATH, sinon télécharger (PowerShell) une version portable
+   de Node.js LTS dans `.runtime/` et l'utiliser.
+2. Lancer `npm ci` si `node_modules/` manque ou si `package-lock.json` a changé depuis la dernière
+   installation (garder une empreinte dans `.runtime/`).
+3. Construire puis lancer le jeu (`npm start`).
+4. Afficher des messages clairs en français à chaque étape, et en cas d'erreur garder la fenêtre
+   ouverte (`pause`) pour que l'on puisse lire le message.
+
+`.gitignore` doit exclure au minimum : `node_modules/`, `.runtime/`, `dist/`, `out/`.
+
+Tu travailles sous Linux et ne peux pas exécuter le `.bat` : relis-le avec soin et indique dans
+la PR ce que Tanguy doit vérifier en le lançant.
+
+## Façon de travailler
+
+- On avance **étape par étape** selon la feuille de route de `docs/design.md`
+  (section « Plan technique »). Une tâche = une étape (ou une partie d'étape) = une pull request.
+- **Ne pas anticiper** les étapes suivantes : pas de code « pour plus tard ».
+- Si le design doc est ambigu ou si une contrainte technique oblige à s'en écarter, **ne décide pas
+  en silence** : choisis l'option la plus simple et cohérente avec les piliers, puis signale-la
+  clairement dans la PR sous un titre « Écarts et questions de design ».
+- Ne modifie pas `docs/design.md` toi-même : le design est tenu à jour côté conception.
+
+## Définition de « terminé » pour chaque étape
+
+- `npm run typecheck` et `npm test` passent.
+- Nouveau code de simulation couvert par des tests, dont au moins une simulation sans écran
+  déterministe (même graine = même résultat).
+- Le jeu se construit et se lance (`npm start`).
+- La PR contient, en français : ce qui a été fait, **ce que Tanguy doit voir en lançant le jeu**,
+  comment le tester, et les écarts ou questions de design.

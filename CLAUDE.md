@@ -6,7 +6,7 @@ et où les histoires naissent de façon **émergente et systémique**. Le joueur
 - La vision complète, les systèmes et les données de contenu sont dans **`docs/design.md`**.
   Lis-le avant toute tâche de conception ou de nouveau système.
 - Le propriétaire du projet (Tanguy) ne code pas : tout le code est écrit par Claude.
-  Explique tes choix en français simple dans les descriptions de pull request.
+  Explique tes choix en français simple dans tes messages de commit et ton compte rendu de fin de tâche.
 
 ## Les 5 piliers (ils tranchent toute décision)
 
@@ -21,7 +21,7 @@ et où les histoires naissent de façon **émergente et systémique**. Le joueur
 - TypeScript (strict), Electron, PixiJS (rendu de la carte), HTML/CSS (HUD), Vite (build), Vitest (tests).
 - **Aucun moteur externe. Aucune compilation sur GitHub.** Tout le code source est dans le dépôt.
 - Le jeu se lance sous **Windows** par double-clic sur `Lancer-GENESIS.bat` (voir plus bas).
-- Dépendances minimales, versions figées dans `package-lock.json`. Toute nouvelle dépendance doit être justifiée dans la PR.
+- Dépendances minimales, versions figées dans `package-lock.json`. Toute nouvelle dépendance doit être justifiée dans le compte rendu.
 
 ## Structure du dépôt
 
@@ -95,16 +95,25 @@ Doit fonctionner sur un Windows récent **sans Node installé et sans droits adm
 `.gitignore` doit exclure au minimum : `node_modules/`, `.runtime/`, `dist/`, `out/`.
 
 Tu travailles sous Linux et ne peux pas exécuter le `.bat` : relis-le avec soin et indique dans
-la PR ce que Tanguy doit vérifier en le lançant.
+ton compte rendu ce que Tanguy doit vérifier en le lançant.
+
+## Git : commits directs sur `main`
+
+- **Aucune pull request, aucune branche** : tu commites et pousses directement sur `main`.
+  (Une branche `beta` sera créée plus tard par Tanguy ; d'ici là, tout va sur `main`.)
+- Commits petits et cohérents, messages en **français**, clairs pour quelqu'un qui ne code pas
+  (ex. : « Génération du relief et des biomes »).
+- Ne pousse que du code qui passe `npm run typecheck` et `npm test` : `main` doit toujours pouvoir
+  être lancé avec le `.bat`.
 
 ## Façon de travailler
 
 - On avance **étape par étape** selon la feuille de route de `docs/design.md`
-  (section « Plan technique »). Une tâche = une étape (ou une partie d'étape) = une pull request.
+  (section « Plan technique »). Une tâche = une étape (ou une partie d'étape).
 - **Ne pas anticiper** les étapes suivantes : pas de code « pour plus tard ».
 - Si le design doc est ambigu ou si une contrainte technique oblige à s'en écarter, **ne décide pas
   en silence** : choisis l'option la plus simple et cohérente avec les piliers, puis signale-la
-  clairement dans la PR sous un titre « Écarts et questions de design ».
+  clairement dans ton compte rendu sous un titre « Écarts et questions de design ».
 - Ne modifie pas `docs/design.md` toi-même : le design est tenu à jour côté conception.
 
 ## Définition de « terminé » pour chaque étape
@@ -113,5 +122,6 @@ la PR ce que Tanguy doit vérifier en le lançant.
 - Nouveau code de simulation couvert par des tests, dont au moins une simulation sans écran
   déterministe (même graine = même résultat).
 - Le jeu se construit et se lance (`npm start`).
-- La PR contient, en français : ce qui a été fait, **ce que Tanguy doit voir en lançant le jeu**,
-  comment le tester, et les écarts ou questions de design.
+- Les commits sont poussés sur `main`.
+- Le compte rendu de fin de tâche contient, en français : ce qui a été fait, **ce que Tanguy doit
+  voir en lançant le jeu**, comment le tester, et les écarts ou questions de design.

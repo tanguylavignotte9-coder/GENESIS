@@ -540,7 +540,7 @@ Contraintes : aucun moteur externe, aucune compilation sur GitHub, tout le code 
 ### Flux de travail
 
 1. **Conception** dans ce design doc.
-2. **Code** par Claude Code, branché sur le dépôt : une étape de la feuille de route par tâche, livrée en pull request.
+2. **Code** par Claude Code, branché sur le dépôt : une étape de la feuille de route par tâche, commitée directement sur `main` (aucune pull request ; une branche `beta` viendra plus tard).
 3. **Test** par Tanguy : GitHub Desktop récupère les modifications, puis double-clic sur `Lancer-GENESIS.bat`.
 4. **Lien entre les deux :** `docs/design.md` (copie de ce doc) et `CLAUDE.md` (règles de codage) vivent dans le dépôt.
 

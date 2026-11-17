@@ -46,6 +46,8 @@ export function startAnomalyYear(world: World, state: ClimateState, params: Anom
     const center = pickCenter(world, mass.id, mass, rng);
     const radius = rng.nextRange(params.radiusMin, params.radiusMax) * world.size;
     const place = describeLocation(world.landmasses, world.landmassNames, center.x, center.y, world.size);
+    // One abnormal year per region and per year: a second roll on the same region is lost.
+    if (state.anomalies.some((other) => other.place === place)) continue;
     const startEventId = journal.publish({
       tick,
       type: ANOMALY_START,

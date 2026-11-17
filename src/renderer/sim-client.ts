@@ -11,7 +11,18 @@ export class SimClient {
   }
 
   start(seed: number): void {
-    const message: ToSimMessage = { type: 'start', seed };
+    this.send({ type: 'start', seed });
+  }
+
+  setSpeed(speedIndex: number): void {
+    this.send({ type: 'setSpeed', speedIndex });
+  }
+
+  setPaused(paused: boolean): void {
+    this.send({ type: 'setPaused', paused });
+  }
+
+  private send(message: ToSimMessage): void {
     this.worker.postMessage(message);
   }
 }

@@ -20,7 +20,21 @@
       <div id="form-error" class="form-error" hidden></div>
     </form>
 
-    <div id="help" class="panel">Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer</div>
+    <div id="time" class="panel">
+      <div id="date">…</div>
+      <div id="speeds" class="speed-buttons">
+        <button id="pause" type="button" title="Pause (Espace)">⏸</button>
+      </div>
+    </div>
+
+    <section id="journal" class="panel">
+      <button id="journal-toggle" type="button">▾ Journal</button>
+      <ol id="journal-list"></ol>
+    </section>
+
+    <div id="help" class="panel">
+      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse
+    </div>
 
     <div id="tooltip" class="panel" hidden></div>
 

@@ -1,7 +1,9 @@
 import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
-import type { FromSimMessage, WorldSnapshot } from '../shared/messages';
+import type { ClimateSnapshot, FromSimMessage, WorldSnapshot } from '../shared/messages';
+import { JournalPanel } from './hud/journal-panel';
+import { TimeControls } from './hud/time-controls';
 import { Tooltip } from './hud/tooltip';
 import { randomSeed, WorldPanel } from './hud/world-panel';
 import { Camera } from './map/camera';
@@ -28,29 +30,10 @@ async function main(): Promise<void> {
   const camera = new Camera(app.canvas, mapView.container);
   const tooltip = new Tooltip(element('tooltip'));
   let world: WorldSnapshot | null = null;
+  let climate: ClimateSnapshot | null = null;
   let mouse: { x: number; y: number } | null = null;
 
-  const sim = new SimClient((message: FromSimMessage) => {
-    switch (message.type) {
-      case 'worldGenerating':
-        panel.setGenerating(message.seed);
-        tooltip.hide();
-        return;
-      case 'worldReady':
-        world = message.world;
-        mapView.setWorld(world);
-        camera.reset(world.size);
-        panel.setWorld({ seed: message.seed, generationMs: message.generationMs, riverCount: world.riverCount, lakeCount: world.lakeCount });
-        return;
-      case 'status':
-        panel.setTick(message.tick);
-        return;
-      case 'error':
-        panel.showError(message.message);
-        return;
-    }
-  });
-
+  const sim = new SimClient((message: FromSimMessage) => onMessage(message));
   const panel = new WorldPanel(
     element('summary'),
     element<HTMLFormElement>('world-form'),
@@ -60,6 +43,47 @@ async function main(): Promise<void> {
     element('loading'),
     (seed) => sim.start(seed),
   );
+  const time = new TimeControls(
+    element('date'),
+    element('speeds'),
+    element<HTMLButtonElement>('pause'),
+    (paused) => sim.setPaused(paused),
+    (speedIndex) => sim.setSpeed(speedIndex),
+  );
+  const journal = new JournalPanel(element('journal'), element<HTMLButtonElement>('journal-toggle'), element('journal-list'), (place) =>
+    camera.focusOn(place.x, place.y),
+  );
+
+  function onMessage(message: FromSimMessage): void {
+    switch (message.type) {
+      case 'worldGenerating':
+        panel.setGenerating(message.seed);
+        tooltip.hide();
+        journal.clear();
+        return;
+      case 'worldReady':
+        world = message.world;
+        climate = null;
+        mapView.setWorld(world);
+        camera.reset(world.size);
+        time.setSpeeds(message.speeds);
+        panel.setWorld({ seed: message.seed, generationMs: message.generationMs, riverCount: world.riverCount, lakeCount: world.lakeCount });
+        return;
+      case 'climate':
+        climate = message.climate;
+        mapView.setClimate(climate);
+        return;
+      case 'journal':
+        journal.add(message.entries);
+        return;
+      case 'status':
+        time.setStatus(message.date, message.paused, message.speedIndex);
+        return;
+      case 'error':
+        panel.showError(message.message);
+        return;
+    }
+  }
 
   app.canvas.addEventListener('pointermove', (event) => (mouse = { x: event.offsetX, y: event.offsetY }));
   app.canvas.addEventListener('pointerleave', () => {
@@ -72,7 +96,7 @@ async function main(): Promise<void> {
     mapView.update(camera.visibleTiles());
     if (world && mouse && !camera.isDragging) {
       const tile = camera.screenToTile(mouse.x, mouse.y);
-      tooltip.show(world, tile.x, tile.y, mouse.x, mouse.y);
+      tooltip.show(world, climate, tile.x, tile.y, mouse.x, mouse.y);
     } else if (camera.isDragging) {
       tooltip.hide();
     }

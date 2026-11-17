@@ -20,6 +20,8 @@ export interface BiomeDef {
   maxHumidity?: number;
   /** If true, the tile must be within `beachMaxDistance` tiles of the ocean. */
   coastal?: boolean;
+  /** Plant cover that dries out (yellows) in the dry season. Display only, not a condition. */
+  vegetation?: boolean;
 }
 
 export interface WaterDef {
@@ -29,6 +31,8 @@ export interface WaterDef {
 
 export interface BiomeTable {
   biomes: BiomeDef[];
+  /** Map colors of seasonal effects. */
+  seasonColors: { snow: string; dryVegetation: string };
   water: { river: WaterDef; lake: WaterDef };
 }
 
@@ -55,10 +59,12 @@ const BIOMES_SCHEMA: Schema = {
           minHumidity: { kind: 'number', min: 0, max: 1 },
           maxHumidity: { kind: 'number', min: 0, max: 1 },
           coastal: { kind: 'boolean' },
+          vegetation: { kind: 'boolean' },
         },
-        optional: [...CONDITIONS, 'coastal'],
+        optional: [...CONDITIONS, 'coastal', 'vegetation'],
       },
     },
+    seasonColors: { kind: 'object', fields: { snow: COLOR, dryVegetation: COLOR } },
     water: {
       kind: 'object',
       fields: {

@@ -13,6 +13,8 @@ export const VIEW = {
   wheelDeltaPerNotch: 100,
   /** Keyboard panning speed, in screen pixels per second. */
   keyboardPanPixelsPerSecond: 700,
+  /** Zoom used when the camera jumps to a journal event. */
+  focusPixelsPerTile: 3,
   /** Tooltip offset from the mouse cursor, in pixels. */
   tooltipOffset: 16,
 } as const;

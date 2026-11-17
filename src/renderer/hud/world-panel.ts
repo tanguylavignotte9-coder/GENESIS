@@ -16,7 +16,6 @@ export interface WorldInfo {
  */
 export class WorldPanel {
   private info: WorldInfo | null = null;
-  private tick = 0;
 
   constructor(
     private readonly summary: HTMLElement,
@@ -43,14 +42,8 @@ export class WorldPanel {
 
   setWorld(info: WorldInfo): void {
     this.info = info;
-    this.tick = 0;
     this.loading.hidden = true;
     this.button.disabled = false;
-    this.render();
-  }
-
-  setTick(tick: number): void {
-    this.tick = tick;
     this.render();
   }
 
@@ -67,7 +60,7 @@ export class WorldPanel {
     this.summary.classList.remove('error');
     this.summary.textContent =
       `GENESIS · graine ${seed} · monde généré en ${secondsFormat.format(generationMs / MS_PER_SECOND)} s\n` +
-      `${fr.format(riverCount)} rivières · ${fr.format(lakeCount)} lacs · tic ${fr.format(this.tick)}`;
+      `${fr.format(riverCount)} rivières · ${fr.format(lakeCount)} lacs`;
   }
 
   /** Empty field = random seed. Returns null (and shows a message) if the text is not a valid seed. */

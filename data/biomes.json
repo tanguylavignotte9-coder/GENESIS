@@ -6,15 +6,19 @@
     { "id": "mountain", "name": "Montagne", "color": "#7f776b", "domain": "land", "minAltitude": 1500 },
     { "id": "ice", "name": "Glace", "color": "#dce8f0", "domain": "land", "maxTemperature": -14 },
     { "id": "beach", "name": "Plage", "color": "#e2d39b", "domain": "land", "coastal": true, "maxAltitude": 15, "minTemperature": 0 },
-    { "id": "tundra", "name": "Toundra", "color": "#9ba68e", "domain": "land", "maxTemperature": -4 },
-    { "id": "marsh", "name": "Marais", "color": "#52705a", "domain": "land", "maxAltitude": 150, "minHumidity": 0.8, "minTemperature": 3 },
-    { "id": "taiga", "name": "Taïga", "color": "#3e6b58", "domain": "land", "maxTemperature": 4, "minHumidity": 0.3 },
-    { "id": "tropical_forest", "name": "Forêt tropicale", "color": "#2f7d34", "domain": "land", "minTemperature": 20, "minHumidity": 0.62 },
-    { "id": "savanna", "name": "Savane", "color": "#b7a84a", "domain": "land", "minTemperature": 20, "minHumidity": 0.3 },
+    { "id": "tundra", "name": "Toundra", "color": "#9ba68e", "domain": "land", "maxTemperature": -4, "vegetation": true },
+    { "id": "marsh", "name": "Marais", "color": "#52705a", "domain": "land", "maxAltitude": 150, "minHumidity": 0.8, "minTemperature": 3, "vegetation": true },
+    { "id": "taiga", "name": "Taïga", "color": "#3e6b58", "domain": "land", "maxTemperature": 4, "minHumidity": 0.3, "vegetation": true },
+    { "id": "tropical_forest", "name": "Forêt tropicale", "color": "#2f7d34", "domain": "land", "minTemperature": 20, "minHumidity": 0.62, "vegetation": true },
+    { "id": "savanna", "name": "Savane", "color": "#b7a84a", "domain": "land", "minTemperature": 20, "minHumidity": 0.3, "vegetation": true },
     { "id": "desert", "name": "Désert", "color": "#e0c37c", "domain": "land", "maxHumidity": 0.3 },
-    { "id": "temperate_forest", "name": "Forêt tempérée", "color": "#4d8a3c", "domain": "land", "minHumidity": 0.5 },
-    { "id": "prairie", "name": "Prairie", "color": "#94b85c", "domain": "land" }
+    { "id": "temperate_forest", "name": "Forêt tempérée", "color": "#4d8a3c", "domain": "land", "minHumidity": 0.5, "vegetation": true },
+    { "id": "prairie", "name": "Prairie", "color": "#94b85c", "domain": "land", "vegetation": true }
   ],
+  "seasonColors": {
+    "snow": "#f3f6fa",
+    "dryVegetation": "#c8b27a"
+  },
   "water": {
     "river": { "name": "Rivière", "color": "#3c7fd6" },
     "lake": { "name": "Lac", "color": "#3a73bf" }

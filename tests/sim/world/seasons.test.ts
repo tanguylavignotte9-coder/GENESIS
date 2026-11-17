@@ -84,6 +84,8 @@ describe('abnormal years', () => {
     const starts = events.filter((event) => event.type === ANOMALY_START);
     const ends = events.filter((event) => event.type === ANOMALY_END);
     expect(starts.length).toBeGreaterThan(0);
+    const regionsPerYear = starts.map((start) => `${start.tick} ${start.place?.label}`);
+    expect(new Set(regionsPerYear).size).toBe(regionsPerYear.length);
     for (const start of starts) {
       expect(start.place?.label).toBeTruthy();
       expect(start.text).toContain(start.place?.label ?? '?');

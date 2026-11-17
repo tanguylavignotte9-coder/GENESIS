@@ -53,6 +53,14 @@ export class Camera {
     this.apply();
   }
 
+  /** Centers the view on a tile, zooming in to at least `VIEW.focusPixelsPerTile`. */
+  focusOn(x: number, y: number): void {
+    this.centerX = x + 0.5;
+    this.centerY = y + 0.5;
+    this.zoom = Math.max(this.zoom, VIEW.focusPixelsPerTile);
+    this.apply();
+  }
+
   /** Moves with the keyboard; call every frame. */
   update(elapsedMs: number): void {
     let dx = 0;

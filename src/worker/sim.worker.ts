@@ -1,11 +1,14 @@
 /// <reference lib="webworker" />
 /**
  * Simulation thread. Generates the world (without blocking the window), sends it to the display,
- * then drives the simulation clock in real time (x1 speed).
+ * then runs the simulation in real time at the chosen speed, sending the date, the climate of
+ * each new day and the new journal events.
  */
+import { formatDate, dateAtTick } from '../sim/core/calendar';
 import { loadGameData, type GameData } from '../sim/core/game-data';
 import { Simulation } from '../sim/core/simulation';
-import type { FromSimMessage, ToSimMessage } from '../shared/messages';
+import type { FromSimMessage, JournalEntry, ToSimMessage } from '../shared/messages';
+import { snapshotClimate } from './climate-snapshot';
 import { snapshotWorld } from './world-snapshot';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -13,9 +16,18 @@ declare const self: DedicatedWorkerGlobalScope;
 /** How often the worker wakes up to catch up with real time (technical, not gameplay). */
 const LOOP_INTERVAL_MS = 50;
 const MS_PER_SECOND = 1000;
+/** If the computer falls behind, at most this much real time is caught up at once. */
+const MAX_CATCH_UP_SECONDS = 0.5;
 
-let loop: ReturnType<typeof setInterval> | undefined;
 let data: GameData | undefined;
+let simulation: Simulation | undefined;
+let loop: ReturnType<typeof setInterval> | undefined;
+let paused = false;
+let speedIndex = 0;
+let pendingTicks = 0;
+let lastLoopAt = 0;
+let sentClimateVersion = -1;
+let sentEvents = 0;
 
 function post(message: FromSimMessage, transfer: Transferable[] = []): void {
   self.postMessage(message, transfer);
@@ -28,31 +40,90 @@ function errorMessage(error: unknown): string {
 function start(seed: number): void {
   if (loop !== undefined) clearInterval(loop);
   loop = undefined;
+  simulation = undefined;
   post({ type: 'worldGenerating', seed });
 
-  let simulation: Simulation;
   const generationStart = performance.now();
+  let created: Simulation;
   try {
     data ??= loadGameData();
-    simulation = new Simulation(seed, data);
+    created = new Simulation(seed, data);
   } catch (error) {
     post({ type: 'error', message: errorMessage(error) });
     return;
   }
+  simulation = created;
   const generationMs = performance.now() - generationStart;
-  const { snapshot, transfer } = snapshotWorld(simulation.world);
-  post({ type: 'worldReady', seed, world: snapshot, generationMs }, transfer);
+  const { snapshot, transfer } = snapshotWorld(created.world);
+  post({ type: 'worldReady', seed, world: snapshot, generationMs, speeds: created.data.time.speeds }, transfer);
 
-  const startedAt = performance.now();
-  const { ticksPerRealSecond } = simulation.data.time;
-  loop = setInterval(() => {
-    const elapsedSeconds = (performance.now() - startedAt) / MS_PER_SECOND;
-    const targetTick = Math.floor(elapsedSeconds * ticksPerRealSecond);
-    simulation.step(targetTick - simulation.clock.tick);
-    post({ type: 'status', seed: simulation.seed, tick: simulation.clock.tick });
-  }, LOOP_INTERVAL_MS);
+  sentClimateVersion = -1;
+  sentEvents = 0;
+  pendingTicks = 0;
+  lastLoopAt = performance.now();
+  publishChanges(created);
+  loop = setInterval(runLoop, LOOP_INTERVAL_MS);
+}
+
+function runLoop(): void {
+  const current = simulation;
+  if (!current) return;
+  const now = performance.now();
+  const elapsedSeconds = Math.min(MAX_CATCH_UP_SECONDS, (now - lastLoopAt) / MS_PER_SECOND);
+  lastLoopAt = now;
+  if (!paused) {
+    const { ticksPerRealSecond, speeds } = current.data.time;
+    pendingTicks += elapsedSeconds * ticksPerRealSecond * (speeds[speedIndex] ?? 1);
+    const ticks = Math.floor(pendingTicks);
+    pendingTicks -= ticks;
+    current.step(ticks);
+  }
+  publishChanges(current);
+}
+
+/** Sends what changed since the last loop: climate (once per day), new events, date. */
+function publishChanges(current: Simulation): void {
+  if (current.climateVersion !== sentClimateVersion) {
+    sentClimateVersion = current.climateVersion;
+    const { snapshot, transfer } = snapshotClimate(current);
+    post({ type: 'climate', climate: snapshot }, transfer);
+  }
+  if (current.journal.size > sentEvents) {
+    const time = current.data.time;
+    const entries: JournalEntry[] = current.journal.since(sentEvents).map((event) => ({
+      id: event.id,
+      date: formatDate(dateAtTick(event.tick, time), time),
+      text: event.text,
+      place: event.place,
+      causes: event.causes,
+    }));
+    sentEvents = current.journal.size;
+    post({ type: 'journal', entries });
+  }
+  post({
+    type: 'status',
+    seed: current.seed,
+    tick: current.clock.tick,
+    date: formatDate(current.date, current.data.time),
+    paused,
+    speedIndex,
+  });
 }
 
 self.onmessage = (event: MessageEvent<ToSimMessage>) => {
-  if (event.data.type === 'start') start(event.data.seed);
+  const message = event.data;
+  switch (message.type) {
+    case 'start':
+      start(message.seed);
+      return;
+    case 'setSpeed':
+      if (simulation && message.speedIndex >= 0 && message.speedIndex < simulation.data.time.speeds.length) {
+        speedIndex = message.speedIndex;
+        paused = false;
+      }
+      return;
+    case 'setPaused':
+      paused = message.paused;
+      return;
+  }
 };

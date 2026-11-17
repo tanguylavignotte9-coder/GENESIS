@@ -100,6 +100,110 @@ body {
   font-size: 12px;
 }
 
+#time {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+#date {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
+.speed-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.speed-buttons button,
+#journal-toggle {
+  padding: 3px 9px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.speed-buttons button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.speed-buttons button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+#journal {
+  top: 76px;
+  right: 12px;
+  width: 340px;
+  max-height: calc(100vh - 150px);
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+}
+
+#journal-toggle {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 2px 4px;
+}
+
+#journal-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+#journal.collapsed #journal-list {
+  display: none;
+}
+
+#journal-list li {
+  padding: 6px 8px;
+  border-top: 1px solid var(--hud-border);
+  line-height: 1.4;
+  user-select: text;
+}
+
+#journal-list li.clickable {
+  cursor: pointer;
+}
+
+#journal-list li.clickable:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.journal-date {
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+.journal-cause {
+  margin-top: 2px;
+  color: var(--hud-muted);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.journal-empty {
+  color: var(--hud-muted);
+  font-style: italic;
+}
+
 #help {
   bottom: 12px;
   left: 12px;

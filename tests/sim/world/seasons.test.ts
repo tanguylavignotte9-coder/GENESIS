@@ -21,11 +21,14 @@ function simulationAtDay(day: number, chance = 0) {
   return simulation;
 }
 
-function rowAverage(field: Float32Array | Uint8Array, row: number): number {
+function rowAverage(valueAt: (index: number) => number, row: number): number {
   let sum = 0;
-  for (let x = 0; x < SIZE; x++) sum += field[row * SIZE + x] ?? 0;
+  for (let x = 0; x < SIZE; x++) sum += valueAt(row * SIZE + x);
   return sum / SIZE;
 }
+
+const temperatures = (simulation: Simulation) => (index: number) => simulation.climate.temperatureAt(index);
+const humidities = (simulation: Simulation) => (index: number) => simulation.climate.humidityAt(index);
 
 describe('seasons', () => {
   const data = testData();
@@ -44,8 +47,8 @@ describe('seasons', () => {
     const cold = simulationAtDay(winter);
     const polarRow = 8;
     const equatorRow = SIZE / 2;
-    const polarSwing = rowAverage(hot.climate.temperature, polarRow) - rowAverage(cold.climate.temperature, polarRow);
-    const equatorSwing = Math.abs(rowAverage(hot.climate.temperature, equatorRow) - rowAverage(cold.climate.temperature, equatorRow));
+    const polarSwing = rowAverage(temperatures(hot), polarRow) - rowAverage(temperatures(cold), polarRow);
+    const equatorSwing = Math.abs(rowAverage(temperatures(hot), equatorRow) - rowAverage(temperatures(cold), equatorRow));
     expect(polarSwing).toBeGreaterThan(20);
     expect(equatorSwing).toBeLessThan(3);
   });
@@ -53,7 +56,7 @@ describe('seasons', () => {
   it('snow spreads in the northern winter and retreats in the northern summer', () => {
     const snowyTiles = (simulation: Simulation): number => {
       let count = 0;
-      for (let i = 0; i < (SIZE * SIZE) / 2; i++) if ((simulation.climate.snow[i] ?? 0) > 50) count++;
+      for (let i = 0; i < (SIZE * SIZE) / 2; i++) if (simulation.climate.snowAt(i) > 0.5) count++;
       return count;
     };
     expect(snowyTiles(simulationAtDay(winter))).toBeGreaterThan(2 * snowyTiles(simulationAtDay(summer)));
@@ -61,8 +64,8 @@ describe('seasons', () => {
 
   it('near the equator, a wet season and a dry season alternate', () => {
     const tropicalRow = Math.round(SIZE / 2 - 0.1 * (SIZE / 2));
-    const wet = rowAverage(simulationAtDay(summer).climate.humidity, tropicalRow);
-    const dry = rowAverage(simulationAtDay(winter).climate.humidity, tropicalRow);
+    const wet = rowAverage(humidities(simulationAtDay(summer)), tropicalRow);
+    const dry = rowAverage(humidities(simulationAtDay(winter)), tropicalRow);
     expect(wet).toBeGreaterThan(dry * 1.5);
   });
 });
@@ -106,7 +109,7 @@ describe('abnormal years', () => {
     const i = Math.round(drought.y) * SIZE + Math.round(drought.x);
     expect(simulation.climate.anomalyIndex[i]).toBeGreaterThan(0);
     const calm = new Simulation(7, testData(0));
-    expect(simulation.climate.humidity[i]).toBeLessThan((calm.climate.humidity[i] ?? 0) * 0.7);
+    expect(simulation.climate.humidityAt(i)).toBeLessThan(calm.climate.humidityAt(i) * 0.7);
   });
 
   it('never happen when their probability is 0', () => {

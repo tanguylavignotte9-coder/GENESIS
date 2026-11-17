@@ -7,8 +7,8 @@
 import { formatDate, dateAtTick } from '../sim/core/calendar';
 import { loadGameData, type GameData } from '../sim/core/game-data';
 import { Simulation } from '../sim/core/simulation';
+import { daysPerYear } from '../sim/core/time-params';
 import type { FromSimMessage, JournalEntry, ToSimMessage } from '../shared/messages';
-import { snapshotClimate } from './climate-snapshot';
 import { snapshotWorld } from './world-snapshot';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -27,6 +27,7 @@ let speedIndex = 0;
 let pendingTicks = 0;
 let lastLoopAt = 0;
 let sentClimateVersion = -1;
+let sentAnomalies: unknown = null;
 let sentEvents = 0;
 
 function post(message: FromSimMessage, transfer: Transferable[] = []): void {
@@ -55,9 +56,13 @@ function start(seed: number): void {
   simulation = created;
   const generationMs = performance.now() - generationStart;
   const { snapshot, transfer } = snapshotWorld(created.world);
-  post({ type: 'worldReady', seed, world: snapshot, generationMs, speeds: created.data.time.speeds }, transfer);
+  post(
+    { type: 'worldReady', seed, world: snapshot, generationMs, speeds: created.data.time.speeds, climate: created.data.climate, daysPerYear: daysPerYear(created.data.time) },
+    transfer,
+  );
 
   sentClimateVersion = -1;
+  sentAnomalies = null;
   sentEvents = 0;
   pendingTicks = 0;
   lastLoopAt = performance.now();
@@ -83,10 +88,17 @@ function runLoop(): void {
 
 /** Sends what changed since the last loop: climate (once per day), new events, date. */
 function publishChanges(current: Simulation): void {
+  const climate = current.climate;
+  if (climate.anomalies !== sentAnomalies) {
+    // A new year began: the abnormal years changed (the array is replaced each year).
+    sentAnomalies = climate.anomalies;
+    const anomalyIndex = climate.anomalyIndex.slice();
+    const anomalyWeight = climate.anomalyWeight.slice();
+    post({ type: 'climateYear', year: { anomalyIndex, anomalyWeight, anomalies: climate.anomalies } }, [anomalyIndex.buffer, anomalyWeight.buffer]);
+  }
   if (current.climateVersion !== sentClimateVersion) {
     sentClimateVersion = current.climateVersion;
-    const { snapshot, transfer } = snapshotClimate(current);
-    post({ type: 'climate', climate: snapshot }, transfer);
+    post({ type: 'climateDay', dayOfYear: climate.dayOfYear });
   }
   if (current.journal.size > sentEvents) {
     const time = current.data.time;

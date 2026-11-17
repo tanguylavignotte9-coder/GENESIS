@@ -1,6 +1,8 @@
 /** Typed messages exchanged between the display (renderer) and the simulation worker. */
 import type { EventPlace } from '../sim/core/journal';
 import type { BiomeTable } from '../sim/systems/world/biomes';
+import type { ClimateParams } from '../sim/systems/world/climate-params';
+import type { ActiveAnomaly } from '../sim/systems/world/climate-state';
 
 /** Display -> simulation. */
 export type ToSimMessage =
@@ -27,20 +29,11 @@ export interface WorldSnapshot {
   lakeCount: number;
 }
 
-/** Climate of the current day, quantized to keep messages small. */
-export interface ClimateSnapshot {
-  /** Changes every game day. */
-  version: number;
-  /** °C, rounded. */
-  temperature: Int8Array;
-  /** 0..100 % */
-  humidity: Uint8Array;
-  /** Snow cover, 0..100 % */
-  snow: Uint8Array;
-  /** 0 = none, k + 1 = anomalyNames[k]. */
-  anomaly: Uint8Array;
-  /** Name of each abnormal year in progress ("Sécheresse"). */
-  anomalyNames: string[];
+/** Abnormal years of the current year (sent once per year). The display rebuilds the climate from it. */
+export interface ClimateYearSnapshot {
+  anomalyIndex: Uint8Array;
+  anomalyWeight: Float32Array;
+  anomalies: ActiveAnomaly[];
 }
 
 /** A journal event as shown to the player. */
@@ -56,8 +49,9 @@ export interface JournalEntry {
 /** Simulation -> display. */
 export type FromSimMessage =
   | { type: 'worldGenerating'; seed: number }
-  | { type: 'worldReady'; seed: number; world: WorldSnapshot; generationMs: number; speeds: number[] }
-  | { type: 'climate'; climate: ClimateSnapshot }
+  | { type: 'worldReady'; seed: number; world: WorldSnapshot; generationMs: number; speeds: number[]; climate: ClimateParams; daysPerYear: number }
+  | { type: 'climateYear'; year: ClimateYearSnapshot }
+  | { type: 'climateDay'; dayOfYear: number }
   | { type: 'journal'; entries: JournalEntry[] }
   | { type: 'status'; seed: number; tick: number; date: string; paused: boolean; speedIndex: number }
   | { type: 'error'; message: string };

@@ -1,5 +1,6 @@
 import { BufferImageSource, Container, Sprite, Texture } from 'pixi.js';
-import type { ClimateSnapshot, WorldSnapshot } from '../../shared/messages';
+import type { ClimateState } from '../../sim/systems/world/climate-state';
+import type { WorldSnapshot } from '../../shared/messages';
 import { VIEW } from '../view-settings';
 import { buildPalette, writeTileColor, type Palette } from './tile-colors';
 
@@ -30,7 +31,8 @@ interface Chunk {
 export class MapView {
   readonly container = new Container();
   private world: WorldSnapshot | null = null;
-  private climate: ClimateSnapshot | null = null;
+  private climate: ClimateState | null = null;
+  private climateVersion = 0;
   private palette: Palette | null = null;
   private chunks: Chunk[] = [];
   private chunksPerSide = 0;
@@ -39,6 +41,7 @@ export class MapView {
     this.clear();
     this.world = world;
     this.climate = null;
+    this.climateVersion = 0;
     this.palette = buildPalette(world);
     this.chunksPerSide = Math.ceil(world.size / VIEW.chunkTiles);
     for (let cy = 0; cy < this.chunksPerSide; cy++) {
@@ -50,15 +53,16 @@ export class MapView {
     }
   }
 
-  /** New climate of the day: chunks will be redrawn progressively. */
-  setClimate(climate: ClimateSnapshot): void {
+  /** The climate changed (new day or new year): chunks will be redrawn progressively. */
+  setClimate(climate: ClimateState): void {
     this.climate = climate;
+    this.climateVersion++;
   }
 
   /** Shows the chunks inside `visible`, (re)drawing at most `VIEW.chunksPerFrame` of them. */
   update(visible: TileRect): void {
     if (!this.world) return;
-    const version = this.climate?.version ?? 0;
+    const version = this.climateVersion;
     const first = (value: number): number => Math.max(0, Math.floor(value / VIEW.chunkTiles));
     const last = (value: number): number => Math.min(this.chunksPerSide - 1, Math.floor(value / VIEW.chunkTiles));
     const x0 = first(visible.minX);

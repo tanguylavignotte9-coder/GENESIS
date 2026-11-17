@@ -1,6 +1,5 @@
 import { startAnomalyYear } from '../systems/world/anomalies';
 import { ClimateState } from '../systems/world/climate-state';
-import { buildSeasonRows, updateDailyClimate, type SeasonRows } from '../systems/world/seasons';
 import { generateWorld, type World } from '../systems/world/world';
 import { dateAtTick, type GameDate } from './calendar';
 import { SimClock } from './clock';
@@ -21,7 +20,6 @@ export class Simulation {
   readonly journal = new Journal();
   readonly world: World;
   readonly climate: ClimateState;
-  private readonly seasonRows: SeasonRows;
   /** Incremented each time the climate of the moment changes (once per game day). */
   climateVersion = 0;
 
@@ -30,8 +28,7 @@ export class Simulation {
     this.data = data;
     this.rng = new Rng(seed);
     this.world = generateWorld(data.worldgen, data.biomes, this.rng);
-    this.climate = new ClimateState(this.world.size * this.world.size);
-    this.seasonRows = buildSeasonRows(this.world.size, data.climate);
+    this.climate = new ClimateState(this.world, data.climate, daysPerYear(data.time));
     this.startDay(this.date);
   }
 
@@ -52,7 +49,7 @@ export class Simulation {
     if (date.dayOfYear === 0) {
       startAnomalyYear(this.world, this.climate, this.data.climate.anomalies, this.rng, this.journal, this.clock.tick);
     }
-    updateDailyClimate(this.world, this.climate, this.seasonRows, this.data.climate, date.dayOfYear, daysPerYear(this.data.time));
+    this.climate.setDay(date.dayOfYear);
     this.climateVersion++;
   }
 }

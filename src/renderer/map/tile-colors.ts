@@ -1,5 +1,6 @@
 import { Water } from '../../sim/systems/world/hydrology';
-import type { ClimateSnapshot, WorldSnapshot } from '../../shared/messages';
+import type { ClimateState } from '../../sim/systems/world/climate-state';
+import type { WorldSnapshot } from '../../shared/messages';
 import { parseHexColor, tileHash, type Rgb } from '../color';
 
 /** Visual tuning of the map colors (display only). */
@@ -24,7 +25,6 @@ const SHADING = {
   snowNoise: 0.15,
 } as const;
 
-const PERCENT = 100;
 
 /** Precomputed palette for one world. */
 export interface Palette {
@@ -50,7 +50,7 @@ export function buildPalette(world: WorldSnapshot): Palette {
 /** Writes the RGBA color of tile (x, y) into `out` at `offset`, with today's season if `climate` is given. */
 export function writeTileColor(
   world: WorldSnapshot,
-  climate: ClimateSnapshot | null,
+  climate: ClimateState | null,
   palette: Palette,
   x: number,
   y: number,
@@ -65,10 +65,10 @@ export function writeTileColor(
 
   if (climate && world.ocean[index] === 0) {
     if (water === Water.None && palette.vegetation[biome]) {
-      const dry = dryness(world.humidity[index] ?? 0, (climate.humidity[index] ?? 0) / PERCENT) * SHADING.dryStrength;
+      const dry = dryness(world.humidity[index] ?? 0, climate.humidityAt(index)) * SHADING.dryStrength;
       [r, g, b] = mix([r, g, b], palette.dry, dry);
     }
-    const snow = (climate.snow[index] ?? 0) / PERCENT;
+    const snow = climate.snowAt(index);
     if (snow > 0) {
       const edge = 1 + (tileHash(x, y, 3) * 2 - 1) * SHADING.snowNoise;
       [r, g, b] = mix([r, g, b], palette.snow, Math.min(1, snow * edge) * SHADING.snowOpacity);

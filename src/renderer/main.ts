@@ -1,7 +1,8 @@
 import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
-import type { ClimateSnapshot, FromSimMessage, WorldSnapshot } from '../shared/messages';
+import { ClimateState } from '../sim/systems/world/climate-state';
+import type { FromSimMessage, WorldSnapshot } from '../shared/messages';
 import { JournalPanel } from './hud/journal-panel';
 import { TimeControls } from './hud/time-controls';
 import { Tooltip } from './hud/tooltip';
@@ -30,7 +31,7 @@ async function main(): Promise<void> {
   const camera = new Camera(app.canvas, mapView.container);
   const tooltip = new Tooltip(element('tooltip'));
   let world: WorldSnapshot | null = null;
-  let climate: ClimateSnapshot | null = null;
+  let climate: ClimateState | null = null;
   let mouse: { x: number; y: number } | null = null;
 
   const sim = new SimClient((message: FromSimMessage) => onMessage(message));
@@ -63,15 +64,20 @@ async function main(): Promise<void> {
         return;
       case 'worldReady':
         world = message.world;
-        climate = null;
+        climate = new ClimateState(world, message.climate, message.daysPerYear);
         mapView.setWorld(world);
+        mapView.setClimate(climate);
         camera.reset(world.size);
         time.setSpeeds(message.speeds);
         panel.setWorld({ seed: message.seed, generationMs: message.generationMs, riverCount: world.riverCount, lakeCount: world.lakeCount });
         return;
-      case 'climate':
-        climate = message.climate;
-        mapView.setClimate(climate);
+      case 'climateYear':
+        climate?.setAnomalies(message.year.anomalies, message.year.anomalyIndex, message.year.anomalyWeight);
+        if (climate) mapView.setClimate(climate);
+        return;
+      case 'climateDay':
+        climate?.setDay(message.dayOfYear);
+        if (climate) mapView.setClimate(climate);
         return;
       case 'journal':
         journal.add(message.entries);

@@ -57,10 +57,11 @@ export function startAnomalyYear(world: World, state: ClimateState, params: Anom
       causes: [],
       details: { anomaly: type.id },
     });
-    const anomaly: ActiveAnomaly = { type: typeIndex, x: center.x, y: center.y, radius, place, startEventId };
+    const anomaly: ActiveAnomaly = { type: typeIndex, x: center.x, y: center.y, radius, place, landmass: mass.id, startEventId };
     state.anomalies.push(anomaly);
     paintAnomaly(state, world.size, anomaly, state.anomalies.length);
   }
+  state.refreshAnomalyEffects();
 }
 
 function pickType(types: readonly AnomalyType[], rng: Rng): number {

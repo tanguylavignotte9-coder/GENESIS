@@ -32,8 +32,20 @@
       <ol id="journal-list"></ol>
     </section>
 
+    <div id="follow" class="panel" hidden>
+      <span id="follow-text"></span>
+      <button id="follow-stop" type="button">Arrêter</button>
+    </div>
+
+    <button id="stats-toggle" class="panel" type="button">Statistiques</button>
+    <section id="stats" class="panel" hidden>
+      <div class="stats-title">Populations animales</div>
+      <canvas id="stats-chart"></canvas>
+      <div id="stats-legend"></div>
+    </section>
+
     <div id="help" class="panel">
-      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse
+      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur un animal : le suivre
     </div>
 
     <div id="tooltip" class="panel" hidden></div>

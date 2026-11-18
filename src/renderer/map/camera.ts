@@ -25,7 +25,11 @@ export class Camera {
   private zoom = 1;
   private mapSize = 1;
   private dragging: { x: number; y: number } | null = null;
+  private dragStart = { x: 0, y: 0 };
   private readonly pressed = new Set<string>();
+  /** When set, the camera stays centered on what it returns (null = target gone). */
+  private follow: (() => { x: number; y: number } | null) | null = null;
+  onFollowEnd: () => void = () => undefined;
 
   constructor(
     private readonly element: HTMLElement,
@@ -40,8 +44,23 @@ export class Camera {
     window.addEventListener('blur', () => this.pressed.clear());
   }
 
+  get pixelsPerTile(): number {
+    return this.zoom;
+  }
+
+  /** Keeps the view centered on a moving target until the player moves the camera. */
+  startFollowing(target: () => { x: number; y: number } | null): void {
+    this.follow = target;
+  }
+
+  stopFollowing(): void {
+    if (!this.follow) return;
+    this.follow = null;
+    this.onFollowEnd();
+  }
+
   get isDragging(): boolean {
-    return this.dragging !== null;
+    return this.dragging !== null && Math.hypot(this.dragging.x - this.dragStart.x, this.dragging.y - this.dragStart.y) > VIEW.clickMaxPixels;
   }
 
   /** Shows the whole map, centered. */
@@ -72,6 +91,16 @@ export class Camera {
         dy += direction[1];
       }
     }
+    if (dx !== 0 || dy !== 0) this.stopFollowing();
+    if (this.follow) {
+      const target = this.follow();
+      if (target) {
+        this.centerX = target.x;
+        this.centerY = target.y;
+      } else {
+        this.stopFollowing();
+      }
+    }
     if (dx !== 0 || dy !== 0) {
       const step = (VIEW.keyboardPanPixelsPerSecond * elapsedMs) / MS_PER_SECOND / this.zoom;
       this.centerX += dx * step;
@@ -97,10 +126,15 @@ export class Camera {
   private onPointerDown(event: PointerEvent): void {
     if (event.button !== 0) return;
     this.dragging = { x: event.clientX, y: event.clientY };
+    this.dragStart = { x: event.clientX, y: event.clientY };
   }
 
   private onPointerMove(event: PointerEvent): void {
     if (!this.dragging) return;
+    if (event.clientX !== this.dragging.x || event.clientY !== this.dragging.y) {
+      if (Math.hypot(event.clientX - this.dragStart.x, event.clientY - this.dragStart.y) > VIEW.clickMaxPixels) this.stopFollowing();
+      else return;
+    }
     this.centerX -= (event.clientX - this.dragging.x) / this.zoom;
     this.centerY -= (event.clientY - this.dragging.y) / this.zoom;
     this.dragging = { x: event.clientX, y: event.clientY };

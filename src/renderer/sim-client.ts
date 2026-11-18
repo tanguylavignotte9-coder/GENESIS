@@ -22,6 +22,10 @@ export class SimClient {
     this.send({ type: 'setPaused', paused });
   }
 
+  inspect(requestId: number, tile: number, animalUid: number): void {
+    this.send({ type: 'inspect', requestId, tile, animalUid });
+  }
+
   private send(message: ToSimMessage): void {
     this.worker.postMessage(message);
   }

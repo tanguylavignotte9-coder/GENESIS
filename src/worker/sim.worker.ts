@@ -10,6 +10,8 @@ import { Simulation } from '../sim/core/simulation';
 import { daysPerYear } from '../sim/core/time-params';
 import type { FromSimMessage, JournalEntry, ToSimMessage } from '../shared/messages';
 import { snapshotWorld } from './world-snapshot';
+import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
+import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -29,6 +31,11 @@ let lastLoopAt = 0;
 let sentClimateVersion = -1;
 let sentAnomalies: unknown = null;
 let sentEvents = 0;
+let sentFloraDay = -1;
+let sentSamples = 0;
+
+/** The plants change slowly: the display gets them every few game days (technical setting). */
+const FLORA_SEND_INTERVAL_DAYS = 2;
 
 function post(message: FromSimMessage, transfer: Transferable[] = []): void {
   self.postMessage(message, transfer);
@@ -57,13 +64,24 @@ function start(seed: number): void {
   const generationMs = performance.now() - generationStart;
   const { snapshot, transfer } = snapshotWorld(created.world);
   post(
-    { type: 'worldReady', seed, world: snapshot, generationMs, speeds: created.data.time.speeds, climate: created.data.climate, daysPerYear: daysPerYear(created.data.time) },
+    {
+      type: 'worldReady',
+      seed,
+      world: snapshot,
+      generationMs,
+      speeds: created.data.time.speeds,
+      climate: created.data.climate,
+      daysPerYear: daysPerYear(created.data.time),
+      life: { plants: created.data.flora.species, animals: created.data.fauna.species, resources: created.data.resources, animalStates: STATE_NAMES },
+    },
     transfer,
   );
 
   sentClimateVersion = -1;
   sentAnomalies = null;
   sentEvents = 0;
+  sentFloraDay = -1;
+  sentSamples = 0;
   pendingTicks = 0;
   lastLoopAt = performance.now();
   publishChanges(created);
@@ -99,6 +117,19 @@ function publishChanges(current: Simulation): void {
   if (current.climateVersion !== sentClimateVersion) {
     sentClimateVersion = current.climateVersion;
     post({ type: 'climateDay', dayOfYear: climate.dayOfYear });
+  }
+  const day = current.date.absoluteDay;
+  if (sentFloraDay < 0 || day - sentFloraDay >= FLORA_SEND_INTERVAL_DAYS) {
+    sentFloraDay = day;
+    const flora = snapshotFlora(current);
+    post({ type: 'flora', flora: flora.snapshot }, flora.transfer);
+  }
+  const fauna = snapshotFauna(current);
+  post({ type: 'fauna', fauna: fauna.snapshot }, fauna.transfer);
+  const history = current.fauna.census.history;
+  if (history.length > sentSamples) {
+    post({ type: 'populations', samples: history.slice(sentSamples) });
+    sentSamples = history.length;
   }
   if (current.journal.size > sentEvents) {
     const time = current.data.time;
@@ -136,6 +167,9 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
       return;
     case 'setPaused':
       paused = message.paused;
+      return;
+    case 'inspect':
+      if (simulation) post({ type: 'inspection', inspection: inspect(simulation, message.requestId, message.tile, message.animalUid) });
       return;
   }
 };

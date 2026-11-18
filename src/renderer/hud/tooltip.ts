@@ -14,14 +14,12 @@ export class Tooltip {
     this.element.hidden = true;
   }
 
-  show(world: WorldSnapshot, climate: ClimateState | null, tileX: number, tileY: number, screenX: number, screenY: number): void {
-    const x = Math.floor(tileX);
-    const y = Math.floor(tileY);
-    if (x < 0 || y < 0 || x >= world.size || y >= world.size) {
+  show(lines: readonly string[], screenX: number, screenY: number): void {
+    if (lines.length === 0) {
       this.hide();
       return;
     }
-    this.element.replaceChildren(...describeTile(world, climate, x, y).map(toLine));
+    this.element.replaceChildren(...lines.map(toLine));
     this.element.hidden = false;
     const offset = VIEW.tooltipOffset;
     const flipX = screenX + offset + this.element.offsetWidth > window.innerWidth;

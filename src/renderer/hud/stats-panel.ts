@@ -1,0 +1,104 @@
+import type { AnimalSpecies } from '../../sim/systems/fauna/params';
+
+const PADDING = { left: 44, right: 10, top: 10, bottom: 22 };
+const GRID_LINES = 4;
+/** Distinct line colors (display only), one per species in data order. */
+const PALETTE = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#dcbeff', '#9a6324', '#aaffc3'];
+const lineColor = (k: number): string => PALETTE[k % PALETTE.length]!;
+
+/** Statistics panel: population of each animal species over time (one line per species). */
+export class StatsPanel {
+  private species: readonly AnimalSpecies[] = [];
+  private samples: { day: number; animals: number[] }[] = [];
+  private daysPerYear = 1;
+
+  constructor(
+    private readonly panel: HTMLElement,
+    toggle: HTMLButtonElement,
+    private readonly canvas: HTMLCanvasElement,
+    private readonly legend: HTMLElement,
+  ) {
+    toggle.addEventListener('click', () => {
+      toggle.blur();
+      panel.hidden = !panel.hidden;
+      this.draw();
+    });
+  }
+
+  reset(species: readonly AnimalSpecies[], daysPerYear: number): void {
+    this.species = species;
+    this.daysPerYear = daysPerYear;
+    this.samples = [];
+    this.legend.replaceChildren(
+      ...species.map((animal, k) => {
+        const item = document.createElement('span');
+        item.className = 'legend-item';
+        item.dataset['index'] = String(k);
+        const swatch = document.createElement('i');
+        swatch.style.background = lineColor(k);
+        item.append(swatch, document.createTextNode(animal.name));
+        return item;
+      }),
+    );
+    this.draw();
+  }
+
+  add(samples: readonly { day: number; animals: number[] }[]): void {
+    this.samples.push(...samples);
+    this.legend.querySelectorAll<HTMLElement>('.legend-item').forEach((item) => {
+      const k = Number(item.dataset['index']);
+      const last = this.samples.at(-1)?.animals[k] ?? 0;
+      item.title = `${this.species[k]?.name ?? ''} : ${last}`;
+      item.lastChild!.textContent = `${this.species[k]?.name ?? ''} ${last}`;
+    });
+    this.draw();
+  }
+
+  private draw(): void {
+    if (this.panel.hidden) return;
+    const ratio = window.devicePixelRatio || 1;
+    const width = this.canvas.clientWidth;
+    const height = this.canvas.clientHeight;
+    this.canvas.width = Math.round(width * ratio);
+    this.canvas.height = Math.round(height * ratio);
+    const ctx = this.canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    const plotW = width - PADDING.left - PADDING.right;
+    const plotH = height - PADDING.top - PADDING.bottom;
+    const lastDay = Math.max(this.daysPerYear, this.samples.at(-1)?.day ?? 0);
+    const maxCount = Math.max(1, ...this.samples.flatMap((sample) => sample.animals));
+    const style = getComputedStyle(this.panel);
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillStyle = style.getPropertyValue('--hud-muted') || '#999';
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    for (let g = 0; g <= GRID_LINES; g++) {
+      const y = PADDING.top + plotH - (g / GRID_LINES) * plotH;
+      ctx.beginPath();
+      ctx.moveTo(PADDING.left, y);
+      ctx.lineTo(width - PADDING.right, y);
+      ctx.stroke();
+      ctx.textAlign = 'right';
+      ctx.fillText(String(Math.round((g / GRID_LINES) * maxCount)), PADDING.left - 6, y + 4);
+    }
+    ctx.textAlign = 'center';
+    const years = lastDay / this.daysPerYear;
+    ctx.fillText('An 1', PADDING.left, height - 6);
+    ctx.fillText(`An ${Math.floor(years) + 1}`, width - PADDING.right - 12, height - 6);
+    const toX = (day: number): number => PADDING.left + (day / lastDay) * plotW;
+    const toY = (count: number): number => PADDING.top + plotH - (count / maxCount) * plotH;
+    this.species.forEach((_animal, k) => {
+      ctx.strokeStyle = lineColor(k);
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      this.samples.forEach((sample, i) => {
+        const x = toX(sample.day);
+        const y = toY(sample.animals[k] ?? 0);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    });
+  }
+}

@@ -15,6 +15,18 @@ export const VIEW = {
   keyboardPanPixelsPerSecond: 700,
   /** Zoom used when the camera jumps to a journal event. */
   focusPixelsPerTile: 3,
+  /** Plants are drawn from this zoom (pixels per tile) on. */
+  plantMinPixelsPerTile: 7,
+  /** Animals are drawn from this zoom on. */
+  animalMinPixelsPerTile: 3,
+  /** Plant chunks built per frame at most. */
+  plantChunksPerFrame: 3,
+  /** Mouse distance (tiles) under which an animal is "under the cursor". */
+  animalPickTiles: 0.8,
+  /** Click = pointer released within this many pixels of where it was pressed. */
+  clickMaxPixels: 5,
+  /** How often the tooltip asks the simulation for fresh details (ms). */
+  inspectEveryMs: 400,
   /** Tooltip offset from the mouse cursor, in pixels. */
   tooltipOffset: 16,
 } as const;

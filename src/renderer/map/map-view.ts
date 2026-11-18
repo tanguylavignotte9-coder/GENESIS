@@ -29,13 +29,20 @@ interface Chunk {
  * Chunks are drawn lazily when visible, a few per frame, and redrawn when the season changes.
  */
 export class MapView {
+  /** Everything drawn on the map (terrain, then the layers added on top by others). */
   readonly container = new Container();
+  /** Terrain chunks only. */
+  private readonly terrain = new Container();
   private world: WorldSnapshot | null = null;
   private climate: ClimateState | null = null;
   private climateVersion = 0;
   private palette: Palette | null = null;
   private chunks: Chunk[] = [];
   private chunksPerSide = 0;
+
+  constructor() {
+    this.container.addChild(this.terrain);
+  }
 
   setWorld(world: WorldSnapshot): void {
     this.clear();
@@ -105,14 +112,14 @@ export class MapView {
     }
     const sprite = new Sprite(texture);
     sprite.position.set(chunk.cx * VIEW.chunkTiles, chunk.cy * VIEW.chunkTiles);
-    this.container.addChild(sprite);
+    this.terrain.addChild(sprite);
     chunk.sprite = sprite;
   }
 
   private clear(): void {
     for (const chunk of this.chunks) chunk.sprite?.destroy({ texture: true, textureSource: true });
     this.chunks = [];
-    this.container.removeChildren();
+    this.terrain.removeChildren();
   }
 }
 

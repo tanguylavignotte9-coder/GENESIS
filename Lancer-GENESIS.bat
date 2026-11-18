@@ -4,12 +4,16 @@ rem  GENESIS - Windows launcher (double-click to play)
 rem  1. Use Node.js from PATH, or download a portable Node.js into .runtime\
 rem  2. Run "npm ci" when node_modules\ is missing or package-lock.json changed
 rem  3. Build then start the game ("npm start")
+rem     With "--benchmark" (used by Benchmark-GENESIS.bat): build and run the
+rem     benchmark instead ("npm run benchmark"), report written in rapports\
 rem  No administrator rights needed. Messages are in French for the player.
 rem ==========================================================================
 setlocal EnableExtensions
 chcp 65001 >nul
-title GENESIS
 cd /d "%~dp0"
+set "GENESIS_MODE=game"
+if /i "%~1"=="--benchmark" set "GENESIS_MODE=benchmark"
+if "%GENESIS_MODE%"=="benchmark" (title GENESIS - Banc d'essai) else (title GENESIS)
 
 set "NODE_VERSION=24.22.3"
 set "NODE_MIN_MAJOR=22"
@@ -85,9 +89,23 @@ echo       Dépendances installées.
 rem ------------------------------------------------------- 3. Build and start
 :build_and_start
 echo.
+if "%GENESIS_MODE%"=="benchmark" goto :benchmark
 echo [3/3] Construction puis lancement du jeu...
 call npm start
 if errorlevel 1 goto :error_start
+endlocal
+exit /b 0
+
+rem --------------------------------------------- 3 bis. Build and benchmark
+:benchmark
+echo [3/3] Construction puis lancement du banc d'essai (quelques minutes, ne fermez pas la fenêtre)...
+call npm run benchmark
+if errorlevel 1 goto :error_benchmark
+echo.
+echo Banc d'essai terminé : le rapport est dans le dossier rapports\
+echo Pour le transmettre, validez (commit) puis poussez (push) ce dossier avec GitHub Desktop.
+echo.
+pause
 endlocal
 exit /b 0
 
@@ -109,6 +127,12 @@ goto :fail
 :error_start
 echo.
 echo [ERREUR] La construction ou le lancement du jeu a échoué.
+echo          Lisez les messages ci-dessus pour comprendre la cause.
+goto :fail
+
+:error_benchmark
+echo.
+echo [ERREUR] La construction ou le banc d'essai a échoué.
 echo          Lisez les messages ci-dessus pour comprendre la cause.
 goto :fail
 

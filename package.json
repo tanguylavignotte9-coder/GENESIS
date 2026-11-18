@@ -9,11 +9,13 @@
   },
   "scripts": {
     "start": "npm run build && electron .",
-    "build": "vite build --config vite.config.mts && tsc -p tsconfig.main.json",
+    "build": "vite build --config vite.config.mts && vite build --config vite.bench.config.mts && tsc -p tsconfig.main.json",
     "test": "vitest run --config vitest.config.mts",
     "typecheck": "tsc -p tsconfig.sim.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.json && tsc -p tsconfig.node.json && tsc -p tsconfig.main.json --noEmit",
     "sim": "tsx src/cli/sim.ts",
-    "test:long": "vitest run --config vitest.long.config.mts"
+    "test:long": "vitest run --config vitest.long.config.mts",
+    "build:bench": "vite build --config vite.bench.config.mts",
+    "benchmark": "npm run build:bench && node dist/bench/benchmark.mjs"
   },
   "dependencies": {
     "pixi.js": "8.23.0"

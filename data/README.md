@@ -3,6 +3,11 @@
 Chaque fichier JSON de ce dossier contient des réglages du jeu. Ils sont vérifiés au
 lancement : si une valeur est invalide, le jeu affiche un message clair en français.
 
+Le plus simple pour les régler est l'**Atelier des variables**, dans le jeu (bouton « Atelier » ou
+touche **F2**) : chaque variable y est expliquée (libellé, légende, unité, bornes, valeur par défaut),
+se modifie en direct ou pour le prochain monde, et les réglages s'enregistrent en *presets* dans
+`presets/` sans toucher à ces fichiers. Les fichiers de ce dossier restent les **valeurs par défaut**.
+
 ## `time.json` — le temps
 
 | Clé | Rôle | Valeur actuelle |
@@ -117,6 +122,7 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 | `fish.*` | Poisson par tuile d'eau (rivière, lac, côte, haute mer) et sa vitesse de renouvellement |
 | `carrion.*` | Carcasses laissées par les chasseurs : part qui pourrit chaque jour |
 | `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
+| `humanPrey.*` | Prédateurs et humains : espèces qui peuvent attaquer une personne seule, faim minimale, distance en dessous de laquelle une personne n'est pas « seule », chance d'attaque par pas, blessure |
 | `events.*` | Seuils et phrases du journal (migrations, disparitions, effondrements) |
 
 Pour chaque espèce : `diet` (herbe, viande, poisson ou une récolte de plante, avec une préférence),
@@ -131,11 +137,10 @@ de chasse, `migratory` / `migrationTiles`, `domesticable` (pour l'élevage plus 
 
 ## Métadonnées des variables (Atelier des variables)
 
-Depuis l'étape 4, chaque nouvelle variable est documentée **dans son schéma** (code de validation) :
-libellé et légende en français, unité, bornes min/max, et mode d'application (`live` = s'applique en direct,
-`newWorld` = demande un nouveau monde). Un test vérifie qu'aucune variable de `humans.json`, `weather.json`
-et de la section `daylight` de `climate.json` n'en manque. Les variables plus anciennes seront documentées
-avec l'Atelier des variables (étape 5).
+Chaque variable de chaque fichier est documentée **dans son schéma** (code de validation) :
+libellé et légende en français, unité, bornes min/max pour les nombres, et mode d'application
+(`live` = s'applique en direct au monde en cours, `newWorld` = au prochain monde généré).
+Un test vérifie qu'aucune variable de `data/` n'en manque : toute nouvelle variable doit avoir sa fiche.
 
 ## `climate.json` → `daylight` — le jour et la nuit
 
@@ -166,7 +171,7 @@ par les humains et leur vitesse de marche.
 | `edibleResources` | Ressources des plantes qui se mangent, et leur valeur nutritive |
 | `camp` | Feu (réserve, valeur d'une branche, chaleur, portée), huttes (chaleur, places), territoire connu |
 | `memory` | Nombre de points d'eau et de coins de cueillette retenus, durée avant l'oubli |
-| `danger` | Prédateurs dangereux, vigilance, isolement, attaques |
+| `danger` | Animaux redoutés, vigilance, isolement, peur en groupe, viande laissée par un corps (les attaques elles-mêmes se règlent dans `animals.json` → `humanPrey`) |
 | `terrain` | Coûts de marche (forêt, broussailles, gué, pente) pour la recherche de chemin |
 | `decision` | Part de hasard et persévérance dans les décisions |
 | `actions` | Les actions du cerveau (voir ci-dessous) |

@@ -9,9 +9,9 @@ import { parseArgs } from 'node:util';
 import { loadGameData, type GameData } from '../sim/core/game-data';
 import { isValidSeed, Rng } from '../sim/core/rng';
 import { runHeadless } from '../sim/headless';
-import { Simulation } from '../sim/core/simulation';
 import { computeWorldStats } from '../sim/systems/world/stats';
 import { generateWorld } from '../sim/systems/world/world';
+import { BUDGET_SHARE, LOAD_TEST_DAYS, runLoadTest, X500_DAY_BUDGET_MS } from './load-test';
 
 const DEFAULT_SEED = 42;
 const DEFAULT_YEARS = 1;
@@ -96,46 +96,15 @@ function printRun(seed: number, years: number, data: GameData): void {
   console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms (${fr.format(totalAnimals)} animaux, ${fr.format(totalPlants)} plantes)`);
 }
 
-/** Humans tested by the load test, and game days measured for each count. */
-const LOAD_TEST_HUMANS = [100, 500, 1000, 2000, 5000];
-const LOAD_TEST_DAYS = 3;
-/** At x500, one game day lasts 480 s / 500 = 0.96 s of real time; keep a margin for the display. */
-const X500_DAY_BUDGET_MS = 960;
-const BUDGET_SHARE = 0.7;
-
 function printLoadTest(seed: number, data: GameData): void {
   console.log('GENESIS — test de charge (humains, faune et flore, carte complète)');
   console.log(`  Graine : ${seed} · ${LOAD_TEST_DAYS} jours de jeu mesurés par palier`);
-  const size = data.humans.tribe.size;
-  const results: { humans: number; msPerDay: number }[] = [];
-  for (const wanted of LOAD_TEST_HUMANS) {
-    const humans = {
-      ...data.humans,
-      tribe: { ...data.humans.tribe, count: Math.ceil(wanted / size), campSpacingTiles: 12 },
-      site: { ...data.humans.site, candidates: 60000, minFoodPlants: 10 },
-    };
-    const simulation = new Simulation(seed, { ...data, humans });
-    simulation.step(data.time.ticksPerDay); // warm-up day
-    const startedAt = performance.now();
-    simulation.step(LOAD_TEST_DAYS * data.time.ticksPerDay);
-    const msPerDay = (performance.now() - startedAt) / LOAD_TEST_DAYS;
-    const count = simulation.humans.people.count;
-    results.push({ humans: count, msPerDay });
-    const share = Math.round((msPerDay / X500_DAY_BUDGET_MS) * PERCENT);
-    console.log(`  ${fr.format(count).padStart(6)} humains (${simulation.humans.camps.length} camps) : ${msPerDay.toFixed(0).padStart(5)} ms par jour de jeu (${share} % du temps disponible en x500)`);
-  }
+  const result = runLoadTest(seed, data, (step) => {
+    const share = Math.round(step.x500Share * PERCENT);
+    console.log(`  ${fr.format(step.humans).padStart(6)} humains (${step.camps} camps) : ${step.msPerDay.toFixed(0).padStart(5)} ms par jour de jeu (${share} % du temps disponible en x500)`);
+  });
   const budget = X500_DAY_BUDGET_MS * BUDGET_SHARE;
-  let max = 0;
-  for (let k = 0; k < results.length; k++) {
-    const current = results[k]!;
-    if (current.msPerDay <= budget) max = current.humans;
-    else {
-      const previous = results[k - 1];
-      if (previous) max = Math.round(previous.humans + ((budget - previous.msPerDay) / (current.msPerDay - previous.msPerDay)) * (current.humans - previous.humans));
-      break;
-    }
-  }
-  console.log(`  Plafond conseillé en x500 : environ ${fr.format(max)} humains (un jour de jeu en moins de ${budget.toFixed(0)} ms, soit ${BUDGET_SHARE * PERCENT} % de 0,96 s)`);
+  console.log(`  Plafond conseillé en x500 : environ ${fr.format(result.advisedHumans)} humains (un jour de jeu en moins de ${budget.toFixed(0)} ms, soit ${BUDGET_SHARE * PERCENT} % de 0,96 s)`);
 }
 
 function main(): void {

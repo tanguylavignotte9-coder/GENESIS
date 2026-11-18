@@ -7,7 +7,7 @@ et où les histoires naissent de façon **émergente et systémique**. Le joueur
   Lis-le avant toute tâche de conception ou de nouveau système.
 - **`docs/journal-de-dev.md`** est la mémoire du projet entre les sessions (chaque session
   repart sans historique de conversation) : décisions validées, écarts, dette technique, mesures.
-  **Lis-le en début de session**, et **complète-le en fin d'étape** (nouvelle entrée en haut :
+  **Tu es le seul à écrire dans ce fichier.** **Lis-le en début de session**, et **complète-le en fin d'étape** (nouvelle entrée en haut :
   fait, décisions et écarts, dette technique avec l'étape prévue, mesures). Quand tu résous une
   dette technique, indique-le dans l'entrée de l'étape en cours.
 - Si une session reprend une étape commencée ailleurs, regarde d'abord `git log` et l'état du
@@ -74,7 +74,9 @@ tests/                  tests Vitest (unitaires + simulations sans écran)
    religion et monnaie passent tous par le **système d'idées**).
 6. **Journal causal.** Tout événement notable est publié dans le journal avec : date de jeu,
    acteurs, lieu, et les identifiants des événements qui l'ont causé.
-7. **Performance.** Chaque individu réfléchit à son rythme (réflexions réparties dans le temps,
+7. **Performance.** **Priorité absolue : un jeu fluide en x1** (affichage sans à-coups, mouvements
+   interpolés). Les vitesses élevées (x100, x500) sont « au mieux » : elles peuvent être saccadées ou
+   ralentir. Chaque individu réfléchit à son rythme (réflexions réparties dans le temps,
    pas de recalcul à chaque instant s'il n'y a rien de nouveau). Données lourdes (carte, positions,
    besoins) stockées de façon compacte (tableaux typés). Ne jamais agréger des individus en statistiques.
 

@@ -442,6 +442,10 @@ Récolter, fabriquer et transformer passent tous par une recette. Le tiret signi
 
 La qualité de chaque produit dépend de la compétence de l'artisan et de la qualité de ses outils.
 
+**Ajustements faits à l'implémentation (étape 6) :** recettes ajoutées « Extraire de l'argile » et « Puiser de l'eau » ; certaines lignes scindées (couteau et racloir, fumer la viande et le poisson, jarre et bols) ; matériaux simplifiés (feuillage et perches comptés comme branches ; pierre à polir et meule = pierres) ; une carcasse donne des unités de 10 viandes ; la cache ne protège que la nourriture. Les fichiers de données font foi pour le détail.
+
+**Bâtiments qui attendent leur système :** enclos (bêtes domestiques), canal d'irrigation, palissade et mur (menaces, étape 11), tombe mégalithique et sanctuaire (rites et religion, étape 10). Ils existent dans les données mais aucun besoin ne pousse encore à les construire.
+
 ### Bâtiments des ères 0 et 1
 
 Un « bâtiment » désigne toute structure placée sur la carte, du simple feu de camp au champ cultivé.
@@ -507,7 +511,14 @@ Le HUD est la moitié du jeu : sans lui, les histoires émergentes restent invis
 - un **indicateur en jeu** (activable) : images par seconde, temps de calcul d'un jour de jeu, part du budget utilisée à la vitesse actuelle, nombre d'humains, d'animaux et de plantes ;
 - un **banc d'essai** lançable d'un clic (bouton ou `Benchmark-GENESIS.bat`) : il rejoue le test de charge (100 à 5 000 humains) sur le PC et enregistre un rapport daté dans un dossier `rapports/`, à transmettre à Claude Code.
 
-Aucun plafond de population n'est imposé, car ce serait un quota : si le PC ne suit pas, le jeu ralentit et affiche la vitesse réellement atteinte. Le banc d'essai donne un repère indicatif. Livré à l'étape 5 (F3 pour l'indicateur, \`Benchmark-GENESIS.bat\` pour le banc d'essai).
+**Objectif de performance : un jeu fluide en x1** (affichage sans à-coups, mouvements interpolés) ; les vitesses élevées peuvent être saccadées. En x1, la simulation n'utilise qu'une infime part du temps disponible : l'enjeu est l'affichage. Aucun plafond de population n'est imposé, car ce serait un quota : si le PC ne suit pas, le jeu ralentit et affiche la vitesse réellement atteinte. Le banc d'essai donne un repère indicatif. Livré à l'étape 5 (F3 pour l'indicateur, \`Benchmark-GENESIS.bat\` pour le banc d'essai).
+
+| Mesure sur le PC portable de Tanguy (18 nov. 2026, i5-10300H, 16 Go) | 120 humains | 1 020 humains | 2 010 humains | 5 010 humains |
+| --- | --- | --- | --- | --- |
+| Calcul d'un jour de jeu | 92 ms | 215 ms | 371 ms | 824 ms |
+| Vitesse maximale tenable | x5 225 | x2 228 | x1 292 | x582 |
+
+Ce premier banc d'essai mesure le monde à sa naissance, sur 3 jours, sans l'affichage : il sera complété (mise en route, mesure plus longue, test de rendu en x1).
 
 ## Fin de partie et relance
 
@@ -613,7 +624,7 @@ Chaque étape est livrée jouable : on peut lancer le jeu et voir le résultat. 
 | 11 · Conflit | Rixes, raids, guerres, diplomatie | Les premières guerres |
 | 12 · HUD complet | Journal, fiches, arbres, cartes, statistiques | L'outil d'observation final |
 
-**Avancement :** étape 0 terminée et validée sous Windows le 17 nov. 2026. Étape 1 livrée le 17 nov. 2026 (graine 42 : 34 % de terres, 3 continents, 22 îles, 151 rivières, 66 lacs). Étape 2 livrée le 17 nov. 2026 : calendrier, vitesses, saisons inversées nord/sud (la date affichée suit le nord), années anormales régionales (environ 1,3 par an), journal causal, noms de lieux descriptifs en attendant les langues. Reportés à l'étape 4 : cycle jour-nuit (nécessaire aux routines) et météo locale. Étape 3 livrée le 18 nov. 2026 : environ 15 000 animaux (9 espèces) et 280 000 plantes pour 59 ms par jour de jeu (6 % du fil de simulation en x500) ; climat 10 fois plus rapide ; toutes les espèces survivent 100 ans, équilibre à affiner dans l'Atelier des variables. Étape 4 livrée le 18 nov. 2026 : jour-nuit, météo, tribu de 30, cerveau v1, fiche personnage ; plafond mesuré sur les serveurs de Claude Code d'environ 2 700 humains en x500 (à confirmer sur le PC de Tanguy). Sans naissances, chasse, réserves ni partage, la tribu s'éteint en moins de 100 ans : attendu à ce stade. Reste à faire : météo visible sur la carte, personnes cliquables dans le journal. Étape 5 livrée le 18 nov. 2026 : mécanisme d'interaction commun entre systèmes (attaques de prédateurs), métadonnées de toutes les variables, Atelier des variables avec presets, indicateur de performance et banc d'essai.
+**Avancement :** étape 0 terminée et validée sous Windows le 17 nov. 2026. Étape 1 livrée le 17 nov. 2026 (graine 42 : 34 % de terres, 3 continents, 22 îles, 151 rivières, 66 lacs). Étape 2 livrée le 17 nov. 2026 : calendrier, vitesses, saisons inversées nord/sud (la date affichée suit le nord), années anormales régionales (environ 1,3 par an), journal causal, noms de lieux descriptifs en attendant les langues. Reportés à l'étape 4 : cycle jour-nuit (nécessaire aux routines) et météo locale. Étape 3 livrée le 18 nov. 2026 : environ 15 000 animaux (9 espèces) et 280 000 plantes pour 59 ms par jour de jeu (6 % du fil de simulation en x500) ; climat 10 fois plus rapide ; toutes les espèces survivent 100 ans, équilibre à affiner dans l'Atelier des variables. Étape 4 livrée le 18 nov. 2026 : jour-nuit, météo, tribu de 30, cerveau v1, fiche personnage ; plafond mesuré sur les serveurs de Claude Code d'environ 2 700 humains en x500 (à confirmer sur le PC de Tanguy). Sans naissances, chasse, réserves ni partage, la tribu s'éteint en moins de 100 ans : attendu à ce stade. Reste à faire : météo visible sur la carte, personnes cliquables dans le journal. Étape 5 livrée le 18 nov. 2026 : mécanisme d'interaction commun entre systèmes (attaques de prédateurs), métadonnées de toutes les variables, Atelier des variables avec presets, indicateur de performance et banc d'essai. Étape 6 livrée le 18 nov. 2026 : 34 recettes, 43 objets, 18 bâtiments, aliments qui se gâtent, stock commun du camp, chantiers, compétences et métiers, besoins collectifs selon la coutume, déplacement du camp par consensus ; savoirs de départ réglables dans l'Atelier. Famines d'hiver sur certains mondes (17 à 30 survivants sur 30 en 3 ans selon la graine) : histoire légitime. À reprendre : la chasse est sans risque et le gibier ne fuit pas les humains.
 
 ## Décisions prises et questions ouvertes
 

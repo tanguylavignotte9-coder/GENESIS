@@ -39,6 +39,7 @@ export interface HeadlessReport {
   plants: { name: string; count: number }[];
   /** Notable fauna events (migrations, disappearances, collapses), by type. */
   faunaEvents: { migrations: number; extinctions: number; collapses: number; examples: string[] };
+  humans: { start: number; alive: number; deaths: { cause: string; count: number }[] };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -72,6 +73,7 @@ export function runHeadless(seed: number, years: number, data: GameData, now: ()
     animals: summarizeAnimals(simulation, startCounts),
     plants: simulation.flora.countBySpecies().map((count, k) => ({ name: data.flora.species[k]?.name ?? '?', count })),
     faunaEvents: summarizeFaunaEvents(simulation),
+    humans: summarizeHumans(simulation),
     msPerDay: ticks > 0 ? elapsed / (ticks / data.time.ticksPerDay) : 0,
     randomFingerprint,
   };
@@ -84,6 +86,19 @@ function summarizeAnimals(simulation: Simulation, startCounts: number[]): Popula
     const counts = [startCounts[k] ?? 0, ...history.map((sample) => sample.animals[k] ?? 0), end[k] ?? 0];
     return { name: species.name, start: startCounts[k] ?? 0, end: end[k] ?? 0, min: Math.min(...counts), max: Math.max(...counts) };
   });
+}
+
+const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'prédateur'];
+
+function summarizeHumans(simulation: Simulation): HeadlessReport['humans'] {
+  const { people } = simulation.humans;
+  const counts = DEATH_CAUSES.map(() => 0);
+  for (let p = 0; p < people.count; p++) if (people.alive[p] === 0) counts[people.deathCause[p]!]!++;
+  return {
+    start: people.count,
+    alive: people.living,
+    deaths: DEATH_CAUSES.flatMap((cause, k) => (k > 0 && counts[k]! > 0 ? [{ cause, count: counts[k]! }] : [])),
+  };
 }
 
 function summarizeFaunaEvents(simulation: Simulation): HeadlessReport['faunaEvents'] {

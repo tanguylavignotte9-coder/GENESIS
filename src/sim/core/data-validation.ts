@@ -3,9 +3,20 @@
  * Errors are written in French because the player may edit these files.
  */
 
+/**
+ * Documentation of a tunable variable, for the future "Atelier des variables" page:
+ * French label and help text, unit, and whether a change applies live or needs a new world.
+ */
+export interface VariableDoc {
+  label: string;
+  help: string;
+  unit: string;
+  apply: 'live' | 'newWorld';
+}
+
 export type Schema =
-  | { kind: 'integer'; min?: number; max?: number }
-  | { kind: 'number'; min?: number; max?: number }
+  | { kind: 'integer'; min?: number; max?: number; doc?: VariableDoc }
+  | { kind: 'number'; min?: number; max?: number; doc?: VariableDoc }
   | { kind: 'string'; pattern?: RegExp; patternHint?: string }
   | { kind: 'boolean' }
   | { kind: 'enum'; values: readonly string[] }
@@ -75,7 +86,7 @@ function check(value: unknown, schema: Schema, path: string, problems: string[])
 
 function checkNumber(
   value: unknown,
-  schema: { kind: 'integer' | 'number'; min?: number; max?: number },
+  schema: { kind: 'integer' | 'number'; min?: number; max?: number; doc?: VariableDoc },
   path: string,
   problems: string[],
 ): void {
@@ -137,5 +148,27 @@ function checkObject(
   }
   for (const key of Object.keys(record)) {
     if (!(key in schema.fields)) problems.push(`la clé « ${prefix}${key} » est inconnue (faute de frappe ?).`);
+  }
+}
+
+/** A documented numeric variable (min and max are required: the workshop page needs bounds). */
+export function variable(kind: 'integer' | 'number', min: number, max: number, doc: VariableDoc): Schema {
+  return { kind, min, max, doc };
+}
+
+/** Paths of the numeric variables of a schema that lack documentation or bounds. */
+export function undocumentedVariables(schema: Schema, path = ''): string[] {
+  switch (schema.kind) {
+    case 'integer':
+    case 'number':
+      return schema.doc && schema.min !== undefined && schema.max !== undefined ? [] : [path || '(racine)'];
+    case 'array':
+      return undocumentedVariables(schema.items, `${path}[]`);
+    case 'record':
+      return undocumentedVariables(schema.values, `${path}.*`);
+    case 'object':
+      return Object.entries(schema.fields).flatMap(([key, field]) => undocumentedVariables(field, path ? `${path}.${key}` : key));
+    default:
+      return [];
   }
 }

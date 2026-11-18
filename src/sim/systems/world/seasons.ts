@@ -16,6 +16,8 @@ export interface SeasonRows {
   northern: Uint8Array;
   temperatureAmplitude: Float32Array;
   humidityAmplitude: Float32Array;
+  /** Extra hours of daylight at midsummer, by row. */
+  daylightDeviation: Float32Array;
 }
 
 export function buildSeasonRows(size: number, params: ClimateParams): SeasonRows {
@@ -23,12 +25,14 @@ export function buildSeasonRows(size: number, params: ClimateParams): SeasonRows
     northern: new Uint8Array(size),
     temperatureAmplitude: new Float32Array(size),
     humidityAmplitude: new Float32Array(size),
+    daylightDeviation: new Float32Array(size),
   };
   for (let y = 0; y < size; y++) {
     const latitude = rowLatitude(y, size);
     rows.northern[y] = y < size / 2 ? 1 : 0;
     rows.temperatureAmplitude[y] = valueAtLatitude(params.seasonalTemperature.amplitudeByLatitude, latitude);
     rows.humidityAmplitude[y] = valueAtLatitude(params.seasonalHumidity.amplitudeByLatitude, latitude);
+    rows.daylightDeviation[y] = valueAtLatitude(params.daylight.deviationByLatitude, latitude);
   }
   return rows;
 }

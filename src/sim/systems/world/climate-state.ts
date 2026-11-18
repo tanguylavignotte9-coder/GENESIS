@@ -1,6 +1,9 @@
 import type { ClimateParams } from './climate-params';
 import { buildSeasonRows, seasonSignal, type SeasonRows } from './seasons';
 
+const HOURS_PER_DAY = 24;
+const NOON = 12;
+
 /** An abnormal year in progress over a circular region. */
 export interface ActiveAnomaly {
   /** Index into ClimateParams.anomalies.types. */
@@ -102,6 +105,26 @@ export class ClimateState {
   /** Season signal of the tile's hemisphere: +1 at the height of summer, -1 in deep winter. */
   seasonAt(index: number): number {
     return this.signals[this.rows.northern[(index / this.map.size) | 0]!]!;
+  }
+
+  /** Hours of daylight today on the tile's row (longer in summer, extreme near the poles). */
+  dayLengthAt(index: number): number {
+    const y = (index / this.map.size) | 0;
+    const signal = this.signals[this.rows.northern[y]!]!;
+    const hours = this.params.daylight.equinoxHours + this.rows.daylightDeviation[y]! * signal;
+    return hours < 0 ? 0 : hours > HOURS_PER_DAY ? HOURS_PER_DAY : hours;
+  }
+
+  /** Light on the tile at an hour of the day (0..24): 0 = night, 1 = full day, in between at dawn and dusk. */
+  daylightAt(index: number, hour: number): number {
+    const length = this.dayLengthAt(index);
+    const sunrise = NOON - length / 2;
+    const sunset = NOON + length / 2;
+    const twilight = Math.max(this.params.daylight.twilightHours, Number.EPSILON);
+    const rise = (hour - sunrise) / twilight + 0.5;
+    const fall = (sunset - hour) / twilight + 0.5;
+    const light = Math.min(rise, fall);
+    return light <= 0 ? 0 : light >= 1 ? 1 : light;
   }
 
   /** °C right now. */

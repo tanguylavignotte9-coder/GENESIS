@@ -1,0 +1,13 @@
+{
+  "regionTiles": 64,
+  "rainChanceAtFullHumidity": 0.55,
+  "snowBelowCelsius": 0,
+  "coldSnapBelowCelsius": -2,
+  "coldSnapChance": 0.35,
+  "types": [
+    { "id": "clear", "name": "Beau temps", "feltCelsius": 0, "movementFactor": 1 },
+    { "id": "rain", "name": "Pluie", "feltCelsius": -3, "movementFactor": 0.8 },
+    { "id": "snow", "name": "Neige", "feltCelsius": -5, "movementFactor": 0.6 },
+    { "id": "cold", "name": "Froid vif", "feltCelsius": -8, "movementFactor": 0.9 }
+  ]
+}

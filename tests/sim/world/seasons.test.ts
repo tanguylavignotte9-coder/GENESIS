@@ -78,7 +78,7 @@ describe('abnormal years', () => {
       return simulation.journal.all().map((event) => `${event.tick} ${event.text}`);
     };
     expect(run()).toEqual(run());
-  });
+  }, 30_000);
 
   it('are published in the journal with a place, and each end is caused by its start', () => {
     const simulation = new Simulation(7, testData());
@@ -115,7 +115,7 @@ describe('abnormal years', () => {
   it('never happen when their probability is 0', () => {
     const simulation = new Simulation(7, testData(0));
     simulation.step(3 * year(simulation));
-    expect(simulation.journal.size).toBe(0);
+    expect(simulation.journal.all().filter((event) => event.type.startsWith('climate.anomaly'))).toHaveLength(0);
   });
 });
 

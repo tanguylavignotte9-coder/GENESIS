@@ -12,6 +12,10 @@ export class MinHeap {
     this.keys = new Float64Array(capacity);
   }
 
+  clear(): void {
+    this.count = 0;
+  }
+
   get size(): number {
     return this.count;
   }

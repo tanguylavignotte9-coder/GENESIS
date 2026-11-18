@@ -1,0 +1,137 @@
+{
+  "tribe": {
+    "count": 1,
+    "size": 30,
+    "elderShare": 0.1,
+    "childrenPerCouple": [0, 3],
+    "adultAge": [18, 45],
+    "elderAge": [50, 66],
+    "childAge": [1, 14],
+    "huts": 6,
+    "campRadius": 3,
+    "campSpacingTiles": 40
+  },
+  "site": {
+    "candidates": 6000,
+    "minCelsius": 6,
+    "maxCelsius": 20,
+    "waterMaxTiles": 3,
+    "foodRadius": 10,
+    "minFoodPlants": 40
+  },
+  "names": {
+    "syllables": ["ka", "lo", "mi", "ra", "tu", "na", "e", "o", "an", "ir", "sa", "ko", "li", "da", "me", "nu", "ta", "re", "ul", "va", "ya", "bo", "ki", "su"],
+    "minSyllables": 2,
+    "maxSyllables": 3
+  },
+  "knowledge": [
+    { "id": "gathering", "name": "Cueillette" },
+    { "id": "fire", "name": "Maîtrise du feu" },
+    { "id": "huts", "name": "Huttes" }
+  ],
+  "startingKnowledge": ["gathering", "fire", "huts"],
+  "traits": [
+    { "id": "prudence", "name": "Prudence" },
+    { "id": "sociability", "name": "Sociabilité" },
+    { "id": "curiosity", "name": "Curiosité" },
+    { "id": "diligence", "name": "Ardeur au travail" }
+  ],
+  "stepsPerHour": 4,
+  "thinkEveryMinutes": 60,
+  "needs": {
+    "hungerPerHour": 2.6,
+    "thirstPerHour": 4,
+    "fatiguePerHour": 4,
+    "restPerHour": 12,
+    "comfortCelsius": 12,
+    "coldPerDegreeHour": 0.5,
+    "warmingPerHour": 20,
+    "dangerDecayPerHour": 50,
+    "starvationDamagePerHour": 0.25,
+    "thirstDamagePerHour": 3,
+    "coldDamagePerHour": 2,
+    "regenPerHour": 1
+  },
+  "body": {
+    "walkTilesPerHour": 4,
+    "fleeSpeedFactor": 1.5,
+    "childSpeedFactor": 0.7,
+    "perceptionTiles": 10,
+    "exploreTiles": 20,
+    "carryFood": 12,
+    "carryBranches": 12,
+    "hungerPerFoodUnit": 15,
+    "eatUnitsPerHour": 6,
+    "drinkPerHour": 120,
+    "gatherUnitsPerHour": 4,
+    "branchesPerHour": 6,
+    "branchHarmToPlant": 0.03
+  },
+  "edibleResources": { "berries": 1, "roots": 1, "wild_cereals": 0.8 },
+  "camp": {
+    "maxFuelHours": 24,
+    "fuelHoursPerBranch": 2,
+    "fireWarmthCelsius": 14,
+    "fireWarmthTiles": 3,
+    "hutWarmthCelsius": 8,
+    "shelterMaxCelsius": 20,
+    "hutCapacity": 6,
+    "homeRadiusTiles": 70
+  },
+  "memory": { "waterSlots": 4, "foodSlots": 8, "forgetDays": 20 },
+  "danger": {
+    "predators": ["wolf", "lion", "bear"],
+    "alertTiles": 7,
+    "isolationTiles": 6,
+    "groupFearShare": 0.35,
+    "predatorMinHunger": 30,
+    "attackChancePerStep": 0.2,
+    "attackDamage": 40,
+    "corpseMeat": 25
+  },
+  "terrain": {
+    "forestCost": 1.6,
+    "shrubCost": 1.2,
+    "riverCost": 3,
+    "slopeCostPer100m": 1,
+    "maxPathNodes": 20000,
+    "heuristicWeight": 1.3
+  },
+  "decision": {
+    "randomness": 0.05,
+    "keepCurrentBonus": 0.1
+  },
+  "actions": [
+    { "id": "drink", "name": "Boire", "label": "Va boire", "weight": 1.2, "reason": "thirst",
+      "considerations": [{ "input": "thirst", "curve": "logistic", "a": 0.45, "b": 10 }], "traits": {} },
+    { "id": "eat", "name": "Manger", "label": "Mange", "weight": 1.1, "reason": "hunger",
+      "considerations": [{ "input": "hunger", "curve": "logistic", "a": 0.35, "b": 10 }, { "input": "hasFood", "curve": "linear", "a": 1, "b": 0 }], "traits": {} },
+    { "id": "gather", "name": "Cueillir", "label": "Va cueillir", "weight": 0.75, "reason": "foodCarried",
+      "considerations": [{ "input": "day", "curve": "linear", "a": 1, "b": 0 }, { "input": "foodCarried", "curve": "linear", "a": -1, "b": 1 }, { "input": "hunger", "curve": "linear", "a": 0.6, "b": 0.4 }],
+      "traits": { "diligence": 0.4, "curiosity": 0.2 }, "requires": "gathering" },
+    { "id": "collect_wood", "name": "Ramasser du bois", "label": "Va ramasser du bois", "weight": 0.6, "reason": "fireLow",
+      "considerations": [{ "input": "day", "curve": "linear", "a": 1, "b": 0 }, { "input": "branchesCarried", "curve": "linear", "a": -1, "b": 1 }, { "input": "fireLow", "curve": "linear", "a": 0.8, "b": 0.2 }],
+      "traits": { "diligence": 0.4 } },
+    { "id": "tend_fire", "name": "Entretenir le feu", "label": "Entretient le feu", "weight": 0.95, "reason": "fireLow",
+      "considerations": [{ "input": "hasBranches", "curve": "linear", "a": 1, "b": 0 }, { "input": "fireLow", "curve": "logistic", "a": 0.45, "b": 8 }], "traits": { "diligence": 0.2 }, "requires": "fire" },
+    { "id": "warm_up", "name": "Se réchauffer", "label": "Se réchauffe au feu", "weight": 1, "reason": "cold",
+      "considerations": [{ "input": "cold", "curve": "logistic", "a": 0.45, "b": 10 }, { "input": "fireLit", "curve": "linear", "a": 1, "b": 0 }], "traits": {} },
+    { "id": "sleep", "name": "Dormir", "label": "Dort", "weight": 1.1, "reason": "fatigue",
+      "considerations": [{ "input": "fatigue", "curve": "logistic", "a": 0.3, "b": 9 }, { "input": "night", "curve": "linear", "a": 0.75, "b": 0.25 }], "traits": {} },
+    { "id": "return_camp", "name": "Rentrer au camp", "label": "Rentre au camp", "weight": 0.7, "reason": "night",
+      "considerations": [{ "input": "awayFromCamp", "curve": "logistic", "a": 0.25, "b": 10 }, { "input": "night", "curve": "linear", "a": 0.8, "b": 0.2 }], "traits": { "prudence": 0.3 } },
+    { "id": "flee", "name": "Fuir", "label": "Fuit un prédateur", "weight": 1.6, "reason": "danger",
+      "considerations": [{ "input": "danger", "curve": "logistic", "a": 0.4, "b": 12 }], "traits": { "prudence": 0.5 } },
+    { "id": "stay_with_group", "name": "Rester près du groupe", "label": "Rejoint le groupe", "weight": 0.55, "reason": "isolation",
+      "considerations": [{ "input": "isolation", "curve": "logistic", "a": 0.5, "b": 8 }], "traits": { "sociability": 0.6 } },
+    { "id": "rest", "name": "Se reposer", "label": "Se repose", "weight": 0.15, "reason": "always",
+      "considerations": [{ "input": "always", "curve": "linear", "a": 1, "b": 0 }], "traits": {} }
+  ],
+  "deathTexts": {
+    "hunger": "{nom} est mort{e} de faim dans {lieu}.",
+    "thirst": "{nom} est mort{e} de soif dans {lieu}.",
+    "cold": "{nom} est mort{e} de froid dans {lieu}.",
+    "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}."
+  },
+  "settlementText": "Une tribu de {personnes} personnes s'installe dans {lieu} : un feu de camp et {huttes} huttes."
+}

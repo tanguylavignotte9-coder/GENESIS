@@ -2,20 +2,50 @@
   "seasonalTemperature": {
     "warmestDayOfYear": 15,
     "amplitudeByLatitude": [
-      { "latitude": 0, "value": 1 },
-      { "latitude": 0.25, "value": 4 },
-      { "latitude": 0.5, "value": 10 },
-      { "latitude": 0.75, "value": 16 },
-      { "latitude": 1, "value": 20 }
+      {
+        "latitude": 0,
+        "value": 1
+      },
+      {
+        "latitude": 0.25,
+        "value": 4
+      },
+      {
+        "latitude": 0.5,
+        "value": 10
+      },
+      {
+        "latitude": 0.75,
+        "value": 16
+      },
+      {
+        "latitude": 1,
+        "value": 20
+      }
     ]
   },
   "seasonalHumidity": {
     "amplitudeByLatitude": [
-      { "latitude": 0, "value": 0.15 },
-      { "latitude": 0.1, "value": 0.55 },
-      { "latitude": 0.3, "value": 0.4 },
-      { "latitude": 0.45, "value": 0.1 },
-      { "latitude": 1, "value": 0.05 }
+      {
+        "latitude": 0,
+        "value": 0.15
+      },
+      {
+        "latitude": 0.1,
+        "value": 0.55
+      },
+      {
+        "latitude": 0.3,
+        "value": 0.4
+      },
+      {
+        "latitude": 0.45,
+        "value": 0.1
+      },
+      {
+        "latitude": 1,
+        "value": 0.05
+      }
     ]
   },
   "snow": {
@@ -62,5 +92,31 @@
         "endText": "L'année d'abondance s'achève pour {lieu}."
       }
     ]
+  },
+  "daylight": {
+    "equinoxHours": 12,
+    "deviationByLatitude": [
+      {
+        "latitude": 0,
+        "value": 0
+      },
+      {
+        "latitude": 0.4,
+        "value": 2
+      },
+      {
+        "latitude": 0.7,
+        "value": 5
+      },
+      {
+        "latitude": 0.9,
+        "value": 9
+      },
+      {
+        "latitude": 1,
+        "value": 12
+      }
+    ],
+    "twilightHours": 1
   }
 }

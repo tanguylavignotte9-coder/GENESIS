@@ -128,3 +128,54 @@ l'entourent), pour les chasseurs `preyCheckRadius` / `breedingMinPrey` (assez de
 des petits), faim et soif par jour, nourriture nécessaire, température minimale, vitesse, rayons de fuite et
 de chasse, `migratory` / `migrationTiles`, `domesticable` (pour l'élevage plus tard) et `carcass`
 (ce que l'animal fournit à sa mort).
+
+## Métadonnées des variables (Atelier des variables)
+
+Depuis l'étape 4, chaque nouvelle variable est documentée **dans son schéma** (code de validation) :
+libellé et légende en français, unité, bornes min/max, et mode d'application (`live` = s'applique en direct,
+`newWorld` = demande un nouveau monde). Un test vérifie qu'aucune variable de `humans.json`, `weather.json`
+et de la section `daylight` de `climate.json` n'en manque. Les variables plus anciennes seront documentées
+avec l'Atelier des variables (étape 5).
+
+## `climate.json` → `daylight` — le jour et la nuit
+
+| Clé | Rôle |
+| --- | --- |
+| `equinoxHours` | Heures de jour aux équinoxes (et toute l'année à l'équateur) |
+| `deviationByLatitude` | Heures de jour en plus au cœur de l'été (et en moins en hiver), selon la latitude |
+| `twilightHours` | Durée de l'aube et du crépuscule |
+
+## `weather.json` — la météo locale
+
+La carte est découpée en régions carrées ; chaque jour, chaque région tire sa météo (beau temps, pluie,
+neige ou froid vif) selon son humidité et sa température du moment. La météo change la température ressentie
+par les humains et leur vitesse de marche.
+
+## `humans.json` — les humains
+
+| Partie | Rôle |
+| --- | --- |
+| `tribe` | Nombre et taille des tribus de départ, part d'anciens, enfants par couple, âges, huttes de départ |
+| `site` | Choix de l'emplacement du camp : climat tempéré, eau douce proche, plantes nourricières autour |
+| `names` | Syllabes du générateur de noms provisoires |
+| `knowledge`, `startingKnowledge` | Savoirs (pour l'instant : cueillette, maîtrise du feu, huttes) |
+| `traits` | Traits de caractère (prudence, sociabilité, curiosité, ardeur au travail) |
+| `stepsPerHour`, `thinkEveryMinutes` | Rythme d'action et de réflexion de chaque personne |
+| `needs` | Vitesse de la faim, de la soif, de la fatigue, du froid ; dégâts et guérison |
+| `body` | Vitesse de marche, perception, ce qu'on peut porter, vitesse de cueillette et de ramassage |
+| `edibleResources` | Ressources des plantes qui se mangent, et leur valeur nutritive |
+| `camp` | Feu (réserve, valeur d'une branche, chaleur, portée), huttes (chaleur, places), territoire connu |
+| `memory` | Nombre de points d'eau et de coins de cueillette retenus, durée avant l'oubli |
+| `danger` | Prédateurs dangereux, vigilance, isolement, attaques |
+| `terrain` | Coûts de marche (forêt, broussailles, gué, pente) pour la recherche de chemin |
+| `decision` | Part de hasard et persévérance dans les décisions |
+| `actions` | Les actions du cerveau (voir ci-dessous) |
+| `deathTexts`, `settlementText` | Phrases du journal |
+
+**Les actions** (« utility AI ») : chaque action a un poids et des *considérations*. Chaque considération
+lit une entrée entre 0 et 1 (faim, soif, fatigue, froid, danger, nuit, jour, nourriture portée, feu bas,
+éloignement du camp, isolement…) et la passe dans une courbe : `linear` (a·x + b), `power` (x^a) ou
+`logistic` (1 / (1 + e^(−b·(x − a))), une marche douce autour de `a`). Le score de l'action est le poids
+multiplié par toutes ses considérations, puis par l'effet des traits de caractère (`traits`). La personne
+fait l'action au meilleur score qui est possible à ce moment-là ; `reason` indique l'entrée affichée comme
+raison dans sa fiche.

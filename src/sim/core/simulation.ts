@@ -1,5 +1,7 @@
 import { FaunaSystem } from '../systems/fauna/fauna-system';
 import { FloraSystem } from '../systems/flora/flora-system';
+import { IndividualsSystem } from '../systems/individuals/individuals-system';
+import { WeatherState } from '../systems/world/weather';
 import { startAnomalyYear } from '../systems/world/anomalies';
 import { ClimateState } from '../systems/world/climate-state';
 import { generateWorld, type World } from '../systems/world/world';
@@ -9,6 +11,8 @@ import type { GameData } from './game-data';
 import { Journal } from './journal';
 import { Rng } from './rng';
 import { daysPerYear } from './time-params';
+
+const HOURS_PER_DAY = 24;
 
 /**
  * The simulated world: seed, random generator, clock, generated map, climate of the moment
@@ -24,7 +28,10 @@ export class Simulation {
   readonly climate: ClimateState;
   readonly flora: FloraSystem;
   readonly fauna: FaunaSystem;
+  readonly weather: WeatherState;
+  readonly humans: IndividualsSystem;
   private readonly ticksPerStep: number;
+  private readonly ticksPerHumanStep: number;
   /** Incremented each time the climate of the moment changes (once per game day). */
   climateVersion = 0;
 
@@ -37,8 +44,17 @@ export class Simulation {
     this.climate = new ClimateState(this.world, data.climate, yearDays);
     this.flora = new FloraSystem(this.world, this.climate, data.flora, yearDays, this.rng);
     this.fauna = new FaunaSystem(this.world, this.climate, this.flora, data.fauna, yearDays, data.time.ticksPerDay, this.rng);
+    this.weather = new WeatherState(this.world.size, data.weather);
     this.ticksPerStep = Math.max(1, Math.round(data.time.ticksPerDay / data.fauna.stepsPerDay));
+    this.ticksPerHumanStep = Math.max(1, Math.round(data.time.ticksPerDay / HOURS_PER_DAY / data.humans.stepsPerHour));
     this.startDay(this.date);
+    this.humans = new IndividualsSystem(this.world, this.climate, this.weather, this.flora, this.fauna, data.humans, this.rng, this.journal, this.clock.tick);
+  }
+
+  /** Hour of the day, 0..24 (fractional). */
+  get hour(): number {
+    const { ticksPerDay } = this.data.time;
+    return ((this.clock.tick % ticksPerDay) / ticksPerDay) * HOURS_PER_DAY;
   }
 
   get date(): GameDate {
@@ -52,11 +68,18 @@ export class Simulation {
     while (remaining > 0) {
       // Jump straight to the next tick where something happens (an animal step or a new day).
       const tick = this.clock.tick;
-      const toNext = Math.min(this.ticksPerStep - (tick % this.ticksPerStep), ticksPerDay - (tick % ticksPerDay), remaining);
+      const toNext = Math.min(
+        this.ticksPerStep - (tick % this.ticksPerStep),
+        this.ticksPerHumanStep - (tick % this.ticksPerHumanStep),
+        ticksPerDay - (tick % ticksPerDay),
+        remaining,
+      );
       this.clock.advance(toNext);
       remaining -= toNext;
-      if (this.clock.tick % ticksPerDay === 0) this.startDay(this.date);
-      if (this.clock.tick % this.ticksPerStep === 0) this.fauna.runStep();
+      const now = this.clock.tick;
+      if (now % ticksPerDay === 0) this.startDay(this.date);
+      if (now % this.ticksPerStep === 0) this.fauna.runStep();
+      if (now % this.ticksPerHumanStep === 0) this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
     }
   }
 
@@ -69,6 +92,7 @@ export class Simulation {
       this.fauna.census.onYearStart(this.climate.anomalies);
     }
     this.climate.setDay(date.dayOfYear);
+    this.weather.newDay(this.climate, this.rng);
     this.climateVersion++;
     this.flora.dailyUpdate(date.absoluteDay);
     this.fauna.runDay(date.absoluteDay, date.dayOfYear, this.journal, tick);

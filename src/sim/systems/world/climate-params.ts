@@ -1,4 +1,4 @@
-import { DataFileError, validateData, type Schema } from '../../core/data-validation';
+import { DataFileError, validateData, variable, type Schema } from '../../core/data-validation';
 import { fillTemplate } from '../../core/text';
 import { latitudeCurveProblem, type LatitudePoint } from './latitude-curve';
 
@@ -21,6 +21,17 @@ export interface ClimateParams {
     fullCelsius: number;
   };
   anomalies: AnomalyParams;
+  daylight: DaylightParams;
+}
+
+/** Day and night: hours of daylight depend on the season and the latitude. */
+export interface DaylightParams {
+  /** Hours of daylight at the equinoxes (everywhere) and all year at the equator. */
+  equinoxHours: number;
+  /** Extra hours of daylight at midsummer (and fewer at midwinter), by latitude. */
+  deviationByLatitude: LatitudePoint[];
+  /** Length of dawn and dusk, in hours. */
+  twilightHours: number;
 }
 
 export interface AnomalyParams {
@@ -64,9 +75,52 @@ const TEXT_WITH_PLACE: Schema = {
   patternHint: 'un texte contenant {lieu} (remplacé par le lieu)',
 };
 
+const DAYLIGHT_SCHEMA: Schema = {
+  kind: 'object',
+  fields: {
+    equinoxHours: variable('number', 1, 23, {
+      label: 'Durée du jour à l’équinoxe',
+      help: 'Heures de jour aux équinoxes, et toute l’année à l’équateur.',
+      unit: 'heures',
+      apply: 'live',
+    }),
+    deviationByLatitude: {
+      kind: 'array',
+      minLength: 1,
+      items: {
+        kind: 'object',
+        fields: {
+          latitude: variable('number', 0, 1, {
+            label: 'Latitude',
+            help: '0 = équateur (milieu de la carte), 1 = pôle (haut ou bas).',
+            unit: 'fraction',
+            apply: 'live',
+          }),
+          value: variable('number', 0, 12, {
+            label: 'Écart de durée du jour',
+            help: 'Heures de jour en plus au cœur de l’été (et en moins au cœur de l’hiver) à cette latitude.',
+            unit: 'heures',
+            apply: 'live',
+          }),
+        },
+      },
+    },
+    twilightHours: variable('number', 0, 4, {
+      label: 'Crépuscule',
+      help: 'Durée de l’aube et du crépuscule, pendant lesquels la lumière monte ou baisse.',
+      unit: 'heures',
+      apply: 'live',
+    }),
+  },
+};
+
+/** Schema of the variables added since the variables workshop requirement (all documented). */
+export const DOCUMENTED_CLIMATE_SCHEMA = DAYLIGHT_SCHEMA;
+
 const CLIMATE_SCHEMA: Schema = {
   kind: 'object',
   fields: {
+    daylight: DAYLIGHT_SCHEMA,
     seasonalTemperature: {
       kind: 'object',
       fields: { warmestDayOfYear: { kind: 'integer', min: 0 }, amplitudeByLatitude: CURVE },
@@ -112,6 +166,7 @@ export function parseClimateParams(raw: unknown): ClimateParams {
   const problems = [
     latitudeCurveProblem(params.seasonalTemperature.amplitudeByLatitude, 'seasonalTemperature.amplitudeByLatitude'),
     latitudeCurveProblem(params.seasonalHumidity.amplitudeByLatitude, 'seasonalHumidity.amplitudeByLatitude'),
+    latitudeCurveProblem(params.daylight.deviationByLatitude, 'daylight.deviationByLatitude'),
   ].filter((problem): problem is string => problem !== null);
   if (params.snow.fullCelsius >= params.snow.startCelsius) {
     problems.push('« snow.fullCelsius » doit être plus froid que « snow.startCelsius ».');

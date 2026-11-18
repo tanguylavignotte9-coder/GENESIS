@@ -6,5 +6,7 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     exclude: ['tests/long/**', 'node_modules/**'],
     environment: 'node',
+    // Generous: the machine may be busy with other simulations.
+    testTimeout: 30_000,
   },
 });

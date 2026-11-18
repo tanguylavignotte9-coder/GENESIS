@@ -12,6 +12,8 @@ import { Interactions } from './interactions';
 import { Journal } from './journal';
 import { Rng } from './rng';
 import { daysPerYear } from './time-params';
+import { setAt, type PathSegment } from './variables';
+import type { DataKey } from './game-data';
 
 const HOURS_PER_DAY = 24;
 
@@ -52,6 +54,18 @@ export class Simulation {
     this.ticksPerHumanStep = Math.max(1, Math.round(data.time.ticksPerDay / HOURS_PER_DAY / data.humans.stepsPerHour));
     this.startDay(this.date);
     this.humans = new IndividualsSystem(this.world, this.climate, this.weather, this.flora, this.fauna, data.humans, this.rng, this.journal, this.clock.tick, this.interactions);
+  }
+
+  /**
+   * Applies changes of "live" variables (already validated by the variables workshop) to the data
+   * the systems read, then lets each system recompute what it derived from them.
+   */
+  applyLiveChanges(changes: readonly { dataKey: DataKey; path: readonly PathSegment[]; value: unknown }[]): void {
+    for (const change of changes) setAt(this.data[change.dataKey], change.path, change.value);
+    this.climate.refreshParams();
+    this.flora.refreshParams();
+    this.fauna.refreshParams();
+    this.humans.refreshParams();
   }
 
   /** Hour of the day, 0..24 (fractional). */

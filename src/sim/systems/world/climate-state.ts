@@ -42,15 +42,15 @@ export class ClimateState {
   anomalies: ActiveAnomaly[] = [];
   dayOfYear = 0;
 
-  private readonly rows: SeasonRows;
+  private rows: SeasonRows;
   /** Season signal per hemisphere: [south, north], +1 = height of summer. */
   private readonly signals = new Float64Array(2);
   /** Effects of each active anomaly, indexed like anomalyIndex (0 = none). */
   private offset = new Float64Array(1);
   private winterOffset = new Float64Array(1);
   private humidityShift = new Float64Array(1);
-  private readonly snowStart: number;
-  private readonly snowSpan: number;
+  private snowStart: number;
+  private snowSpan: number;
 
   constructor(
     private readonly map: ClimateMap,
@@ -64,6 +64,15 @@ export class ClimateState {
     this.snowStart = params.snow.startCelsius;
     this.snowSpan = params.snow.startCelsius - params.snow.fullCelsius;
     this.setDay(0);
+  }
+
+  /** Recomputes what is derived from the parameters (after a live change in the variables workshop). */
+  refreshParams(): void {
+    this.rows = buildSeasonRows(this.map.size, this.params);
+    this.snowStart = this.params.snow.startCelsius;
+    this.snowSpan = this.params.snow.startCelsius - this.params.snow.fullCelsius;
+    this.setDay(this.dayOfYear);
+    this.refreshAnomalyEffects();
   }
 
   /** Moves the climate to a day of the year (O(1)). */

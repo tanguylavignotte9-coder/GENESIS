@@ -72,3 +72,59 @@ Le dernier biome « ocean » et le dernier biome « land » n'ont aucune conditi
 `vegetation: true` marque les biomes dont la végétation jaunit en saison sèche (affichage seulement).
 `seasonColors` donne la couleur de la neige et de la végétation sèche.
 `water` donne le nom et la couleur des rivières et des lacs.
+
+## `resources.json` — les ressources
+
+Liste des ressources (bois, baies, viande, peau…) avec leur nom affiché. Les plantes et les animaux
+y font référence par leur identifiant ; une ressource inconnue est signalée au lancement.
+
+## `plants.json` — la flore
+
+Chaque tuile de terre porte **au plus une plante** (arbre, arbuste ou plante utile), avec son espèce,
+son âge, sa taille et sa santé. L'**herbe** n'est pas faite d'individus : c'est une quantité par tuile
+qui pousse et se fait brouter.
+
+| Clé | Rôle |
+| --- | --- |
+| `updateIntervalDays` | Chaque plante n'est mise à jour qu'une fois tous les N jours (les tuiles sont réparties sur les jours) |
+| `fitnessTolerance…` | Jusqu'où une espèce supporte un climat moyen hors de sa plage idéale |
+| `growthMinCelsius` | En dessous, les plantes ne grandissent pas |
+| `health.*` | Récupération, dégâts du gel, de la sécheresse et d'un climat inadapté (par jour) |
+| `seedlingHealth`, `seedlingGrowth` | Santé et taille d'une plante qui vient de germer |
+| `initialCoverByBiome` | Part des tuiles de chaque biome couvertes au départ |
+| `shadeByKind` | Part de l'herbe qui pousse encore sous un arbre, un arbuste ou une herbe |
+| `grass.*` | Herbe : quantité maximale, pousse par jour, température minimale, humidité idéale, couverture par biome |
+| `species` | Les espèces (voir ci-dessous) |
+
+Pour chaque espèce : `kind` (tree, shrub, herb), `shape` et `color` / `accentColor` (dessin),
+`abundance` (fréquence au départ), `temperature` et `humidity` (climat moyen idéal [min, max]),
+`frostCelsius` et `droughtHumidity` (seuils de gel et de sécheresse), `maxAgeYears`, `maturityYears`,
+`growthYears`, `seedsPerYear`, `seedRadius` (distance des graines), `germinationChance`,
+`produce` (récolte saisonnière : ressource, jours de l'année locale `fromDay`–`toDay`, quantité)
+et `materials` (ce qu'elle donne une fois coupée).
+
+## `animals.json` — la faune
+
+Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, position, groupe.
+
+| Clé | Rôle |
+| --- | --- |
+| `stepsPerDay` | Nombre de fois par jour où chaque animal agit (et se déplace d'au plus une case) |
+| `thinkEverySteps` | Un animal réfléchit (choisit quoi faire) une fois tous les N pas, chacun à son rythme |
+| `gridCellTiles` | Taille des cases de la grille qui sert à trouver les voisins (technique) |
+| `needs.*` | Seuils de faim et de soif, dégâts de la faim, de la soif, du froid et de la vieillesse |
+| `behavior.*` | Rayons de recherche de nourriture, de cohésion du groupe, de fuite, de recherche de partenaire… |
+| `fish.*` | Poisson par tuile d'eau (rivière, lac, côte, haute mer) et sa vitesse de renouvellement |
+| `carrion.*` | Carcasses laissées par les chasseurs : part qui pourrit chaque jour |
+| `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
+| `events.*` | Seuils et phrases du journal (migrations, disparitions, effondrements) |
+
+Pour chaque espèce : `diet` (herbe, viande, poisson ou une récolte de plante, avec une préférence),
+`prey` (espèces chassées), `habitat` (densité de départ par biome), `populationPer1000Tiles`,
+`groupSize` et `maxGroupSize` (troupeaux, meutes), âge adulte et maximal, saison des amours
+(`breedingDays`, en jours de l'année locale), gestation, portée, `conceptionChance`,
+territoire (`crowdingRadius`, `crowdingMax` : une femelle ne met pas bas si trop d'animaux de son espèce
+l'entourent), pour les chasseurs `preyCheckRadius` / `breedingMinPrey` (assez de gibier autour pour élever
+des petits), faim et soif par jour, nourriture nécessaire, température minimale, vitesse, rayons de fuite et
+de chasse, `migratory` / `migrationTiles`, `domesticable` (pour l'élevage plus tard) et `carcass`
+(ce que l'animal fournit à sa mort).

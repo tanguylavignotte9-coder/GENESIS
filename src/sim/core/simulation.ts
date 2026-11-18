@@ -1,3 +1,5 @@
+import { FaunaSystem } from '../systems/fauna/fauna-system';
+import { FloraSystem } from '../systems/flora/flora-system';
 import { startAnomalyYear } from '../systems/world/anomalies';
 import { ClimateState } from '../systems/world/climate-state';
 import { generateWorld, type World } from '../systems/world/world';
@@ -20,6 +22,9 @@ export class Simulation {
   readonly journal = new Journal();
   readonly world: World;
   readonly climate: ClimateState;
+  readonly flora: FloraSystem;
+  readonly fauna: FaunaSystem;
+  private readonly ticksPerStep: number;
   /** Incremented each time the climate of the moment changes (once per game day). */
   climateVersion = 0;
 
@@ -28,7 +33,11 @@ export class Simulation {
     this.data = data;
     this.rng = new Rng(seed);
     this.world = generateWorld(data.worldgen, data.biomes, this.rng);
-    this.climate = new ClimateState(this.world, data.climate, daysPerYear(data.time));
+    const yearDays = daysPerYear(data.time);
+    this.climate = new ClimateState(this.world, data.climate, yearDays);
+    this.flora = new FloraSystem(this.world, this.climate, data.flora, yearDays, this.rng);
+    this.fauna = new FaunaSystem(this.world, this.climate, this.flora, data.fauna, yearDays, data.time.ticksPerDay, this.rng);
+    this.ticksPerStep = Math.max(1, Math.round(data.time.ticksPerDay / data.fauna.stepsPerDay));
     this.startDay(this.date);
   }
 
@@ -39,17 +48,29 @@ export class Simulation {
   /** Advances the simulation by `ticks` steps. Daily and yearly work happens on day boundaries. */
   step(ticks: number): void {
     const { ticksPerDay } = this.data.time;
-    for (let i = 0; i < ticks; i++) {
-      this.clock.advance();
+    let remaining = ticks;
+    while (remaining > 0) {
+      // Jump straight to the next tick where something happens (an animal step or a new day).
+      const tick = this.clock.tick;
+      const toNext = Math.min(this.ticksPerStep - (tick % this.ticksPerStep), ticksPerDay - (tick % ticksPerDay), remaining);
+      this.clock.advance(toNext);
+      remaining -= toNext;
       if (this.clock.tick % ticksPerDay === 0) this.startDay(this.date);
+      if (this.clock.tick % this.ticksPerStep === 0) this.fauna.runStep();
     }
   }
 
+  /** Daily (and yearly) work, in a fixed order: climate, plants, animals. */
   private startDay(date: GameDate): void {
+    const tick = this.clock.tick;
     if (date.dayOfYear === 0) {
-      startAnomalyYear(this.world, this.climate, this.data.climate.anomalies, this.rng, this.journal, this.clock.tick);
+      this.fauna.census.onYearEnd(this.climate.anomalies, this.journal, tick);
+      startAnomalyYear(this.world, this.climate, this.data.climate.anomalies, this.rng, this.journal, tick);
+      this.fauna.census.onYearStart(this.climate.anomalies);
     }
     this.climate.setDay(date.dayOfYear);
     this.climateVersion++;
+    this.flora.dailyUpdate(date.absoluteDay);
+    this.fauna.runDay(date.absoluteDay, date.dayOfYear, this.journal, tick);
   }
 }

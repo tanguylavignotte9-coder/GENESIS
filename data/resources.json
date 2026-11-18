@@ -1,0 +1,17 @@
+{
+  "resources": [
+    { "id": "wood", "name": "Bois" },
+    { "id": "branches", "name": "Branches" },
+    { "id": "berries", "name": "Baies" },
+    { "id": "roots", "name": "Racines" },
+    { "id": "plant_fiber", "name": "Fibres végétales" },
+    { "id": "wild_cereals", "name": "Céréales sauvages" },
+    { "id": "flax", "name": "Lin" },
+    { "id": "meat", "name": "Viande" },
+    { "id": "hide", "name": "Peau" },
+    { "id": "bone", "name": "Os" },
+    { "id": "sinew", "name": "Tendons" },
+    { "id": "wool", "name": "Laine" },
+    { "id": "fish", "name": "Poisson" }
+  ]
+}

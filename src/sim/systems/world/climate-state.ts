@@ -51,7 +51,7 @@ export class ClimateState {
 
   constructor(
     private readonly map: ClimateMap,
-    private readonly params: ClimateParams,
+    readonly params: ClimateParams,
     private readonly daysPerYear: number,
   ) {
     const count = map.size * map.size;

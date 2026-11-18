@@ -1,4 +1,5 @@
 import { DataFileError, validateData, type Schema } from '../../core/data-validation';
+import { fillTemplate } from '../../core/text';
 import { latitudeCurveProblem, type LatitudePoint } from './latitude-curve';
 
 /** Seasons and abnormal years, read from data/climate.json. */
@@ -45,12 +46,13 @@ export interface AnomalyType {
   /** Extra offset applied in proportion to how wintry the local season is. */
   winterTemperatureOffsetCelsius: number;
   humidityFactor: number;
+  /** For hardships only: how the journal names it as a cause ("la sécheresse"). */
+  hardshipName?: string;
   /** Journal sentences; "{lieu}" is replaced by the place. */
   startText: string;
   endText: string;
 }
 
-const PLACEHOLDER = '{lieu}';
 const CURVE: Schema = {
   kind: 'array',
   minLength: 1,
@@ -91,9 +93,11 @@ const CLIMATE_SCHEMA: Schema = {
               temperatureOffsetCelsius: { kind: 'number' },
               winterTemperatureOffsetCelsius: { kind: 'number' },
               humidityFactor: { kind: 'number', min: 0 },
+              hardshipName: { kind: 'string' },
               startText: TEXT_WITH_PLACE,
               endText: TEXT_WITH_PLACE,
             },
+            optional: ['hardshipName'],
           },
         },
       },
@@ -123,5 +127,5 @@ export function parseClimateParams(raw: unknown): ClimateParams {
 }
 
 export function fillPlace(template: string, place: string): string {
-  return template.split(PLACEHOLDER).join(place);
+  return fillTemplate(template, { lieu: place });
 }

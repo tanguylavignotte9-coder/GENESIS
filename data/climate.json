@@ -36,6 +36,7 @@
         "temperatureOffsetCelsius": 1.5,
         "winterTemperatureOffsetCelsius": 0,
         "humidityFactor": 0.45,
+        "hardshipName": "la sécheresse",
         "startText": "Une sécheresse frappe {lieu}.",
         "endText": "La sécheresse qui frappait {lieu} prend fin."
       },
@@ -45,6 +46,7 @@
         "weight": 3,
         "temperatureOffsetCelsius": -2,
         "winterTemperatureOffsetCelsius": -9,
+        "hardshipName": "le grand froid",
         "humidityFactor": 1,
         "startText": "Une année de grand froid s'abat sur {lieu} : l'hiver y sera rigoureux.",
         "endText": "Le grand froid relâche son étreinte sur {lieu}."

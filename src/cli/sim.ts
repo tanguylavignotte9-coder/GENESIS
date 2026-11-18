@@ -57,9 +57,11 @@ const MAX_LISTED_ANOMALIES = 30;
 
 function printRun(seed: number, years: number, data: GameData): void {
   const startedAt = performance.now();
-  const report = runHeadless(seed, years, data);
+  const report = runHeadless(seed, years, data, () => performance.now());
   const duration = seconds(startedAt);
   const { anomalies } = report;
+  const totalAnimals = report.animals.reduce((sum, line) => sum + line.end, 0);
+  const totalPlants = report.plants.reduce((sum, line) => sum + line.count, 0);
   const total = anomalies.lines.length;
 
   console.log('GENESIS — simulation sans écran');
@@ -67,7 +69,16 @@ function printRun(seed: number, years: number, data: GameData): void {
   console.log(`  Monde                 : ${report.worldSize} × ${report.worldSize} tuiles, ${report.riverCount} rivières, ${report.lakeCount} lacs`);
   console.log(`  Durée simulée         : ${fr.format(report.years)} an(s) = ${fr.format(report.ticks)} tics`);
   console.log(`  Date finale           : ${report.finalDate}`);
-  console.log('  Population            : 0 (les individus arrivent à l\'étape 4)');
+  console.log('  Humains                : aucun (ils arrivent à l\'étape 4)');
+  console.log(`  Animaux               : ${fr.format(totalAnimals)} (début → fin, minimum–maximum observés)`);
+  for (const line of report.animals) {
+    console.log(`    ${line.name.padEnd(18)} ${fr.format(line.start).padStart(6)} → ${fr.format(line.end).padStart(6)}   (${fr.format(line.min)}–${fr.format(line.max)})`);
+  }
+  console.log(`  Plantes               : ${fr.format(totalPlants)}`);
+  for (const line of report.plants) console.log(`    ${line.name.padEnd(18)} ${fr.format(line.count).padStart(8)}`);
+  const events = report.faunaEvents;
+  console.log(`  Faune (journal)       : ${fr.format(events.migrations)} grandes migrations, ${fr.format(events.extinctions)} disparitions locales, ${fr.format(events.collapses)} effondrements`);
+  for (const example of events.examples) console.log(`    ${example}`);
   console.log(`  Événements du journal : ${fr.format(report.journalEvents)}`);
   console.log(`  Années anormales      : ${fr.format(total)}`);
   for (const { name, count } of anomalies.countsByType) console.log(`    ${name.padEnd(20)} ${fr.format(count)}`);
@@ -79,6 +90,7 @@ function printRun(seed: number, years: number, data: GameData): void {
   }
   console.log(`  Empreinte aléatoire   : ${report.randomFingerprint.join(' ')}`);
   console.log(`  Durée de calcul       : ${duration.toFixed(2)} s (génération du monde comprise)`);
+  console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms (${fr.format(totalAnimals)} animaux, ${fr.format(totalPlants)} plantes)`);
 }
 
 function main(): void {

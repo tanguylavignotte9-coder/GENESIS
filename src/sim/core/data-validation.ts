@@ -9,7 +9,9 @@ export type Schema =
   | { kind: 'string'; pattern?: RegExp; patternHint?: string }
   | { kind: 'boolean' }
   | { kind: 'enum'; values: readonly string[] }
-  | { kind: 'array'; items: Schema; minLength?: number }
+  | { kind: 'array'; items: Schema; minLength?: number; maxLength?: number }
+  /** Object with free keys (e.g. biome ids), all values following `values`. */
+  | { kind: 'record'; values: Schema }
   | { kind: 'object'; fields: Readonly<Record<string, Schema>>; optional?: readonly string[] };
 
 export class DataFileError extends Error {
@@ -61,6 +63,13 @@ function check(value: unknown, schema: Schema, path: string, problems: string[])
     case 'object':
       checkObject(value, schema, path, problems);
       return;
+    case 'record':
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        problems.push(`${label(path)} doit être un objet JSON { … }.`);
+        return;
+      }
+      for (const [key, item] of Object.entries(value)) check(item, schema.values, path === '' ? key : `${path}.${key}`, problems);
+      return;
   }
 }
 
@@ -90,7 +99,7 @@ function checkNumber(
 
 function checkArray(
   value: unknown,
-  schema: { kind: 'array'; items: Schema; minLength?: number },
+  schema: { kind: 'array'; items: Schema; minLength?: number; maxLength?: number },
   path: string,
   problems: string[],
 ): void {
@@ -100,6 +109,9 @@ function checkArray(
   }
   if (schema.minLength !== undefined && value.length < schema.minLength) {
     problems.push(`${label(path)} doit contenir au moins ${schema.minLength} élément(s).`);
+  }
+  if (schema.maxLength !== undefined && value.length > schema.maxLength) {
+    problems.push(`${label(path)} doit contenir au plus ${schema.maxLength} élément(s).`);
   }
   value.forEach((item, index) => check(item, schema.items, `${path}[${index}]`, problems));
 }

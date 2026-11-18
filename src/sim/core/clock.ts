@@ -9,7 +9,7 @@ export class SimClock {
     return this.ticks;
   }
 
-  advance(): void {
-    this.ticks++;
+  advance(ticks = 1): void {
+    this.ticks += ticks;
   }
 }

@@ -12,7 +12,8 @@
     "build": "vite build --config vite.config.mts && tsc -p tsconfig.main.json",
     "test": "vitest run --config vitest.config.mts",
     "typecheck": "tsc -p tsconfig.sim.json && tsc -p tsconfig.worker.json && tsc -p tsconfig.json && tsc -p tsconfig.node.json && tsc -p tsconfig.main.json --noEmit",
-    "sim": "tsx src/cli/sim.ts"
+    "sim": "tsx src/cli/sim.ts",
+    "test:long": "vitest run --config vitest.long.config.mts"
   },
   "dependencies": {
     "pixi.js": "8.23.0"

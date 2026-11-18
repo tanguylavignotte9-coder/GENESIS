@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { Simulation } from '../../../src/sim/core/simulation';
-import { daysPerYear } from '../../../src/sim/core/time-params';
-import { dataWithSize } from '../world/helpers';
+import { Simulation } from '../../src/sim/core/simulation';
+import { daysPerYear } from '../../src/sim/core/time-params';
+import { dataWithSize } from '../sim/world/helpers';
 
 /**
  * Long headless runs: populations must balance themselves over 100 years, on several seeds.

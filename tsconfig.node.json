@@ -5,5 +5,5 @@
     "lib": ["ES2022"],
     "types": ["node"]
   },
-  "include": ["tests/**/*.ts", "src/cli/**/*.ts", "vite.config.mts", "vitest.config.mts"]
+  "include": ["tests/**/*.ts", "src/cli/**/*.ts", "vite.config.mts", "vitest.config.mts", "vitest.long.config.mts"]
 }

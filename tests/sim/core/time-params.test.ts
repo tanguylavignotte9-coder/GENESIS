@@ -40,7 +40,7 @@ describe('time parameters (data/time.json)', () => {
     }
     expect(message).toContain('data/time.json');
     expect(message).toContain('« ticksPerRealSecond » doit être un nombre entier');
-    expect(message).toContain('« daysPerSeason » doit être un nombre entier supérieur ou égal à 1');
+    expect(message).toContain('« daysPerSeason » doit être un nombre entier compris entre 1 et 100');
     expect(message).toContain('la clé « ticksPerDay » est manquante');
     expect(message).toContain('la clé « ticksPerDai » est inconnue');
   });

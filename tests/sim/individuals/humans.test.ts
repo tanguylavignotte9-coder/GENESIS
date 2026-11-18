@@ -1,27 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { undocumentedVariables } from '../../../src/sim/core/data-validation';
 import { Simulation } from '../../../src/sim/core/simulation';
 import { canDrink } from '../../../src/sim/systems/fauna/fresh-water';
 import { curve } from '../../../src/sim/systems/individuals/brain';
 import { HUMAN_DEATH, SETTLEMENT } from '../../../src/sim/systems/individuals/individuals-system';
-import { HUMANS_SCHEMA } from '../../../src/sim/systems/individuals/params';
 import { DeathCause } from '../../../src/sim/systems/individuals/people';
-import { DOCUMENTED_CLIMATE_SCHEMA } from '../../../src/sim/systems/world/climate-params';
-import { WEATHER_SCHEMA } from '../../../src/sim/systems/world/weather';
 import { dataWithSize } from '../world/helpers';
 
 const SIZE = 320;
 const data = dataWithSize(SIZE);
 const hourTicks = data.time.ticksPerDay / 24;
 const actionIndex = (simulation: Simulation, id: string): number => simulation.humans.actions.findIndex((a) => a.def.id === id);
-
-describe('variables documentation (workshop)', () => {
-  it('every new variable has a label, help, unit, bounds and an apply mode', () => {
-    expect(undocumentedVariables(HUMANS_SCHEMA)).toEqual([]);
-    expect(undocumentedVariables(WEATHER_SCHEMA)).toEqual([]);
-    expect(undocumentedVariables(DOCUMENTED_CLIMATE_SCHEMA)).toEqual([]);
-  });
-});
 
 describe('the starting tribe', () => {
   const simulation = new Simulation(42, data);

@@ -1,4 +1,4 @@
-import { DataFileError, validateData, type Schema } from './data-validation';
+import { DataFileError, identifier, text, validateData, type Schema } from './data-validation';
 
 /** Catalog of resources (data/resources.json): what plants and animals provide. */
 export interface ResourceDef {
@@ -11,7 +11,7 @@ export interface ResourceCatalog {
   resources: ResourceDef[];
 }
 
-const SCHEMA: Schema = {
+export const RESOURCES_SCHEMA: Schema = {
   kind: 'object',
   fields: {
     resources: {
@@ -20,8 +20,8 @@ const SCHEMA: Schema = {
       items: {
         kind: 'object',
         fields: {
-          id: { kind: 'string', pattern: /^[a-z_]+$/, patternHint: 'un identifiant en minuscules (a-z, _)' },
-          name: { kind: 'string' },
+          id: identifier('Identifiant', 'Nom technique de la ressource (utilisé par les plantes, les animaux et les humains).'),
+          name: text('Nom', 'Nom affiché de la ressource.', 'newWorld'),
         },
       },
     },
@@ -31,7 +31,7 @@ const SCHEMA: Schema = {
 const FILE = 'data/resources.json';
 
 export function parseResourceCatalog(raw: unknown): ResourceCatalog {
-  const catalog = validateData<ResourceCatalog>(FILE, raw, SCHEMA);
+  const catalog = validateData<ResourceCatalog>(FILE, raw, RESOURCES_SCHEMA);
   const ids = catalog.resources.map((resource) => resource.id);
   if (new Set(ids).size !== ids.length) throw new DataFileError(FILE, ['deux ressources ont le même « id ».']);
   return catalog;

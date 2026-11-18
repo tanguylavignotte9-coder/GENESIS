@@ -1,4 +1,4 @@
-import { validateData, type Schema } from './data-validation';
+import { int, num, text, validateData, type Schema } from './data-validation';
 
 /** Time settings, read from data/time.json. */
 export interface TimeParams {
@@ -13,14 +13,23 @@ export interface TimeParams {
   speeds: number[];
 }
 
-const TIME_SCHEMA: Schema = {
+export const TIME_SCHEMA: Schema = {
   kind: 'object',
   fields: {
-    ticksPerRealSecond: { kind: 'integer', min: 1 },
-    ticksPerDay: { kind: 'integer', min: 1 },
-    daysPerSeason: { kind: 'integer', min: 1 },
-    seasons: { kind: 'array', minLength: 1, items: { kind: 'string' } },
-    speeds: { kind: 'array', minLength: 1, items: { kind: 'number', min: 0.01 } },
+    ticksPerRealSecond: int(1, 1000, 'Tics par seconde réelle', 'Pas de simulation calculés par seconde réelle en vitesse x1 (la vitesse x500 en calcule 500 fois plus).', 'tics/s'),
+    ticksPerDay: int(24, 100000, 'Tics par jour', 'Nombre de pas de simulation dans une journée de jeu (4 800 tics à 10 par seconde = 8 minutes réelles en x1).', 'tics', 'newWorld'),
+    daysPerSeason: int(1, 100, 'Jours par saison', 'Durée d’une saison ; une année compte toutes les saisons.', 'jours', 'newWorld'),
+    seasons: {
+      kind: 'array',
+      minLength: 1,
+      items: text('Nom de saison', 'Noms des saisons, dans l’ordre du calendrier (affichés dans la date).', 'newWorld'),
+    },
+    speeds: {
+      kind: 'array',
+      minLength: 1,
+      maxLength: 9,
+      items: num(0.01, 5000, 'Vitesse proposée', 'Multiplicateurs de vitesse des boutons (touches 1 à 9) ; la pause est à part.', 'facteur'),
+    },
   },
 };
 

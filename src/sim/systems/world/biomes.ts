@@ -1,4 +1,4 @@
-import { DataFileError, validateData, type Schema } from '../../core/data-validation';
+import { choice, color, DataFileError, flag, identifier, num, text, validateData, type Schema } from '../../core/data-validation';
 
 /**
  * Biome definitions, read from data/biomes.json.
@@ -36,10 +36,12 @@ export interface BiomeTable {
   water: { river: WaterDef; lake: WaterDef };
 }
 
-const COLOR: Schema = { kind: 'string', pattern: /^#[0-9a-fA-F]{6}$/, patternHint: 'une couleur au format #rrggbb' };
 const CONDITIONS = ['minAltitude', 'maxAltitude', 'minTemperature', 'maxTemperature', 'minHumidity', 'maxHumidity'];
+/** Biomes are decided when the world is generated: every change needs a new world. */
+const W = 'newWorld';
+const mapColor = (label: string, help: string): Schema => color(label, help, W);
 
-const BIOMES_SCHEMA: Schema = {
+export const BIOMES_SCHEMA: Schema = {
   kind: 'object',
   fields: {
     biomes: {
@@ -48,28 +50,34 @@ const BIOMES_SCHEMA: Schema = {
       items: {
         kind: 'object',
         fields: {
-          id: { kind: 'string', pattern: /^[a-z_]+$/, patternHint: 'un identifiant en minuscules (a-z, _)' },
-          name: { kind: 'string' },
-          color: COLOR,
-          domain: { kind: 'enum', values: ['ocean', 'land'] },
-          minAltitude: { kind: 'number' },
-          maxAltitude: { kind: 'number' },
-          minTemperature: { kind: 'number' },
-          maxTemperature: { kind: 'number' },
-          minHumidity: { kind: 'number', min: 0, max: 1 },
-          maxHumidity: { kind: 'number', min: 0, max: 1 },
-          coastal: { kind: 'boolean' },
-          vegetation: { kind: 'boolean' },
+          id: identifier('Identifiant', 'Nom technique du biome (utilisé par la flore et la faune).'),
+          name: text('Nom', 'Nom affiché du biome.', W),
+          color: mapColor('Couleur', 'Couleur du biome sur la carte.'),
+          domain: choice(['ocean', 'land'], 'Domaine', 'ocean = sous la mer, land = sur la terre ferme.', W),
+          minAltitude: num(-11000, 9000, 'Altitude minimale', 'Condition : altitude d’au moins cette valeur.', 'm', W),
+          maxAltitude: num(-11000, 9000, 'Altitude maximale', 'Condition : altitude d’au plus cette valeur.', 'm', W),
+          minTemperature: num(-60, 60, 'Température minimale', 'Condition : température moyenne annuelle d’au moins cette valeur.', '°C', W),
+          maxTemperature: num(-60, 60, 'Température maximale', 'Condition : température moyenne annuelle d’au plus cette valeur.', '°C', W),
+          minHumidity: num(0, 1, 'Humidité minimale', 'Condition : humidité moyenne d’au moins cette valeur.', 'fraction', W),
+          maxHumidity: num(0, 1, 'Humidité maximale', 'Condition : humidité moyenne d’au plus cette valeur.', 'fraction', W),
+          coastal: flag('Côtier', 'Condition : la tuile doit être (ou ne pas être) près de la mer.', W),
+          vegetation: flag('Végétation saisonnière', 'La végétation de ce biome jaunit en saison sèche (affichage seulement).', W),
         },
         optional: [...CONDITIONS, 'coastal', 'vegetation'],
       },
     },
-    seasonColors: { kind: 'object', fields: { snow: COLOR, dryVegetation: COLOR } },
+    seasonColors: {
+      kind: 'object',
+      fields: {
+        snow: mapColor('Couleur de la neige', 'Couleur de la neige sur la carte.'),
+        dryVegetation: mapColor('Couleur de la végétation sèche', 'Couleur de la végétation jaunie en saison sèche.'),
+      },
+    },
     water: {
       kind: 'object',
       fields: {
-        river: { kind: 'object', fields: { name: { kind: 'string' }, color: COLOR } },
-        lake: { kind: 'object', fields: { name: { kind: 'string' }, color: COLOR } },
+        river: { kind: 'object', fields: { name: text('Nom des rivières', 'Nom affiché des rivières.', W), color: mapColor('Couleur des rivières', 'Couleur des rivières sur la carte.') } },
+        lake: { kind: 'object', fields: { name: text('Nom des lacs', 'Nom affiché des lacs.', W), color: mapColor('Couleur des lacs', 'Couleur des lacs sur la carte.') } },
       },
     },
   },

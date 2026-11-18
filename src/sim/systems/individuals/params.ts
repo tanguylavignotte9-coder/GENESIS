@@ -1,4 +1,4 @@
-import { DataFileError, validateData, variable, type Schema } from '../../core/data-validation';
+import { choice, DataFileError, identifier, text, validateData, variable, type Schema } from '../../core/data-validation';
 
 /** Inputs an action's score can depend on (all normalized to 0..1). */
 export const INPUTS = [
@@ -133,9 +133,16 @@ const pair = (min: number, max: number, label: string, help: string, unit: strin
   maxLength: 2,
   items: v('number', min, max, label, help, unit, apply),
 });
-const ID: Schema = { kind: 'string', pattern: /^[a-z_]+$/, patternHint: 'un identifiant en minuscules (a-z, _)' };
-const NAMED_LIST: Schema = { kind: 'array', minLength: 1, items: { kind: 'object', fields: { id: ID, name: { kind: 'string' } } } };
-const TEXT: Schema = { kind: 'string' };
+const ID_PATTERN = { pattern: /^[a-z_]+$/, hint: 'un identifiant en minuscules (a-z, _)' };
+const namedList = (what: string): Schema => ({
+  kind: 'array',
+  minLength: 1,
+  items: {
+    kind: 'object',
+    fields: { id: identifier('Identifiant', `Nom technique (${what}).`), name: text('Nom', `Nom affiché (${what}).`, 'newWorld') },
+  },
+});
+const DEATH_HELP = 'Phrase du journal. Remplacements : {nom}, {e} (« e » pour une femme), {lieu}, {un_animal}.';
 
 export const HUMANS_SCHEMA: Schema = {
   kind: 'object',
@@ -169,14 +176,14 @@ export const HUMANS_SCHEMA: Schema = {
     names: {
       kind: 'object',
       fields: {
-        syllables: { kind: 'array', minLength: 4, items: { kind: 'string' } },
+        syllables: { kind: 'array', minLength: 4, items: text('Syllabe', 'Syllabes assemblées au hasard pour former les noms provisoires (en attendant les langues).', 'newWorld') },
         minSyllables: v('integer', 1, 5, 'Syllabes minimum', 'Nombre minimal de syllabes d’un nom.', 'syllabes', 'newWorld'),
         maxSyllables: v('integer', 1, 6, 'Syllabes maximum', 'Nombre maximal de syllabes d’un nom.', 'syllabes', 'newWorld'),
       },
     },
-    knowledge: NAMED_LIST,
-    startingKnowledge: { kind: 'array', items: ID },
-    traits: NAMED_LIST,
+    knowledge: namedList('savoir'),
+    startingKnowledge: { kind: 'array', items: text('Savoir de départ', 'Identifiant d’un savoir connu de toute la tribu de départ.', 'newWorld', ID_PATTERN) },
+    traits: namedList('trait de caractère'),
     stepsPerHour: v('integer', 1, 12, 'Pas par heure', 'Nombre de fois par heure de jeu où chaque humain agit.', 'pas', 'newWorld'),
     thinkEveryMinutes: v('integer', 10, 600, 'Réflexion', 'Sans raison particulière, un humain remet sa décision en question au plus une fois tous ces minutes.', 'minutes de jeu'),
     needs: {
@@ -242,7 +249,7 @@ export const HUMANS_SCHEMA: Schema = {
     danger: {
       kind: 'object',
       fields: {
-        predators: { kind: 'array', items: ID },
+        predators: { kind: 'array', items: text('Animal redouté', 'Identifiant d’une espèce que les humains reconnaissent comme dangereuse.', 'live', ID_PATTERN) },
         alertTiles: v('integer', 1, 30, 'Vigilance', 'Distance à laquelle on repère un prédateur.', 'tuiles'),
         isolationTiles: v('integer', 1, 30, 'Isolement', 'Une personne sans personne d’autre à cette distance est isolée (et vulnérable).', 'tuiles'),
         groupFearShare: v('number', 0, 1, 'Peur en groupe', 'Part de la peur ressentie face à un prédateur quand on n’est pas seul.', 'fraction'),
@@ -273,32 +280,40 @@ export const HUMANS_SCHEMA: Schema = {
       items: {
         kind: 'object',
         fields: {
-          id: { kind: 'enum', values: ACTIONS },
-          name: TEXT,
-          label: TEXT,
+          id: choice(ACTIONS, 'Comportement', 'Comportement programmé que déclenche cette action (une seule entrée par comportement).', 'newWorld'),
+          name: text('Nom', 'Nom de l’action (fiche personnage).', 'newWorld'),
+          label: text('Libellé', 'Ce que fait la personne (« Va boire »), affiché sur la carte et dans sa fiche.', 'newWorld'),
           weight: v('number', 0, 10, 'Poids de l’action', 'Importance de base de l’action dans le choix.', 'facteur'),
-          reason: { kind: 'enum', values: INPUTS },
+          reason: choice(INPUTS, 'Raison affichée', 'Entrée montrée comme raison de l’action dans la fiche (« soif 72 % »).'),
           considerations: {
             kind: 'array',
             minLength: 1,
             items: {
               kind: 'object',
               fields: {
-                input: { kind: 'enum', values: INPUTS },
-                curve: { kind: 'enum', values: ['linear', 'power', 'logistic'] },
+                input: choice(INPUTS, 'Entrée', 'Ce que mesure la considération (faim, soif, nuit, danger…), entre 0 et 1.'),
+                curve: choice(['linear', 'power', 'logistic'], 'Courbe', 'linear : a·x + b · power : x^a · logistic : marche douce autour de a, de raideur b.'),
                 a: v('number', -100, 100, 'Paramètre a', 'Pente (linéaire), exposant (puissance) ou point milieu (logistique).', 'sans unité'),
                 b: v('number', -100, 100, 'Paramètre b', 'Décalage (linéaire) ou raideur (logistique).', 'sans unité'),
               },
             },
           },
           traits: { kind: 'record', values: v('number', -2, 2, 'Influence d’un trait', 'Effet d’un trait de caractère sur le score de l’action.', 'facteur') },
-          requires: ID,
+          requires: text('Savoir requis', 'Identifiant du savoir nécessaire pour faire cette action.', 'live', ID_PATTERN),
         },
         optional: ['requires'],
       },
     },
-    deathTexts: { kind: 'object', fields: { hunger: TEXT, thirst: TEXT, cold: TEXT, predator: TEXT } },
-    settlementText: TEXT,
+    deathTexts: {
+      kind: 'object',
+      fields: {
+        hunger: text('Mort de faim', DEATH_HELP),
+        thirst: text('Mort de soif', DEATH_HELP),
+        cold: text('Mort de froid', DEATH_HELP),
+        predator: text('Tué(e) par un prédateur', DEATH_HELP),
+      },
+    },
+    settlementText: text('Installation de la tribu', 'Phrase du journal au début du monde. Remplacements : {personnes}, {lieu}, {huttes}.', 'newWorld'),
   },
 };
 

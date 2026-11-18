@@ -1,4 +1,4 @@
-import { DataFileError, validateData, variable, type Schema } from '../../core/data-validation';
+import { DataFileError, identifier, int, num, text, validateData, variable, type Schema } from '../../core/data-validation';
 import { fillTemplate } from '../../core/text';
 import { latitudeCurveProblem, type LatitudePoint } from './latitude-curve';
 
@@ -64,16 +64,14 @@ export interface AnomalyType {
   endText: string;
 }
 
-const CURVE: Schema = {
+const LATITUDE = num(0, 1, 'Latitude', '0 = équateur (milieu de la carte), 1 = pôle (haut ou bas).', 'fraction');
+const curve = (max: number, label: string, help: string, unit: string): Schema => ({
   kind: 'array',
   minLength: 1,
-  items: { kind: 'object', fields: { latitude: { kind: 'number', min: 0, max: 1 }, value: { kind: 'number', min: 0 } } },
-};
-const TEXT_WITH_PLACE: Schema = {
-  kind: 'string',
-  pattern: /\{lieu\}/,
-  patternHint: 'un texte contenant {lieu} (remplacé par le lieu)',
-};
+  items: { kind: 'object', fields: { latitude: LATITUDE, value: num(0, max, label, help, unit) } },
+});
+const TEXT_WITH_PLACE = (label: string, help: string): Schema =>
+  text(label, `${help} « {lieu} » est remplacé par le lieu.`, 'live', { pattern: /\{lieu\}/, hint: 'un texte contenant {lieu} (remplacé par le lieu)' });
 
 const DAYLIGHT_SCHEMA: Schema = {
   kind: 'object',
@@ -114,42 +112,53 @@ const DAYLIGHT_SCHEMA: Schema = {
   },
 };
 
-/** Schema of the variables added since the variables workshop requirement (all documented). */
-export const DOCUMENTED_CLIMATE_SCHEMA = DAYLIGHT_SCHEMA;
-
-const CLIMATE_SCHEMA: Schema = {
+export const CLIMATE_SCHEMA: Schema = {
   kind: 'object',
   fields: {
     daylight: DAYLIGHT_SCHEMA,
     seasonalTemperature: {
       kind: 'object',
-      fields: { warmestDayOfYear: { kind: 'integer', min: 0 }, amplitudeByLatitude: CURVE },
+      fields: {
+        warmestDayOfYear: int(0, 399, 'Jour le plus chaud', 'Jour de l’année (0 = premier jour du printemps) où il fait le plus chaud au nord ; le sud est décalé d’une demi-année.', 'jour'),
+        amplitudeByLatitude: curve(40, 'Écart saisonnier de température', 'Écart (±) entre la température du moment et la moyenne annuelle, au cœur de l’été et de l’hiver, à cette latitude.', '°C'),
+      },
     },
-    seasonalHumidity: { kind: 'object', fields: { amplitudeByLatitude: CURVE } },
-    snow: { kind: 'object', fields: { startCelsius: { kind: 'number' }, fullCelsius: { kind: 'number' } } },
+    seasonalHumidity: {
+      kind: 'object',
+      fields: {
+        amplitudeByLatitude: curve(1, 'Écart saisonnier d’humidité', 'Écart (± part de l’humidité moyenne) entre la saison humide (été local) et la saison sèche (hiver local), à cette latitude.', 'fraction'),
+      },
+    },
+    snow: {
+      kind: 'object',
+      fields: {
+        startCelsius: num(-20, 15, 'Début de la neige', 'En dessous de cette température, la neige commence à couvrir le sol.', '°C'),
+        fullCelsius: num(-40, 10, 'Neige complète', 'En dessous de cette température, la neige couvre tout le sol (et l’herbe).', '°C'),
+      },
+    },
     anomalies: {
       kind: 'object',
       fields: {
-        chancePerRoll: { kind: 'number', min: 0, max: 1 },
-        tilesPerRoll: { kind: 'integer', min: 1 },
-        minLandmassTiles: { kind: 'integer', min: 1 },
-        radiusMin: { kind: 'number', min: 0.001, max: 1 },
-        radiusMax: { kind: 'number', min: 0.001, max: 1 },
+        chancePerRoll: num(0, 1, 'Probabilité d’une année anormale', 'Chance de chaque tirage annuel de déclencher une année anormale.', 'probabilité'),
+        tilesPerRoll: int(1, 1000000, 'Tuiles par tirage', 'Un continent reçoit un tirage par tranche de ce nombre de tuiles (au moins un) : les grands continents en ont davantage.', 'tuiles'),
+        minLandmassTiles: int(1, 1000000, 'Terre minimale', 'Les terres plus petites n’ont jamais d’année anormale.', 'tuiles'),
+        radiusMin: num(0.001, 1, 'Taille de la région (minimum)', 'Rayon minimal de la région touchée.', 'fraction de la carte'),
+        radiusMax: num(0.001, 1, 'Taille de la région (maximum)', 'Rayon maximal de la région touchée.', 'fraction de la carte'),
         types: {
           kind: 'array',
           minLength: 1,
           items: {
             kind: 'object',
             fields: {
-              id: { kind: 'string', pattern: /^[a-z_]+$/, patternHint: 'un identifiant en minuscules (a-z, _)' },
-              name: { kind: 'string' },
-              weight: { kind: 'number', min: 0 },
-              temperatureOffsetCelsius: { kind: 'number' },
-              winterTemperatureOffsetCelsius: { kind: 'number' },
-              humidityFactor: { kind: 'number', min: 0 },
-              hardshipName: { kind: 'string' },
-              startText: TEXT_WITH_PLACE,
-              endText: TEXT_WITH_PLACE,
+              id: identifier('Identifiant', 'Nom technique du type d’année anormale.'),
+              name: text('Nom', 'Nom affiché (info-bulles).'),
+              weight: num(0, 100, 'Fréquence relative', 'Poids de ce type parmi les années anormales (0 = jamais).', 'poids'),
+              temperatureOffsetCelsius: num(-20, 20, 'Écart de température', 'Degrés ajoutés toute l’année au centre de la région.', '°C'),
+              winterTemperatureOffsetCelsius: num(-30, 30, 'Écart en hiver', 'Degrés ajoutés en plus, en proportion de la rigueur de l’hiver local.', '°C'),
+              humidityFactor: num(0, 3, 'Facteur d’humidité', 'Multiplie l’humidité au centre de la région (0,45 = sécheresse).', 'facteur'),
+              hardshipName: text('Nom de l’épreuve', 'Pour une épreuve seulement (sécheresse, grand froid) : comment le journal la nomme comme cause d’une famine ou d’un effondrement.'),
+              startText: TEXT_WITH_PLACE('Phrase du début', 'Phrase du journal quand l’année anormale commence.'),
+              endText: TEXT_WITH_PLACE('Phrase de la fin', 'Phrase du journal quand elle prend fin.'),
             },
             optional: ['hardshipName'],
           },

@@ -1,4 +1,4 @@
-import { DataFileError, validateData, type Schema } from '../../core/data-validation';
+import { color, DataFileError, flag, identifier, int, num, pair, text, validateData, type Schema } from '../../core/data-validation';
 import { unknownResources, type ResourceCatalog } from '../../core/resources';
 import type { BiomeTable } from '../world/biomes';
 import type { ResourceAmount } from '../flora/params';
@@ -124,131 +124,151 @@ export interface FaunaParams {
   species: AnimalSpecies[];
 }
 
-const POSITIVE: Schema = { kind: 'number', min: 0 };
-const SHARE: Schema = { kind: 'number', min: 0, max: 1 };
-const PAIR = (min: number): Schema => ({ kind: 'array', minLength: 2, maxLength: 2, items: { kind: 'number', min } });
-const COUNT: Schema = { kind: 'integer', min: 1 };
+const NEW_WORLD = 'newWorld';
+const share = (label: string, help: string): Schema => num(0, 1, label, help, 'fraction');
+const TEMPLATE_HELP = 'Remplacements : {espèces}, {d_espèces}, {lieu}, {de_lieu}, {direction}, {cause}.';
 
-const SCHEMA: Schema = {
+const SPECIES_SCHEMA: Schema = {
   kind: 'object',
   fields: {
-    stepsPerDay: { kind: 'integer', min: 1, max: 240 },
-    thinkEverySteps: { kind: 'integer', min: 1, max: 64 },
-    gridCellTiles: { kind: 'integer', min: 2, max: 256 },
+    id: identifier('Identifiant', 'Nom technique de l’espèce.'),
+    name: text('Nom', 'Nom affiché de l’espèce.'),
+    plural: text('Pluriel', 'Pluriel en minuscules (« chevaux sauvages »), pour les phrases du journal.'),
+    color: color('Couleur', 'Couleur du dessin de l’animal.'),
+    size: int(1, 16, 'Taille du dessin', 'Taille de l’animal à l’écran (affichage seulement).', 'pixels'),
+    diet: { kind: 'record', values: num(0, 10, 'Préférence alimentaire', 'Poids de cette nourriture (herbe, viande, poisson ou une récolte de plante) dans le choix de ce qu’il mange.', 'poids') },
+    prey: { kind: 'array', items: text('Proie', 'Identifiant d’une espèce chassée (les proies fuient leurs chasseurs).', NEW_WORLD) },
+    habitat: { kind: 'record', values: num(0, 10, 'Densité de départ par biome', 'Densité relative de l’espèce dans ce biome au début du monde.', 'poids', NEW_WORLD) },
+    populationPer1000Tiles: num(0, 100, 'Population de départ', 'Animaux au début du monde pour 1 000 tuiles d’habitat.', 'animaux/1000 tuiles', NEW_WORLD),
+    groupSize: pair(num(1, 100, 'Taille du groupe [min, max]', 'Taille d’un troupeau ou d’une meute au départ ; un animal seul d’une espèce sociale (max > 1) cherche un groupe.', 'animaux')),
+    maxGroupSize: int(1, 500, 'Groupe maximal', 'Au-delà, le groupe se scinde.', 'animaux'),
+    maxAgeYears: num(0.1, 200, 'Longévité', 'Âge maximal.', 'ans'),
+    adultAgeYears: num(0, 50, 'Âge adulte', 'Âge à partir duquel l’animal peut se reproduire.', 'ans'),
+    breedingDays: pair(num(0, 400, 'Saison des amours [début, fin)', 'Jours de l’année LOCALE où les femelles peuvent concevoir.', 'jour')),
+    gestationDays: int(1, 400, 'Gestation', 'Durée de la gestation.', 'jours'),
+    litter: pair(num(1, 20, 'Portée [min, max]', 'Nombre de petits par mise bas.', 'petits')),
+    conceptionChance: share('Chance de conception', 'Chance par jour, pour une femelle fertile pendant la saison des amours.'),
+    crowdingRadius: int(1, 64, 'Rayon du territoire', 'Une femelle ne met pas bas si trop d’animaux de son espèce vivent dans ce rayon.', 'tuiles'),
+    crowdingMax: int(1, 10000, 'Voisins tolérés', 'Nombre maximal d’animaux de l’espèce dans le territoire pour qu’une femelle se reproduise.', 'animaux'),
+    preyCheckRadius: int(0, 64, 'Rayon du gibier', 'Chasseurs : rayon où la femelle compte le gibier avant d’élever des petits.', 'tuiles'),
+    breedingMinPrey: int(0, 100000, 'Gibier nécessaire', 'Chasseurs : nombre minimal de proies dans ce rayon pour se reproduire (0 = pas de condition).', 'proies'),
+    hungerPerDay: num(0, 100, 'Faim', 'Points de faim gagnés par jour (100 = affamé).', 'points/jour'),
+    foodPerDay: num(0.01, 100, 'Ration', 'Unités de nourriture qui couvrent une journée de faim.', 'unités/jour'),
+    thirstPerDay: num(0, 100, 'Soif', 'Points de soif gagnés par jour (100 = assoiffé).', 'points/jour'),
+    minCelsius: num(-80, 40, 'Résistance au froid', 'En dessous de cette température, l’animal souffre du froid.', '°C'),
+    moveChance: share('Vitesse', 'Chance de se déplacer d’une case à chaque pas (1 = à chaque pas).'),
+    fleeRadius: int(0, 64, 'Distance de fuite', 'Proies : distance à laquelle un chasseur est remarqué (0 = ne fuit jamais).', 'tuiles'),
+    huntRadius: int(0, 64, 'Rayon de chasse', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
+    huntSuccess: share('Réussite de la chasse', 'Chasseurs : chance par pas de terrasser une proie à son contact.'),
+    sprintTiles: int(1, 8, 'Course', 'Chasseurs : cases parcourues par pas pendant la poursuite.', 'cases/pas'),
+    meat: num(0, 1000, 'Viande', 'Unités de nourriture que donne le corps d’un adulte à ses chasseurs (moitié pour un petit).', 'unités'),
+    migratory: flag('Migrateur', 'Les troupeaux partent vers l’équateur en automne et reviennent au printemps.'),
+    migrationTiles: int(0, 1000, 'Distance de migration', 'Distance du voyage saisonnier.', 'tuiles'),
+    domesticable: flag('Domesticable', 'Pourra être apprivoisé quand l’élevage existera (sans effet pour l’instant).'),
+    carcass: {
+      kind: 'array',
+      items: {
+        kind: 'object',
+        fields: {
+          resource: text('Ressource de la dépouille', 'Identifiant d’une ressource de data/resources.json.'),
+          amount: num(0, 1000, 'Quantité', 'Quantité de cette ressource que fournira l’animal mort.', 'unités'),
+        },
+      },
+    },
+  },
+};
+
+export const ANIMALS_SCHEMA: Schema = {
+  kind: 'object',
+  fields: {
+    stepsPerDay: int(1, 240, 'Pas par jour', 'Nombre de fois par jour où chaque animal agit (et se déplace d’au plus une case).', 'pas', NEW_WORLD),
+    thinkEverySteps: int(1, 64, 'Rythme de réflexion', 'Un animal choisit quoi faire une fois tous ces pas, chacun à son rythme (doit diviser les pas par jour).', 'pas'),
+    gridCellTiles: int(2, 256, 'Grille des voisins', 'Taille des cases de la grille qui sert à trouver les voisins (technique : vitesse de calcul).', 'tuiles', NEW_WORLD),
     needs: {
       kind: 'object',
       fields: {
-        seekWaterAbove: POSITIVE,
-        seekFoodAbove: POSITIVE,
-        fullBelow: POSITIVE,
-        drinkPerStep: POSITIVE,
-        starvationDamagePerDay: POSITIVE,
-        thirstDamagePerDay: POSITIVE,
-        coldDamagePerDegreeDay: POSITIVE,
-        regenPerDay: POSITIVE,
-        oldAgeShare: SHARE,
-        oldAgeDamagePerDay: POSITIVE,
+        seekWaterAbove: num(0, 100, 'Seuil de soif', 'Au-dessus de cette soif, l’animal part boire.', 'points'),
+        seekFoodAbove: num(0, 100, 'Seuil de faim', 'Au-dessus de cette faim, l’animal cherche à manger.', 'points'),
+        fullBelow: num(0, 100, 'Rassasié', 'En dessous de ce niveau, l’animal a fini de manger ou de boire.', 'points'),
+        drinkPerStep: num(0, 100, 'Gorgées', 'Points de soif apaisés par pas passé à boire.', 'points/pas'),
+        starvationDamagePerDay: num(0, 100, 'Dégâts de la faim', 'Santé perdue par jour quand la faim est à 100.', 'points/jour'),
+        thirstDamagePerDay: num(0, 100, 'Dégâts de la soif', 'Santé perdue par jour quand la soif est à 100.', 'points/jour'),
+        coldDamagePerDegreeDay: num(0, 20, 'Dégâts du froid', 'Santé perdue par jour et par degré sous la résistance au froid de l’espèce.', 'points/(°C·jour)'),
+        regenPerDay: num(0, 100, 'Guérison', 'Santé regagnée par jour quand rien ne nuit à l’animal.', 'points/jour'),
+        oldAgeShare: share('Début de la vieillesse', 'Part de la longévité à partir de laquelle l’animal s’affaiblit.'),
+        oldAgeDamagePerDay: num(0, 100, 'Dégâts de la vieillesse', 'Santé perdue par jour par un vieil animal.', 'points/jour'),
       },
     },
     behavior: {
       kind: 'object',
       fields: {
-        forageRadius: COUNT,
-        forageSamples: COUNT,
-        cohesionRadius: COUNT,
-        wanderChance: SHARE,
-        wanderRadius: COUNT,
-        fleeDistance: COUNT,
-        chaseSteps: COUNT,
-        packShareRadius: { kind: 'integer', min: 0 },
-        lonerJoinRadius: { kind: 'integer', min: 0 },
-        waterSearchTiles: COUNT,
-        migrationMaxDays: COUNT,
-        breedingMinHealth: POSITIVE,
-        breedingMaxHunger: POSITIVE,
-        mateRadius: COUNT,
+        forageRadius: int(1, 64, 'Rayon de recherche de nourriture', 'Distance à laquelle l’animal cherche à manger (et repère une carcasse).', 'tuiles'),
+        forageSamples: int(1, 64, 'Endroits examinés', 'Nombre d’endroits examinés au hasard pour trouver à manger.', 'endroits'),
+        cohesionRadius: int(1, 64, 'Cohésion du groupe', 'Au-delà de cette distance du chef, l’animal rejoint son groupe.', 'tuiles'),
+        wanderChance: share('Promenade', 'Chance de partir se promener quand l’animal n’a besoin de rien.'),
+        wanderRadius: int(1, 64, 'Rayon de promenade', 'Distance maximale d’une promenade.', 'tuiles'),
+        fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),
+        chaseSteps: int(1, 500, 'Durée d’une poursuite', 'Un chasseur abandonne après ce nombre de pas de poursuite.', 'pas'),
+        packShareRadius: int(0, 64, 'Partage de la proie', 'Les membres de la meute dans quatre fois ce rayon viennent manger la proie.', 'tuiles'),
+        lonerJoinRadius: int(0, 200, 'Recherche d’un groupe', 'Distance à laquelle un animal seul trouve un groupe de son espèce.', 'tuiles'),
+        waterSearchTiles: int(1, 2000, 'Recherche de l’eau', 'Distance maximale du chemin connu vers l’eau douce.', 'tuiles', NEW_WORLD),
+        migrationMaxDays: int(1, 200, 'Durée maximale d’une migration', 'Une migration s’arrête au plus tard après ce nombre de jours.', 'jours'),
+        breedingMinHealth: num(0, 100, 'Santé pour se reproduire', 'Santé minimale d’une femelle pour concevoir.', 'points'),
+        breedingMaxHunger: num(0, 100, 'Faim pour se reproduire', 'Au-dessus de cette faim, une femelle ne conçoit pas.', 'points'),
+        mateRadius: int(1, 200, 'Recherche d’un partenaire', 'Une femelle trouve un mâle adulte de son espèce dans ce rayon.', 'tuiles'),
       },
     },
     fish: {
       kind: 'object',
       fields: {
-        maxAmount: { kind: 'integer', min: 1, max: 255 },
-        regrowthPerDay: POSITIVE,
-        updateIntervalDays: { kind: 'integer', min: 1, max: 365 },
-        capacityByWater: { kind: 'object', fields: { river: SHARE, lake: SHARE, coast: SHARE, openSea: SHARE } },
-        coastMaxDepthMeters: POSITIVE,
+        maxAmount: int(1, 255, 'Poisson maximal', 'Poisson sur une tuile d’eau la plus riche.', 'unités', NEW_WORLD),
+        regrowthPerDay: num(0, 100, 'Renouvellement du poisson', 'Poisson regagné par jour sur une tuile.', 'unités/jour'),
+        updateIntervalDays: int(1, 365, 'Rythme de mise à jour du poisson', 'Chaque tuile d’eau n’est mise à jour qu’une fois tous ces jours.', 'jours'),
+        capacityByWater: {
+          kind: 'object',
+          fields: {
+            river: num(0, 1, 'Poisson des rivières', 'Part du poisson maximal dans une rivière.', 'fraction', NEW_WORLD),
+            lake: num(0, 1, 'Poisson des lacs', 'Part du poisson maximal dans un lac.', 'fraction', NEW_WORLD),
+            coast: num(0, 1, 'Poisson des côtes', 'Part du poisson maximal près des côtes.', 'fraction', NEW_WORLD),
+            openSea: num(0, 1, 'Poisson du large', 'Part du poisson maximal en haute mer.', 'fraction', NEW_WORLD),
+          },
+        },
+        coastMaxDepthMeters: num(0, 11000, 'Profondeur des eaux côtières', 'Jusqu’à cette profondeur, la mer compte comme côtière (plus poissonneuse).', 'm', NEW_WORLD),
       },
     },
-    carrion: { kind: 'object', fields: { rotPerDay: SHARE, minimumMeat: POSITIVE } },
-    stats: { kind: 'object', fields: { intervalDays: COUNT } },
+    carrion: {
+      kind: 'object',
+      fields: {
+        rotPerDay: share('Pourriture', 'Part de la viande d’une carcasse qui pourrit chaque jour.'),
+        minimumMeat: num(0, 100, 'Restes', 'En dessous de cette quantité, la carcasse disparaît.', 'unités'),
+      },
+    },
+    stats: { kind: 'object', fields: { intervalDays: int(1, 400, 'Fréquence du recensement', 'Les animaux sont comptés tous ces jours (courbes du panneau Statistiques).', 'jours') } },
     humanPrey: {
       kind: 'object',
       fields: {
-        hunters: { kind: 'array', items: { kind: 'string' } },
-        minHunger: { kind: 'number', min: 0, max: 100 },
-        loneTiles: { kind: 'integer', min: 1, max: 30 },
-        attackChancePerStep: SHARE,
-        attackDamage: { kind: 'number', min: 1, max: 100 },
+        hunters: { kind: 'array', items: text('Prédateur des humains', 'Identifiant d’une espèce qui peut attaquer une personne seule.') },
+        minHunger: num(0, 100, 'Faim avant d’attaquer un humain', 'Faim minimale d’un prédateur pour prendre en chasse une personne seule.', 'points'),
+        loneTiles: int(1, 30, 'Personne seule', 'Une personne sans personne d’autre à cette distance est une proie possible ; un prédateur n’attaque pas un groupe.', 'tuiles'),
+        attackChancePerStep: share('Attaque', 'Chance par pas (une heure de jeu) qu’un prédateur au contact d’une personne seule l’attaque.'),
+        attackDamage: num(1, 100, 'Blessure', 'Santé perdue par la personne à chaque attaque.', 'points'),
       },
     },
     events: {
       kind: 'object',
       fields: {
-        collapseShare: SHARE,
-        collapseMinPopulation: COUNT,
-        extinctionMinLandmassTiles: COUNT,
-        extinctionMinPreviousPopulation: COUNT,
-        migrationMinAnimals: COUNT,
-        migrationEventEveryYears: COUNT,
-        migrationText: { kind: 'string' },
-        extinctionText: { kind: 'string' },
-        collapseText: { kind: 'string' },
+        collapseShare: share('Effondrement', 'Part de la population perdue dans une région frappée par une épreuve pour parler d’effondrement.'),
+        collapseMinPopulation: int(1, 100000, 'Population pour un effondrement', 'Population minimale au début de l’épreuve pour qu’un effondrement soit signalé.', 'animaux'),
+        extinctionMinLandmassTiles: int(1, 10000000, 'Terre pour une disparition', 'Les disparitions ne sont signalées que sur les terres d’au moins cette taille.', 'tuiles'),
+        extinctionMinPreviousPopulation: int(1, 100000, 'Population établie', 'Une espèce ne « disparaît » d’une terre que si elle y a compté au moins ce nombre d’animaux.', 'animaux'),
+        migrationMinAnimals: int(1, 100000, 'Grande migration', 'Nombre d’animaux qui partent le même jour pour parler de grande migration.', 'animaux'),
+        migrationEventEveryYears: int(1, 100, 'Rappel des migrations', 'Une même migration n’est racontée qu’une fois en ce nombre d’années.', 'ans'),
+        migrationText: text('Phrase d’une migration', `Phrase du journal. ${TEMPLATE_HELP}`),
+        extinctionText: text('Phrase d’une disparition', `Phrase du journal. ${TEMPLATE_HELP}`),
+        collapseText: text('Phrase d’un effondrement', `Phrase du journal. ${TEMPLATE_HELP}`),
       },
     },
-    species: {
-      kind: 'array',
-      minLength: 1,
-      items: {
-        kind: 'object',
-        fields: {
-          id: { kind: 'string', pattern: /^[a-z_]+$/, patternHint: 'un identifiant en minuscules (a-z, _)' },
-          name: { kind: 'string' },
-          plural: { kind: 'string' },
-          color: { kind: 'string', pattern: /^#[0-9a-fA-F]{6}$/, patternHint: 'une couleur au format #rrggbb' },
-          size: { kind: 'integer', min: 1, max: 16 },
-          diet: { kind: 'record', values: POSITIVE },
-          prey: { kind: 'array', items: { kind: 'string' } },
-          habitat: { kind: 'record', values: POSITIVE },
-          populationPer1000Tiles: POSITIVE,
-          groupSize: PAIR(1),
-          maxGroupSize: COUNT,
-          maxAgeYears: { kind: 'number', min: 0.1 },
-          adultAgeYears: POSITIVE,
-          breedingDays: PAIR(0),
-          gestationDays: COUNT,
-          litter: PAIR(1),
-          conceptionChance: SHARE,
-          crowdingRadius: { kind: 'integer', min: 1, max: 64 },
-          crowdingMax: COUNT,
-          preyCheckRadius: { kind: 'integer', min: 0, max: 64 },
-          breedingMinPrey: { kind: 'integer', min: 0 },
-          hungerPerDay: POSITIVE,
-          foodPerDay: { kind: 'number', min: 0.01 },
-          thirstPerDay: POSITIVE,
-          minCelsius: { kind: 'number' },
-          moveChance: SHARE,
-          fleeRadius: { kind: 'integer', min: 0 },
-          huntRadius: { kind: 'integer', min: 0 },
-          huntSuccess: SHARE,
-          sprintTiles: { kind: 'integer', min: 1, max: 8 },
-          meat: POSITIVE,
-          migratory: { kind: 'boolean' },
-          migrationTiles: { kind: 'integer', min: 0 },
-          domesticable: { kind: 'boolean' },
-          carcass: { kind: 'array', items: { kind: 'object', fields: { resource: { kind: 'string' }, amount: POSITIVE } } },
-        },
-      },
-    },
+    species: { kind: 'array', minLength: 1, items: SPECIES_SCHEMA },
   },
 };
 
@@ -257,7 +277,7 @@ const FILE = 'data/animals.json';
 const MAX_SPECIES = 255;
 
 export function parseFaunaParams(raw: unknown, biomes: BiomeTable, resources: ResourceCatalog, plantResources: readonly string[]): FaunaParams {
-  const params = validateData<FaunaParams>(FILE, raw, SCHEMA);
+  const params = validateData<FaunaParams>(FILE, raw, ANIMALS_SCHEMA);
   const problems: string[] = [];
   const biomeIds = new Set(biomes.biomes.map((biome) => biome.id));
   const speciesIds = new Set(params.species.map((species) => species.id));

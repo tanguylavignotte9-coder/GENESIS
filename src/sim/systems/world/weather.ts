@@ -1,4 +1,4 @@
-import { DataFileError, validateData, variable, type Schema } from '../../core/data-validation';
+import { choice, DataFileError, text, validateData, variable, type Schema } from '../../core/data-validation';
 import type { Rng } from '../../core/rng';
 import type { ClimateState } from './climate-state';
 
@@ -62,8 +62,8 @@ export const WEATHER_SCHEMA: Schema = {
       items: {
         kind: 'object',
         fields: {
-          id: { kind: 'enum', values: ['clear', 'rain', 'snow', 'cold'] },
-          name: { kind: 'string' },
+          id: choice(['clear', 'rain', 'snow', 'cold'], 'Type de temps', 'Les quatre temps, dans cet ordre : beau temps, pluie, neige, froid vif.', 'newWorld'),
+          name: text('Nom', 'Nom affiché du temps (info-bulles, fiche personnage).', 'newWorld'),
           feltCelsius: variable('number', -30, 10, {
             label: 'Température ressentie',
             help: 'Degrés ajoutés à la température que ressentent les humains par ce temps.',

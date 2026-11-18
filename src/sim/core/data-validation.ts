@@ -3,23 +3,26 @@
  * Errors are written in French because the player may edit these files.
  */
 
+/** A change applies to the running world (`live`) or to the next generated world (`newWorld`). */
+export type ApplyMode = 'live' | 'newWorld';
+
 /**
- * Documentation of a tunable variable, for the future "Atelier des variables" page:
+ * Documentation of a tunable variable, for the "Atelier des variables" page:
  * French label and help text, unit, and whether a change applies live or needs a new world.
  */
 export interface VariableDoc {
   label: string;
   help: string;
   unit: string;
-  apply: 'live' | 'newWorld';
+  apply: ApplyMode;
 }
 
 export type Schema =
   | { kind: 'integer'; min?: number; max?: number; doc?: VariableDoc }
   | { kind: 'number'; min?: number; max?: number; doc?: VariableDoc }
-  | { kind: 'string'; pattern?: RegExp; patternHint?: string }
-  | { kind: 'boolean' }
-  | { kind: 'enum'; values: readonly string[] }
+  | { kind: 'string'; pattern?: RegExp; patternHint?: string; doc?: VariableDoc }
+  | { kind: 'boolean'; doc?: VariableDoc }
+  | { kind: 'enum'; values: readonly string[]; doc?: VariableDoc }
   | { kind: 'array'; items: Schema; minLength?: number; maxLength?: number }
   /** Object with free keys (e.g. biome ids), all values following `values`. */
   | { kind: 'record'; values: Schema }
@@ -156,19 +159,65 @@ export function variable(kind: 'integer' | 'number', min: number, max: number, d
   return { kind, min, max, doc };
 }
 
-/** Paths of the numeric variables of a schema that lack documentation or bounds. */
+/** Documented decimal number between `min` and `max`. */
+export function num(min: number, max: number, label: string, help: string, unit: string, apply: ApplyMode = 'live'): Schema {
+  return { kind: 'number', min, max, doc: { label, help, unit, apply } };
+}
+
+/** Documented whole number between `min` and `max`. */
+export function int(min: number, max: number, label: string, help: string, unit: string, apply: ApplyMode = 'live'): Schema {
+  return { kind: 'integer', min, max, doc: { label, help, unit, apply } };
+}
+
+/** Documented text (optionally with a required pattern). */
+export function text(label: string, help: string, apply: ApplyMode = 'live', pattern?: { pattern: RegExp; hint: string }): Schema {
+  const doc = { label, help, unit: 'texte', apply };
+  return pattern ? { kind: 'string', pattern: pattern.pattern, patternHint: pattern.hint, doc } : { kind: 'string', doc };
+}
+
+/** Documented yes/no switch. */
+export function flag(label: string, help: string, apply: ApplyMode = 'live'): Schema {
+  return { kind: 'boolean', doc: { label, help, unit: 'oui / non', apply } };
+}
+
+/** Documented choice among fixed values. */
+export function choice(values: readonly string[], label: string, help: string, apply: ApplyMode = 'live'): Schema {
+  return { kind: 'enum', values, doc: { label, help, unit: 'choix', apply } };
+}
+
+const ID_PATTERN = { pattern: /^[a-z_]+$/, hint: 'un identifiant en minuscules (a-z, _)' };
+const COLOR_PATTERN = { pattern: /^#[0-9a-fA-F]{6}$/, hint: 'une couleur au format #rrggbb' };
+
+/** Identifier referenced by other entries or files: changing it needs a new world. */
+export function identifier(label: string, help: string): Schema {
+  return text(label, help, 'newWorld', ID_PATTERN);
+}
+
+/** "#rrggbb" color. */
+export function color(label: string, help: string, apply: ApplyMode = 'live'): Schema {
+  return text(label, help, apply, COLOR_PATTERN);
+}
+
+/** [min, max] pair of documented values. */
+export function pair(item: Schema): Schema {
+  return { kind: 'array', minLength: 2, maxLength: 2, items: item };
+}
+
+/** Paths of the variables (every leaf value) of a schema that lack documentation, or bounds for numbers. */
 export function undocumentedVariables(schema: Schema, path = ''): string[] {
   switch (schema.kind) {
     case 'integer':
     case 'number':
       return schema.doc && schema.min !== undefined && schema.max !== undefined ? [] : [path || '(racine)'];
+    case 'string':
+    case 'boolean':
+    case 'enum':
+      return schema.doc ? [] : [path || '(racine)'];
     case 'array':
       return undocumentedVariables(schema.items, `${path}[]`);
     case 'record':
       return undocumentedVariables(schema.values, `${path}.*`);
     case 'object':
       return Object.entries(schema.fields).flatMap(([key, field]) => undocumentedVariables(field, path ? `${path}.${key}` : key));
-    default:
-      return [];
   }
 }

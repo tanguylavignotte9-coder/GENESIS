@@ -56,6 +56,10 @@ export interface Job {
   expectedFuel: number;
   /** Hours of fire this person is bringing to the campfire. */
   expectedFire: number;
+  /** The craft's inputs are already in the work (taken from the hands when work began). */
+  inputsUsed: boolean;
+  /** Seeds harvested to be sown right after (the sowing recipe), or null. */
+  thenSow: Recipe | null;
 }
 
 export interface WorkResult {
@@ -104,6 +108,8 @@ function newJob(kind: JobKind, stage: StageCode, recipe: Recipe | null, target: 
     expectedFood: 0,
     expectedFuel: 0,
     expectedFire: 0,
+    inputsUsed: false,
+    thenSow: null,
   };
 }
 
@@ -165,7 +171,22 @@ function tileDistance(sys: ProductionSystem, a: number, b: number): number {
 // ----- starting a job -------------------------------------------------------------------------
 
 export function startJob(sys: ProductionSystem, person: number, spec: JobSpec): number {
+  // The job under way is only given up if a new one really starts.
+  const previous = sys.jobs[person] ?? null;
+  sys.jobs[person] = null;
+  const target = createJob(sys, person, spec);
+  const created = sys.jobs[person];
+  if (!created) {
+    sys.jobs[person] = previous;
+    return -1;
+  }
+  sys.jobs[person] = previous;
   sys.endJob(person);
+  sys.jobs[person] = created;
+  return target;
+}
+
+function createJob(sys: ProductionSystem, person: number, spec: JobSpec): number {
   const camp = sys.people.camp(person);
   let job: Job | null = null;
   switch (spec.kind) {
@@ -256,11 +277,22 @@ function startFuel(sys: ProductionSystem, person: number, recipe: Recipe | null)
 
 function startCraft(sys: ProductionSystem, person: number, perception: number): Job | null {
   const camp = sys.people.camp(person);
+  const resumed = resumeWork(sys, person);
+  if (resumed) return resumed;
   const plan = sys.needs(camp).craftPlan;
   if (!plan || !satisfies(sys.people.knowledge(person), plan.recipe.knowledgeMask)) return null;
   if (plan.kind === 'harvest') {
-    const job = startHarvest(sys, person, [plan.recipe], [plan.item], -1, perception);
+    // Custom saw this material around the camp: one goes as far as needed to get it.
+    const job = startHarvest(sys, person, [plan.recipe], [plan.item], -1, Math.max(perception, sys.params.work.searchTiles));
     if (job) countPending(sys, person, job, plan.item, 1);
+    if (job && plan.wantedItem < 0) {
+      // Seeds gathered for a field are sown at once (not put in the stock where they would be eaten).
+      const sow = sys.catalog.recipes.find((recipe) => recipe.def.effect === 'sow' && recipe.inputs[0]?.items.includes(plan.item));
+      if (sow) {
+        job.thenSow = sow;
+        job.limit = sow.inputs[0]!.qty + 0.5;
+      }
+    }
     return job;
   }
   if (plan.item < 0) {
@@ -301,6 +333,30 @@ export function releaseExpected(sys: ProductionSystem, person: number, job: Job)
   job.expectedFood = 0;
   job.expectedFuel = 0;
   job.expectedFire = 0;
+}
+
+/** Takes up a piece of work left unfinished in the camp (if one knows how and its place is there). */
+function resumeWork(sys: ProductionSystem, person: number): Job | null {
+  const camp = sys.people.camp(person);
+  const state = sys.camps[camp]!;
+  const knowledge = sys.people.knowledge(person);
+  const at = state.unfinished.findIndex((work) => satisfies(knowledge, work.recipe.knowledgeMask) && (work.recipe.station < 0 || stationOf(sys, camp, work.recipe) >= 0));
+  if (at < 0) return null;
+  const work = state.unfinished.splice(at, 1)[0]!;
+  const station = stationOf(sys, camp, work.recipe);
+  const job = newJob('craft', Stage.Work, work.recipe, station >= 0 ? sys.buildings[station]!.tile : sys.stockTile(camp));
+  job.site = station;
+  job.progress = work.progress;
+  job.inputsUsed = true;
+  const output = work.recipe.outputs[0];
+  if (output) countPending(sys, person, job, output.item, output.qty);
+  return job;
+}
+
+/** Leaves a craft under way as unfinished work in the camp (its materials stay in it). */
+export function leaveUnfinished(sys: ProductionSystem, person: number, job: Job): void {
+  if (job.kind !== 'craft' || job.stage !== Stage.Work || !job.inputsUsed || !job.recipe) return;
+  sys.camps[sys.people.camp(person)]!.unfinished.push({ recipe: job.recipe, progress: job.progress });
 }
 
 function countPending(sys: ProductionSystem, person: number, job: Job, item: number, qty: number): void {
@@ -536,7 +592,33 @@ function harvest(sys: ProductionSystem, person: number, job: Job, hours: number,
 
 function finishHarvest(sys: ProductionSystem, person: number, job: Job, out: WorkResult): void {
   if (job.forSite && nextBuildStep(sys, person, job)) moveTo(out, job.target);
-  else out.status = 'done';
+  else if (job.thenSow && sowNow(sys, person, job, job.thenSow)) moveTo(out, job.target);
+  else if (job.thenSow && job.recipe) {
+    // Not enough seeds yet: on to the next plant.
+    const next = findSource(sys, person, job.recipe, job.wanted, sys.params.work.searchTiles);
+    if (next >= 0 && next !== sys.people.y(person) * sys.size + sys.people.x(person)) moveTo(out, next);
+    else out.status = 'done';
+  } else out.status = 'done';
+}
+
+/** The seeds are in hand: the harvest becomes the sowing of an empty field. */
+function sowNow(sys: ProductionSystem, person: number, job: Job, sow: Recipe): boolean {
+  const seeds = sow.inputs[0];
+  const item = seeds?.items.find((candidate) => sys.carried[person]!.count(candidate) >= seeds.qty - 1e-6);
+  const field = stationOf(sys, sys.people.camp(person), sow);
+  if (!seeds || item === undefined || field < 0) return false;
+  job.kind = 'craft';
+  job.recipe = sow;
+  job.thenSow = null;
+  job.chosen = [item];
+  // The seeds are set aside for the field: if the sowing is interrupted, they wait in the camp for it.
+  sys.carried[person]!.take(item, seeds.qty);
+  job.inputsUsed = true;
+  job.site = field;
+  job.stage = Stage.Work;
+  job.progress = 0;
+  job.target = sys.buildings[field]!.tile;
+  return true;
 }
 
 function deliver(sys: ProductionSystem, person: number, job: Job, out: WorkResult): void {
@@ -601,12 +683,20 @@ function craft(sys: ProductionSystem, person: number, job: Job, hours: number, o
     out.status = 'failed';
     return;
   }
+  const carried = sys.carried[person]!;
+  if (!job.inputsUsed) {
+    // The materials go into the work: if it is left unfinished, they stay in it.
+    if (!recipe.inputs.every((need, k) => carried.count(job.chosen[k] ?? need.items[0]!) >= need.qty - 1e-6)) {
+      out.status = 'failed';
+      return;
+    }
+    recipe.inputs.forEach((need, k) => carried.take(job.chosen[k] ?? need.items[0]!, need.qty));
+    job.inputsUsed = true;
+  }
   job.progress += hours * speed(sys, person, recipe);
   out.skill = recipe.skill;
   out.hours = hours;
   if (job.progress < recipe.def.hours) return;
-  const carried = sys.carried[person]!;
-  recipe.inputs.forEach((need, k) => carried.take(job.chosen[k] ?? need.items[0]!, need.qty));
   if (recipe.def.effect === 'sow' && station) {
     station.sown = recipe.inputs[0]?.qty ?? 0;
     station.growth = 0;
@@ -623,6 +713,8 @@ function craft(sys: ProductionSystem, person: number, job: Job, hours: number, o
       publishFirstItem(sys, person, output.item, tile);
     }
   }
+  // Finished: nothing is left unfinished.
+  job.inputsUsed = false;
   out.status = 'done';
 }
 

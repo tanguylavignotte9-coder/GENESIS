@@ -13,7 +13,7 @@ import { CampState, type CampNeeds } from './camps';
 import { Catalog, type BuildingType } from './catalog';
 import { publishBuildingDone } from './events';
 import { campOwner, Inventory, type RemarkableItem } from './inventory';
-import { depositable, releaseClaim, releaseExpected, Stage, startJob, workAt, type Job, type JobSpec, type WorkResult } from './jobs';
+import { depositable, leaveUnfinished, releaseClaim, releaseExpected, Stage, startJob, workAt, type Job, type JobSpec, type WorkResult } from './jobs';
 import { listNames, withIndefinite } from './events';
 import type { BuildingCatalog, ItemCatalog, ProductionParams, RecipeBook } from './params';
 import { computeNeeds } from './plans';
@@ -206,6 +206,7 @@ export class ProductionSystem {
       room -= qty * this.catalog.bulk[pile.item]!;
     }
     state.stock = kept;
+    state.unfinished.length = 0;
     state.center = center;
     state.needsHour = -1;
     state.pending.fill(0);
@@ -468,6 +469,7 @@ export class ProductionSystem {
     if (job) {
       releaseClaim(this, job);
       releaseExpected(this, person, job);
+      leaveUnfinished(this, person, job);
     }
     this.jobs[person] = null;
   }

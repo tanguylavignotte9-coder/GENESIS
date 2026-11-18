@@ -19,17 +19,31 @@ const JOBS: Partial<Record<CompiledAction['def']['behavior'], JobKind>> = {
 
 /** Chooses the target of an action and the way there. False if the action is impossible now. */
 export function startAction(sys: IndividualsSystem, person: number, action: CompiledAction): boolean {
-  const { people, production } = sys;
-  const camp = sys.camps[people.camp[person]!]!;
+  const { people } = sys;
+  // An attempt that fails leaves the current way and work as they were.
+  const working = people.working[person]!;
+  const path = people.paths[person] ?? null;
+  const pathIndex = people.pathIndex[person]!;
+  const target = people.target[person]!;
   people.working[person] = 0;
   people.paths[person] = null;
   people.target[person] = -1;
-  production.endJob(person);
+  const job = JOBS[action.def.behavior];
+  const started = job ? startJob(sys, person, action, job) : startOther(sys, person, action);
+  if (!started) {
+    people.working[person] = working;
+    people.paths[person] = path;
+    people.pathIndex[person] = pathIndex;
+    people.target[person] = target;
+  } else if (!job) sys.production.endJob(person);
+  return started;
+}
+
+function startOther(sys: IndividualsSystem, person: number, action: CompiledAction): boolean {
+  const { people, production } = sys;
+  const camp = sys.camps[people.camp[person]!]!;
   const here = sys.tileOf(person);
-  const behavior = action.def.behavior;
-  const job = JOBS[behavior];
-  if (job) return startJob(sys, person, action, job);
-  switch (behavior) {
+  switch (action.def.behavior) {
     case 'drink': {
       if (canDrink(sys.world, people.x[person]!, people.y[person]!)) return true;
       const remembered = sys.nearestMemory(person, 'water');
@@ -71,6 +85,7 @@ function startJob(sys: IndividualsSystem, person: number, action: CompiledAction
     // Nothing edible in sight or in memory: go and look further away (no job yet). Having to
     // search far is what tells that the land around the camp is exhausted.
     if (!lookingForFood || !sys.explore(person)) return false;
+    production.endJob(person);
     sys.searchedFar(person, people.target[person]!);
     return true;
   }

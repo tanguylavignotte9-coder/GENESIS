@@ -207,8 +207,11 @@ describe('hunting', () => {
     let brought = 0;
     for (let d = 0; d < 6 && hunted() === 0; d++) simulation.step(data.time.ticksPerDay);
     for (const inventory of [...production.carried, production.stockOf(0)]) brought += inventory.count(carcass);
-    const meat = production.catalog.item('meat');
-    for (const inventory of [...production.carried, production.stockOf(0)]) brought += inventory.count(meat);
+    // The carcass may already be butchered (and its meat eaten): its bones and hide remain.
+    for (const id of ['meat', 'hide', 'bone', 'sinew']) {
+      const item = production.catalog.item(id);
+      for (const inventory of [...production.carried, production.stockOf(0)]) brought += inventory.count(item);
+    }
     expect(hunted()).toBeGreaterThan(0);
     expect(brought).toBeGreaterThan(0);
   });

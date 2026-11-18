@@ -243,7 +243,7 @@ export class IndividualsSystem {
       score *= 1 + params.decision.randomness * (this.rng.nextFloat() * 2 - 1);
       if (k === current) {
         score *= 1 + params.decision.keepCurrentBonus;
-        if (people.working[person] === 1 && this.production.jobs[person]) score *= 1 + params.decision.keepWorkBonus;
+        if (this.production.jobs[person]) score *= 1 + params.decision.keepWorkBonus;
       }
       this.scores[k] = score;
     }

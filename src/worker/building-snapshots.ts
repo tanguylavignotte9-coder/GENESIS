@@ -24,7 +24,7 @@ export function snapshotBuildings(simulation: Simulation): BuildingsSnapshot {
       progress: siteProgress(building, type),
       lit: building.fuel > 0,
       fill: type.def.storage > 0 && building.state === BuildState.Done ? (fills.get(building.camp) ?? 0) : 0,
-      crop: building.grain > 0 ? 2 : building.sown > 0 ? 1 : 0,
+      crop: building.grain >= 1 ? 2 : building.sown > 0 ? 1 : 0,
     };
   });
   const heaps = production.camps.flatMap((camp) => {

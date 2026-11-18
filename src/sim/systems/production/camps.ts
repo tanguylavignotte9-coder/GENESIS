@@ -47,6 +47,13 @@ export interface CraftPlan {
   wantedItem: number;
 }
 
+/** A piece of work left unfinished (its materials are in it): anyone may take it up again. */
+export interface Unfinished {
+  recipe: Recipe;
+  /** Hours of work done. */
+  progress: number;
+}
+
 /** Production's view of a camp: where it is, its common stock, its needs. */
 export class CampState {
   stock = new Inventory();
@@ -54,6 +61,8 @@ export class CampState {
   readonly firsts = new Set<number>();
   /** Items being made right now by members (counted with the stock so that not everyone makes the same thing). */
   readonly pending: Float64Array;
+  /** Work left unfinished in the camp (an axe half polished…). */
+  readonly unfinished: Unfinished[] = [];
   /** Food value and fire hours that members are bringing back right now (harvests under way). */
   pendingFood = 0;
   pendingFuel = 0;

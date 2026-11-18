@@ -282,7 +282,7 @@ export const HUMANS_SCHEMA: Schema = {
         randomness: v('number', 0, 1, 'Part de hasard', 'Écart aléatoire ajouté aux scores des actions.', 'fraction'),
         keepCurrentBonus: v('number', 0, 1, 'Persévérance', 'Bonus de score de l’action en cours (évite de changer d’avis sans arrêt).', 'fraction'),
         depositAtCamp: v('number', 0, 1, 'Déposer en passant', 'Envie de déposer ce qu’on porte quand on passe au stock du camp, même peu chargé (entrée « depositUrge »).', 'fraction'),
-        keepWorkBonus: v('number', 0, 3, 'Ouvrage en cours', 'Bonus de score supplémentaire d’un travail commencé sur place (fabriquer, construire, récolter) : on finit ce qu’on a commencé.', 'fraction'),
+        keepWorkBonus: v('number', 0, 3, 'Ouvrage en cours', 'Bonus de score supplémentaire d’un travail commencé (en route ou sur place : fabriquer, construire, récolter) : on finit ce qu’on a commencé.', 'fraction'),
       },
     },
     actions: {

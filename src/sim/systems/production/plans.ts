@@ -52,6 +52,8 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
 
   sourceCache.clear();
   needs.craftPlan = chooseCraft(sys, camp, knowledge, members.length);
+  // Unfinished work waiting in the camp is a need of its own.
+  if (!needs.craftPlan && camp.unfinished.length > 0) needs.craft = params.custom.urgency.craft;
   // Any missing object custom wants is a need; the more is missing, the stronger.
   if (needs.craftPlan) needs.craft = params.custom.urgency.craft * (0.5 + 0.5 * craftShortfall(sys, camp, needs.craftPlan, members.length));
   const build = chooseBuild(sys, camp, knowledge, members.length, needs.craftPlan);
@@ -68,6 +70,7 @@ function clamp01(value: number): number {
 /** Quantity of an item the camp holds: common stock, what members carry, and what is being made. */
 export function campHolds(sys: ProductionSystem, camp: CampState, item: number): number {
   let total = camp.stock.count(item) + camp.pending[item]!;
+  for (const work of camp.unfinished) for (const output of work.recipe.outputs) if (output.item === item) total += output.qty;
   for (const person of camp.needs.members) total += sys.carried[person]!.count(item);
   return total;
 }
@@ -130,7 +133,8 @@ function sowFields(sys: ProductionSystem, camp: CampState, knowledge: number): C
     if (onItsWay(sys, camp, seeds)) continue;
     for (const item of seeds.items) {
       const plan = planFor(sys, camp, knowledge, item, 1, true);
-      if (plan) return plan;
+      // wantedItem -1: these are seeds for a field (sown at once, not stored).
+      if (plan) return { ...plan, wantedItem: -1 };
     }
   }
   return null;
@@ -156,7 +160,7 @@ function carriedByMembers(sys: ProductionSystem, camp: CampState, item: number):
 export function harvestPossible(sys: ProductionSystem, camp: number, recipe: Recipe): boolean {
   const kind = recipe.def.source?.kind;
   if (kind === 'livestock') return false; // no domestic animals yet
-  if (kind === 'field') return sys.campBuildings(camp).some((b) => b.state === BuildState.Done && b.grain > 0);
+  if (kind === 'field') return sys.campBuildings(camp).some((b) => b.state === BuildState.Done && b.grain >= 1);
   return true;
 }
 
@@ -176,7 +180,7 @@ export function stationOf(sys: ProductionSystem, camp: number, recipe: Recipe): 
   for (const building of sys.buildings) {
     if (building.camp !== camp || building.type !== recipe.station || building.state !== BuildState.Done) continue;
     if (sys.typeOf(building).def.function === 'fire' && building.fuel <= 0 && recipe.def.effect !== 'fuel') continue;
-    if (recipe.def.effect === 'sow' && (building.sown > 0 || building.grain > 0)) continue;
+    if (recipe.def.effect === 'sow' && (building.sown > 0 || building.grain >= 1)) continue;
     return building.id;
   }
   return -1;

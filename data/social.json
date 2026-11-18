@@ -1,5 +1,6 @@
 {
   "reachTiles": 8,
+  "scanEveryMinutes": 60,
   "relations": {
     "slots": 24,
     "decayPerDay": 0.1,

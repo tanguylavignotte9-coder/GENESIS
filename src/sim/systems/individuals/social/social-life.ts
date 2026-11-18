@@ -41,6 +41,9 @@ export class SocialLife {
   private readonly candidates: Int32Array;
   /** Item a person would give (-1 = food). */
   private readonly giftItem: Int32Array;
+  /** What the person saw around at the last look (inputs after the emotions), and when (step). */
+  private readonly seen: Float32Array;
+  private readonly seenAt: Int32Array;
   day = 0;
   tick = 0;
 
@@ -59,6 +62,8 @@ export class SocialLife {
     this.memoryEmotion = Int8Array.from(MEMORY_KINDS, (kind) => EMOTION_INDEX[params.memories.kinds[kind].emotion]);
     this.candidates = new Int32Array(people.count * CANDIDATE_KINDS).fill(-1);
     this.giftItem = new Int32Array(people.count).fill(-1);
+    this.seen = new Float32Array(people.count * SEEN_VALUES);
+    this.seenAt = new Int32Array(people.count).fill(NEVER);
     this.refreshParams(params);
     this.state.birthTraits.set(people.traits);
     for (let p = 0; p < people.count; p++) this.state.sameSex[p] = rng.nextFloat() < params.couples.sameSexShare ? 1 : 0;
@@ -187,14 +192,13 @@ export class SocialLife {
 
   // ----- the passing of time ---------------------------------------------------------------
 
-  /** Every step of a person: emotions calm down, loneliness grows, hunger may leave a mark. */
-  liveStep(person: number, hours: number, asleep: boolean, hunger: number): void {
-    liveFeelings(this, person, hours, !asleep, this.trait(person, 'sociability'));
-    if (hunger >= FULL) remember(this, person, 'starving', -1, 1);
-  }
-
-  /** Every hour of a person: a body lying near the way is found. */
-  perceiveHour(person: number): void {
+  /**
+   * Every hour of a person: emotions calm down, loneliness grows, hunger may leave a mark, and a
+   * body lying near the way is found.
+   */
+  liveHour(person: number, asleep: boolean): void {
+    liveFeelings(this, person, 1, !asleep, this.trait(person, 'sociability'));
+    if (this.people.hunger[person]! >= FULL) remember(this, person, 'starving', -1, 1);
     if (this.news.unfoundDeaths.length === 0) return;
     discoverDeaths(this, person, this.people.x[person]!, this.people.y[person]!, this.sys.params.body.perceptionTiles);
   }
@@ -291,7 +295,25 @@ export class SocialLife {
    * SOCIAL_INPUTS), and who one would talk to or give to — among the people one knows nearby.
    */
   fillInputs(person: number, inputs: Float64Array, offset: number): void {
+    const s = this.state;
+    let k = offset;
+    inputs[k++] = s.loneliness[person]! / FULL;
+    for (let e = 0; e < EMOTIONS.length; e++) inputs[k++] = s.emotion(person, e) / FULL;
+    // Who is around changes slowly: one looks again only after a while.
+    const steps = (this.params.scanEveryMinutes / MINUTES_PER_HOUR) * this.sys.params.stepsPerHour;
+    if (this.sys.isSleeping(person)) {
+      // Asleep, one sees nobody (and looks around again on waking up).
+      for (let v = 0; v < SEEN_VALUES; v++) inputs[k++] = 0;
+      this.seenAt[person] = NEVER;
+      return;
+    }
+    if (this.seenAt[person] === NEVER || this.sys.step - this.seenAt[person]! >= steps) this.lookAround(person);
+    for (let v = 0; v < SEEN_VALUES; v++) inputs[k++] = this.seen[person * SEEN_VALUES + v]!;
+  }
+
+  private lookAround(person: number): void {
     const { people, params, state: s } = this;
+    this.seenAt[person] = this.sys.step;
     const reach = params.reachTiles;
     const x = people.x[person]!;
     const y = people.y[person]!;
@@ -336,18 +358,17 @@ export class SocialLife {
       const near = mate >= 0 && Math.max(Math.abs(people.x[mate]! - x), Math.abs(people.y[mate]! - y)) <= reach && !this.sys.isSleeping(mate);
       if (near) this.candidates[c] = mate;
     }
-    let k = offset;
-    inputs[k++] = s.loneliness[person]! / FULL;
-    for (let e = 0; e < EMOTIONS.length; e++) inputs[k++] = s.emotion(person, e) / FULL;
-    inputs[k++] = this.candidates[c]! >= 0 ? 1 : 0;
-    inputs[k++] = clamp01(confidantTrust / FULL);
-    inputs[k++] = clamp01(best[2]!);
-    inputs[k++] = clamp01(best[3]!);
-    inputs[k++] = clamp01(best[4]!);
-    inputs[k++] = clamp01(best[GIVE]!);
-    inputs[k++] = wants(this, person, 'makeFriends') ? 1 : 0;
-    inputs[k++] = wants(this, person, 'findPartner') ? 1 : 0;
-    inputs[k++] = esteem >= 0 ? 1 : 0;
+    const seen = this.seen;
+    let k = person * SEEN_VALUES;
+    seen[k++] = this.candidates[c]! >= 0 ? 1 : 0;
+    seen[k++] = clamp01(confidantTrust / FULL);
+    seen[k++] = clamp01(best[2]!);
+    seen[k++] = clamp01(best[3]!);
+    seen[k++] = clamp01(best[4]!);
+    seen[k++] = clamp01(best[GIVE]!);
+    seen[k++] = wants(this, person, 'makeFriends') ? 1 : 0;
+    seen[k++] = wants(this, person, 'findPartner') ? 1 : 0;
+    seen[k++] = esteem >= 0 ? 1 : 0;
   }
 
   private consider(base: number, kind: number, other: number, score: number, best: Float64Array): boolean {
@@ -394,6 +415,10 @@ export class SocialLife {
 }
 
 const BEST = new Float64Array(CANDIDATE_KINDS);
+/** Inputs that come from looking around (SOCIAL_INPUTS after loneliness and the emotions). */
+const SEEN_VALUES = 9;
+const NEVER = -1;
+const MINUTES_PER_HOUR = 60;
 
 function clamp01(value: number): number {
   return value < 0 ? 0 : value > 1 ? 1 : value;

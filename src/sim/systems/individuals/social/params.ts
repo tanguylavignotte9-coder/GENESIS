@@ -61,6 +61,7 @@ export interface ConversationParams {
 
 export interface SocialParams {
   reachTiles: number;
+  scanEveryMinutes: number;
   relations: {
     slots: number;
     decayPerDay: number;
@@ -199,6 +200,7 @@ export const SOCIAL_SCHEMA: Schema = {
   kind: 'object',
   fields: {
     reachTiles: int(1, 40, 'Portée de la vie sociale', 'Distance à laquelle on va trouver quelqu’un pour lui parler ou lui donner à manger.', 'tuiles'),
+    scanEveryMinutes: int(0, 600, 'Regard sur les autres', 'Une personne revoit qui est autour d’elle (à qui parler, qui consoler, qui nourrir) au plus une fois tous ces minutes ; entre-temps, elle garde ce qu’elle a vu (ses émotions, elles, sont toujours à jour).', 'minutes de jeu'),
     relations: {
       kind: 'object',
       fields: {

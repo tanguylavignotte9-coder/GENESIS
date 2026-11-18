@@ -233,10 +233,9 @@ export class IndividualsSystem {
         this.die(p, cause, journal, tick, null);
         continue;
       }
-      this.social.liveStep(p, hours, this.isSleeping(p), people.hunger[p]!);
       if ((this.step + p) % this.params.stepsPerHour === 0) {
         this.perceive(p);
-        this.social.perceiveHour(p);
+        this.social.liveHour(p, this.isSleeping(p));
       }
       if (this.step >= people.nextThink[p]!) this.think(p);
       if (performAction(this, p, this.actions[people.action[p]!]!, hours)) people.nextThink[p] = this.step + 1;

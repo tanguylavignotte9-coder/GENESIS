@@ -500,14 +500,14 @@ Le HUD est la moitié du jeu : sans lui, les histoires émergentes restent invis
 
 **Suivre un personnage :** le spectateur peut attacher la caméra à un individu, marquer des favoris et recevoir des notifications sur leur vie (naissance d'un enfant, blessure, prise de pouvoir, mort). Chaque ligne du journal mène aux fiches des personnes et des groupes concernés, et à l'événement qui l'a causée.
 
-**Atelier des variables :** une page de configuration liste toutes les variables du jeu, regroupées par système, chacune avec sa légende, son unité et ses bornes. On peut les modifier en direct pendant la simulation (celles qui touchent la génération du monde s'appliquent au prochain monde), revenir aux valeurs par défaut, et sauvegarder ou charger des presets. Prévu à l'étape 5 ; dès maintenant, chaque nouvelle variable est documentée pour l'alimenter.
+**Atelier des variables :** une page de configuration liste toutes les variables du jeu, regroupées par système, chacune avec sa légende, son unité et ses bornes. On peut les modifier en direct pendant la simulation (celles qui touchent la génération du monde s'appliquent au prochain monde), revenir aux valeurs par défaut, et sauvegarder ou charger des presets. Livré à l'étape 5 (touche F2). Au démarrage, le jeu recharge le dernier preset actif. Le banc d'essai utilise toujours les valeurs par défaut pour que les rapports restent comparables. Une modification en cours de partie fait diverger le monde de sa graine : elle est inscrite au journal.
 
 **Mesure des performances :** les mesures de Claude Code donnent un ordre d'idée, mais seul le PC de Tanguy fait foi. Le jeu inclut donc :
 
 - un **indicateur en jeu** (activable) : images par seconde, temps de calcul d'un jour de jeu, part du budget utilisée à la vitesse actuelle, nombre d'humains, d'animaux et de plantes ;
 - un **banc d'essai** lançable d'un clic (bouton ou `Benchmark-GENESIS.bat`) : il rejoue le test de charge (100 à 5 000 humains) sur le PC et enregistre un rapport daté dans un dossier `rapports/`, à transmettre à Claude Code.
 
-Le plafond de population du jeu est fixé d'après le banc d'essai lancé sur le PC de Tanguy. Prévu à l'étape 5.
+Aucun plafond de population n'est imposé, car ce serait un quota : si le PC ne suit pas, le jeu ralentit et affiche la vitesse réellement atteinte. Le banc d'essai donne un repère indicatif. Livré à l'étape 5 (F3 pour l'indicateur, \`Benchmark-GENESIS.bat\` pour le banc d'essai).
 
 ## Fin de partie et relance
 
@@ -613,7 +613,7 @@ Chaque étape est livrée jouable : on peut lancer le jeu et voir le résultat. 
 | 11 · Conflit | Rixes, raids, guerres, diplomatie | Les premières guerres |
 | 12 · HUD complet | Journal, fiches, arbres, cartes, statistiques | L'outil d'observation final |
 
-**Avancement :** étape 0 terminée et validée sous Windows le 17 nov. 2026. Étape 1 livrée le 17 nov. 2026 (graine 42 : 34 % de terres, 3 continents, 22 îles, 151 rivières, 66 lacs). Étape 2 livrée le 17 nov. 2026 : calendrier, vitesses, saisons inversées nord/sud (la date affichée suit le nord), années anormales régionales (environ 1,3 par an), journal causal, noms de lieux descriptifs en attendant les langues. Reportés à l'étape 4 : cycle jour-nuit (nécessaire aux routines) et météo locale. Étape 3 livrée le 18 nov. 2026 : environ 15 000 animaux (9 espèces) et 280 000 plantes pour 59 ms par jour de jeu (6 % du fil de simulation en x500) ; climat 10 fois plus rapide ; toutes les espèces survivent 100 ans, équilibre à affiner dans l'Atelier des variables.
+**Avancement :** étape 0 terminée et validée sous Windows le 17 nov. 2026. Étape 1 livrée le 17 nov. 2026 (graine 42 : 34 % de terres, 3 continents, 22 îles, 151 rivières, 66 lacs). Étape 2 livrée le 17 nov. 2026 : calendrier, vitesses, saisons inversées nord/sud (la date affichée suit le nord), années anormales régionales (environ 1,3 par an), journal causal, noms de lieux descriptifs en attendant les langues. Reportés à l'étape 4 : cycle jour-nuit (nécessaire aux routines) et météo locale. Étape 3 livrée le 18 nov. 2026 : environ 15 000 animaux (9 espèces) et 280 000 plantes pour 59 ms par jour de jeu (6 % du fil de simulation en x500) ; climat 10 fois plus rapide ; toutes les espèces survivent 100 ans, équilibre à affiner dans l'Atelier des variables. Étape 4 livrée le 18 nov. 2026 : jour-nuit, météo, tribu de 30, cerveau v1, fiche personnage ; plafond mesuré sur les serveurs de Claude Code d'environ 2 700 humains en x500 (à confirmer sur le PC de Tanguy). Sans naissances, chasse, réserves ni partage, la tribu s'éteint en moins de 100 ans : attendu à ce stade. Reste à faire : météo visible sur la carte, personnes cliquables dans le journal. Étape 5 livrée le 18 nov. 2026 : mécanisme d'interaction commun entre systèmes (attaques de prédateurs), métadonnées de toutes les variables, Atelier des variables avec presets, indicateur de performance et banc d'essai.
 
 ## Décisions prises et questions ouvertes
 
@@ -643,7 +643,7 @@ Chaque étape est livrée jouable : on peut lancer le jeu et voir le résultat. 
 | Population de l'ordre de quelques milliers d'habitants simultanés | 17 nov. 2026 |
 | Le joueur est spectateur ; le god game viendra peut-être plus tard | 17 nov. 2026 |
 | Humains uniquement, évolution culturelle et technologique, pas biologique | 17 nov. 2026 |
-| Chaque individu est simulé, rien n'est statistique ; la population est plafonnée en conséquence | 17 nov. 2026 |
+| Chaque individu est simulé, rien n'est statistique ; l'échelle visée est de quelques milliers d'habitants, sans plafond imposé | 17 nov. 2026 |
 | Une seule tribu au départ, avec scissions, fusions et trahisons possibles | 17 nov. 2026 |
 | Carte carrée procédurale, plusieurs continents et îles | 17 nov. 2026 |
 | Systèmes réalistes, rendu pixel art HD | 17 nov. 2026 |

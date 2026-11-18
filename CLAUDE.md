@@ -5,6 +5,13 @@ et où les histoires naissent de façon **émergente et systémique**. Le joueur
 
 - La vision complète, les systèmes et les données de contenu sont dans **`docs/design.md`**.
   Lis-le avant toute tâche de conception ou de nouveau système.
+- **`docs/journal-de-dev.md`** est la mémoire du projet entre les sessions (chaque session
+  repart sans historique de conversation) : décisions validées, écarts, dette technique, mesures.
+  **Lis-le en début de session**, et **complète-le en fin d'étape** (nouvelle entrée en haut :
+  fait, décisions et écarts, dette technique avec l'étape prévue, mesures). Quand tu résous une
+  dette technique, indique-le dans l'entrée de l'étape en cours.
+- Si une session reprend une étape commencée ailleurs, regarde d'abord `git log` et l'état du
+  code pour savoir ce qui est déjà fait.
 - Le propriétaire du projet (Tanguy) ne code pas : tout le code est écrit par Claude.
   Explique tes choix en français simple dans tes messages de commit et ton compte rendu de fin de tâche.
 
@@ -154,10 +161,14 @@ ton compte rendu ce que Tanguy doit vérifier en le lançant.
 
 ## Définition de « terminé » pour chaque étape
 
-- `npm run typecheck`, `npm test` et `npm run test:long` passent.
+- `npm run typecheck` et `npm test` passent.
+- `npm run test:long` passe **si l'étape a modifié `src/sim/` ou `data/`** (comportement de la
+  simulation). Pour une étape qui ne touche que l'affichage, le HUD, les outils ou la
+  documentation, il n'est pas nécessaire : indique-le dans le compte rendu.
 - Nouveau code de simulation couvert par des tests, dont au moins une simulation sans écran
   déterministe (même graine = même résultat).
 - Le jeu se construit et se lance (`npm start`).
+- `docs/journal-de-dev.md` est complété.
 - Les commits sont poussés sur `main`.
 - Le compte rendu de fin de tâche contient, en français : ce qui a été fait, **ce que Tanguy doit
   voir en lançant le jeu**, comment le tester, et les écarts ou questions de design.

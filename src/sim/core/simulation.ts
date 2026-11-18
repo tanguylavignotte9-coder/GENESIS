@@ -48,8 +48,9 @@ export class Simulation {
   readonly weather: WeatherState;
   readonly production: ProductionSystem;
   readonly humans: IndividualsSystem;
-  private readonly ticksPerStep: number;
-  private readonly ticksPerHumanStep: number;
+  /** Ticks between two steps of the animals, and of the humans. */
+  readonly ticksPerStep: number;
+  readonly ticksPerHumanStep: number;
   /** Incremented each time the climate of the moment changes (once per game day). */
   climateVersion = 0;
 

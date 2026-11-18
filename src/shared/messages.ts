@@ -293,6 +293,8 @@ export type FromSimMessage =
       life: LifeTables;
       roster: Roster;
       weatherRegionTiles: number;
+      /** Ticks between two steps of the humans and of the animals (for smooth movement on screen). */
+      motion: { ticksPerHumanStep: number; ticksPerAnimalStep: number };
     }
   | { type: 'humans'; humans: HumansSnapshot }
   | { type: 'weather'; regions: Uint8Array }

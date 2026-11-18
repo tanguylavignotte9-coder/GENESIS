@@ -12,13 +12,15 @@ export interface HumanLook {
   /** Any integer: picks skin, hair and clothes. */
   variant: number;
   asleep: boolean;
+  /** Walking animation: 0 standing, 1 and 2 the two strides. */
+  stride: number;
 }
 
 /** Width of a standing adult, in map tiles (children are drawn smaller). */
 export const HUMAN_TILES = 0.55;
 export const CHILD_SCALE = 0.7;
 
-/** Procedural pixel-art human: standing (6×10) or lying asleep (10×6). */
+/** Procedural pixel-art human: standing or walking (6×10), or lying asleep (10×6). */
 export function drawHuman(look: HumanLook): Texture {
   const skin = SKINS[look.variant % SKINS.length]!;
   const hair = HAIRS[Math.floor(look.variant / SKINS.length) % HAIRS.length]!;
@@ -30,13 +32,18 @@ export function drawHuman(look: HumanLook): Texture {
   if (look.female) for (let y = 1; y < 5; y++) canvas.set(0, y, hair), canvas.set(5, y, hair, SHADE);
   else canvas.set(1, 1, hair);
   for (let y = 3; y < 7; y++) for (let x = 1; x < 5; x++) canvas.set(x, y, cloth, x === 4 ? SHADE : 1);
-  canvas.set(0, 4, skin, 0.9);
-  canvas.set(5, 4, skin, SHADE);
+  // Arms swing with the stride.
+  canvas.set(0, look.stride === 1 ? 5 : 4, skin, 0.9);
+  canvas.set(5, look.stride === 2 ? 5 : 4, skin, SHADE);
+  // Legs: side by side when standing; one forward, one back when walking.
+  const feet = look.stride === 1 ? [0, 4] : look.stride === 2 ? [2, 2] : [1, 3];
   for (let y = 7; y < 10; y++) {
-    canvas.set(1, y, skin, 0.85);
-    canvas.set(3, y, skin, SHADE);
+    const last = y === 9;
+    canvas.set(last ? feet[0]! : 1, y, skin, 0.85);
+    canvas.set(last ? feet[1]! : 3, y, skin, SHADE);
     if (look.female && y === 7) canvas.set(2, y, cloth);
   }
+
   return canvas.toTexture();
 }
 

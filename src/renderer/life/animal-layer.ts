@@ -1,25 +1,33 @@
-import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
+import { Container, Graphics, Sprite } from 'pixi.js';
 import type { AnimalSpecies } from '../../sim/systems/fauna/params';
 import type { FaunaSnapshot } from '../../shared/messages';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
-import { drawAnimal } from '../art/animal';
+import { drawAnimal, type AnimalArt } from '../art/animal';
+import { Glide, type GlidePoint } from './glide';
 
 /** Animals of a herd are spread a little around their tile so they do not overlap exactly. */
 const SPREAD = 0.6;
 const RING_RADIUS = 0.9;
 const RING_COLOR = 0xffe27a;
 
-/** Small animal sprites (pooled), drawn when zoomed in; the followed animal gets a ring. */
+/**
+ * Small animal sprites (pooled), drawn when zoomed in; they glide from tile to tile and move their
+ * legs while walking. The followed animal gets a ring.
+ */
 export class AnimalLayer {
   readonly container = new Container();
-  private textures: { texture: Texture; tiles: number }[] = [];
+  private art: AnimalArt[] = [];
   private readonly pool: Sprite[] = [];
   private fauna: FaunaSnapshot | null = null;
-  /** Last known x of each animal, to face the way it walks. */
-  private facing = new Map<number, number>();
-  private previousX = new Map<number, number>();
+  /** Glide slot of each living animal (by uid); slots of the dead are reused. */
+  private slots = new Map<number, number>();
+  private seen = new Map<number, number>();
+  private freeSlots: number[] = [];
+  private nextSlot = 0;
+  private readonly glide = new Glide(16384);
+  private readonly point: GlidePoint = { x: 0, y: 0, moving: false, facing: 1 };
   private readonly ring = new Graphics();
   followedUid = -1;
 
@@ -30,33 +38,42 @@ export class AnimalLayer {
   }
 
   setSpecies(species: readonly AnimalSpecies[]): void {
-    this.textures.forEach((entry) => entry.texture.destroy(true));
-    this.textures = species.map((animal) => drawAnimal(animal));
+    this.art.forEach((entry) => entry.frames.forEach((texture) => texture.destroy(true)));
+    this.art = species.map((animal) => drawAnimal(animal));
     this.fauna = null;
-    this.facing.clear();
-    this.previousX.clear();
+    this.slots.clear();
+    this.freeSlots = [];
+    this.nextSlot = 0;
+    this.glide.clear();
   }
 
-  setFauna(fauna: FaunaSnapshot): void {
-    const nextX = new Map<number, number>();
+  /** New positions from the simulation; `stepMs` = real duration of one animal step at the current pace. */
+  setFauna(fauna: FaunaSnapshot, now: number, stepMs: number): void {
+    const next = this.seen;
+    next.clear();
     for (let k = 0; k < fauna.count; k++) {
       const uid = fauna.uid[k]!;
-      const x = fauna.x[k]!;
-      const before = this.previousX.get(uid);
-      if (before !== undefined && before !== x) this.facing.set(uid, x < before ? -1 : 1);
-      nextX.set(uid, x);
+      let slot = this.slots.get(uid);
+      if (slot === undefined) slot = this.freeSlots.pop() ?? this.nextSlot++;
+      next.set(uid, slot);
+      this.glide.set(slot, this.spotX(uid, fauna.x[k]!), this.spotY(uid, fauna.y[k]!), now, stepMs);
     }
-    for (const uid of this.facing.keys()) if (!nextX.has(uid)) this.facing.delete(uid);
-    this.previousX = nextX;
+    for (const [uid, slot] of this.slots) {
+      if (next.has(uid)) continue;
+      this.glide.forget(slot);
+      this.freeSlots.push(slot);
+    }
+    this.seen = this.slots;
+    this.slots = next;
     this.fauna = fauna;
   }
 
   /** Position (tile coordinates, sprite center) of an animal, or null if it is gone. */
   positionOf(uid: number): { x: number; y: number } | null {
-    const fauna = this.fauna;
-    if (!fauna) return null;
-    for (let k = 0; k < fauna.count; k++) if (fauna.uid[k] === uid) return this.spot(uid, fauna.x[k]!, fauna.y[k]!);
-    return null;
+    const slot = this.slots.get(uid);
+    if (slot === undefined) return null;
+    const point = this.glide.at(slot, performance.now(), this.point);
+    return { x: point.x, y: point.y };
   }
 
   /** Index (in the snapshot) of the animal nearest to a point, within `maxTiles`, or -1. */
@@ -65,8 +82,12 @@ export class AnimalLayer {
     if (!fauna) return -1;
     let best = -1;
     let bestDistance = maxTiles * maxTiles;
+    const now = performance.now();
     for (let k = 0; k < fauna.count; k++) {
-      const spot = this.spot(fauna.uid[k]!, fauna.x[k]!, fauna.y[k]!);
+      if (Math.abs(fauna.x[k]! - tileX) > maxTiles + 1 || Math.abs(fauna.y[k]! - tileY) > maxTiles + 1) continue;
+      const slot = this.slots.get(fauna.uid[k]!);
+      if (slot === undefined) continue;
+      const spot = this.glide.at(slot, now, this.point);
       const d = (spot.x - tileX) ** 2 + (spot.y - tileY) ** 2;
       if (d < bestDistance) {
         best = k;
@@ -80,23 +101,28 @@ export class AnimalLayer {
     return this.fauna;
   }
 
-  update(visible: TileRect, pixelsPerTile: number): void {
+  update(visible: TileRect, pixelsPerTile: number, now: number): void {
     const fauna = this.fauna;
     let used = 0;
+    const point = this.point;
     if (fauna && pixelsPerTile >= VIEW.animalMinPixelsPerTile) {
+      const frame = Math.floor(now / VIEW.walkFrameMs);
       for (let k = 0; k < fauna.count; k++) {
         const x = fauna.x[k]!;
         const y = fauna.y[k]!;
         if (x < visible.minX - 1 || x > visible.maxX + 1 || y < visible.minY - 1 || y > visible.maxY + 1) continue;
-        const art = this.textures[fauna.species[k]!];
-        if (!art) continue;
-        const sprite = this.sprite(used++);
+        const art = this.art[fauna.species[k]!];
         const uid = fauna.uid[k]!;
-        const spot = this.spot(uid, x, y);
-        sprite.texture = art.texture;
-        const scale = art.tiles / art.texture.width;
-        sprite.scale.set(scale * (this.facing.get(uid) ?? 1), scale);
-        sprite.position.set(spot.x, spot.y);
+        const slot = this.slots.get(uid);
+        if (!art || slot === undefined) continue;
+        this.glide.at(slot, now, point);
+        const stride = point.moving ? 1 + ((frame + uid) % 2) : 0;
+        const texture = art.frames[stride]!;
+        const sprite = this.sprite(used++);
+        sprite.texture = texture;
+        const scale = art.tiles / texture.width;
+        sprite.scale.set(scale * point.facing, scale);
+        sprite.position.set(point.x, point.y - (stride === 1 ? VIEW.walkBounceTiles : 0));
         sprite.visible = true;
       }
     }
@@ -106,8 +132,12 @@ export class AnimalLayer {
     if (followed) this.ring.position.set(followed.x, followed.y);
   }
 
-  private spot(uid: number, x: number, y: number): { x: number; y: number } {
-    return { x: x + 0.5 + (tileHash(uid, 1, 5) - 0.5) * SPREAD, y: y + 0.5 + (tileHash(uid, 2, 5) - 0.5) * SPREAD };
+  private spotX(uid: number, x: number): number {
+    return x + 0.5 + (tileHash(uid, 1, 5) - 0.5) * SPREAD;
+  }
+
+  private spotY(uid: number, y: number): number {
+    return y + 0.5 + (tileHash(uid, 2, 5) - 0.5) * SPREAD;
   }
 
   private sprite(index: number): Sprite {

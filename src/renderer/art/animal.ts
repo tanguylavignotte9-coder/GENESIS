@@ -5,11 +5,27 @@ import { color, PixelCanvas } from './pixel-canvas';
 const DARK = 0.65;
 const LIGHT = 1.15;
 
+/** Frames of an animal: standing, then the walking strides. */
+export interface AnimalArt {
+  frames: Texture[];
+  /** Sprite width in map tiles. */
+  tiles: number;
+}
+
+export const ANIMAL_FRAMES = 3;
+
+/** Every frame of an animal (standing, two strides). */
+export function drawAnimal(species: AnimalSpecies): AnimalArt {
+  const frames: Texture[] = [];
+  for (let stride = 0; stride < ANIMAL_FRAMES; stride++) frames.push(drawAnimalFrame(species, stride));
+  return { frames, tiles: 0.32 * species.size };
+}
+
 /**
  * Procedural pixel-art animal seen from the side, facing right. Hunters get pointed ears,
- * small species a rounder body. `tiles` is the sprite width in map tiles.
+ * small species a rounder body. `stride` 0 = standing, 1 and 2 = legs moving.
  */
-export function drawAnimal(species: AnimalSpecies): { texture: Texture; tiles: number } {
+function drawAnimalFrame(species: AnimalSpecies, stride: number): Texture {
   const body = color(species.color);
   const hunter = species.prey.length > 0;
   const small = species.size <= 2;
@@ -20,12 +36,16 @@ export function drawAnimal(species: AnimalSpecies): { texture: Texture; tiles: n
     canvas.set(7, 2, body, LIGHT);
     canvas.set(7, 1, body, LIGHT);
     canvas.set(8, 3, body, DARK);
-    canvas.set(3, 6, body, DARK);
-    canvas.set(6, 6, body, DARK);
+    // A small animal hops: hind and fore paws apart, then together.
+    canvas.set(stride === 1 ? 2 : stride === 2 ? 4 : 3, 6, body, DARK);
+    canvas.set(stride === 1 ? 7 : stride === 2 ? 5 : 6, 6, body, DARK);
     canvas.set(1, 4, [240, 240, 235]);
   } else {
     for (let y = 2; y < 5; y++) for (let x = 1; x < 8; x++) canvas.set(x, y, body, y === 2 ? LIGHT : y === 4 ? 0.9 : 1);
-    for (const x of [1, 2, 6, 7]) for (let y = 5; y < 7; y++) canvas.set(x, y, body, DARK);
+    for (const x of [1, 2, 6, 7]) canvas.set(x, 5, body, DARK);
+    // Hooves: straight when standing, diagonal pairs forward and back when walking.
+    const hooves = stride === 1 ? [0, 2, 6, 8] : stride === 2 ? [1, 3, 5, 7] : [1, 2, 6, 7];
+    for (const x of hooves) canvas.set(x, 6, body, DARK);
     canvas.set(8, 1, body, 1);
     canvas.set(9, 1, body, 1);
     canvas.set(8, 2, body, 1);
@@ -38,5 +58,5 @@ export function drawAnimal(species: AnimalSpecies): { texture: Texture; tiles: n
       canvas.set(8, 0, body, DARK);
     }
   }
-  return { texture: canvas.toTexture(), tiles: 0.32 * species.size };
+  return canvas.toTexture();
 }

@@ -90,6 +90,7 @@ function start(seed: number): void {
       life: lifeTables(created),
       roster: snapshotRoster(created),
       weatherRegionTiles: created.data.weather.regionTiles,
+      motion: { ticksPerHumanStep: created.ticksPerHumanStep, ticksPerAnimalStep: created.ticksPerStep },
     },
     transfer,
   );

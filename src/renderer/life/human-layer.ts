@@ -4,6 +4,7 @@ import { CHILD_SCALE, drawHuman, HUMAN_TILES } from '../art/human';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
+import { Glide, type GlidePoint } from './glide';
 
 const SPREAD = 0.5;
 const CHILD_AGE = 14;
@@ -20,6 +21,8 @@ export class HumanLayer {
   private readonly textures = new Map<string, Texture>();
   private roster: Roster | null = null;
   private humans: HumansSnapshot | null = null;
+  private readonly glide = new Glide();
+  private readonly point: GlidePoint = { x: 0, y: 0, moving: false, facing: 1 };
   /** Person whose sheet is open / who is followed (-1 = none). */
   selected = -1;
   sleepActionCode = -1;
@@ -33,12 +36,22 @@ export class HumanLayer {
   setRoster(roster: Roster): void {
     this.roster = roster;
     this.humans = null;
+    this.glide.clear();
     this.selected = -1;
     this.sleepActionCode = roster.actionNames.indexOf('Dormir');
   }
 
-  setHumans(humans: HumansSnapshot): void {
+  /** New positions from the simulation; `stepMs` = real duration of one human step at the current pace. */
+  setHumans(humans: HumansSnapshot, now: number, stepMs: number): void {
     this.humans = humans;
+    for (let p = 0; p < humans.x.length; p++) {
+      if ((humans.flags[p]! & HumanFlag.Alive) === 0) {
+        this.glide.forget(p);
+        continue;
+      }
+      const spot = this.spot(p, humans.x[p]!, humans.y[p]!);
+      this.glide.set(p, spot.x, spot.y, now, stepMs);
+    }
   }
 
   get snapshot(): HumansSnapshot | null {
@@ -49,7 +62,8 @@ export class HumanLayer {
   positionOf(person: number): { x: number; y: number } | null {
     const humans = this.humans;
     if (!humans || person < 0 || person >= humans.x.length || (humans.flags[person]! & HumanFlag.Alive) === 0) return null;
-    return this.spot(person, humans.x[person]!, humans.y[person]!);
+    const point = this.glide.at(person, performance.now(), this.point);
+    return { x: point.x, y: point.y };
   }
 
   /** Living person nearest to a point (tile coordinates), within `maxTiles`, or -1. */
@@ -58,9 +72,10 @@ export class HumanLayer {
     if (!humans) return -1;
     let best = -1;
     let bestDistance = maxTiles * maxTiles;
+    const now = performance.now();
     for (let p = 0; p < humans.x.length; p++) {
       if ((humans.flags[p]! & HumanFlag.Alive) === 0) continue;
-      const spot = this.spot(p, humans.x[p]!, humans.y[p]!);
+      const spot = this.glide.at(p, now, this.point);
       const d = (spot.x - tileX) ** 2 + (spot.y - tileY) ** 2;
       if (d < bestDistance) {
         best = p;
@@ -70,10 +85,11 @@ export class HumanLayer {
     return best;
   }
 
-  update(visible: TileRect, pixelsPerTile: number): void {
+  update(visible: TileRect, pixelsPerTile: number, now: number): void {
     const humans = this.humans;
     const roster = this.roster;
     let used = 0;
+    const point = this.point;
     if (humans && roster && pixelsPerTile >= VIEW.animalMinPixelsPerTile) {
       for (let p = 0; p < humans.x.length; p++) {
         const x = humans.x[p]!;
@@ -81,13 +97,15 @@ export class HumanLayer {
         if ((humans.flags[p]! & HumanFlag.Alive) === 0) continue;
         if (x < visible.minX - 1 || x > visible.maxX + 1 || y < visible.minY - 1 || y > visible.maxY + 1) continue;
         const asleep = humans.action[p] === this.sleepActionCode && (humans.flags[p]! & HumanFlag.Working) !== 0;
-        const texture = this.texture(roster.female[p] === 1, Math.floor(tileHash(p, 7, 3) * VARIANTS), asleep);
+        this.glide.at(p, now, point);
+        // Walking: two strides in turn, with a small bounce on the first.
+        const stride = point.moving && !asleep ? 1 + ((Math.floor(now / VIEW.walkFrameMs) + p) % 2) : 0;
+        const texture = this.texture(roster.female[p] === 1, Math.floor(tileHash(p, 7, 3) * VARIANTS), asleep, stride);
         const sprite = this.sprite(used++);
-        const spot = this.spot(p, x, y);
         const child = roster.ageYears[p]! < CHILD_AGE ? CHILD_SCALE : 1;
         sprite.texture = texture;
         sprite.scale.set((HUMAN_TILES * child) / (asleep ? texture.height : texture.width));
-        sprite.position.set(spot.x, spot.y);
+        sprite.position.set(point.x, point.y - (stride === 1 ? VIEW.walkBounceTiles : 0));
         sprite.visible = true;
       }
     }
@@ -101,11 +119,11 @@ export class HumanLayer {
     return { x: x + 0.5 + (tileHash(person, 1, 8) - 0.5) * SPREAD, y: y + 0.5 + (tileHash(person, 2, 8) - 0.5) * SPREAD };
   }
 
-  private texture(female: boolean, variant: number, asleep: boolean): Texture {
-    const key = `${female ? 1 : 0}:${variant}:${asleep ? 1 : 0}`;
+  private texture(female: boolean, variant: number, asleep: boolean, stride: number): Texture {
+    const key = `${female ? 1 : 0}:${variant}:${asleep ? 1 : 0}:${stride}`;
     let texture = this.textures.get(key);
     if (!texture) {
-      texture = drawHuman({ female, variant, asleep });
+      texture = drawHuman({ female, variant, asleep, stride });
       this.textures.set(key, texture);
     }
     return texture;

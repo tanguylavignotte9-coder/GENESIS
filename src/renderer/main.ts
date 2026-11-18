@@ -21,6 +21,7 @@ import { BuildingLayer } from './life/building-layer';
 import { BuildingPanel } from './hud/building-panel';
 import { HumanLayer } from './life/human-layer';
 import { PlantLayer } from './life/plant-layer';
+import { SimPace } from './life/glide';
 import { NightLayer } from './map/night-layer';
 import { Camera } from './map/camera';
 import { MapView } from './map/map-view';
@@ -69,6 +70,8 @@ async function main(): Promise<void> {
   let tablesKey = '';
   let speedsKey = '';
   let lastPerfAt = 0;
+  const pace = new SimPace();
+  let motion = { ticksPerHumanStep: 1, ticksPerAnimalStep: 1 };
 
   const sim = new SimClient((message: FromSimMessage) => onMessage(message));
   const hover = new Hover(sim, animals, people, buildings);
@@ -208,6 +211,8 @@ async function main(): Promise<void> {
         animals.setSpecies(life.animals);
         stats.reset(life.animals, daysPerYear);
         roster = message.roster;
+        motion = message.motion;
+        pace.reset();
         weatherRegionTiles = message.weatherRegionTiles;
         weatherRegions = null;
         people.setRoster(roster);
@@ -237,10 +242,10 @@ async function main(): Promise<void> {
         plants.setFlora(message.flora);
         return;
       case 'fauna':
-        animals.setFauna(message.fauna);
+        animals.setFauna(message.fauna, performance.now(), pace.msFor(motion.ticksPerAnimalStep));
         return;
       case 'humans':
-        people.setHumans(message.humans);
+        people.setHumans(message.humans, performance.now(), pace.msFor(motion.ticksPerHumanStep));
         return;
       case 'weather':
         weatherRegions = message.regions;
@@ -265,6 +270,7 @@ async function main(): Promise<void> {
         return;
       case 'status':
         time.setStatus(message.date, message.paused, message.speedIndex);
+        pace.observe(message.tick, performance.now(), message.paused);
         hour = message.hour;
         return;
       case 'error':
@@ -353,8 +359,9 @@ async function main(): Promise<void> {
     const visible = camera.visibleTiles();
     mapView.update(visible);
     plants.update(visible, camera.pixelsPerTile);
-    animals.update(visible, camera.pixelsPerTile);
-    people.update(visible, camera.pixelsPerTile);
+    const frameAt = performance.now();
+    animals.update(visible, camera.pixelsPerTile, frameAt);
+    people.update(visible, camera.pixelsPerTile, frameAt);
     buildings.update(visible);
     night.update(climate, hour);
     const now = performance.now();

@@ -31,4 +31,15 @@ export const VIEW = {
   inspectEveryMs: 400,
   /** Tooltip offset from the mouse cursor, in pixels. */
   tooltipOffset: 16,
+  /** Smooth movement: below this real duration of a simulation step, beings jump from tile to tile. */
+  glideMinStepMs: 40,
+  /** A move longer than this (tiles) is a jump, not a walk. */
+  glideMaxTiles: 4,
+  /** Longest glide (ms): one step at x1 for the slowest beings (animals step once a game hour). */
+  glideMaxStepMs: 25000,
+  /** Weight of each new measure of the simulation's pace (0..1). */
+  paceSmoothing: 0.2,
+  /** Walking animation: duration of one stride frame (ms) and height of the bounce (tiles). */
+  walkFrameMs: 200,
+  walkBounceTiles: 0.04,
 } as const;

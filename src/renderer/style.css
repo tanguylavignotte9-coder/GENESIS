@@ -309,3 +309,147 @@ body:has(#stats:not([hidden])) #journal {
   padding: 14px 22px;
   font-size: 18px;
 }
+
+#tribe-toggle {
+  bottom: 12px;
+  right: 130px;
+  padding: 6px 12px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#tribe {
+  bottom: 52px;
+  right: 484px;
+  width: 340px;
+  max-height: 45vh;
+  overflow-y: auto;
+  background: rgba(16, 20, 28, 0.96);
+}
+
+#tribe-list {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#tribe-list li {
+  cursor: pointer;
+}
+
+#tribe-list li:hover {
+  color: white;
+}
+
+#tribe-list li.dead {
+  color: var(--hud-muted);
+  text-decoration: line-through;
+}
+
+#person {
+  top: 120px;
+  left: 12px;
+  width: 300px;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  background: rgba(16, 20, 28, 0.96);
+  user-select: text;
+}
+
+.person-buttons {
+  float: right;
+  display: flex;
+  gap: 4px;
+}
+
+.person-buttons button {
+  padding: 2px 8px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sheet-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.sheet-sub,
+.sheet-note,
+.muted {
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+.sheet-dead {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.sheet-section {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--hud-muted);
+}
+
+.sheet-text {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sheet-action {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffe9a8;
+}
+
+.sheet-top {
+  margin: 2px 0 0;
+  padding-left: 20px;
+  font-size: 12px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 40px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+}
+
+.bar-fill.need {
+  background: #e0784a;
+}
+
+.bar-fill.good {
+  background: #5fb37a;
+}
+
+.bar-value {
+  text-align: right;
+  color: var(--hud-muted);
+}

@@ -4,7 +4,7 @@ import type { FaunaSnapshot } from '../../shared/messages';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
-import { drawAnimal } from './animal-sprites';
+import { drawAnimal } from '../art/animal';
 
 /** Animals of a herd are spread a little around their tile so they do not overlap exactly. */
 const SPREAD = 0.6;

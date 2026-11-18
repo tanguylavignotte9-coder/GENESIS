@@ -3,6 +3,7 @@ import type { Inspection, LifeTables, WorldSnapshot } from '../shared/messages';
 import { animalLines, tileLifeLines } from './hud/life-lines';
 import { describeTile } from './hud/tooltip';
 import type { AnimalLayer } from './life/animal-layer';
+import type { HumanLayer } from './life/human-layer';
 import type { SimClient } from './sim-client';
 import { VIEW } from './view-settings';
 
@@ -10,6 +11,8 @@ export interface HoverTarget {
   tile: number;
   /** Uid of the animal under the cursor, or -1. */
   animalUid: number;
+  /** Person under the cursor, or -1 (people win over animals). */
+  person: number;
 }
 
 /**
@@ -22,9 +25,14 @@ export class Hover {
   private lastKey = '';
   private inspection: Inspection | null = null;
 
+  /** Extra tile lines (weather…) and person lines, provided by the main screen. */
+  weatherLine: (tile: number) => string | null = () => null;
+  personLines: (person: number) => string[] = () => [];
+
   constructor(
     private readonly sim: SimClient,
     private readonly animals: AnimalLayer,
+    private readonly humans: HumanLayer,
   ) {}
 
   receive(inspection: Inspection): void {
@@ -42,15 +50,20 @@ export class Hover {
     const y = Math.floor(tileY);
     if (x < 0 || y < 0 || x >= world.size || y >= world.size) return null;
     let animalUid = -1;
+    let person = -1;
     const fauna = this.animals.snapshot;
-    if (fauna && pixelsPerTile >= VIEW.animalMinPixelsPerTile) {
-      const k = this.animals.pick(tileX, tileY, VIEW.animalPickTiles);
-      if (k >= 0) animalUid = fauna.uid[k]!;
+    if (pixelsPerTile >= VIEW.animalMinPixelsPerTile) {
+      person = this.humans.pick(tileX, tileY, VIEW.animalPickTiles);
+      if (person < 0 && fauna) {
+        const k = this.animals.pick(tileX, tileY, VIEW.animalPickTiles);
+        if (k >= 0) animalUid = fauna.uid[k]!;
+      }
     }
-    return { tile: y * world.size + x, animalUid };
+    return { tile: y * world.size + x, animalUid, person };
   }
 
   lines(world: WorldSnapshot, climate: ClimateState | null, life: LifeTables, daysPerYear: number, target: HoverTarget, now: number): string[] {
+    if (target.person >= 0) return this.personLines(target.person);
     const key = `${target.tile}:${target.animalUid}`;
     if (key !== this.lastKey || now - this.lastRequestAt > VIEW.inspectEveryMs) {
       if (key !== this.lastKey) this.inspection = null;
@@ -63,6 +76,8 @@ export class Hover {
     const x = target.tile % world.size;
     const lines = describeTile(world, climate, x, (target.tile - x) / world.size);
     if (inspection && inspection.tile === target.tile) lines.splice(lines.length - 1, 0, ...tileLifeLines(inspection, life, daysPerYear));
+    const weather = this.weatherLine(target.tile);
+    if (weather) lines.splice(lines.length - 1, 0, weather);
     return lines;
   }
 }

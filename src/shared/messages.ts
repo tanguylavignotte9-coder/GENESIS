@@ -14,7 +14,9 @@ export type ToSimMessage =
   | { type: 'setSpeed'; speedIndex: number }
   | { type: 'setPaused'; paused: boolean }
   /** Asks for the details of a tile (plant, grass, fish) and, if `animalUid` >= 0, of an animal. */
-  | { type: 'inspect'; requestId: number; tile: number; animalUid: number };
+  | { type: 'inspect'; requestId: number; tile: number; animalUid: number }
+  /** Asks for the character sheet of a person. */
+  | { type: 'inspectPerson'; requestId: number; person: number };
 
 /** Copy of the generated map sent to the display (arrays are transferred, not shared). */
 export interface WorldSnapshot {
@@ -103,6 +105,61 @@ export interface Inspection {
   animal: AnimalDetails | null;
 }
 
+/** Who the humans are (sent once per world): identity and family links. */
+export interface Roster {
+  names: string[];
+  female: Uint8Array;
+  ageYears: Float32Array;
+  mother: Int32Array;
+  father: Int32Array;
+  spouse: Int32Array;
+  camp: Int32Array;
+  /** Labels of the actions ("Va boire"), indexed like the action codes. */
+  actionLabels: string[];
+  actionNames: string[];
+  traitNames: string[];
+  knowledgeNames: string[];
+  weatherNames: string[];
+}
+
+/** Where everybody is and what they do (sent several times per second). */
+export interface HumansSnapshot {
+  x: Int16Array;
+  y: Int16Array;
+  action: Uint8Array;
+  /** Bit 0 alive, bit 1 working on the spot (asleep when the action is "sleep"). */
+  flags: Uint8Array;
+  camps: { fireX: number; fireY: number; lit: boolean; huts: number[] }[];
+}
+
+export const HumanFlag = { Alive: 1, Working: 2 } as const;
+
+/** Character sheet of a person. */
+export interface PersonDetails {
+  requestId: number;
+  person: number;
+  alive: boolean;
+  /** Death cause code (0 = alive). */
+  deathCause: number;
+  traits: number[];
+  needs: { hunger: number; thirst: number; fatigue: number; cold: number; danger: number };
+  health: number;
+  food: number;
+  branches: number;
+  carryFood: number;
+  carryBranches: number;
+  action: number;
+  /** Input that motivated the action and its value (0..1). */
+  reason: string;
+  reasonValue: number;
+  top: { action: number; score: number }[];
+  knowledge: number[];
+  rememberedWater: number;
+  rememberedFood: number;
+  feltCelsius: number;
+  weather: number;
+}
+
 /** A journal event as shown to the player. */
 export interface JournalEntry {
   id: number;
@@ -125,7 +182,12 @@ export type FromSimMessage =
       climate: ClimateParams;
       daysPerYear: number;
       life: LifeTables;
+      roster: Roster;
+      weatherRegionTiles: number;
     }
+  | { type: 'humans'; humans: HumansSnapshot }
+  | { type: 'weather'; regions: Uint8Array }
+  | { type: 'person'; details: PersonDetails }
   | { type: 'flora'; flora: FloraSnapshot }
   | { type: 'fauna'; fauna: FaunaSnapshot }
   /** New population samples (day, animals per species). */
@@ -134,5 +196,5 @@ export type FromSimMessage =
   | { type: 'climateYear'; year: ClimateYearSnapshot }
   | { type: 'climateDay'; dayOfYear: number }
   | { type: 'journal'; entries: JournalEntry[] }
-  | { type: 'status'; seed: number; tick: number; date: string; paused: boolean; speedIndex: number }
+  | { type: 'status'; seed: number; tick: number; date: string; hour: number; paused: boolean; speedIndex: number }
   | { type: 'error'; message: string };

@@ -4,7 +4,7 @@ import type { FloraSnapshot } from '../../shared/messages';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
-import { drawPlant } from './plant-sprites';
+import { drawPlant } from '../art/plant';
 
 const GROWTH_MAX = 255;
 const MIN_SCALE = 0.35;

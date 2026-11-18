@@ -37,6 +37,20 @@
       <button id="follow-stop" type="button">Arrêter</button>
     </div>
 
+    <button id="tribe-toggle" class="panel" type="button">Tribu</button>
+    <section id="tribe" class="panel" hidden>
+      <div class="stats-title">Membres de la tribu</div>
+      <ol id="tribe-list"></ol>
+    </section>
+
+    <section id="person" class="panel" hidden>
+      <div class="person-buttons">
+        <button id="person-follow" type="button">Suivre</button>
+        <button id="person-close" type="button" title="Fermer">✕</button>
+      </div>
+      <div id="person-body"></div>
+    </section>
+
     <button id="stats-toggle" class="panel" type="button">Statistiques</button>
     <section id="stats" class="panel" hidden>
       <div class="stats-title">Populations animales</div>
@@ -45,7 +59,7 @@
     </section>
 
     <div id="help" class="panel">
-      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur un animal : le suivre
+      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur une personne : sa fiche · Clic sur un animal : le suivre
     </div>
 
     <div id="tooltip" class="panel" hidden></div>

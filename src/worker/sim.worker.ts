@@ -11,6 +11,7 @@ import { daysPerYear } from '../sim/core/time-params';
 import type { FromSimMessage, JournalEntry, ToSimMessage } from '../shared/messages';
 import { snapshotWorld } from './world-snapshot';
 import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
+import { describePerson, snapshotHumans, snapshotRoster } from './human-snapshots';
 import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -73,6 +74,8 @@ function start(seed: number): void {
       climate: created.data.climate,
       daysPerYear: daysPerYear(created.data.time),
       life: { plants: created.data.flora.species, animals: created.data.fauna.species, resources: created.data.resources, animalStates: STATE_NAMES },
+      roster: snapshotRoster(created),
+      weatherRegionTiles: created.data.weather.regionTiles,
     },
     transfer,
   );
@@ -117,6 +120,7 @@ function publishChanges(current: Simulation): void {
   if (current.climateVersion !== sentClimateVersion) {
     sentClimateVersion = current.climateVersion;
     post({ type: 'climateDay', dayOfYear: climate.dayOfYear });
+    post({ type: 'weather', regions: current.weather.regions.slice() });
   }
   const day = current.date.absoluteDay;
   if (sentFloraDay < 0 || day - sentFloraDay >= FLORA_SEND_INTERVAL_DAYS) {
@@ -126,6 +130,8 @@ function publishChanges(current: Simulation): void {
   }
   const fauna = snapshotFauna(current);
   post({ type: 'fauna', fauna: fauna.snapshot }, fauna.transfer);
+  const humans = snapshotHumans(current);
+  post({ type: 'humans', humans: humans.snapshot }, humans.transfer);
   const history = current.fauna.census.history;
   if (history.length > sentSamples) {
     post({ type: 'populations', samples: history.slice(sentSamples) });
@@ -147,7 +153,8 @@ function publishChanges(current: Simulation): void {
     type: 'status',
     seed: current.seed,
     tick: current.clock.tick,
-    date: formatDate(current.date, current.data.time),
+    date: `${formatDate(current.date, current.data.time)} · ${Math.floor(current.hour)} h`,
+    hour: current.hour,
     paused,
     speedIndex,
   });
@@ -168,6 +175,11 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
     case 'setPaused':
       paused = message.paused;
       return;
+    case 'inspectPerson': {
+      const details = simulation ? describePerson(simulation, message.requestId, message.person) : null;
+      if (details) post({ type: 'person', details });
+      return;
+    }
     case 'inspect':
       if (simulation) post({ type: 'inspection', inspection: inspect(simulation, message.requestId, message.tile, message.animalUid) });
       return;

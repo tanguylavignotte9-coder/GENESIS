@@ -2,7 +2,7 @@ import { BufferImageSource, Container, Sprite, Texture } from 'pixi.js';
 import type { ClimateState } from '../../sim/systems/world/climate-state';
 import type { WorldSnapshot } from '../../shared/messages';
 import { VIEW } from '../view-settings';
-import { buildPalette, writeTileColor, type Palette } from './tile-colors';
+import { buildPalette, writeTileColor, type Palette } from '../art/tile';
 
 const BYTES_PER_PIXEL = 4;
 

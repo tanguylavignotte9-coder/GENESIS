@@ -8,6 +8,76 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Étape 6 · Production — 18 nov. 2026
+
+**Fait :**
+- Préalable (dette de l'étape 5) : le dernier preset chargé ou enregistré est retenu
+  (`presets/.actif`, non versionné) et rechargé au démarrage avant le premier monde.
+- Nouveau système `src/sim/systems/production/` et cinq fichiers de données : `knowledge.json`
+  (23 savoirs des ères 0-1, **« Connu au départ »** réglable dans l'Atelier), `items.json` (43 objets),
+  `recipes.json` (34 recettes), `buildings.json` (18 bâtiments), `production.json` (coutume, conservation,
+  qualité, chasse, champs, sources du terrain). Validation croisée entre fichiers, métadonnées partout.
+- Objets en piles (qualité, propriétaire : une personne ou le camp) ; structure des objets remarquables
+  prête (vide). Les aliments se gâtent selon leur demi-vie et la température (×2 tous les 10 °C),
+  moins vite dans une cache, plus vite en tas à l'air libre.
+- Stock commun par camp (dans la cache, sinon en tas près du feu) : dépôt des récoltes, repas pris au
+  stock (enfants compris). Les objets portés pour un travail ne sont pas redéposés.
+- Recettes réellement exécutées : chercher entrées et outil au stock, aller au lieu (feu, fumoir, four,
+  champ…), travailler (plus vite et mieux avec la compétence), produire. Récoltes : plantes, branches,
+  arbres (hache polie), terrain (pierres, silex, argile, eau, blocs), gibier (lance, arc), poisson, champ.
+  Chasse via le mécanisme d'interaction commun (la faune applique la mort : `fauna/hunted.ts`), ce que le
+  chasseur ne peut porter reste aux charognards. Ouvrages longs interrompus repris plus tard.
+- Compétences (12) qui progressent avec la pratique ; métier = compétence la plus pratiquée.
+- Besoins collectifs selon la coutume, lus par chacun dans son cerveau : réserve de nourriture par saison,
+  réserve de bois, places pour dormir, feu, cache, objets voulus par membre (planification sur 3 niveaux :
+  objet → outil/ingrédient → atelier), ce qui pourrit d'abord (carcasse, peau), champs à semer. Chacun
+  compte ce que les *autres* apportent déjà, pas son propre apport.
+- Chantiers visibles avec avancement ; matériaux réservés par celui qui les apporte ; plusieurs bâtisseurs.
+- Feu de camp et huttes déplacés dans ce système (dette de l'étape 4) ; le `Camp` des humains ne garde
+  que le cœur du camp et le chemin du retour.
+- Déplacement du camp par consensus des adultes (`individuals/camp-move.ts`) quand la distance moyenne de
+  leurs recherches de nourriture dépasse un seuil ; journal avec causes (morts de faim récentes, année
+  anormale) ; les chantiers de feu, huttes et cache qui suivent ont le déplacement pour cause.
+- Affichage : `renderer/art/building.ts` (tous les bâtiments, chantier, tas de provisions),
+  `life/building-layer.ts` (barre d'avancement), info-bulle et panneau d'un bâtiment (Maj+clic pour viser
+  un bâtiment sous les gens), fiche personnage avec compétences, métier, objets portés. Journal :
+  chantier commencé, construction terminée, premier objet d'un nouveau type, déplacement du camp.
+- `npm run sim` : stock du camp, bâtiments construits, premiers objets, déplacements, causes de décès.
+- Tests : `tests/sim/production/` (15 tests) et `tests/long/production.test.ts` (personne ne meurt de faim
+  à côté de nourriture, variété des issues, chaîne complète d'une tribu de chasseurs).
+
+**Décisions et écarts (à valider) :**
+- Recettes ajoutées faute d'équivalent dans le design : « Extraire de l'argile », « Puiser de l'eau ».
+  Certaines lignes du design sont scindées (couteau / racloir, fumer viande / poisson, jarre / bols).
+- Simplifications de matériaux : feuillage compté dans les branches de la hutte, perches = branches,
+  « pierre à polir » et « meule » = l'objet Pierres, « gros tronc » = 10 Bois. Carcasse = unités de
+  10 viandes ; dépecer une unité donne viande, peau, os, tendons fixes.
+- Une cache ne protège que la nourriture ; pierres et branches peuvent rester dehors.
+- Une récolte de nourriture n'est jamais un ingrédient planifié (la cueillette, la chasse et la pêche ont
+  leurs propres actions) ; exception : les graines pour semer, semées aussitôt.
+- Le cueilleur préfère la nourriture qui se garde (`keepingPreference`), règle individuelle réaliste.
+- Moins de survivants qu'avant sur certaines graines (6 : 17 sur 30 en 3 ans) : **histoire légitime**, les
+  provisions portées ne sont plus éternelles ; chaque mort de faim survient stock vide et mains vides
+  (vérifié par test long). Sur 12 graines, 17 à 30 survivants après 3 ans.
+- Déplacements du camp rares (2 mondes sur 12 en 3 ans) : les sites de départ sont choisis pour leur
+  abondance ; c'est l'épuisement (famine, recherches lointaines) qui fait partir.
+
+**Dette technique :**
+- Consensus de déplacement du camp → à reprendre dans le système de **groupes (étape 9)**.
+- Savoirs = liste + « Connu au départ » → **système d'idées (étape 10)**.
+- Donner à quelqu'un (partage entre personnes) → **étape 7**.
+- Traire / tondre impossibles (pas de bêtes domestiques ni de capture) ; enclos, canal, palissade, mur,
+  tombe, sanctuaire jamais voulus par la coutume pour l'instant → élevage, conflit (11), idées (10).
+- Outils qui ne s'usent pas ; qualité d'un bâtiment sans effet ; pas de défrichage d'arbres pour un champ.
+- Le gibier ne fuit pas les chasseurs humains et la chasse au gros gibier est sans risque → faune / conflit (11).
+- Le reste d'un arbre abattu est perdu (pas de tas de bois au sol).
+
+**Mesures (serveurs de Claude Code, `tsx`) :** 1 020 humains : ~355 ms par jour de jeu (342 avant
+l'étape) ; tribu de 30 : voir compte rendu. PC de Tanguy (banc d'essai du 18 nov., étape 5) : 1 020 humains
+en 215 ms/jour, plafond conseillé ~4 000 humains en x500 — à refaire avec l'étape 6.
+
+---
+
 ## Étape 5 · Atelier et mesures — 18 nov. 2026
 
 **Fait :**
@@ -40,8 +110,7 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 - Une modification en direct fait diverger le monde de sa graine ; le journal garde la trace.
 
 **Dette technique :**
-- Le dernier preset actif n'est pas rechargé au démarrage → **décidé : le recharger
-  automatiquement** (à faire à l'étape 6).
+- Le dernier preset actif n'est pas rechargé au démarrage → **résolu à l'étape 6**.
 - Impossible d'ajouter ou de supprimer une entrée de liste (nouvelle espèce, nouvelle plante)
   depuis l'Atelier : il faut passer par les fichiers JSON → plus tard, si le besoin se confirme.
 - `.bat` modifiés et non testés sous Windows par Claude Code : à confirmer par Tanguy.
@@ -75,7 +144,7 @@ action en cours, sa raison et les 3 meilleures options. Panneau « Tribu ». Ren
 **Dette technique :**
 - Le système des humains déplace et nourrit les prédateurs qui attaquent : violation de la
   frontière entre systèmes → **résolu à l'étape 5** (mécanisme d'interaction commun).
-- Feu et huttes rangés dans le système des humains → à déplacer dans les bâtiments (**étape 6**).
+- Feu et huttes rangés dans le système des humains → **résolu à l'étape 6**.
 - Savoirs = simple liste dans `humans.json` → à remplacer par le système d'idées (**étape 10**).
 - Pas de partage de nourriture, même avec les enfants → **étape 7** (vie sociale).
 - Météo invisible sur la carte (seulement info-bulle et fiche) → à faire (polish).

@@ -144,7 +144,7 @@ function publishPerf(current: Simulation): void {
   post({
     type: 'perf',
     perf: {
-      ...perf.summary(ticksPerDay, ticksPerRealSecond),
+      ...perf.summary(ticksPerDay, ticksPerRealSecond, STEP_BUDGET_MS / LOOP_INTERVAL_MS),
       requestedSpeed: speeds[speedIndex] ?? 1,
       paused,
       humans: current.humans.people.living,

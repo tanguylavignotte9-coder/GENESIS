@@ -1,5 +1,6 @@
 /** Measures of the simulation thread over the last seconds: computation time and speed really reached. */
 const WINDOW_LOOPS = 60;
+const MS_PER_SECOND = 1000;
 
 interface Sample {
   realMs: number;
@@ -21,7 +22,11 @@ export class PerfMeter {
     if (this.samples.length > WINDOW_LOOPS) this.samples.shift();
   }
 
-  summary(ticksPerDay: number, ticksPerRealSecond: number): { msPerDay: number; busyShare: number; actualSpeed: number } {
+  /**
+   * `budgetShare`: share of the real time the thread may spend computing. The budget used is 1 (100 %)
+   * when the simulation uses all of it: beyond, the game slows down.
+   */
+  summary(ticksPerDay: number, ticksPerRealSecond: number, budgetShare: number): { msPerDay: number; busyShare: number; actualSpeed: number } {
     let real = 0;
     let compute = 0;
     let ticks = 0;
@@ -34,8 +39,8 @@ export class PerfMeter {
     if (ticks > 0) this.lastMsPerDay = compute / (ticks / ticksPerDay);
     return {
       msPerDay: this.lastMsPerDay,
-      busyShare: real > 0 ? compute / real : 0,
-      actualSpeed: real > 0 ? ticks / ticksPerRealSecond / (real / 1000) : 0,
+      busyShare: real > 0 ? Math.min(1, compute / (real * budgetShare)) : 0,
+      actualSpeed: real > 0 ? ticks / ticksPerRealSecond / (real / MS_PER_SECOND) : 0,
     };
   }
 }

@@ -43,7 +43,7 @@ export interface WorkshopSnapshot {
 export interface PerfSnapshot {
   /** Mean computation time of one game day, in ms (over the last measures). */
   msPerDay: number;
-  /** Share of the real time the simulation thread spent computing (0..1). */
+  /** Share of its computing budget the simulation thread used (0..1; at 1 the game slows down). */
   busyShare: number;
   requestedSpeed: number;
   /** Speed really reached (game time / real time, as a speed multiplier). */

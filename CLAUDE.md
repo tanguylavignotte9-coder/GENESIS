@@ -54,6 +54,13 @@ tests/                  tests Vitest (unitaires + simulations sans écran)
 4. **Variables externalisées.** Aucun chiffre de gameplay en dur dans le code (vitesses, durées,
    probabilités, seuils…). Tout vit dans `data/*.json`, validé au chargement par un schéma
    (message d'erreur clair en français si un fichier est invalide).
+   **Chaque variable est documentée dans son schéma** : libellé et légende en français, unité,
+   bornes min/max, et si un changement s'applique en direct ou exige un nouveau monde.
+   Ces métadonnées alimenteront la future page « Atelier des variables » (modification en direct
+   et presets) : toute nouvelle variable doit les avoir dès sa création.
+8. **Rendu centralisé.** Chaque type d'entité (tuile, plante, animal, humain, bâtiment) a sa
+   fonction de dessin à un seul endroit de `renderer/`. Remplacer le pixel art procédural par de
+   vrais sprites ne doit toucher qu'à ces fonctions.
 5. **Un système = un dossier** dans `sim/systems/`, avec un rôle unique. Les systèmes communiquent
    par l'état du monde et par le journal d'événements, pas en s'appelant dans tous les sens.
    Avant de créer un concept, vérifie qu'il n'existe pas déjà (ex. : savoirs, culture, langue,
@@ -74,7 +81,9 @@ tests/                  tests Vitest (unitaires + simulations sans écran)
 ## Scripts npm attendus
 
 - `npm start` : build puis lancement du jeu (utilisé par le lanceur).
-- `npm test` : tous les tests.
+- `npm test` : les tests **rapides** (moins d'une minute au total), à lancer à chaque commit.
+- `npm run test:long` : les tests longs (équilibre sur 100 ans, mesures de performance),
+  à lancer avant de terminer une étape.
 - `npm run typecheck` : vérification des types.
 - `npm run sim -- --seed 42 --years 100` : simulation sans écran qui affiche un résumé
   (population, événements marquants, durée de calcul). Outil principal pour vérifier
@@ -118,7 +127,7 @@ ton compte rendu ce que Tanguy doit vérifier en le lançant.
 
 ## Définition de « terminé » pour chaque étape
 
-- `npm run typecheck` et `npm test` passent.
+- `npm run typecheck`, `npm test` et `npm run test:long` passent.
 - Nouveau code de simulation couvert par des tests, dont au moins une simulation sans écran
   déterministe (même graine = même résultat).
 - Le jeu se construit et se lance (`npm start`).

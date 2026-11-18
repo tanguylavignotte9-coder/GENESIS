@@ -69,6 +69,13 @@ La carte utilise une **échelle stylisée**, comme WorldBox : on voit chaque per
 - **Catastrophes naturelles :** inondations, incendies de forêt, séismes, éruptions volcaniques. Elles sont rares et liées à la géographie (pas de volcan sans zone volcanique). Les épidémies relèvent du système de santé.
 - **Hors périmètre :** changement climatique à long terme et dérive des continents.
 
+### Modèle climatique retenu (étape 1)
+
+- **Vents dominants zonaux** (est-ouest ou ouest-est selon la latitude : alizés, vents d'ouest, vents polaires). Une chaîne nord-sud crée une ombre pluviométrique, une chaîne est-ouest presque pas.
+- **Circulation à grande échelle :** équateur humide, tropiques secs, latitudes moyennes humides.
+- **Eau :** rivières et lacs ne sont pas des biomes mais de l'eau posée sur le terrain. Les rivières naissent d'elles-mêmes là où l'eau s'accumule ; les cuvettes trop peu alimentées restent des bassins secs.
+- **Températures :** moyennes annuelles ; les saisons les font varier à partir de l'étape 2.
+
 ## Vie et temps
 
 Le temps n'est pas réaliste à 100 % : la vie quotidienne se déroule à vitesse naturelle, mais le progrès est compressé.
@@ -478,6 +485,8 @@ Le HUD est la moitié du jeu : sans lui, les histoires émergentes restent invis
 
 **Suivre un personnage :** le spectateur peut attacher la caméra à un individu, marquer des favoris et recevoir des notifications sur leur vie (naissance d'un enfant, blessure, prise de pouvoir, mort). Chaque ligne du journal mène aux fiches des personnes et des groupes concernés, et à l'événement qui l'a causée.
 
+**Atelier des variables :** une page de configuration liste toutes les variables du jeu, regroupées par système, chacune avec sa légende, son unité et ses bornes. On peut les modifier en direct pendant la simulation (celles qui touchent la génération du monde s'appliquent au prochain monde), revenir aux valeurs par défaut, et sauvegarder ou charger des presets. Prévu à l'étape 5 ; dès maintenant, chaque nouvelle variable est documentée pour l'alimenter.
+
 ## Fin de partie et relance
 
 Si la dernière tribu s'éteint, le jeu propose deux choix :
@@ -572,19 +581,23 @@ Chaque étape est livrée jouable : on peut lancer le jeu et voir le résultat. 
 | 1 · Monde | Génération (relief, climat, biomes, rivières), caméra | Des mondes différents à chaque graine |
 | 2 · Temps et données | Horloge, calendrier, vitesses, fichiers de données, journal | Les saisons passent, vitesses x1 à x500 |
 | 3 · Faune et flore | Plantes et animaux simplifiés | Troupeaux qui migrent, forêts qui repoussent |
-| 4 · Premiers humains | Besoins, déplacements, routine, cerveau de base, mesure de performance | La tribu cueille, fait du feu, dort |
-| 5 · Production | Recettes, objets, bâtiments, stocks | Huttes, outils, fumoirs |
-| 6 · Vie sociale | Relations, mémoire, émotions, conversations, connaissance limitée | Amitiés, rancunes, rumeurs |
-| 7 · Cycle de vie | Naissance, vieillissement, mort, héritage | Des générations qui se succèdent |
-| 8 · Groupes | Niveaux, gouvernance, légitimité, scissions | Des chefs, des clans, des schismes |
-| 9 · Idées | Transmission, cultures, langues, religions, découvertes | L'agriculture inventée par quelqu'un |
-| 10 · Conflit | Rixes, raids, guerres, diplomatie | Les premières guerres |
-| 11 · HUD complet | Journal, fiches, arbres, cartes, statistiques | L'outil d'observation final |
+| 4 · Premiers humains | Cycle jour-nuit, besoins, déplacements, routine, cerveau de base, mesure de performance | La tribu cueille, fait du feu, dort |
+| 5 · Atelier des variables | Page de configuration : toutes les variables avec légende, modification en direct, presets | On règle l'équilibre sans toucher au code |
+| 6 · Production | Recettes, objets, bâtiments, stocks | Huttes, outils, fumoirs |
+| 7 · Vie sociale | Relations, mémoire, émotions, conversations, connaissance limitée | Amitiés, rancunes, rumeurs |
+| 8 · Cycle de vie | Naissance, vieillissement, mort, héritage | Des générations qui se succèdent |
+| 9 · Groupes | Niveaux, gouvernance, légitimité, scissions | Des chefs, des clans, des schismes |
+| 10 · Idées | Transmission, cultures, langues, religions, découvertes | L'agriculture inventée par quelqu'un |
+| 11 · Conflit | Rixes, raids, guerres, diplomatie | Les premières guerres |
+| 12 · HUD complet | Journal, fiches, arbres, cartes, statistiques | L'outil d'observation final |
+
+**Avancement :** étape 0 terminée et validée sous Windows le 17 nov. 2026. Étape 1 livrée le 17 nov. 2026 (graine 42 : 34 % de terres, 3 continents, 22 îles, 151 rivières, 66 lacs). Étape 2 livrée le 17 nov. 2026 : calendrier, vitesses, saisons inversées nord/sud (la date affichée suit le nord), années anormales régionales (environ 1,3 par an), journal causal, noms de lieux descriptifs en attendant les langues. Reportés à l'étape 4 : cycle jour-nuit (nécessaire aux routines) et météo locale. Étape 3 livrée le 18 nov. 2026 : environ 15 000 animaux (9 espèces) et 280 000 plantes pour 59 ms par jour de jeu (6 % du fil de simulation en x500) ; climat 10 fois plus rapide ; toutes les espèces survivent 100 ans, équilibre à affiner dans l'Atelier des variables.
 
 ## Décisions prises et questions ouvertes
 
 | Décision | Date |
 | --- | --- |
+| Visuels : pixel art généré par le code pendant le prototype ; de vrais sprites seront envisagés quand la simulation sera solide | 17 nov. 2026 |
 | Stack TypeScript + Electron + PixiJS, lanceur Windows .bat, pas de moteur externe ni de compilation GitHub ; prototype limité aux ères 0 et 1 | 17 nov. 2026 |
 | Décisions de Claude (carte blanche) : échelle stylisée d'une seule carte, calendrier compressé (année de 40 jours), recettes comme format unique de production, conflit et diplomatie menés par des individus, 3 niveaux de groupes, suivi de personnages dans le HUD. Validées par Tanguy. | 17 nov. 2026 |
 | Personnalité évolutive, routine quotidienne, 1 à 3 ambitions actives nées des traits, souvenirs et situation | 17 nov. 2026 |

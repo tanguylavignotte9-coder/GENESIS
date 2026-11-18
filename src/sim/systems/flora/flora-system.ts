@@ -92,6 +92,21 @@ export class FloraSystem {
     this.state.health[index] = Math.max(1, this.state.health[index]! - harm);
   }
 
+  /**
+   * Felling (with an axe): takes up to `amount` of a tree's material (wood, branches), in proportion
+   * to its size; once its wood is all taken, the tree is gone. Returns what was taken.
+   */
+  fellTree(index: number, resource: string, amount: number): number {
+    const species = this.speciesAt(index);
+    const material = species?.kind === 'tree' ? species.materials?.find((m) => m.resource === resource) : undefined;
+    if (!material) return 0;
+    const total = (material.amount * this.state.growth[index]!) / BYTE_MAX;
+    const taken = Math.max(0, Math.min(amount, total - this.state.eaten[index]!));
+    this.state.eaten[index] = Math.min(BYTE_MAX, this.state.eaten[index]! + Math.ceil(taken));
+    if (this.state.eaten[index]! >= total) this.state.clear(index);
+    return taken;
+  }
+
   /** Grazing: takes up to `amount` of grass not buried under snow; returns what was taken. */
   takeGrass(index: number, amount: number): number {
     const reachable = this.state.grass[index]! * (1 - this.climate.snowAt(index));

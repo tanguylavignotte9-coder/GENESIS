@@ -1,3 +1,4 @@
+import { knowledgeBit, type KnowledgeCatalog } from '../../core/knowledge';
 import { INPUTS, type ActionDef, type HumanParams, type Input } from './params';
 
 const Curve = { Linear: 0, Power: 1, Logistic: 2 } as const;
@@ -15,15 +16,24 @@ export interface CompiledAction {
   /** Bit of the knowledge needed (0 = none). */
   requiredBit: number;
   reasonInput: number;
+  /** Recipe and item indices of the production catalog (work behaviours). */
+  recipes: number[];
+  items: number[];
+  minAge: number;
+}
+
+/** Index lookups of the production catalog (-1 when unknown). */
+export interface ProductionLookup {
+  recipe(id: string): number;
+  item(id: string): number;
 }
 
 export function inputIndex(input: Input): number {
   return INPUTS.indexOf(input);
 }
 
-export function compileActions(params: HumanParams): CompiledAction[] {
+export function compileActions(params: HumanParams, knowledge: KnowledgeCatalog, lookup: ProductionLookup): CompiledAction[] {
   const traitIds = params.traits.map((trait) => trait.id);
-  const knowledgeIds = params.knowledge.map((item) => item.id);
   return params.actions.map((def) => {
     const traits = Object.entries(def.traits);
     return {
@@ -34,8 +44,11 @@ export function compileActions(params: HumanParams): CompiledAction[] {
       b: Float64Array.from(def.considerations, (c) => c.b),
       traitIndex: Int8Array.from(traits, ([id]) => traitIds.indexOf(id)),
       traitStrength: Float64Array.from(traits, ([, strength]) => strength),
-      requiredBit: def.requires ? 1 << knowledgeIds.indexOf(def.requires) : 0,
+      requiredBit: def.requires ? knowledgeBit(knowledge, def.requires) : 0,
       reasonInput: inputIndex(def.reason),
+      recipes: (def.recipes ?? []).map((id) => lookup.recipe(id)).filter((k) => k >= 0),
+      items: (def.items ?? []).map((id) => lookup.item(id)).filter((k) => k >= 0),
+      minAge: def.minAge ?? 0,
     };
   });
 }

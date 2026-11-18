@@ -19,6 +19,7 @@ const MS_PER_SECOND = 1000;
 const PERCENT = 100;
 
 const fr = new Intl.NumberFormat('fr-FR');
+const fr1 = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 const pct = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 function parseIntegerOption(name: string, text: string | undefined, fallback: number): number {
@@ -73,6 +74,15 @@ function printRun(seed: number, years: number, data: GameData): void {
   console.log(`  Date finale           : ${report.finalDate}`);
   const deaths = report.humans.deaths.map((death) => `${fr.format(death.count)} (${death.cause})`).join(', ');
   console.log(`  Humains               : ${fr.format(report.humans.start)} au départ, ${fr.format(report.humans.alive)} en vie${deaths ? ` · morts : ${deaths}` : ''}`);
+  const work = report.production;
+  const stock = work.stock.map((line) => `${line.name} ${fr1.format(line.qty)}`).join(', ');
+  console.log(`  Stock du camp (fin)   : ${stock || 'vide'}`);
+  const built = work.built.map((line) => `${fr.format(line.count)} ${line.name.toLowerCase()}`).join(', ');
+  console.log(`  Bâtiments construits  : ${built || 'aucun'}${work.openSites > 0 ? ` (+ ${work.openSites} chantier(s) en cours)` : ''}`);
+  console.log(`  Déplacements du camp  : ${fr.format(work.campMoves.length)}`);
+  for (const line of work.campMoves) console.log(`    ${line}`);
+  console.log(`  Premiers objets       : ${fr.format(work.firstItems.length)}`);
+  for (const line of work.firstItems) console.log(`    ${line}`);
   console.log(`  Animaux               : ${fr.format(totalAnimals)} (début → fin, minimum–maximum observés)`);
   for (const line of report.animals) {
     console.log(`    ${line.name.padEnd(18)} ${fr.format(line.start).padStart(6)} → ${fr.format(line.end).padStart(6)}   (${fr.format(line.min)}–${fr.format(line.max)})`);
@@ -93,7 +103,7 @@ function printRun(seed: number, years: number, data: GameData): void {
   }
   console.log(`  Empreinte aléatoire   : ${report.randomFingerprint.join(' ')}`);
   console.log(`  Durée de calcul       : ${duration.toFixed(2)} s (génération du monde comprise)`);
-  console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms (${fr.format(totalAnimals)} animaux, ${fr.format(totalPlants)} plantes)`);
+  console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms (${fr.format(report.humans.start)} humains au départ, ${fr.format(totalAnimals)} animaux, ${fr.format(totalPlants)} plantes)`);
 }
 
 function printLoadTest(seed: number, data: GameData): void {

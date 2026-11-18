@@ -1,6 +1,5 @@
 import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { HumanFlag, type HumansSnapshot, type Roster } from '../../shared/messages';
-import { drawFire, drawHut, FIRE_TILES, HUT_TILES } from '../art/camp';
 import { CHILD_SCALE, drawHuman, HUMAN_TILES } from '../art/human';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
@@ -12,42 +11,30 @@ const VARIANTS = 64;
 const RING_COLOR = 0x7fd4ff;
 const RING_RADIUS = 0.75;
 
-/** Humans and their camps (fire, huts), drawn with the procedural art of renderer/art. */
+/** Humans, drawn with the procedural art of renderer/art (their buildings are in the building layer). */
 export class HumanLayer {
   readonly container = new Container();
-  private readonly campLayer = new Container();
   private readonly peopleLayer = new Container();
   private readonly ring = new Graphics();
   private readonly pool: Sprite[] = [];
   private readonly textures = new Map<string, Texture>();
-  private readonly fireLit: Texture;
-  private readonly fireOut: Texture;
-  private readonly hut: Texture;
   private roster: Roster | null = null;
   private humans: HumansSnapshot | null = null;
-  private campSprites: Sprite[] = [];
   /** Person whose sheet is open / who is followed (-1 = none). */
   selected = -1;
   sleepActionCode = -1;
-  private mapSize = 1;
 
   constructor() {
-    this.fireLit = drawFire(true);
-    this.fireOut = drawFire(false);
-    this.hut = drawHut();
     this.ring.circle(0, 0, RING_RADIUS).stroke({ color: RING_COLOR, width: 0.1 });
     this.ring.visible = false;
-    this.container.addChild(this.campLayer, this.peopleLayer, this.ring);
+    this.container.addChild(this.peopleLayer, this.ring);
   }
 
-  setRoster(roster: Roster, mapSize: number): void {
+  setRoster(roster: Roster): void {
     this.roster = roster;
-    this.mapSize = mapSize;
     this.humans = null;
     this.selected = -1;
     this.sleepActionCode = roster.actionNames.indexOf('Dormir');
-    this.campSprites.forEach((sprite) => sprite.destroy());
-    this.campSprites = [];
   }
 
   setHumans(humans: HumansSnapshot): void {
@@ -86,7 +73,6 @@ export class HumanLayer {
   update(visible: TileRect, pixelsPerTile: number): void {
     const humans = this.humans;
     const roster = this.roster;
-    this.updateCamps(humans);
     let used = 0;
     if (humans && roster && pixelsPerTile >= VIEW.animalMinPixelsPerTile) {
       for (let p = 0; p < humans.x.length; p++) {
@@ -109,28 +95,6 @@ export class HumanLayer {
     const selected = this.positionOf(this.selected);
     this.ring.visible = selected !== null && pixelsPerTile >= VIEW.animalMinPixelsPerTile;
     if (selected) this.ring.position.set(selected.x, selected.y);
-  }
-
-  private updateCamps(humans: HumansSnapshot | null): void {
-    if (!humans) return;
-    let k = 0;
-    const sprite = (texture: Texture, x: number, y: number, tiles: number): void => {
-      let s = this.campSprites[k];
-      if (!s) {
-        s = new Sprite();
-        s.anchor.set(0.5, 0.8);
-        this.campSprites.push(s);
-        this.campLayer.addChild(s);
-      }
-      k++;
-      s.texture = texture;
-      s.scale.set(tiles / texture.width);
-      s.position.set(x + 0.5, y + 0.5);
-    };
-    for (const camp of humans.camps) {
-      for (const tile of camp.huts) sprite(this.hut, tile % this.mapSize, Math.floor(tile / this.mapSize), HUT_TILES);
-      sprite(camp.lit ? this.fireLit : this.fireOut, camp.fireX, camp.fireY, FIRE_TILES);
-    }
   }
 
   private spot(person: number, x: number, y: number): { x: number; y: number } {

@@ -12,6 +12,7 @@ import { Census } from './census';
 import { FishStock } from './fish';
 import { buildDiets, type Diet } from './food';
 import { onAttackDone } from './human-prey';
+import { sufferHunt } from './hunted';
 import { pathToFreshWater } from './fresh-water';
 import { maintainGroups } from './group-life';
 import { GroupStore } from './groups';
@@ -19,8 +20,8 @@ import { liveOneDay } from './life';
 import type { AnimalSpecies, FaunaParams } from './params';
 import { SpatialGrid } from '../../core/spatial-grid';
 
-export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4 } as const;
-export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs'] as const;
+export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4, Hunted: 5 } as const;
+export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs', 'chasseurs'] as const;
 const PERCENT = 100;
 
 /**
@@ -95,7 +96,10 @@ export class FaunaSystem {
         y: (slot) => this.store.y[slot]!,
         alive: (slot) => this.store.alive[slot] === 1,
       },
-      { attackDone: (slot, attack, outcome) => onAttackDone(this, slot, attack, outcome) },
+      {
+        attackDone: (slot, attack, outcome) => onAttackDone(this, slot, attack, outcome),
+        sufferAttack: (slot, attack) => sufferHunt(this, slot, attack),
+      },
     );
   }
 
@@ -195,6 +199,11 @@ export class FaunaSystem {
     const group = store.group[slot]!;
     this.groups.size[group] = this.groups.size[group]! - 1;
     store.remove(slot);
+  }
+
+  /** Meat left on the ground by others (what a hunter could not carry): food for scavengers. */
+  leaveRemains(tile: number, meat: number): void {
+    if (meat > 0) this.carrion.add(tile, meat);
   }
 
   /** Living animals per species. */

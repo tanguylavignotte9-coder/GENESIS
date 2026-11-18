@@ -21,6 +21,8 @@ export const VIEW = {
   animalMinPixelsPerTile: 3,
   /** Plant chunks built per frame at most. */
   plantChunksPerFrame: 3,
+  /** Mouse distance (tiles) under which a building is "under the cursor". */
+  buildingPickTiles: 0.7,
   /** Mouse distance (tiles) under which an animal is "under the cursor". */
   animalPickTiles: 0.8,
   /** Click = pointer released within this many pixels of where it was pressed. */

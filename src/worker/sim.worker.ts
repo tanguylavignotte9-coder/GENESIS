@@ -13,6 +13,7 @@ import { PerfMeter } from './perf-meter';
 import { snapshotWorld } from './world-snapshot';
 import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
 import { describePerson, snapshotHumans, snapshotRoster } from './human-snapshots';
+import { describeBuilding, snapshotBuildings } from './building-snapshots';
 import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -105,7 +106,14 @@ function start(seed: number): void {
 }
 
 function lifeTables(current: Simulation): LifeTables {
-  return { plants: current.data.flora.species, animals: current.data.fauna.species, resources: current.data.resources, animalStates: STATE_NAMES };
+  return {
+    plants: current.data.flora.species,
+    animals: current.data.fauna.species,
+    resources: current.data.resources,
+    animalStates: STATE_NAMES,
+    buildings: current.data.buildings.buildings.map((building) => ({ id: building.id, name: building.name, function: building.function })),
+    items: current.data.items.items.map((item) => ({ name: item.name, category: item.category })),
+  };
 }
 
 function runLoop(): void {
@@ -190,6 +198,7 @@ function publishChanges(current: Simulation): void {
   post({ type: 'fauna', fauna: fauna.snapshot }, fauna.transfer);
   const humans = snapshotHumans(current);
   post({ type: 'humans', humans: humans.snapshot }, humans.transfer);
+  post({ type: 'buildings', buildings: snapshotBuildings(current) });
   const history = current.fauna.census.history;
   if (history.length > sentSamples) {
     post({ type: 'populations', samples: history.slice(sentSamples) });
@@ -236,6 +245,11 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
     case 'inspectPerson': {
       const details = simulation ? describePerson(simulation, message.requestId, message.person) : null;
       if (details) post({ type: 'person', details });
+      return;
+    }
+    case 'inspectBuilding': {
+      const details = simulation ? describeBuilding(simulation, message.requestId, message.building) : null;
+      if (details) post({ type: 'building', details });
       return;
     }
     case 'inspect':

@@ -4,6 +4,8 @@ import { Simulation } from './core/simulation';
 import { ticksPerYear } from './core/time-params';
 import { MIGRATION_START, POPULATION_COLLAPSE, SPECIES_EXTINCT } from './systems/fauna/fauna-events';
 import { ANOMALY_START } from './systems/world/anomalies';
+import { CAMP_MOVED } from './systems/individuals/camp-move';
+import { BUILDING_DONE, FIRST_ITEM } from './systems/production/events';
 
 /** Number of random draws shown in the report to prove the seed's determinism. */
 const FINGERPRINT_DRAWS = 3;
@@ -40,6 +42,14 @@ export interface HeadlessReport {
   /** Notable fauna events (migrations, disappearances, collapses), by type. */
   faunaEvents: { migrations: number; extinctions: number; collapses: number; examples: string[] };
   humans: { start: number; alive: number; deaths: { cause: string; count: number }[] };
+  /** Work and production over the period: the camps' common stocks at the end, buildings finished, firsts, moves. */
+  production: {
+    stock: { name: string; qty: number }[];
+    built: { name: string; count: number }[];
+    openSites: number;
+    firstItems: string[];
+    campMoves: string[];
+  };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -74,6 +84,7 @@ export function runHeadless(seed: number, years: number, data: GameData, now: ()
     plants: simulation.flora.countBySpecies().map((count, k) => ({ name: data.flora.species[k]?.name ?? '?', count })),
     faunaEvents: summarizeFaunaEvents(simulation),
     humans: summarizeHumans(simulation),
+    production: summarizeProduction(simulation),
     msPerDay: ticks > 0 ? elapsed / (ticks / data.time.ticksPerDay) : 0,
     randomFingerprint,
   };
@@ -122,5 +133,30 @@ function summarizeAnomalies(simulation: Simulation): AnomalySummary {
       count: starts.filter((event) => event.details['anomaly'] === type.id).length,
     })),
     lines: starts.map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+  };
+}
+
+function summarizeProduction(simulation: Simulation): HeadlessReport['production'] {
+  const { production, journal } = simulation;
+  const time = simulation.data.time;
+  const totals = new Map<number, number>();
+  for (const camp of production.camps) for (const pile of camp?.stock.piles ?? []) totals.set(pile.item, (totals.get(pile.item) ?? 0) + pile.qty);
+  const built = new Map<string, number>();
+  for (const event of journal.all()) {
+    if (event.type !== BUILDING_DONE) continue;
+    const id = String(event.details['building']);
+    built.set(id, (built.get(id) ?? 0) + 1);
+  }
+  const dated = (type: string): string[] =>
+    journal
+      .all()
+      .filter((event) => event.type === type)
+      .map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`);
+  return {
+    stock: [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([item, qty]) => ({ name: production.catalog.items[item]!.name, qty })),
+    built: [...built.entries()].map(([id, count]) => ({ name: production.catalog.building(id)?.def.name ?? id, count })),
+    openSites: production.buildings.filter((building) => building.state === 0).length,
+    firstItems: dated(FIRST_ITEM),
+    campMoves: dated(CAMP_MOVED),
   };
 }

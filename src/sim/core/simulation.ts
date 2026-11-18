@@ -1,6 +1,7 @@
 import { FaunaSystem } from '../systems/fauna/fauna-system';
 import { FloraSystem } from '../systems/flora/flora-system';
 import { IndividualsSystem } from '../systems/individuals/individuals-system';
+import { ProductionSystem, type BodyFacts } from '../systems/production/production-system';
 import { WeatherState } from '../systems/world/weather';
 import { startAnomalyYear } from '../systems/world/anomalies';
 import { ClimateState } from '../systems/world/climate-state';
@@ -16,6 +17,17 @@ import { setAt, type PathSegment } from './variables';
 import type { DataKey } from './game-data';
 
 const HOURS_PER_DAY = 24;
+
+/** What the production system needs to know of the human body. */
+function bodyFacts(data: GameData): BodyFacts {
+  const { body, needs } = data.humans;
+  return {
+    carryCapacity: body.carryCapacity,
+    dailyFood: (needs.hungerPerHour * HOURS_PER_DAY) / body.hungerPerFoodUnit,
+    perceptionTiles: body.perceptionTiles,
+    skillIds: data.humans.skills.map((skill) => skill.id),
+  };
+}
 
 /**
  * The simulated world: seed, random generator, clock, generated map, climate of the moment
@@ -34,6 +46,7 @@ export class Simulation {
   readonly flora: FloraSystem;
   readonly fauna: FaunaSystem;
   readonly weather: WeatherState;
+  readonly production: ProductionSystem;
   readonly humans: IndividualsSystem;
   private readonly ticksPerStep: number;
   private readonly ticksPerHumanStep: number;
@@ -53,7 +66,32 @@ export class Simulation {
     this.ticksPerStep = Math.max(1, Math.round(data.time.ticksPerDay / data.fauna.stepsPerDay));
     this.ticksPerHumanStep = Math.max(1, Math.round(data.time.ticksPerDay / HOURS_PER_DAY / data.humans.stepsPerHour));
     this.startDay(this.date);
-    this.humans = new IndividualsSystem(this.world, this.climate, this.weather, this.flora, this.fauna, data.humans, this.rng, this.journal, this.clock.tick, this.interactions);
+    this.production = new ProductionSystem(
+      this.world,
+      this.climate,
+      this.flora,
+      this.fauna,
+      { knowledge: data.knowledge, resources: data.resources, items: data.items, recipes: data.recipes, buildings: data.buildings, params: data.production },
+      bodyFacts(data),
+      this.rng,
+      this.interactions,
+      this.journal,
+    );
+    this.production.ticksPerHour = data.time.ticksPerDay / HOURS_PER_DAY;
+    this.humans = new IndividualsSystem(
+      this.world,
+      this.climate,
+      this.weather,
+      this.flora,
+      this.fauna,
+      data.humans,
+      data.knowledge,
+      this.production,
+      this.rng,
+      this.journal,
+      this.clock.tick,
+      this.interactions,
+    );
   }
 
   /**
@@ -65,6 +103,7 @@ export class Simulation {
     this.climate.refreshParams();
     this.flora.refreshParams();
     this.fauna.refreshParams();
+    this.production.refreshParams(bodyFacts(this.data));
     this.humans.refreshParams();
   }
 
@@ -96,7 +135,10 @@ export class Simulation {
       const now = this.clock.tick;
       if (now % ticksPerDay === 0) this.startDay(this.date);
       if (now % this.ticksPerStep === 0) this.fauna.runStep(now);
-      if (now % this.ticksPerHumanStep === 0) this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
+      if (now % this.ticksPerHumanStep === 0) {
+        this.production.runStep(1 / this.data.humans.stepsPerHour, now);
+        this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
+      }
     }
   }
 
@@ -113,5 +155,7 @@ export class Simulation {
     this.climateVersion++;
     this.flora.dailyUpdate(date.absoluteDay);
     this.fauna.runDay(date.absoluteDay, date.dayOfYear, this.journal, tick);
+    // The production system is created after the first day starts (it needs the world's life).
+    if (this.production) this.production.dailyUpdate();
   }
 }

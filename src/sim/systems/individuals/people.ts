@@ -17,12 +17,18 @@ export class People {
   readonly father: Int32Array;
   readonly spouse: Int32Array;
   readonly camp: Int32Array;
-  readonly hut: Int32Array;
   /** traitCount values per person, 0..1. */
   readonly traits: Float32Array;
   readonly traitCount: number;
   /** Bit k set = knows knowledge k. */
   readonly knowledge: Uint32Array;
+  /** skillCount values per person: level 0..1, and hours of practice (the most practised is the trade). */
+  readonly skills: Float32Array;
+  readonly practice: Float32Array;
+  readonly skillCount: number;
+  /** Mean distance from the camp of the last food harvests, and the last far spot where food was found. */
+  readonly forageDistance: Float32Array;
+  readonly farFood: Int32Array;
   /** Needs, 0 (satisfied) .. 100 (urgent). */
   readonly hunger: Float32Array;
   readonly thirst: Float32Array;
@@ -32,9 +38,6 @@ export class People {
   readonly health: Float32Array;
   readonly x: Int16Array;
   readonly y: Int16Array;
-  /** Carried food (units) and branches. */
-  readonly food: Float32Array;
-  readonly branches: Float32Array;
   /** Index of the current action in the data list. */
   readonly action: Uint8Array;
   /** Target tile of the action (-1 = none). */
@@ -64,9 +67,10 @@ export class People {
   readonly paths: (Int32Array | null)[];
   readonly pathIndex: Int32Array;
 
-  constructor(count: number, traitCount: number, waterSlots: number, foodSlots: number) {
+  constructor(count: number, traitCount: number, skillCount: number, waterSlots: number, foodSlots: number) {
     this.count = count;
     this.traitCount = traitCount;
+    this.skillCount = skillCount;
     this.waterSlots = waterSlots;
     this.foodSlots = foodSlots;
     this.names = new Array<string>(count).fill('');
@@ -77,9 +81,12 @@ export class People {
     this.father = new Int32Array(count).fill(-1);
     this.spouse = new Int32Array(count).fill(-1);
     this.camp = new Int32Array(count);
-    this.hut = new Int32Array(count).fill(-1);
     this.traits = new Float32Array(count * traitCount);
     this.knowledge = new Uint32Array(count);
+    this.skills = new Float32Array(count * skillCount);
+    this.practice = new Float32Array(count * skillCount);
+    this.forageDistance = new Float32Array(count);
+    this.farFood = new Int32Array(count).fill(-1);
     this.hunger = new Float32Array(count);
     this.thirst = new Float32Array(count);
     this.fatigue = new Float32Array(count);
@@ -88,8 +95,6 @@ export class People {
     this.health = new Float32Array(count).fill(100);
     this.x = new Int16Array(count);
     this.y = new Int16Array(count);
-    this.food = new Float32Array(count);
-    this.branches = new Float32Array(count);
     this.action = new Uint8Array(count);
     this.target = new Int32Array(count).fill(-1);
     this.working = new Uint8Array(count);
@@ -111,6 +116,24 @@ export class People {
 
   trait(person: number, trait: number): number {
     return this.traits[person * this.traitCount + trait]!;
+  }
+
+  skill(person: number, skill: number): number {
+    return this.skills[person * this.skillCount + skill]!;
+  }
+
+  /** The most practised skill (-1 if nothing practised for at least `minHours`). */
+  trade(person: number, minHours: number): number {
+    let best = -1;
+    let bestHours = minHours;
+    for (let s = 0; s < this.skillCount; s++) {
+      const hours = this.practice[person * this.skillCount + s]!;
+      if (hours >= bestHours) {
+        best = s;
+        bestHours = hours;
+      }
+    }
+    return best;
   }
 
   get living(): number {

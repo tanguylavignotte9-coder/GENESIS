@@ -10,20 +10,24 @@ export const INPUTS = [
   'night',
   'day',
   'hasFood',
-  'foodCarried',
-  'hasBranches',
-  'branchesCarried',
+  'load',
+  'depositUrge',
+  'hasFuel',
   'fireLow',
   'fireLit',
   'awayFromCamp',
   'isolation',
+  'stockLow',
+  'woodLow',
+  'buildNeed',
+  'craftNeed',
   'always',
 ] as const;
 export type Input = (typeof INPUTS)[number];
 
-/** Built-in behaviours; each data action must name one of them. */
-export const ACTIONS = ['drink', 'eat', 'gather', 'collect_wood', 'tend_fire', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest'] as const;
-export type ActionId = (typeof ACTIONS)[number];
+/** Built-in behaviours; each data action names one of them (work behaviours run recipes of data/recipes.json). */
+export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest'] as const;
+export type Behavior = (typeof BEHAVIORS)[number];
 
 export interface Consideration {
   input: Input;
@@ -34,7 +38,14 @@ export interface Consideration {
 }
 
 export interface ActionDef {
-  id: ActionId;
+  id: string;
+  behavior: Behavior;
+  /** Recipes a work behaviour may use (harvest: the first possible one; fire: the fuel recipe). */
+  recipes?: string[];
+  /** Items a harvest is after (empty = whatever the source gives). */
+  items?: string[];
+  /** Youngest age at which a person does this. */
+  minAge?: number;
   name: string;
   /** Shown in the character sheet ("Va boire"). */
   label: string;
@@ -57,15 +68,14 @@ export interface HumanParams {
     adultAge: [number, number];
     elderAge: [number, number];
     childAge: [number, number];
-    huts: number;
     campRadius: number;
     campSpacingTiles: number;
   };
   site: { candidates: number; minCelsius: number; maxCelsius: number; waterMaxTiles: number; foodRadius: number; minFoodPlants: number };
   names: { syllables: string[]; minSyllables: number; maxSyllables: number };
-  knowledge: { id: string; name: string }[];
-  startingKnowledge: string[];
   traits: { id: string; name: string }[];
+  skills: { id: string; name: string; profession: string; professionFemale: string }[];
+  skillLearning: { learnPerHour: number; professionMinHours: number };
   stepsPerHour: number;
   thinkEveryMinutes: number;
   needs: {
@@ -88,27 +98,12 @@ export interface HumanParams {
     childSpeedFactor: number;
     perceptionTiles: number;
     exploreTiles: number;
-    carryFood: number;
-    carryBranches: number;
+    carryCapacity: number;
     hungerPerFoodUnit: number;
     eatUnitsPerHour: number;
     drinkPerHour: number;
-    gatherUnitsPerHour: number;
-    branchesPerHour: number;
-    branchHarmToPlant: number;
   };
-  /** Plant resource id → food value of one unit (1 = normal). */
-  edibleResources: Record<string, number>;
-  camp: {
-    maxFuelHours: number;
-    fuelHoursPerBranch: number;
-    fireWarmthCelsius: number;
-    fireWarmthTiles: number;
-    hutWarmthCelsius: number;
-    shelterMaxCelsius: number;
-    hutCapacity: number;
-    homeRadiusTiles: number;
-  };
+  camp: { shelterMaxCelsius: number; homeRadiusTiles: number };
   memory: { waterSlots: number; foodSlots: number; forgetDays: number };
   danger: {
     predators: string[];
@@ -118,10 +113,21 @@ export interface HumanParams {
     corpseMeat: number;
   };
   terrain: { forestCost: number; shrubCost: number; riverCost: number; slopeCostPer100m: number; maxPathNodes: number; heuristicWeight: number };
-  decision: { randomness: number; keepCurrentBonus: number };
+  decision: { randomness: number; keepCurrentBonus: number; keepWorkBonus: number; depositAtCamp: number };
   actions: ActionDef[];
   deathTexts: { hunger: string; thirst: string; cold: string; predator: string };
   settlementText: string;
+  campMove: {
+    forageFarTiles: number;
+    memory: number;
+    curiosityEffect: number;
+    consensusShare: number;
+    minDaysBetweenMoves: number;
+    minMoveTiles: number;
+    waterMaxTiles: number;
+    minAdults: number;
+  };
+  campMoveText: string;
 }
 
 type Apply = 'live' | 'newWorld';
@@ -157,7 +163,6 @@ export const HUMANS_SCHEMA: Schema = {
         adultAge: pair(14, 60, 'Âge des adultes', 'Âge des adultes de départ [min, max].', 'ans', 'newWorld'),
         elderAge: pair(40, 90, 'Âge des anciens', 'Âge des anciens de départ [min, max].', 'ans', 'newWorld'),
         childAge: pair(0, 17, 'Âge des enfants', 'Âge des enfants de départ [min, max].', 'ans', 'newWorld'),
-        huts: v('integer', 0, 50, 'Huttes de départ', 'Huttes déjà construites dans le camp de départ.', 'huttes', 'newWorld'),
         campRadius: v('integer', 1, 10, 'Rayon du camp', 'Distance maximale entre le feu et les huttes.', 'tuiles', 'newWorld'),
         campSpacingTiles: v('integer', 5, 300, 'Écart entre camps', 'Distance minimale entre deux camps de départ (tests de charge).', 'tuiles', 'newWorld'),
       },
@@ -181,9 +186,27 @@ export const HUMANS_SCHEMA: Schema = {
         maxSyllables: v('integer', 1, 6, 'Syllabes maximum', 'Nombre maximal de syllabes d’un nom.', 'syllabes', 'newWorld'),
       },
     },
-    knowledge: namedList('savoir'),
-    startingKnowledge: { kind: 'array', items: text('Savoir de départ', 'Identifiant d’un savoir connu de toute la tribu de départ.', 'newWorld', ID_PATTERN) },
     traits: namedList('trait de caractère'),
+    skills: {
+      kind: 'array',
+      minLength: 1,
+      items: {
+        kind: 'object',
+        fields: {
+          id: identifier('Identifiant', 'Nom technique de la compétence (utilisé par les recettes).'),
+          name: text('Nom', 'Nom affiché de la compétence.', 'newWorld'),
+          profession: text('Métier (homme)', 'Métier affiché pour un homme dont c’est l’activité la plus pratiquée.'),
+          professionFemale: text('Métier (femme)', 'Métier affiché pour une femme dont c’est l’activité la plus pratiquée.'),
+        },
+      },
+    },
+    skillLearning: {
+      kind: 'object',
+      fields: {
+        learnPerHour: v('number', 0, 0.5, 'Apprentissage', 'Progrès d’une compétence par heure de pratique, au début (il ralentit en approchant de la maîtrise).', 'fraction/heure'),
+        professionMinHours: v('number', 0, 1000, 'Métier', 'Heures de pratique d’une activité avant qu’elle devienne le métier affiché.', 'heures'),
+      },
+    },
     stepsPerHour: v('integer', 1, 12, 'Pas par heure', 'Nombre de fois par heure de jeu où chaque humain agit.', 'pas', 'newWorld'),
     thinkEveryMinutes: v('integer', 10, 600, 'Réflexion', 'Sans raison particulière, un humain remet sa décision en question au plus une fois tous ces minutes.', 'minutes de jeu'),
     needs: {
@@ -211,30 +234,16 @@ export const HUMANS_SCHEMA: Schema = {
         childSpeedFactor: v('number', 0.1, 1, 'Vitesse des enfants', 'Facteur de vitesse des enfants.', 'facteur'),
         perceptionTiles: v('integer', 2, 40, 'Perception', 'Distance à laquelle on repère eau, plantes et prédateurs.', 'tuiles'),
         exploreTiles: v('integer', 2, 100, 'Exploration', 'Distance à laquelle on part chercher quand rien n’est en vue ni en mémoire.', 'tuiles'),
-        carryFood: v('number', 1, 100, 'Nourriture portée', 'Unités de nourriture qu’on peut porter.', 'unités'),
-        carryBranches: v('number', 1, 100, 'Branches portées', 'Branches qu’on peut porter.', 'branches'),
+        carryCapacity: v('number', 1, 200, 'Charge portée', 'Encombrement total qu’une personne peut porter (une poignée de baies = 1, une carcasse = 6).', 'charge'),
         hungerPerFoodUnit: v('number', 0.5, 50, 'Valeur nutritive', 'Points de faim apaisés par une unité de nourriture.', 'points/unité'),
         eatUnitsPerHour: v('number', 1, 100, 'Vitesse du repas', 'Unités de nourriture mangées par heure.', 'unités/heure'),
         drinkPerHour: v('number', 10, 1000, 'Vitesse pour boire', 'Points de soif apaisés par heure en buvant.', 'points/heure'),
-        gatherUnitsPerHour: v('number', 0.5, 50, 'Vitesse de cueillette', 'Unités récoltées par heure sur une plante.', 'unités/heure'),
-        branchesPerHour: v('number', 0.5, 50, 'Ramassage du bois', 'Branches ramassées par heure.', 'branches/heure'),
-        branchHarmToPlant: v('number', 0, 1, 'Dégâts aux arbres', 'Santé perdue par une plante pour chaque branche prise.', 'fraction/branche'),
       },
-    },
-    edibleResources: {
-      kind: 'record',
-      values: v('number', 0, 5, 'Valeur d’une ressource comestible', 'Valeur nutritive relative d’une unité de cette ressource.', 'facteur'),
     },
     camp: {
       kind: 'object',
       fields: {
-        maxFuelHours: v('number', 1, 200, 'Réserve du feu', 'Heures de combustion au maximum dans le foyer.', 'heures'),
-        fuelHoursPerBranch: v('number', 0.1, 20, 'Valeur d’une branche', 'Heures de feu apportées par une branche.', 'heures/branche'),
-        fireWarmthCelsius: v('number', 0, 40, 'Chaleur du feu', 'Degrés ressentis en plus près d’un feu allumé.', '°C'),
-        fireWarmthTiles: v('integer', 1, 10, 'Portée du feu', 'Distance jusqu’à laquelle le feu réchauffe.', 'tuiles'),
-        hutWarmthCelsius: v('number', 0, 30, 'Abri de la hutte', 'Degrés ressentis en plus à l’intérieur d’une hutte.', '°C'),
-        shelterMaxCelsius: v('number', 0, 40, 'Chaleur d’un abri', 'Un feu ou une hutte réchauffe jusqu’à cette température ressentie, pas au-delà.', '°C'),
-        hutCapacity: v('integer', 1, 20, 'Places par hutte', 'Nombre de dormeurs par hutte.', 'personnes'),
+        shelterMaxCelsius: v('number', 0, 40, 'Chaleur d’un abri', 'Un feu, un abri ou un vêtement réchauffe jusqu’à cette température ressentie, pas au-delà.', '°C'),
         homeRadiusTiles: v('integer', 10, 200, 'Territoire du camp', 'Distance jusqu’à laquelle le chemin du retour au camp est connu.', 'tuiles', 'newWorld'),
       },
     },
@@ -272,6 +281,8 @@ export const HUMANS_SCHEMA: Schema = {
       fields: {
         randomness: v('number', 0, 1, 'Part de hasard', 'Écart aléatoire ajouté aux scores des actions.', 'fraction'),
         keepCurrentBonus: v('number', 0, 1, 'Persévérance', 'Bonus de score de l’action en cours (évite de changer d’avis sans arrêt).', 'fraction'),
+        depositAtCamp: v('number', 0, 1, 'Déposer en passant', 'Envie de déposer ce qu’on porte quand on passe au stock du camp, même peu chargé (entrée « depositUrge »).', 'fraction'),
+        keepWorkBonus: v('number', 0, 3, 'Ouvrage en cours', 'Bonus de score supplémentaire d’un travail commencé sur place (fabriquer, construire, récolter) : on finit ce qu’on a commencé.', 'fraction'),
       },
     },
     actions: {
@@ -280,7 +291,11 @@ export const HUMANS_SCHEMA: Schema = {
       items: {
         kind: 'object',
         fields: {
-          id: choice(ACTIONS, 'Comportement', 'Comportement programmé que déclenche cette action (une seule entrée par comportement).', 'newWorld'),
+          id: identifier('Identifiant', 'Nom technique de l’action.'),
+          behavior: choice(BEHAVIORS, 'Comportement', 'Comportement programmé que déclenche cette action (harvest, craft, build… exécutent des recettes).', 'newWorld'),
+          recipes: { kind: 'array', items: text('Recette', 'Recette utilisée par ce comportement (la première possible).', 'newWorld', ID_PATTERN) },
+          items: { kind: 'array', items: text('Objet recherché', 'Objet que cette récolte cherche (liste vide : tout ce que la source donne).', 'newWorld', ID_PATTERN) },
+          minAge: v('number', 0, 60, 'Âge minimal', 'Âge à partir duquel une personne fait cette action.', 'ans'),
           name: text('Nom', 'Nom de l’action (fiche personnage).', 'newWorld'),
           label: text('Libellé', 'Ce que fait la personne (« Va boire »), affiché sur la carte et dans sa fiche.', 'newWorld'),
           weight: v('number', 0, 10, 'Poids de l’action', 'Importance de base de l’action dans le choix.', 'facteur'),
@@ -301,7 +316,7 @@ export const HUMANS_SCHEMA: Schema = {
           traits: { kind: 'record', values: v('number', -2, 2, 'Influence d’un trait', 'Effet d’un trait de caractère sur le score de l’action.', 'facteur') },
           requires: text('Savoir requis', 'Identifiant du savoir nécessaire pour faire cette action.', 'live', ID_PATTERN),
         },
-        optional: ['requires'],
+        optional: ['requires', 'recipes', 'items', 'minAge'],
       },
     },
     deathTexts: {
@@ -313,29 +328,49 @@ export const HUMANS_SCHEMA: Schema = {
         predator: text('Tué(e) par un prédateur', DEATH_HELP),
       },
     },
-    settlementText: text('Installation de la tribu', 'Phrase du journal au début du monde. Remplacements : {personnes}, {lieu}, {huttes}.', 'newWorld'),
+    settlementText: text('Installation de la tribu', 'Phrase du journal au début du monde. Remplacements : {personnes}, {lieu}, {batiments}.', 'newWorld'),
+    campMove: {
+      kind: 'object',
+      fields: {
+        forageFarTiles: v('number', 2, 200, 'Loin du camp', 'Quand un adulte doit aller en moyenne plus loin que ceci pour trouver à manger, il veut déplacer le camp.', 'tuiles'),
+        memory: v('number', 0.01, 1, 'Mémoire des trajets', 'Poids de chaque nouvelle récolte dans la distance moyenne retenue (plus grand = oubli plus rapide).', 'fraction'),
+        curiosityEffect: v('number', 0, 1, 'Goût du départ', 'Les curieux veulent partir plus tôt, les autres plus tard (effet maximal de la curiosité sur le seuil).', 'fraction'),
+        consensusShare: v('number', 0.1, 1, 'Consensus', 'Part des adultes qui doivent vouloir partir pour que le camp se déplace.', 'fraction'),
+        minDaysBetweenMoves: v('integer', 1, 400, 'Repos entre deux départs', 'Jours au moins entre deux déplacements du camp.', 'jours'),
+        minMoveTiles: v('integer', 1, 200, 'Distance minimale', 'Un nouveau camp doit être au moins à cette distance de l’ancien.', 'tuiles'),
+        waterMaxTiles: v('integer', 1, 30, 'Eau du nouveau camp', 'Distance maximale entre le nouveau camp et l’eau douce.', 'tuiles'),
+        minAdults: v('integer', 1, 50, 'Adultes nécessaires', 'Nombre minimal d’adultes vivants pour décider ensemble.', 'personnes'),
+      },
+    },
+    campMoveText: text('Déplacement du camp', 'Phrase du journal. Remplacements : {distance}, {direction}, {lieu}.'),
   },
 };
 
 const FILE = 'data/humans.json';
 
-export function parseHumanParams(raw: unknown, plantResources: readonly string[], animalIds: readonly string[]): HumanParams {
+export function parseHumanParams(raw: unknown, animalIds: readonly string[]): HumanParams {
   const params = validateData<HumanParams>(FILE, raw, HUMANS_SCHEMA);
   const problems: string[] = [];
-  const knowledge = new Set(params.knowledge.map((item) => item.id));
   const traits = new Set(params.traits.map((item) => item.id));
-  for (const id of params.startingKnowledge) if (!knowledge.has(id)) problems.push(`« startingKnowledge » : le savoir « ${id} » n'existe pas.`);
-  for (const id of Object.keys(params.edibleResources)) {
-    if (!plantResources.includes(id)) problems.push(`« edibleResources » : aucune plante ne produit « ${id} ».`);
-  }
   for (const id of params.danger.predators) if (!animalIds.includes(id)) problems.push(`« danger.predators » : l'animal « ${id} » n'existe pas.`);
   for (const action of params.actions) {
     for (const id of Object.keys(action.traits)) if (!traits.has(id)) problems.push(`action « ${action.id} » : le trait « ${id} » n'existe pas.`);
-    if (action.requires && !knowledge.has(action.requires)) problems.push(`action « ${action.id} » : le savoir « ${action.requires} » n'existe pas.`);
   }
   if (params.names.minSyllables > params.names.maxSyllables) problems.push('« names.minSyllables » doit être inférieur ou égal à « names.maxSyllables ».');
   if (params.site.minCelsius > params.site.maxCelsius) problems.push('« site.minCelsius » doit être inférieur ou égal à « site.maxCelsius ».');
   if (new Set(params.actions.map((action) => action.id)).size !== params.actions.length) problems.push('deux actions ont le même « id ».');
+  if (new Set(params.skills.map((skill) => skill.id)).size !== params.skills.length) problems.push('deux compétences ont le même « id ».');
   if (problems.length > 0) throw new DataFileError(FILE, problems);
   return params;
+}
+
+/** Cross-file checks: the knowledge, recipes and items the actions name must exist. */
+export function checkHumanLinks(params: HumanParams, knowledgeIds: readonly string[], recipeIds: readonly string[], itemIds: readonly string[]): void {
+  const problems: string[] = [];
+  for (const action of params.actions) {
+    if (action.requires && !knowledgeIds.includes(action.requires)) problems.push(`action « ${action.id} » : le savoir « ${action.requires} » n'existe pas.`);
+    for (const id of action.recipes ?? []) if (!recipeIds.includes(id)) problems.push(`action « ${action.id} » : la recette « ${id} » n'existe pas.`);
+    for (const id of action.items ?? []) if (!itemIds.includes(id)) problems.push(`action « ${action.id} » : l'objet « ${id} » n'existe pas.`);
+  }
+  if (problems.length > 0) throw new DataFileError(FILE, problems);
 }

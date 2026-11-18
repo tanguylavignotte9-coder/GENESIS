@@ -32,6 +32,10 @@ export class SimClient {
     this.send({ type: 'inspectPerson', requestId, person });
   }
 
+  inspectBuilding(requestId: number, building: number): void {
+    this.send({ type: 'inspectBuilding', requestId, building });
+  }
+
   workshopGet(): void {
     this.send({ type: 'workshopGet' });
   }

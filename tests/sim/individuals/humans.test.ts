@@ -18,10 +18,10 @@ describe('the starting tribe', () => {
 
   it('has about 30 people around a camp with a fire and huts, settled near fresh water in a mild climate', () => {
     expect(people.count).toBe(data.humans.tribe.size);
-    const camp = humans.camps[0]!;
-    expect(camp.lit).toBe(true);
-    expect(camp.huts.length).toBeGreaterThan(0);
-    const fire = camp.fireTile;
+    const { production } = simulation;
+    expect(production.fireLit(0)).toBe(true);
+    expect(production.campBuildings(0).filter((b) => production.typeOf(b).def.id === 'hut')).toHaveLength(6);
+    const fire = production.fireTile(0);
     expect(simulation.world.temperature[fire]).toBeGreaterThanOrEqual(data.humans.site.minCelsius);
     expect(simulation.world.temperature[fire]).toBeLessThanOrEqual(data.humans.site.maxCelsius);
     expect(simulation.journal.all().some((event) => event.type === SETTLEMENT)).toBe(true);
@@ -46,7 +46,7 @@ describe('the starting tribe', () => {
   });
 
   it('knows only gathering, fire and huts', () => {
-    const known = data.humans.knowledge.filter((_, k) => (people.knowledge[0]! & (1 << k)) !== 0).map((item) => item.id);
+    const known = data.knowledge.knowledge.filter((_, k) => (people.knowledge[0]! & (1 << k)) !== 0).map((item) => item.id);
     expect(known.sort()).toEqual(['fire', 'gathering', 'huts']);
   });
 });
@@ -103,7 +103,7 @@ describe('daily life', () => {
     expect(seen).toContain('gather');
     expect(seen).toContain('drink');
     expect(seen).toContain('sleep');
-    expect(simulation.humans.camps[0]!.lit).toBe(true);
+    expect(simulation.production.fireLit(0)).toBe(true);
   });
 
   it('a person can die of thirst, and the journal says so', () => {
@@ -128,7 +128,7 @@ describe('daily life', () => {
     let spot = -1;
     const camp = humans.camps[0]!;
     for (let d = 15; d < 60 && spot < 0; d++) {
-      const tile = camp.fireY * SIZE + camp.fireX + d;
+      const tile = camp.centerY * SIZE + camp.centerX + d;
       if (humans.terrain.walkable(tile) && humans.terrain.walkable(tile + 1)) spot = tile;
     }
     expect(spot).toBeGreaterThanOrEqual(0);

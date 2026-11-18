@@ -1,4 +1,5 @@
 import type { Rng } from '../../core/rng';
+import { startingKnowledge } from '../../core/knowledge';
 import { Camp } from './camp';
 import type { IndividualsSystem } from './individuals-system';
 import { NameGenerator } from './names';
@@ -51,40 +52,22 @@ function composeTribe(size: number, sys: IndividualsSystem, rng: Rng): Member[] 
   return members;
 }
 
-/** Huts placed around the fire, on walkable tiles, ring after ring. */
-function placeHuts(sys: IndividualsSystem, camp: Camp, count: number): void {
-  const { size } = sys;
-  const r = sys.params.tribe.campRadius;
-  for (let ring = 2; ring <= r && camp.huts.length < count; ring++) {
-    for (let dy = -ring; dy <= ring && camp.huts.length < count; dy += ring) {
-      for (let dx = -ring; dx <= ring && camp.huts.length < count; dx += ring) {
-        if (dx === 0 && dy === 0) continue;
-        const x = camp.fireX + dx;
-        const y = camp.fireY + dy;
-        if (x < 0 || y < 0 || x >= size || y >= size) continue;
-        const tile = y * size + x;
-        if (sys.terrain.walkable(tile) && !camp.huts.some((hut) => hut.tile === tile)) camp.huts.push({ tile, residents: [] });
-      }
-    }
-  }
-}
-
 /** Creates the starting tribes: camps at credible sites, families, names, traits and knowledge. */
-export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[] } {
+export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[]; families: number[][][] } {
   const { params } = sys;
-  const sites = chooseSites(sys.world, sys.flora, sys.fauna, sys.terrain, params, params.tribe.count, rng);
-  const people = new People(sites.length * params.tribe.size, params.traits.length, params.memory.waterSlots, params.memory.foodSlots);
+  const sites = chooseSites(sys.world, sys.flora, sys.fauna, sys.terrain, params, sys.edibleResources, params.tribe.count, rng);
+  const people = new People(sites.length * params.tribe.size, params.traits.length, params.skills.length, params.memory.waterSlots, params.memory.foodSlots);
   const names = new NameGenerator(params.names, rng);
-  const knowledgeBits = params.startingKnowledge.reduce((bits, id) => bits | (1 << params.knowledge.findIndex((k) => k.id === id)), 0);
+  const knowledgeBits = startingKnowledge(sys.knowledge);
   const camps: Camp[] = [];
+  const families: number[][][] = [];
   let next = 0;
   sites.forEach((site, campId) => {
-    const camp = new Camp(campId, site.tile, sys.size, params.camp.homeRadiusTiles, params.camp.maxFuelHours);
-    placeHuts(sys, camp, params.tribe.huts);
+    const camp = new Camp(campId, site.tile, sys.size, params.camp.homeRadiusTiles);
     camps.push(camp);
     const first = next;
     const members = composeTribe(params.tribe.size, sys, rng);
-    const families = new Map<number, number>();
+    const groups = new Map<number, number[]>();
     for (const member of members) {
       const p = next++;
       people.names[p] = names.next();
@@ -99,21 +82,14 @@ export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People
       people.hunger[p] = rng.nextFloat() * INITIAL_NEED_MAX;
       people.thirst[p] = rng.nextFloat() * INITIAL_NEED_MAX;
       people.fatigue[p] = rng.nextFloat() * INITIAL_NEED_MAX;
-      people.x[p] = camp.fireX;
-      people.y[p] = camp.fireY;
-      // Families share a hut while there is room; the others sleep by the fire.
-      let hut = families.get(member.family);
-      if (hut === undefined) {
-        hut = camp.huts.findIndex((h) => h.residents.length === 0);
-        families.set(member.family, hut);
-      }
-      const home = camp.huts[hut];
-      if (home && home.residents.length < params.camp.hutCapacity) {
-        home.residents.push(p);
-        people.hut[p] = hut;
-      }
+      people.x[p] = camp.centerX;
+      people.y[p] = camp.centerY;
+      const group = groups.get(member.family) ?? [];
+      group.push(p);
+      groups.set(member.family, group);
     }
+    families.push([...groups.values()]);
     sys.campRanges.push({ first, last: next });
   });
-  return { people, camps };
+  return { people, camps, families };
 }

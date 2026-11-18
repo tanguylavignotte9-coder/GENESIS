@@ -1,4 +1,5 @@
-import type { PersonDetails, Roster } from '../../shared/messages';
+import type { LifeTables, PersonDetails, Roster } from '../../shared/messages';
+import { itemText } from './building-lines';
 
 const fr = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
 const PERCENT = 100;
@@ -14,8 +15,12 @@ const REASONS: Record<string, { label: string; percent: boolean }> = {
   night: { label: 'il fait nuit', percent: false },
   day: { label: 'il fait jour', percent: false },
   fireLow: { label: 'le feu baisse', percent: false },
-  foodCarried: { label: 'provisions', percent: true },
-  branchesCarried: { label: 'bois porté', percent: true },
+  load: { label: 'charge portée', percent: true },
+  depositUrge: { label: 'charge à rapporter', percent: true },
+  stockLow: { label: 'réserves du camp à remplir', percent: true },
+  woodLow: { label: 'bois du camp à remplir', percent: true },
+  buildNeed: { label: 'le camp a besoin d’un bâtiment', percent: false },
+  craftNeed: { label: 'il manque des objets au camp', percent: false },
   isolation: { label: 'loin des autres', percent: false },
   awayFromCamp: { label: 'loin du camp', percent: false },
   always: { label: 'rien d’urgent', percent: false },
@@ -89,7 +94,7 @@ export class PersonSheet {
     });
   }
 
-  render(details: PersonDetails, roster: Roster): void {
+  render(details: PersonDetails, roster: Roster, tables: LifeTables): void {
     if (details.person !== this.person) return;
     const p = details.person;
     const female = roster.female[p] === 1;
@@ -111,6 +116,7 @@ export class PersonSheet {
     if (details.alive) {
       const action = roster.actionLabels[details.action] ?? '?';
       nodes.push(el('div', 'sheet-section', 'En ce moment'), el('div', 'sheet-action', reasonText(action, details.reason, details.reasonValue)));
+      if (details.work) nodes.push(el('div', 'sheet-text', details.work));
       const top = el('ol', 'sheet-top');
       for (const choice of details.top) top.append(el('li', '', `${roster.actionNames[choice.action] ?? '?'} (score ${choice.score.toFixed(2)})`));
       nodes.push(el('div', 'sheet-note', 'Meilleures options à la dernière décision :'), top);
@@ -123,9 +129,25 @@ export class PersonSheet {
     nodes.push(el('div', 'sheet-section', 'Caractère'));
     roster.traitNames.forEach((trait, t) => nodes.push(bar(trait, (details.traits[t] ?? 0) * PERCENT, 'good')));
 
+    const trade = details.trade >= 0 ? (female ? roster.professionsFemale : roster.professions)[details.trade] : undefined;
+    nodes.push(el('div', 'sheet-section', 'Métier'), el('div', 'sheet-text', trade ?? 'Aucun : fait un peu de tout'));
+    nodes.push(el('div', 'sheet-section', 'Compétences'));
+    const skills = roster.skillNames.flatMap((name, k) => ((details.practice[k] ?? 0) > 0 ? [{ name, k }] : []));
+    if (skills.length === 0) nodes.push(el('div', 'sheet-text muted', 'Pas encore de pratique'));
+    for (const { name, k } of skills) {
+      const row = bar(name, (details.skills[k] ?? 0) * PERCENT, 'good');
+      row.title = `${fr.format(details.practice[k] ?? 0)} h de pratique`;
+      nodes.push(row);
+    }
+
+    nodes.push(el('div', 'sheet-section', `Porte (charge ${fr.format(details.load * PERCENT)} % de ${fr.format(details.carryCapacity)})`));
+    if (details.carried.length === 0) nodes.push(el('div', 'sheet-text muted', 'Rien'));
+    else {
+      const list = el('ul', 'sheet-list');
+      for (const line of details.carried) list.append(el('li', '', itemText(line, tables)));
+      nodes.push(list);
+    }
     nodes.push(
-      el('div', 'sheet-section', 'Porte'),
-      el('div', 'sheet-text', `Nourriture : ${fr.format(details.food)} / ${fr.format(details.carryFood)} · Branches : ${fr.format(details.branches)} / ${fr.format(details.carryBranches)}`),
       el('div', 'sheet-section', 'Sait'),
       el('div', 'sheet-text', details.knowledge.map((k) => roster.knowledgeNames[k]).join(', ')),
       el('div', 'sheet-section', 'Se souvient'),

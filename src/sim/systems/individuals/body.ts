@@ -3,17 +3,20 @@ import type { IndividualsSystem } from './individuals-system';
 
 const FULL = 100;
 
-/** Temperature the person feels: air + weather, warmed by a lit fire nearby or a hut while asleep. */
+/**
+ * Temperature the person feels: air + weather, warmed by a lit fire nearby, a shelter while asleep
+ * in one's bed, and the clothes one wears.
+ */
 export function feltTemperature(sys: IndividualsSystem, person: number): number {
-  const { people } = sys;
+  const { people, production } = sys;
   const tile = people.y[person]! * sys.size + people.x[person]!;
   const felt = sys.climate.temperatureAt(tile) + sys.weather.typeAt(tile).feltCelsius;
-  const camp = sys.camps[people.camp[person]!];
-  let bonus = 0;
-  if (camp?.lit && camp.distanceTo(people.x[person]!, people.y[person]!) <= sys.params.camp.fireWarmthTiles) bonus += sys.params.camp.fireWarmthCelsius;
-  const hut = people.hut[person]!;
-  if (hut >= 0 && sys.isSleeping(person) && camp?.huts[hut]?.tile === tile) bonus += sys.params.camp.hutWarmthCelsius;
-  // A fire or a hut brings warmth up to a pleasant temperature, never beyond.
+  let bonus = production.fireWarmthAt(people.camp[person]!, people.x[person]!, people.y[person]!) + production.clothingWarmth(person);
+  if (sys.isSleeping(person)) {
+    const bed = production.bed(person);
+    if (bed.tile === tile) bonus += bed.warmth;
+  }
+  // Fire, shelter and clothes bring warmth up to a pleasant temperature, never beyond.
   const cap = sys.params.camp.shelterMaxCelsius;
   return bonus > 0 && felt < cap ? Math.min(felt + bonus, cap) : felt;
 }

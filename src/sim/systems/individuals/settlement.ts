@@ -47,11 +47,11 @@ export function chooseSites(
   fauna: FaunaSystem,
   terrain: Terrain,
   params: HumanParams,
+  edible: ReadonlySet<string>,
   count: number,
   rng: Rng,
 ): Site[] {
   const { site } = params;
-  const edible = new Set(Object.keys(params.edibleResources));
   const size = world.size;
   const candidates: Site[] = [];
   for (let k = 0; k < site.candidates; k++) {

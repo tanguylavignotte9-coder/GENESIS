@@ -19,6 +19,8 @@ export type ToSimMessage =
   | { type: 'inspect'; requestId: number; tile: number; animalUid: number }
   /** Asks for the character sheet of a person. */
   | { type: 'inspectPerson'; requestId: number; person: number }
+  /** Asks for the details of a building (function, state, stock…). */
+  | { type: 'inspectBuilding'; requestId: number; building: number }
   /** Variables workshop: get the variables, change one, reset, presets. */
   | { type: 'workshopGet' }
   | { type: 'workshopSet'; file: string; key: string; value: VariableValue }
@@ -86,6 +88,9 @@ export interface LifeTables {
   resources: ResourceCatalog;
   /** Names of the animal states ("broute"…), indexed by state code. */
   animalStates: readonly string[];
+  /** Building types (ids drive the drawing, names the display) and item names. */
+  buildings: { id: string; name: string; function: string }[];
+  items: { name: string; category: string }[];
 }
 
 /** Which plant grows where (sent every few days). */
@@ -155,6 +160,10 @@ export interface Roster {
   actionNames: string[];
   traitNames: string[];
   knowledgeNames: string[];
+  skillNames: string[];
+  /** Trade of each skill, for a man and for a woman ("Chasseur", "Chasseuse"). */
+  professions: string[];
+  professionsFemale: string[];
   weatherNames: string[];
 }
 
@@ -165,7 +174,65 @@ export interface HumansSnapshot {
   action: Uint8Array;
   /** Bit 0 alive, bit 1 working on the spot (asleep when the action is "sleep"). */
   flags: Uint8Array;
-  camps: { fireX: number; fireY: number; lit: boolean; huts: number[] }[];
+}
+
+/** A building or construction site as drawn on the map. */
+export interface BuildingView {
+  id: number;
+  /** Index in LifeTables.buildings. */
+  type: number;
+  x: number;
+  y: number;
+  /** 0 site, 1 built, 2 abandoned. */
+  state: number;
+  /** 0..1 for a site. */
+  progress: number;
+  lit: boolean;
+  /** Share (0..1) of a stock's protected room in use, for storage buildings and the camp's open heap. */
+  fill: number;
+  /** Field: 0 fallow, 1 growing, 2 ripe. */
+  crop: number;
+}
+
+/** Every building and site, plus where each camp's common stock lies and how much it holds. */
+export interface BuildingsSnapshot {
+  buildings: BuildingView[];
+  /** Camps whose stock lies in an open heap (no storage building): its tile and size (bulk). */
+  heaps: { x: number; y: number; bulk: number }[];
+}
+
+/** One line of an inventory, for the display. */
+export interface ItemLine {
+  /** Index in LifeTables.items. */
+  item: number;
+  qty: number;
+  quality: number;
+}
+
+/** Details of a building (tooltip and panel). */
+export interface BuildingDetails {
+  requestId: number;
+  building: number;
+  type: number;
+  description: string;
+  state: number;
+  progress: number;
+  /** For a site: each material, delivered / needed. */
+  materials: { name: string; delivered: number; needed: number }[];
+  workDone: number;
+  workNeeded: number;
+  builders: string[];
+  residents: string[];
+  sleeps: number;
+  quality: number;
+  /** Fire: hours left out of max. */
+  fuel: number;
+  fuelMax: number;
+  /** Storage (or the fire with the heap): the camp's common stock. */
+  stock: ItemLine[] | null;
+  capacity: number;
+  /** Field: units sown, growth days, crop waiting. */
+  crop: { sown: number; growth: number; growthDays: number; grain: number } | null;
 }
 
 export const HumanFlag = { Alive: 1, Working: 2 } as const;
@@ -180,10 +247,16 @@ export interface PersonDetails {
   traits: number[];
   needs: { hunger: number; thirst: number; fatigue: number; cold: number; danger: number };
   health: number;
-  food: number;
-  branches: number;
-  carryFood: number;
-  carryBranches: number;
+  /** What the person carries (and wears). */
+  carried: ItemLine[];
+  load: number;
+  carryCapacity: number;
+  /** Level (0..1) and practice hours of each skill; the trade is the most practised skill (-1 none). */
+  skills: number[];
+  practice: number[];
+  trade: number;
+  /** What the person is doing in detail ("Taille un couteau de pierre"), if working on a recipe. */
+  work: string;
   action: number;
   /** Input that motivated the action and its value (0..1). */
   reason: string;
@@ -224,6 +297,8 @@ export type FromSimMessage =
   | { type: 'humans'; humans: HumansSnapshot }
   | { type: 'weather'; regions: Uint8Array }
   | { type: 'person'; details: PersonDetails }
+  | { type: 'buildings'; buildings: BuildingsSnapshot }
+  | { type: 'building'; details: BuildingDetails }
   | { type: 'flora'; flora: FloraSnapshot }
   | { type: 'fauna'; fauna: FaunaSnapshot }
   /** New population samples (day, animals per species). */

@@ -1,69 +1,93 @@
 import { canDrink } from '../fauna/fresh-water';
+import type { JobKind } from '../production/jobs';
+import type { CompiledAction } from './brain';
 import type { IndividualsSystem } from './individuals-system';
-import type { ActionId } from './params';
 
 const FULL = 100;
 const SATISFIED = 5;
 /** A sleeper wakes up once rested and the day has come. */
 const DAWN_LIGHT = 0.3;
 
-/** Result of starting an action: did it find something to do? */
-export type Start = boolean;
+/** Work behaviours are carried out by the production system (recipes, stocks, sites). */
+const JOBS: Partial<Record<CompiledAction['def']['behavior'], JobKind>> = {
+  harvest: 'harvest',
+  deposit: 'deposit',
+  tend_fire: 'fuel',
+  build: 'build',
+  craft: 'craft',
+};
 
 /** Chooses the target of an action and the way there. False if the action is impossible now. */
-export function startAction(sys: IndividualsSystem, person: number, id: ActionId): Start {
-  const { people } = sys;
+export function startAction(sys: IndividualsSystem, person: number, action: CompiledAction): boolean {
+  const { people, production } = sys;
   const camp = sys.camps[people.camp[person]!]!;
   people.working[person] = 0;
   people.paths[person] = null;
   people.target[person] = -1;
+  production.endJob(person);
   const here = sys.tileOf(person);
-  switch (id) {
+  const behavior = action.def.behavior;
+  const job = JOBS[behavior];
+  if (job) return startJob(sys, person, action, job);
+  switch (behavior) {
     case 'drink': {
       if (canDrink(sys.world, people.x[person]!, people.y[person]!)) return true;
       const remembered = sys.nearestMemory(person, 'water');
       return remembered >= 0 ? sys.goTo(person, remembered) : sys.fauna.waterPath[here]! >= 0;
     }
-    case 'eat':
-      return people.food[person]! > 0;
-    case 'gather': {
-      // Nothing edible in sight or in memory: go and look further away.
-      const tile = sys.findFood(person);
-      return tile >= 0 ? sys.goTo(person, tile) : sys.explore(person);
+    case 'eat': {
+      if (production.carriedFood(person) > 0) return true;
+      const campId = people.camp[person]!;
+      return production.stockFood(campId) > 0 && sys.goHome(person, production.stockTile(campId));
     }
-    case 'collect_wood': {
-      const tile = sys.findWood(person);
-      return tile >= 0 && sys.goTo(person, tile);
-    }
-    case 'tend_fire':
-      return people.branches[person]! > 0 && sys.goHome(person, camp.fireTile);
     case 'warm_up':
-      return camp.lit && sys.goHome(person, camp.fireTile);
+      return production.fireLit(camp.id) && sys.goHome(person, production.fireTile(camp.id));
     case 'sleep': {
-      const hut = camp.huts[people.hut[person]!];
-      return sys.goHome(person, hut ? hut.tile : camp.fireTile);
+      const bed = production.bed(person).tile;
+      return sys.goHome(person, bed >= 0 ? bed : production.fireTile(camp.id));
     }
     case 'return_camp':
-      return sys.goHome(person, camp.fireTile);
+      return sys.goHome(person, camp.center);
     case 'flee':
       // Fleeing means running back to the others; once at the camp there is nowhere safer to go.
       if (camp.distanceTo(people.x[person]!, people.y[person]!) <= sys.params.tribe.campRadius) return false;
-      return people.threat[person]! >= 0 && sys.goHome(person, camp.fireTile);
+      return people.threat[person]! >= 0 && sys.goHome(person, camp.center);
     case 'stay_with_group': {
       const mate = sys.nearestTribeMember(person);
       return mate >= 0 && sys.goTo(person, sys.tileOf(mate));
     }
-    case 'rest':
+    default:
       return true;
   }
 }
 
+/** Asks the production system for a job, then heads for its first place (for food, memory and exploration help). */
+function startJob(sys: IndividualsSystem, person: number, action: CompiledAction, kind: JobKind): boolean {
+  const { people, production, params } = sys;
+  const lookingForFood = kind === 'harvest' && action.items.some((item) => production.catalog.food[item]! > 0);
+  const fallback = lookingForFood ? sys.nearestMemory(person, 'food') : -1;
+  const tile = production.startJob(person, { kind, recipes: action.recipes, items: action.items, fallback, perception: params.body.perceptionTiles });
+  if (tile < 0) {
+    // Nothing edible in sight or in memory: go and look further away (no job yet). Having to
+    // search far is what tells that the land around the camp is exhausted.
+    if (!lookingForFood || !sys.explore(person)) return false;
+    sys.searchedFar(person, people.target[person]!);
+    return true;
+  }
+  if (tile === sys.tileOf(person)) {
+    people.target[person] = tile;
+    return true;
+  }
+  return sys.goToWork(person, tile);
+}
+
 /** One step of the current action. Returns true when the action is over (done or failed). */
-export function performAction(sys: IndividualsSystem, person: number, id: ActionId, hours: number): boolean {
-  const { people, params } = sys;
+export function performAction(sys: IndividualsSystem, person: number, action: CompiledAction, hours: number): boolean {
+  const { people, params, production } = sys;
   const body = params.body;
-  const camp = sys.camps[people.camp[person]!]!;
-  switch (id) {
+  const behavior = action.def.behavior;
+  if (JOBS[behavior]) return sys.arrived(person, hours, () => work(sys, person, hours));
+  switch (behavior) {
     case 'drink':
       if (!canDrink(sys.world, people.x[person]!, people.y[person]!)) {
         if (people.paths[person]) return sys.walk(person, hours) === 'stuck';
@@ -73,27 +97,19 @@ export function performAction(sys: IndividualsSystem, person: number, id: Action
       sys.remember(person, 'water', sys.tileOf(person));
       people.thirst[person] = Math.max(0, people.thirst[person]! - body.drinkPerHour * hours);
       return people.thirst[person]! < SATISFIED;
-    case 'eat': {
-      people.working[person] = 1;
-      const units = Math.min(people.food[person]!, body.eatUnitsPerHour * hours);
-      people.food[person] = people.food[person]! - units;
-      people.hunger[person] = Math.max(0, people.hunger[person]! - units * body.hungerPerFoodUnit);
-      return people.food[person]! <= 0 || people.hunger[person]! < SATISFIED;
-    }
-    case 'gather':
-      return sys.arrived(person, hours, () => gatherHere(sys, person, hours));
-    case 'collect_wood':
-      return sys.arrived(person, hours, () => collectWoodHere(sys, person, hours));
-    case 'tend_fire':
+    case 'eat':
       return sys.arrived(person, hours, () => {
-        camp.fuel = Math.min(params.camp.maxFuelHours, camp.fuel + people.branches[person]! * params.camp.fuelHoursPerBranch);
-        people.branches[person] = 0;
-        return true;
+        people.working[person] = 1;
+        const wanted = Math.min(body.eatUnitsPerHour * hours, people.hunger[person]! / body.hungerPerFoodUnit);
+        const fromStock = production.carriedFood(person) <= 0;
+        const eaten = production.eat(person, wanted, fromStock);
+        people.hunger[person] = Math.max(0, people.hunger[person]! - eaten * body.hungerPerFoodUnit);
+        return eaten <= 0 || people.hunger[person]! < SATISFIED;
       });
     case 'warm_up':
       return sys.arrived(person, hours, () => {
         people.working[person] = 1;
-        return people.cold[person]! < SATISFIED || !camp.lit;
+        return people.cold[person]! < SATISFIED || !production.fireLit(people.camp[person]!);
       });
     case 'sleep':
       return sys.arrived(person, hours, () => {
@@ -103,44 +119,32 @@ export function performAction(sys: IndividualsSystem, person: number, id: Action
       });
     case 'return_camp':
     case 'flee':
-      return sys.arrived(person, hours, () => true);
     case 'stay_with_group':
       return sys.arrived(person, hours, () => true);
-    case 'rest':
+    default:
       people.working[person] = 1;
       return false;
   }
 }
 
-/** Picks the produce of the plant on the tile (taken from the real plant). */
-function gatherHere(sys: IndividualsSystem, person: number, hours: number): boolean {
-  const { people, params } = sys;
-  const tile = sys.tileOf(person);
+/** On the job's tile: one step of work by the production system, then where to go next. */
+function work(sys: IndividualsSystem, person: number, hours: number): boolean {
+  const { people, production } = sys;
   people.working[person] = 1;
-  const room = params.body.carryFood - people.food[person]!;
-  const produce = sys.flora.speciesAt(tile)?.produce;
-  const value = produce ? (sys.edibleValue.get(produce.resource) ?? 0) : 0;
-  if (!produce || value <= 0 || room <= 0) return true;
-  const taken = sys.flora.takeProduce(tile, produce.resource, Math.min(room / value, params.body.gatherUnitsPerHour * hours));
-  if (taken <= 0) {
-    sys.forget(person, 'food', tile);
-    return true;
+  const result = production.workAt(person, hours);
+  if (result.skill >= 0) sys.practise(person, result.skill, result.hours);
+  if (result.foodTile >= 0) sys.foundFood(person, result.foodTile);
+  if (result.emptyTile >= 0) sys.forget(person, 'food', result.emptyTile);
+  switch (result.status) {
+    case 'working':
+      return false;
+    case 'move':
+      if (sys.goToWork(person, result.tile)) return false;
+      production.endJob(person);
+      return true;
+    default:
+      return true;
   }
-  people.food[person] = people.food[person]! + taken * value;
-  sys.remember(person, 'food', tile);
-  return people.food[person]! >= params.body.carryFood - 0.5;
-}
-
-/** Breaks branches off the plant on the tile (which suffers a little). */
-function collectWoodHere(sys: IndividualsSystem, person: number, hours: number): boolean {
-  const { people, params, flora } = sys;
-  const tile = sys.tileOf(person);
-  people.working[person] = 1;
-  if (!flora.speciesAt(tile)) return true;
-  const taken = Math.min(params.body.carryBranches - people.branches[person]!, params.body.branchesPerHour * hours);
-  people.branches[person] = people.branches[person]! + taken;
-  flora.harmPlant(tile, taken * params.body.branchHarmToPlant);
-  return people.branches[person]! >= params.body.carryBranches - 0.01;
 }
 
 export { FULL };

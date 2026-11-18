@@ -1,15 +1,36 @@
 import animalsJson from '../../../data/animals.json';
 import biomesJson from '../../../data/biomes.json';
+import buildingsJson from '../../../data/buildings.json';
 import climateJson from '../../../data/climate.json';
 import humansJson from '../../../data/humans.json';
+import itemsJson from '../../../data/items.json';
+import knowledgeJson from '../../../data/knowledge.json';
 import plantsJson from '../../../data/plants.json';
+import productionJson from '../../../data/production.json';
+import recipesJson from '../../../data/recipes.json';
 import resourcesJson from '../../../data/resources.json';
 import timeJson from '../../../data/time.json';
 import weatherJson from '../../../data/weather.json';
 import worldgenJson from '../../../data/worldgen.json';
 import { ANIMALS_SCHEMA, parseFaunaParams, type FaunaParams } from '../systems/fauna/params';
 import { parseFloraParams, PLANTS_SCHEMA, type FloraParams } from '../systems/flora/params';
-import { HUMANS_SCHEMA, parseHumanParams, type HumanParams } from '../systems/individuals/params';
+import { checkHumanLinks, HUMANS_SCHEMA, parseHumanParams, type HumanParams } from '../systems/individuals/params';
+import { checkProductionLinks } from '../systems/production/links';
+import {
+  BUILDINGS_SCHEMA,
+  ITEMS_SCHEMA,
+  parseBuildings,
+  parseItems,
+  parseProductionParams,
+  parseRecipes,
+  PRODUCTION_SCHEMA,
+  RECIPES_SCHEMA,
+  type BuildingCatalog,
+  type ItemCatalog,
+  type ProductionParams,
+  type RecipeBook,
+} from '../systems/production/params';
+import { KNOWLEDGE_SCHEMA, parseKnowledge, type KnowledgeCatalog } from './knowledge';
 import { BIOMES_SCHEMA, parseBiomeTable, type BiomeTable } from '../systems/world/biomes';
 import { parseWeatherParams, WEATHER_SCHEMA, type WeatherParams } from '../systems/world/weather';
 import { CLIMATE_SCHEMA, parseClimateParams, type ClimateParams } from '../systems/world/climate-params';
@@ -29,6 +50,11 @@ export interface GameData {
   fauna: FaunaParams;
   weather: WeatherParams;
   humans: HumanParams;
+  knowledge: KnowledgeCatalog;
+  items: ItemCatalog;
+  recipes: RecipeBook;
+  buildings: BuildingCatalog;
+  production: ProductionParams;
 }
 
 export type DataKey = keyof GameData;
@@ -54,6 +80,11 @@ export const DATA_FILES: readonly DataFileInfo[] = [
   { file: 'plants.json', key: 'flora', system: 'Flore', schema: PLANTS_SCHEMA },
   { file: 'animals.json', key: 'fauna', system: 'Faune', schema: ANIMALS_SCHEMA },
   { file: 'humans.json', key: 'humans', system: 'Humains', schema: HUMANS_SCHEMA },
+  { file: 'knowledge.json', key: 'knowledge', system: 'Production', schema: KNOWLEDGE_SCHEMA },
+  { file: 'items.json', key: 'items', system: 'Production', schema: ITEMS_SCHEMA },
+  { file: 'recipes.json', key: 'recipes', system: 'Production', schema: RECIPES_SCHEMA },
+  { file: 'buildings.json', key: 'buildings', system: 'Production', schema: BUILDINGS_SCHEMA },
+  { file: 'production.json', key: 'production', system: 'Production', schema: PRODUCTION_SCHEMA },
 ];
 
 /** Raw content of the data files, by data key (before validation). */
@@ -71,6 +102,11 @@ export function defaultRawData(): RawGameData {
     fauna: animalsJson,
     weather: weatherJson,
     humans: humansJson,
+    knowledge: knowledgeJson,
+    items: itemsJson,
+    recipes: recipesJson,
+    buildings: buildingsJson,
+    production: productionJson,
   };
   return JSON.parse(JSON.stringify(files)) as RawGameData;
 }
@@ -82,8 +118,34 @@ export function parseGameData(raw: RawGameData): GameData {
   const flora = parseFloraParams(raw.flora, biomes, resources);
   const plantFoods = flora.species.flatMap((species) => (species.produce ? [species.produce.resource] : []));
   const fauna = parseFaunaParams(raw.fauna, biomes, resources, plantFoods);
+  const time = parseTimeParams(raw.time);
+  const speciesIds = fauna.species.map((species) => species.id);
+  const humans = parseHumanParams(raw.humans, speciesIds);
+  const knowledge = parseKnowledge(raw.knowledge);
+  const items = parseItems(raw.items);
+  const recipes = parseRecipes(raw.recipes);
+  const buildings = parseBuildings(raw.buildings);
+  const production = parseProductionParams(raw.production);
+  checkProductionLinks({
+    knowledge,
+    items,
+    recipes,
+    buildings,
+    production,
+    resources,
+    skillIds: humans.skills.map((skill) => skill.id),
+    speciesIds,
+    biomeIds: biomes.biomes.map((biome) => biome.id),
+    seasonCount: time.seasons.length,
+  });
+  checkHumanLinks(
+    humans,
+    knowledge.knowledge.map((item) => item.id),
+    recipes.recipes.map((recipe) => recipe.id),
+    items.items.map((item) => item.id),
+  );
   return {
-    time: parseTimeParams(raw.time),
+    time,
     worldgen: parseWorldgenParams(raw.worldgen),
     biomes,
     climate: parseClimateParams(raw.climate),
@@ -91,7 +153,12 @@ export function parseGameData(raw: RawGameData): GameData {
     flora,
     fauna,
     weather: parseWeatherParams(raw.weather),
-    humans: parseHumanParams(raw.humans, plantFoods, fauna.species.map((species) => species.id)),
+    humans,
+    knowledge,
+    items,
+    recipes,
+    buildings,
+    production,
   };
 }
 

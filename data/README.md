@@ -160,27 +160,70 @@ par les humains et leur vitesse de marche.
 
 | Partie | Rôle |
 | --- | --- |
-| `tribe` | Nombre et taille des tribus de départ, part d'anciens, enfants par couple, âges, huttes de départ |
+| `tribe` | Nombre et taille des tribus de départ, part d'anciens, enfants par couple, âges (les bâtiments de départ sont dans `production.json`) |
 | `site` | Choix de l'emplacement du camp : climat tempéré, eau douce proche, plantes nourricières autour |
 | `names` | Syllabes du générateur de noms provisoires |
-| `knowledge`, `startingKnowledge` | Savoirs (pour l'instant : cueillette, maîtrise du feu, huttes) |
 | `traits` | Traits de caractère (prudence, sociabilité, curiosité, ardeur au travail) |
+| `skills`, `skillLearning` | Compétences (cueillette, artisanat, chasse…), le métier affiché pour chacune, vitesse d'apprentissage par la pratique |
 | `stepsPerHour`, `thinkEveryMinutes` | Rythme d'action et de réflexion de chaque personne |
 | `needs` | Vitesse de la faim, de la soif, de la fatigue, du froid ; dégâts et guérison |
-| `body` | Vitesse de marche, perception, ce qu'on peut porter, vitesse de cueillette et de ramassage |
-| `edibleResources` | Ressources des plantes qui se mangent, et leur valeur nutritive |
-| `camp` | Feu (réserve, valeur d'une branche, chaleur, portée), huttes (chaleur, places), territoire connu |
+| `body` | Vitesse de marche, perception, charge qu'on peut porter (`carryCapacity`), vitesse des repas |
+| `camp` | Chaleur maximale d'un abri ou d'un feu, territoire connu autour du camp (le feu et les huttes sont des bâtiments : `buildings.json`) |
 | `memory` | Nombre de points d'eau et de coins de cueillette retenus, durée avant l'oubli |
 | `danger` | Animaux redoutés, vigilance, isolement, peur en groupe, viande laissée par un corps (les attaques elles-mêmes se règlent dans `animals.json` → `humanPrey`) |
 | `terrain` | Coûts de marche (forêt, broussailles, gué, pente) pour la recherche de chemin |
-| `decision` | Part de hasard et persévérance dans les décisions |
+| `decision` | Part de hasard, persévérance, envie de déposer au stock en passant, ouvrage en cours qu'on finit |
 | `actions` | Les actions du cerveau (voir ci-dessous) |
+| `campMove`, `campMoveText` | Déplacement du camp par consensus des adultes (distance de cueillette qui fait vouloir partir, part d'adultes nécessaire, délai entre deux départs) et sa phrase du journal |
 | `deathTexts`, `settlementText` | Phrases du journal |
 
 **Les actions** (« utility AI ») : chaque action a un poids et des *considérations*. Chaque considération
-lit une entrée entre 0 et 1 (faim, soif, fatigue, froid, danger, nuit, jour, nourriture portée, feu bas,
-éloignement du camp, isolement…) et la passe dans une courbe : `linear` (a·x + b), `power` (x^a) ou
+lit une entrée entre 0 et 1 (faim, soif, fatigue, froid, danger, nuit, jour, nourriture à portée, charge portée, feu bas,
+éloignement du camp, isolement, réserves du camp à remplir, besoin d'un bâtiment ou d'objets…) et la passe dans une courbe : `linear` (a·x + b), `power` (x^a) ou
 `logistic` (1 / (1 + e^(−b·(x − a))), une marche douce autour de `a`). Le score de l'action est le poids
 multiplié par toutes ses considérations, puis par l'effet des traits de caractère (`traits`). La personne
 fait l'action au meilleur score qui est possible à ce moment-là ; `reason` indique l'entrée affichée comme
-raison dans sa fiche.
+raison dans sa fiche. `behavior` choisit le comportement programmé ; les comportements de travail
+(`harvest`, `craft`, `build`, `deposit`, `tend_fire`) exécutent les recettes de `recipes.json` (`recipes`
+donne les recettes utilisables, `items` ce qu'une récolte cherche). `minAge` : âge minimal.
+
+## `knowledge.json` — les savoirs
+
+Liste des savoirs des ères 0 et 1 (en attendant le système d'idées) : nom, ère de repère, prérequis.
+**`startsKnown`** (« Connu au départ », dans l'Atelier) décide ce que sait la tribu de départ : par défaut
+cueillette, maîtrise du feu et huttes ; cocher par exemple « Taille de la pierre » et « Chasse » donne une
+tribu de chasseurs. Une recette, un bâtiment ou une action ne sont utilisables que si leur savoir est connu.
+
+## `items.json` — les objets
+
+Tous les objets : ressources des plantes et des animaux (même identifiant que dans `resources.json`) et objets
+fabriqués. Pour chacun : catégorie (nourriture, matériau, outil, vêtement), encombrement, valeur nutritive,
+conservation (demi-vie en jours : les baies pourrissent vite, les racines et la viande fumée lentement ; le froid
+ralentit, la chaleur accélère), chaleur d'un vêtement, aide au transport (panier), valeur comme combustible, et
+**besoin coutumier** (`wantPerMember` : combien le camp en veut par membre ; en dessous, fabriquer devient un
+besoin collectif). L'ordre des objets est l'ordre de priorité de la coutume.
+
+## `recipes.json` — les recettes
+
+Format unique de production (pilier 5) : savoir requis, compétence, durée d'une fournée, entrées (l'un des
+objets listés suffit), outils (l'un d'eux suffit, non consommé), lieu ou atelier (`station`), produits. Une
+**récolte** a une `source` : plantes (`plantProduce`), branches (`plantBranches`), arbres (`tree`), terrain
+(`terrain` : pierres, silex, argile, eau, blocs), gibier (`prey`), poisson (`fish`), champ mûr (`field`) ou
+bêtes d'élevage (`livestock`, pas encore possible). `effect` : `fuel` alimente un feu, `sow` ensemence un champ.
+
+## `buildings.json` — les bâtiments
+
+Chaque bâtiment est une recette de construction : savoir (l'un de ceux listés), matériaux, heures de travail
+(plusieurs personnes peuvent y travailler), fonction (feu, abri, stockage, atelier, champ…), places pour dormir,
+chaleur, réserve de combustible, capacité et conservation d'un stock, et **quand le camp le veut** (`want`) :
+pas de feu, pas assez de places pour dormir, provisions à protéger, atelier d'une recette voulue, un pour
+tant de membres, ou jamais pour l'instant (murs, tombes, sanctuaire…).
+
+## `production.json` — le travail et les stocks
+
+Bâtiments de départ, conservation des aliments (température de référence, effet de la chaleur, tas à l'air libre),
+**coutume** (jours de réserve de nourriture voulus selon la saison locale, réserve de bois, urgence de chaque besoin
+collectif), qualité des produits (compétence, outils, hasard), travail (rapidité des experts, recherche de
+matériaux, goût pour la nourriture qui se garde, emplacement des constructions), chasse (repérage, portée de la
+lance et de l'arc, réussite, taille d'une carcasse, patience), champs (croissance, rendement), sources de terrain
+(où trouver pierres, silex, argile, eau) et phrases du journal.

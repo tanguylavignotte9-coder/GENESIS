@@ -7,35 +7,36 @@
     "adultAge": [18, 45],
     "elderAge": [50, 66],
     "childAge": [1, 14],
-    "huts": 6,
     "campRadius": 3,
     "campSpacingTiles": 40
   },
-  "site": {
-    "candidates": 6000,
-    "minCelsius": 6,
-    "maxCelsius": 20,
-    "waterMaxTiles": 3,
-    "foodRadius": 10,
-    "minFoodPlants": 40
-  },
+  "site": { "candidates": 6000, "minCelsius": 6, "maxCelsius": 20, "waterMaxTiles": 3, "foodRadius": 10, "minFoodPlants": 40 },
   "names": {
     "syllables": ["ka", "lo", "mi", "ra", "tu", "na", "e", "o", "an", "ir", "sa", "ko", "li", "da", "me", "nu", "ta", "re", "ul", "va", "ya", "bo", "ki", "su"],
     "minSyllables": 2,
     "maxSyllables": 3
   },
-  "knowledge": [
-    { "id": "gathering", "name": "Cueillette" },
-    { "id": "fire", "name": "Maîtrise du feu" },
-    { "id": "huts", "name": "Huttes" }
-  ],
-  "startingKnowledge": ["gathering", "fire", "huts"],
   "traits": [
     { "id": "prudence", "name": "Prudence" },
     { "id": "sociability", "name": "Sociabilité" },
     { "id": "curiosity", "name": "Curiosité" },
     { "id": "diligence", "name": "Ardeur au travail" }
   ],
+  "skills": [
+    { "id": "gathering", "name": "Cueillette", "profession": "Cueilleur", "professionFemale": "Cueilleuse" },
+    { "id": "survival", "name": "Survie", "profession": "Gardien du feu", "professionFemale": "Gardienne du feu" },
+    { "id": "crafting", "name": "Artisanat", "profession": "Artisan", "professionFemale": "Artisane" },
+    { "id": "hunting", "name": "Chasse", "profession": "Chasseur", "professionFemale": "Chasseuse" },
+    { "id": "butchery", "name": "Boucherie", "profession": "Boucher", "professionFemale": "Bouchère" },
+    { "id": "cooking", "name": "Cuisine", "profession": "Cuisinier", "professionFemale": "Cuisinière" },
+    { "id": "fishing", "name": "Pêche", "profession": "Pêcheur", "professionFemale": "Pêcheuse" },
+    { "id": "construction", "name": "Construction", "profession": "Bâtisseur", "professionFemale": "Bâtisseuse" },
+    { "id": "woodcutting", "name": "Bûcheronnage", "profession": "Bûcheron", "professionFemale": "Bûcheronne" },
+    { "id": "farming", "name": "Agriculture", "profession": "Cultivateur", "professionFemale": "Cultivatrice" },
+    { "id": "pottery", "name": "Poterie", "profession": "Potier", "professionFemale": "Potière" },
+    { "id": "herding", "name": "Élevage", "profession": "Éleveur", "professionFemale": "Éleveuse" }
+  ],
+  "skillLearning": { "learnPerHour": 0.01, "professionMinHours": 12 },
   "stepsPerHour": 4,
   "thinkEveryMinutes": 60,
   "needs": {
@@ -58,71 +59,222 @@
     "childSpeedFactor": 0.7,
     "perceptionTiles": 10,
     "exploreTiles": 20,
-    "carryFood": 12,
-    "carryBranches": 12,
+    "carryCapacity": 24,
     "hungerPerFoodUnit": 15,
     "eatUnitsPerHour": 6,
-    "drinkPerHour": 120,
-    "gatherUnitsPerHour": 4,
-    "branchesPerHour": 6,
-    "branchHarmToPlant": 0.03
+    "drinkPerHour": 120
   },
-  "edibleResources": { "berries": 1, "roots": 1, "wild_cereals": 0.8 },
-  "camp": {
-    "maxFuelHours": 24,
-    "fuelHoursPerBranch": 2,
-    "fireWarmthCelsius": 14,
-    "fireWarmthTiles": 3,
-    "hutWarmthCelsius": 8,
-    "shelterMaxCelsius": 20,
-    "hutCapacity": 6,
-    "homeRadiusTiles": 70
-  },
+  "camp": { "shelterMaxCelsius": 20, "homeRadiusTiles": 70 },
   "memory": { "waterSlots": 4, "foodSlots": 8, "forgetDays": 20 },
-  "danger": {
-    "predators": ["wolf", "lion", "bear"],
-    "alertTiles": 7,
-    "isolationTiles": 6,
-    "groupFearShare": 0.35,
-    "corpseMeat": 25
-  },
-  "terrain": {
-    "forestCost": 1.6,
-    "shrubCost": 1.2,
-    "riverCost": 3,
-    "slopeCostPer100m": 1,
-    "maxPathNodes": 20000,
-    "heuristicWeight": 1.3
-  },
-  "decision": {
-    "randomness": 0.05,
-    "keepCurrentBonus": 0.1
-  },
+  "danger": { "predators": ["wolf", "lion", "bear"], "alertTiles": 7, "isolationTiles": 6, "groupFearShare": 0.35, "corpseMeat": 25 },
+  "terrain": { "forestCost": 1.6, "shrubCost": 1.2, "riverCost": 3, "slopeCostPer100m": 1, "maxPathNodes": 20000, "heuristicWeight": 1.3 },
+  "decision": { "randomness": 0.05, "keepCurrentBonus": 0.1, "keepWorkBonus": 0.5, "depositAtCamp": 0.7 },
   "actions": [
-    { "id": "drink", "name": "Boire", "label": "Va boire", "weight": 1.2, "reason": "thirst",
-      "considerations": [{ "input": "thirst", "curve": "logistic", "a": 0.45, "b": 10 }], "traits": {} },
-    { "id": "eat", "name": "Manger", "label": "Mange", "weight": 1.1, "reason": "hunger",
-      "considerations": [{ "input": "hunger", "curve": "logistic", "a": 0.35, "b": 10 }, { "input": "hasFood", "curve": "linear", "a": 1, "b": 0 }], "traits": {} },
-    { "id": "gather", "name": "Cueillir", "label": "Va cueillir", "weight": 0.75, "reason": "foodCarried",
-      "considerations": [{ "input": "day", "curve": "linear", "a": 1, "b": 0 }, { "input": "foodCarried", "curve": "linear", "a": -1, "b": 1 }, { "input": "hunger", "curve": "linear", "a": 0.6, "b": 0.4 }],
-      "traits": { "diligence": 0.4, "curiosity": 0.2 }, "requires": "gathering" },
-    { "id": "collect_wood", "name": "Ramasser du bois", "label": "Va ramasser du bois", "weight": 0.6, "reason": "fireLow",
-      "considerations": [{ "input": "day", "curve": "linear", "a": 1, "b": 0 }, { "input": "branchesCarried", "curve": "linear", "a": -1, "b": 1 }, { "input": "fireLow", "curve": "linear", "a": 0.8, "b": 0.2 }],
-      "traits": { "diligence": 0.4 } },
-    { "id": "tend_fire", "name": "Entretenir le feu", "label": "Entretient le feu", "weight": 0.95, "reason": "fireLow",
-      "considerations": [{ "input": "hasBranches", "curve": "linear", "a": 1, "b": 0 }, { "input": "fireLow", "curve": "logistic", "a": 0.45, "b": 8 }], "traits": { "diligence": 0.2 }, "requires": "fire" },
-    { "id": "warm_up", "name": "Se réchauffer", "label": "Se réchauffe au feu", "weight": 1, "reason": "cold",
-      "considerations": [{ "input": "cold", "curve": "logistic", "a": 0.45, "b": 10 }, { "input": "fireLit", "curve": "linear", "a": 1, "b": 0 }], "traits": {} },
-    { "id": "sleep", "name": "Dormir", "label": "Dort", "weight": 1.1, "reason": "fatigue",
-      "considerations": [{ "input": "fatigue", "curve": "logistic", "a": 0.3, "b": 9 }, { "input": "night", "curve": "linear", "a": 0.75, "b": 0.25 }], "traits": {} },
-    { "id": "return_camp", "name": "Rentrer au camp", "label": "Rentre au camp", "weight": 0.7, "reason": "night",
-      "considerations": [{ "input": "awayFromCamp", "curve": "logistic", "a": 0.25, "b": 10 }, { "input": "night", "curve": "linear", "a": 0.8, "b": 0.2 }], "traits": { "prudence": 0.3 } },
-    { "id": "flee", "name": "Fuir", "label": "Fuit un prédateur", "weight": 1.6, "reason": "danger",
-      "considerations": [{ "input": "danger", "curve": "logistic", "a": 0.4, "b": 12 }], "traits": { "prudence": 0.5 } },
-    { "id": "stay_with_group", "name": "Rester près du groupe", "label": "Rejoint le groupe", "weight": 0.55, "reason": "isolation",
-      "considerations": [{ "input": "isolation", "curve": "logistic", "a": 0.5, "b": 8 }], "traits": { "sociability": 0.6 } },
-    { "id": "rest", "name": "Se reposer", "label": "Se repose", "weight": 0.15, "reason": "always",
-      "considerations": [{ "input": "always", "curve": "linear", "a": 1, "b": 0 }], "traits": {} }
+    {
+      "id": "drink",
+      "behavior": "drink",
+      "name": "Boire",
+      "label": "Va boire",
+      "weight": 1.2,
+      "reason": "thirst",
+      "considerations": [{"input": "thirst", "curve": "logistic", "a": 0.45, "b": 10}],
+      "traits": {}
+    },
+    {
+      "id": "eat",
+      "behavior": "eat",
+      "name": "Manger",
+      "label": "Mange",
+      "weight": 1.1,
+      "reason": "hunger",
+      "considerations": [{"input": "hunger", "curve": "logistic", "a": 0.35, "b": 10}, {"input": "hasFood", "curve": "linear", "a": 1, "b": 0}],
+      "traits": {}
+    },
+    {
+      "id": "gather",
+      "behavior": "harvest",
+      "recipes": ["harvest_field", "gather"],
+      "items": ["berries", "roots", "wild_cereals", "grain"],
+      "name": "Cueillir",
+      "label": "Va cueillir",
+      "weight": 0.75,
+      "reason": "stockLow",
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "load", "curve": "linear", "a": -1, "b": 1 },
+        { "input": "hunger", "curve": "linear", "a": 0.6, "b": 0.4 },
+        { "input": "stockLow", "curve": "linear", "a": 0.7, "b": 0.3 }
+      ],
+      "traits": { "diligence": 0.4, "curiosity": 0.2 },
+      "requires": "gathering"
+    },
+    {
+      "id": "hunt",
+      "behavior": "harvest",
+      "recipes": ["hunt"],
+      "items": [],
+      "name": "Chasser",
+      "label": "Part chasser",
+      "weight": 0.7,
+      "reason": "stockLow",
+      "minAge": 14,
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "load", "curve": "linear", "a": -1, "b": 1 },
+        { "input": "stockLow", "curve": "linear", "a": 0.8, "b": 0.2 }
+      ],
+      "traits": { "diligence": 0.3, "prudence": -0.4 },
+      "requires": "hunting"
+    },
+    {
+      "id": "fish",
+      "behavior": "harvest",
+      "recipes": ["fish"],
+      "items": [],
+      "name": "Pêcher",
+      "label": "Va pêcher",
+      "weight": 0.65,
+      "reason": "stockLow",
+      "minAge": 10,
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "load", "curve": "linear", "a": -1, "b": 1 },
+        { "input": "stockLow", "curve": "linear", "a": 0.8, "b": 0.2 }
+      ],
+      "traits": { "diligence": 0.3 },
+      "requires": "fishing"
+    },
+    {
+      "id": "collect_wood",
+      "behavior": "harvest",
+      "recipes": ["collect_branches"],
+      "items": ["branches"],
+      "name": "Ramasser du bois",
+      "label": "Va ramasser du bois",
+      "weight": 0.6,
+      "reason": "woodLow",
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "load", "curve": "linear", "a": -1, "b": 1 },
+        { "input": "woodLow", "curve": "linear", "a": 0.95, "b": 0.05 }
+      ],
+      "traits": { "diligence": 0.4 }
+    },
+    {
+      "id": "deposit",
+      "behavior": "deposit",
+      "name": "Déposer au camp",
+      "label": "Rapporte au camp",
+      "weight": 0.85,
+      "reason": "depositUrge",
+      "considerations": [{"input": "depositUrge", "curve": "logistic", "a": 0.55, "b": 10}],
+      "traits": { "sociability": 0.2 }
+    },
+    {
+      "id": "tend_fire",
+      "behavior": "tend_fire",
+      "recipes": ["light_fire"],
+      "name": "Entretenir le feu",
+      "label": "Entretient le feu",
+      "weight": 0.95,
+      "reason": "fireLow",
+      "considerations": [{"input": "hasFuel", "curve": "linear", "a": 1, "b": 0}, {"input": "fireLow", "curve": "logistic", "a": 0.45, "b": 8}],
+      "traits": { "diligence": 0.2 },
+      "requires": "fire"
+    },
+    {
+      "id": "build",
+      "behavior": "build",
+      "name": "Construire",
+      "label": "Construit",
+      "weight": 0.8,
+      "reason": "buildNeed",
+      "minAge": 12,
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "buildNeed", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "hunger", "curve": "linear", "a": -0.7, "b": 1 }
+      ],
+      "traits": { "diligence": 0.5, "sociability": 0.2 }
+    },
+    {
+      "id": "craft",
+      "behavior": "craft",
+      "name": "Fabriquer",
+      "label": "Fabrique",
+      "weight": 0.6,
+      "reason": "craftNeed",
+      "minAge": 10,
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "craftNeed", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "hunger", "curve": "linear", "a": -0.7, "b": 1 }
+      ],
+      "traits": { "curiosity": 0.4, "diligence": 0.3 }
+    },
+    {
+      "id": "warm_up",
+      "behavior": "warm_up",
+      "name": "Se réchauffer",
+      "label": "Se réchauffe au feu",
+      "weight": 1,
+      "reason": "cold",
+      "considerations": [{"input": "cold", "curve": "logistic", "a": 0.45, "b": 10}, {"input": "fireLit", "curve": "linear", "a": 1, "b": 0}],
+      "traits": {}
+    },
+    {
+      "id": "sleep",
+      "behavior": "sleep",
+      "name": "Dormir",
+      "label": "Dort",
+      "weight": 1.1,
+      "reason": "fatigue",
+      "considerations": [{"input": "fatigue", "curve": "logistic", "a": 0.3, "b": 9}, {"input": "night", "curve": "linear", "a": 0.75, "b": 0.25}],
+      "traits": {}
+    },
+    {
+      "id": "return_camp",
+      "behavior": "return_camp",
+      "name": "Rentrer au camp",
+      "label": "Rentre au camp",
+      "weight": 0.7,
+      "reason": "night",
+      "considerations": [
+        { "input": "awayFromCamp", "curve": "logistic", "a": 0.25, "b": 10 },
+        { "input": "night", "curve": "linear", "a": 0.8, "b": 0.2 }
+      ],
+      "traits": { "prudence": 0.3 }
+    },
+    {
+      "id": "flee",
+      "behavior": "flee",
+      "name": "Fuir",
+      "label": "Fuit un prédateur",
+      "weight": 1.6,
+      "reason": "danger",
+      "considerations": [{"input": "danger", "curve": "logistic", "a": 0.4, "b": 12}],
+      "traits": { "prudence": 0.5 }
+    },
+    {
+      "id": "stay_with_group",
+      "behavior": "stay_with_group",
+      "name": "Rester près du groupe",
+      "label": "Rejoint le groupe",
+      "weight": 0.55,
+      "reason": "isolation",
+      "considerations": [{"input": "isolation", "curve": "logistic", "a": 0.5, "b": 8}],
+      "traits": { "sociability": 0.6 }
+    },
+    {
+      "id": "rest",
+      "behavior": "rest",
+      "name": "Se reposer",
+      "label": "Se repose",
+      "weight": 0.15,
+      "reason": "always",
+      "considerations": [{"input": "always", "curve": "linear", "a": 1, "b": 0}],
+      "traits": {}
+    }
   ],
   "deathTexts": {
     "hunger": "{nom} est mort{e} de faim dans {lieu}.",
@@ -130,5 +282,16 @@
     "cold": "{nom} est mort{e} de froid dans {lieu}.",
     "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}."
   },
-  "settlementText": "Une tribu de {personnes} personnes s'installe dans {lieu} : un feu de camp et {huttes} huttes."
+  "settlementText": "Une tribu de {personnes} personnes s'installe dans {lieu} : {batiments}.",
+  "campMove": {
+    "forageFarTiles": 15,
+    "memory": 0.15,
+    "curiosityEffect": 0.3,
+    "consensusShare": 0.6,
+    "minDaysBetweenMoves": 20,
+    "minMoveTiles": 12,
+    "waterMaxTiles": 3,
+    "minAdults": 2
+  },
+  "campMoveText": "Les adultes décident ensemble de déplacer le camp : il faut aller de plus en plus loin pour trouver à manger. La tribu part s’installer à {distance} tuiles vers {direction}, dans {lieu}."
 }

@@ -17,6 +17,8 @@ import { TimeControls } from './hud/time-controls';
 import { Tooltip } from './hud/tooltip';
 import { randomSeed, WorldPanel } from './hud/world-panel';
 import { AnimalLayer } from './life/animal-layer';
+import { BuildingLayer } from './life/building-layer';
+import { BuildingPanel } from './hud/building-panel';
 import { HumanLayer } from './life/human-layer';
 import { PlantLayer } from './life/plant-layer';
 import { NightLayer } from './map/night-layer';
@@ -46,8 +48,9 @@ async function main(): Promise<void> {
   const plants = new PlantLayer();
   const animals = new AnimalLayer();
   const people = new HumanLayer();
+  const buildings = new BuildingLayer();
   const night = new NightLayer();
-  mapView.container.addChild(plants.container, animals.container, people.container, night.sprite);
+  mapView.container.addChild(plants.container, buildings.container, animals.container, people.container, night.sprite);
   app.stage.addChild(mapView.container);
   const camera = new Camera(app.canvas, mapView.container);
   const tooltip = new Tooltip(element('tooltip'));
@@ -68,7 +71,7 @@ async function main(): Promise<void> {
   let lastPerfAt = 0;
 
   const sim = new SimClient((message: FromSimMessage) => onMessage(message));
-  const hover = new Hover(sim, animals, people);
+  const hover = new Hover(sim, animals, people, buildings);
   hover.weatherLine = (tile) => {
     if (!world || !weatherRegions || !roster) return null;
     const x = tile % world.size;
@@ -107,6 +110,9 @@ async function main(): Promise<void> {
   const sheet = new PersonSheet(element('person'), element('person-body'), element<HTMLButtonElement>('person-close'), element<HTMLButtonElement>('person-follow'), () => {
     if (people.selected >= 0 && !followingPerson) people.selected = -1;
   });
+  const buildingPanel = new BuildingPanel(element('building'), element('building-body'), element<HTMLButtonElement>('building-close'), () => (buildings.selected = -1));
+  let buildingRequest = 0;
+  let lastBuildingRequest = 0;
   let followingPerson = false;
   sheet.onFollow(() => {
     const person = sheet.person;
@@ -204,7 +210,9 @@ async function main(): Promise<void> {
         roster = message.roster;
         weatherRegionTiles = message.weatherRegionTiles;
         weatherRegions = null;
-        people.setRoster(roster, world.size);
+        people.setRoster(roster);
+        buildings.setTables(life);
+        buildingPanel.close();
         tribe.setRoster(roster);
         night.setSize(world.size);
         hover.reset();
@@ -238,7 +246,13 @@ async function main(): Promise<void> {
         weatherRegions = message.regions;
         return;
       case 'person':
-        if (roster) sheet.render(message.details, roster);
+        if (roster && life) sheet.render(message.details, roster, life);
+        return;
+      case 'buildings':
+        buildings.setBuildings(message.buildings);
+        return;
+      case 'building':
+        if (!hover.receiveBuilding(message.details) && life) buildingPanel.render(message.details, life);
         return;
       case 'populations':
         stats.add(message.samples);
@@ -280,6 +294,7 @@ async function main(): Promise<void> {
     climate.setDay(day);
     mapView.setClimate(climate);
     life = tables;
+    buildings.setTables(tables);
     const key = JSON.stringify([tables.plants, tables.animals]);
     if (key !== tablesKey) {
       tablesKey = key;
@@ -299,15 +314,23 @@ async function main(): Promise<void> {
     if (!pressedAt || !world || Math.hypot(event.offsetX - pressedAt.x, event.offsetY - pressedAt.y) > VIEW.clickMaxPixels) return;
     pressedAt = null;
     const tile = camera.screenToTile(event.offsetX, event.offsetY);
-    const target = hover.targetAt(world, tile.x, tile.y, camera.pixelsPerTile);
+    const target = hover.targetAt(world, tile.x, tile.y, camera.pixelsPerTile, event.shiftKey);
     if (target && target.person >= 0) {
       people.selected = target.person;
       sheet.open(target.person);
       lastPersonRequest = 0;
+    } else if (target && target.building >= 0) {
+      buildings.selected = target.building;
+      buildingPanel.open(target.building);
+      lastBuildingRequest = 0;
     } else if (target && target.animalUid >= 0) follow(target.animalUid);
     else camera.stopFollowing();
   });
-  app.canvas.addEventListener('pointermove', (event) => (mouse = { x: event.offsetX, y: event.offsetY }));
+  let shiftHeld = false;
+  app.canvas.addEventListener('pointermove', (event) => {
+    mouse = { x: event.offsetX, y: event.offsetY };
+    shiftHeld = event.shiftKey;
+  });
   app.canvas.addEventListener('pointerleave', () => {
     mouse = null;
     tooltip.hide();
@@ -332,6 +355,7 @@ async function main(): Promise<void> {
     plants.update(visible, camera.pixelsPerTile);
     animals.update(visible, camera.pixelsPerTile);
     people.update(visible, camera.pixelsPerTile);
+    buildings.update(visible);
     night.update(climate, hour);
     const now = performance.now();
     if (now - lastPerfAt > PERF_REFRESH_MS) {
@@ -343,9 +367,13 @@ async function main(): Promise<void> {
       lastPersonRequest = now;
       sim.inspectPerson(++personRequest, sheet.person);
     }
+    if (buildingPanel.isOpen && now - lastBuildingRequest > VIEW.inspectEveryMs) {
+      lastBuildingRequest = now;
+      sim.inspectBuilding(++buildingRequest, buildingPanel.building);
+    }
     if (world && life && mouse && !camera.isDragging) {
       const tile = camera.screenToTile(mouse.x, mouse.y);
-      const target = hover.targetAt(world, tile.x, tile.y, camera.pixelsPerTile);
+      const target = hover.targetAt(world, tile.x, tile.y, camera.pixelsPerTile, shiftHeld);
       if (target) tooltip.show(hover.lines(world, climate, life, daysPerYear, target, performance.now()), mouse.x, mouse.y);
       else tooltip.hide();
     } else if (camera.isDragging) {

@@ -9,13 +9,17 @@ import type { ClimateState } from '../world/climate-state';
 import { describeLocation } from '../world/places';
 import type { WeatherState } from '../world/weather';
 import type { World } from '../world/world';
+import type { KnowledgeCatalog } from '../../core/knowledge';
+import type { ProductionSystem } from '../production/production-system';
+import type { WorkerView } from '../production/worker-view';
 import { performAction, startAction } from './actions';
 import { liveHours } from './body';
 import { compileActions, rankActions, scoreAction, TOP_ACTIONS, type CompiledAction } from './brain';
 import { Camp } from './camp';
+import { considerMoving } from './camp-move';
 import { createTribes } from './tribe';
 import { DeathCause, People } from './people';
-import { INPUTS, type ActionId, type HumanParams } from './params';
+import { INPUTS, type Behavior, type HumanParams } from './params';
 import { Pathfinder } from './pathfinding';
 import { Terrain } from './terrain';
 
@@ -39,7 +43,8 @@ export class IndividualsSystem {
   readonly camps: Camp[] = [];
   readonly terrain: Terrain;
   readonly actions: CompiledAction[];
-  readonly edibleValue: Map<string, number>;
+  /** Plant resources people know to be edible (from the food value of the items). */
+  readonly edibleResources = new Set<string>();
   readonly size: number;
   /** Where people are, rebuilt after each step: what the rest of the world perceives of them. */
   readonly grid: SpatialGrid;
@@ -60,24 +65,27 @@ export class IndividualsSystem {
     readonly flora: FloraSystem,
     readonly fauna: FaunaSystem,
     readonly params: HumanParams,
-    private readonly rng: Rng,
-    journal: Journal,
+    readonly knowledge: KnowledgeCatalog,
+    readonly production: ProductionSystem,
+    readonly rng: Rng,
+    readonly journal: Journal,
     tick: number,
     interactions: Interactions,
   ) {
     this.size = world.size;
     this.terrain = new Terrain(world, flora, params.terrain);
     this.pathfinder = new Pathfinder(world.size, this.terrain, params.terrain.maxPathNodes, params.terrain.heuristicWeight);
-    this.actions = compileActions(params);
-    this.scores = new Float64Array(this.actions.length);
-    this.edibleValue = new Map();
+    this.actions = [];
     this.predatorCodes = new Uint8Array(0);
     this.thinkSteps = 1;
     this.refreshParams();
+    this.scores = new Float64Array(this.actions.length);
     const created = createTribes(this, rng);
     this.people = created.people;
     this.camps.push(...created.camps);
     for (const camp of this.camps) camp.computeWayHome(this.terrain);
+    production.attachPeople(this.workerView());
+    created.families.forEach((families, camp) => production.foundCamp(camp, this.camps[camp]!.center, families));
     for (let p = 0; p < this.people.count; p++) this.people.nextThink[p] = p % this.thinkSteps;
     this.grid = new SpatialGrid(world.size, GRID_CELL_TILES);
     this.rebuildGrid();
@@ -96,11 +104,14 @@ export class IndividualsSystem {
 
   /** Recomputes what is derived from the parameters (after a live change in the variables workshop). */
   refreshParams(): void {
-    const { params } = this;
-    const compiled = compileActions(params);
+    const { params, production } = this;
+    const compiled = compileActions(params, this.knowledge, {
+      recipe: (id) => production.catalog.recipe(id)?.index ?? -1,
+      item: (id) => production.catalog.itemIndex.get(id) ?? -1,
+    });
     this.actions.splice(0, this.actions.length, ...compiled);
-    this.edibleValue.clear();
-    for (const [id, value] of Object.entries(params.edibleResources)) this.edibleValue.set(id, value);
+    this.edibleResources.clear();
+    for (const item of production.catalog.items) if (item.food > 0) this.edibleResources.add(item.id);
     this.predatorCodes = Uint8Array.from(this.fauna.params.species, (species) => (params.danger.predators.includes(species.id) ? 1 : 0));
     this.thinkSteps = Math.max(1, Math.round((params.thinkEveryMinutes / MINUTES_PER_HOUR) * params.stepsPerHour));
     this.pathfinder.maxNodes = params.terrain.maxPathNodes;
@@ -122,11 +133,68 @@ export class IndividualsSystem {
   }
 
   isSleeping(person: number): boolean {
-    return this.people.working[person] === 1 && this.actionId(person) === 'sleep';
+    return this.people.working[person] === 1 && this.behavior(person) === 'sleep';
   }
 
-  actionId(person: number): ActionId {
-    return this.actions[this.people.action[person]!]!.def.id;
+  behavior(person: number): Behavior {
+    return this.actions[this.people.action[person]!]!.def.behavior;
+  }
+
+  /** What production may read about people (never write). */
+  private workerView(): WorkerView {
+    const { people } = this;
+    return {
+      count: people.count,
+      alive: (p) => people.alive[p] === 1,
+      camp: (p) => people.camp[p]!,
+      x: (p) => people.x[p]!,
+      y: (p) => people.y[p]!,
+      knowledge: (p) => people.knowledge[p]!,
+      skill: (p, s) => people.skill(p, s),
+      ageYears: (p) => people.ageYears[p]!,
+      name: (p) => people.names[p]!,
+      female: (p) => people.female[p] === 1,
+      family: (p) => {
+        const family: number[] = [];
+        if (people.spouse[p]! >= 0) family.push(people.spouse[p]!);
+        for (const parent of [people.mother[p]!, people.father[p]!]) if (parent >= 0) family.push(parent);
+        const { first, last } = this.campMembers(people.camp[p]!);
+        for (let q = first; q < last; q++) if (people.mother[q] === p || people.father[q] === p) family.push(q);
+        return family;
+      },
+    };
+  }
+
+  /** Practice makes a skill grow (fast at first, slower near mastery) and counts toward the trade. */
+  practise(person: number, skill: number, hours: number): void {
+    const { people } = this;
+    const at = person * people.skillCount + skill;
+    const level = people.skills[at]!;
+    people.skills[at] = Math.min(1, level + this.params.skillLearning.learnPerHour * hours * (1 - level));
+    people.practice[at] = people.practice[at]! + hours;
+  }
+
+  /** Food found on a tile: remembered, and how far from the camp one has to go counts for moving. */
+  foundFood(person: number, tile: number): void {
+    this.remember(person, 'food', tile);
+    const distance = this.forageTrip(person, tile);
+    if (distance >= this.params.campMove.forageFarTiles) this.people.farFood[person] = tile;
+  }
+
+  /** Nothing to eat in sight: the search goes to `tile`, far from the camp. */
+  searchedFar(person: number, tile: number): void {
+    if (tile >= 0) this.forageTrip(person, tile);
+  }
+
+  /** Mean distance from the camp of the last trips for food (what makes one want to move the camp). */
+  private forageTrip(person: number, tile: number): number {
+    const { people } = this;
+    const camp = this.camps[people.camp[person]!]!;
+    const x = tile % this.size;
+    const distance = camp.distanceTo(x, (tile - x) / this.size);
+    const memory = this.params.campMove.memory;
+    people.forageDistance[person] = people.forageDistance[person]! * (1 - memory) + distance * memory;
+    return distance;
   }
 
   lightAt(person: number): number {
@@ -139,9 +207,9 @@ export class IndividualsSystem {
     if (absoluteDay !== this.absoluteDay) {
       this.absoluteDay = absoluteDay;
       this.forgetOldPlaces();
+      for (const camp of this.camps) considerMoving(this, camp, absoluteDay, tick);
     }
     const hours = this.stepHours;
-    for (const camp of this.camps) camp.fuel = Math.max(0, camp.fuel - hours);
     const { people } = this;
     for (let p = 0; p < people.count; p++) {
       if (people.alive[p] === 0) continue;
@@ -152,7 +220,7 @@ export class IndividualsSystem {
       }
       if ((this.step + p) % this.params.stepsPerHour === 0) this.perceive(p);
       if (this.step >= people.nextThink[p]!) this.think(p);
-      if (performAction(this, p, this.actionId(p), hours)) people.nextThink[p] = this.step + 1;
+      if (performAction(this, p, this.actions[people.action[p]!]!, hours)) people.nextThink[p] = this.step + 1;
     }
     this.rebuildGrid();
     this.step++;
@@ -164,15 +232,19 @@ export class IndividualsSystem {
     this.computeInputs(person);
     const current = people.action[person]!;
     const traitOffset = person * people.traitCount;
+    const age = people.ageYears[person]!;
     for (let k = 0; k < this.actions.length; k++) {
       const action = this.actions[k]!;
-      if (action.requiredBit !== 0 && (people.knowledge[person]! & action.requiredBit) === 0) {
+      if ((action.requiredBit !== 0 && (people.knowledge[person]! & action.requiredBit) === 0) || age < action.minAge) {
         this.scores[k] = 0;
         continue;
       }
       let score = scoreAction(action, this.inputs, people.traits, traitOffset);
       score *= 1 + params.decision.randomness * (this.rng.nextFloat() * 2 - 1);
-      if (k === current) score *= 1 + params.decision.keepCurrentBonus;
+      if (k === current) {
+        score *= 1 + params.decision.keepCurrentBonus;
+        if (people.working[person] === 1 && this.production.jobs[person]) score *= 1 + params.decision.keepWorkBonus;
+      }
       this.scores[k] = score;
     }
     rankActions(this.scores, this.order);
@@ -184,7 +256,7 @@ export class IndividualsSystem {
     for (const k of this.order) {
       if (this.scores[k]! <= 0) break;
       if (k === current && people.target[person]! >= 0) return; // keep going, no need to recompute the way
-      if (startAction(this, person, this.actions[k]!.def.id)) {
+      if (startAction(this, person, this.actions[k]!)) {
         people.action[person] = k;
         people.reasonValue[person] = this.inputs[this.actions[k]!.reasonInput]!;
         return;
@@ -193,8 +265,9 @@ export class IndividualsSystem {
   }
 
   private computeInputs(person: number): void {
-    const { people, params } = this;
+    const { people, params, production } = this;
     const camp = this.camps[people.camp[person]!]!;
+    const needs = production.needs(camp.id);
     const input = this.inputs;
     const light = this.lightAt(person);
     const distance = camp.distanceTo(people.x[person]!, people.y[person]!);
@@ -206,16 +279,25 @@ export class IndividualsSystem {
     input[k++] = people.danger[person]! / FULL;
     input[k++] = 1 - light;
     input[k++] = light;
-    input[k++] = people.food[person]! > 0 ? 1 : 0;
-    input[k++] = people.food[person]! / params.body.carryFood;
-    input[k++] = people.branches[person]! > 0 ? 1 : 0;
-    input[k++] = people.branches[person]! / params.body.carryBranches;
-    input[k++] = 1 - camp.fuel / params.camp.maxFuelHours;
-    input[k++] = camp.lit ? 1 : 0;
+    input[k++] = production.carriedFood(person) > 0 || production.stockFood(camp.id) > 0 ? 1 : 0;
+    const goods = production.goodsLoad(person);
+    input[k++] = goods;
+    // Back at the camp with goods in hand, one puts them in the common stock.
+    const stock = production.stockTile(camp.id);
+    const nearStock = Math.max(Math.abs(people.x[person]! - (stock % this.size)), Math.abs(people.y[person]! - Math.floor(stock / this.size))) <= params.tribe.campRadius;
+    input[k++] = production.carriesForWork(person) ? 0 : goods > 0 && nearStock ? Math.max(goods, params.decision.depositAtCamp) : goods;
+    input[k++] = production.fuelAvailable(person) ? 1 : 0;
+    input[k++] = production.fireLow(camp.id, person);
+    input[k++] = production.fireLit(camp.id) ? 1 : 0;
     input[k++] = Math.min(1, distance / params.body.perceptionTiles / 2);
     const mate = this.nearestTribeMember(person);
     const gap = mate < 0 ? 0 : Math.max(Math.abs(people.x[mate]! - people.x[person]!), Math.abs(people.y[mate]! - people.y[person]!));
     input[k++] = Math.min(1, gap / (2 * params.danger.isolationTiles));
+    const reserves = production.reserveNeeds(person);
+    input[k++] = reserves.food;
+    input[k++] = reserves.wood;
+    input[k++] = needs.build;
+    input[k++] = needs.craft;
     input[k++] = 1;
   }
 
@@ -272,6 +354,7 @@ export class IndividualsSystem {
     const { people } = this;
     people.alive[person] = 0;
     people.deathCause[person] = cause;
+    this.production.forgetPerson(person);
     const tile = this.tileOf(person);
     const x = people.x[person]!;
     const y = people.y[person]!;
@@ -282,7 +365,7 @@ export class IndividualsSystem {
     // A death by hunger, thirst or cold inside a hardship region is caused by that hardship.
     const anomaly = this.climate.anomalies[this.climate.anomalyIndex[tile]! - 1];
     const hardship = anomaly && this.climate.params.anomalies.types[anomaly.type]?.hardshipName !== undefined;
-    return journal.publish({
+    const event = journal.publish({
       tick,
       type: HUMAN_DEATH,
       text: fillTemplate(template, { nom: people.names[person]!, e: people.female[person] ? 'e' : '', lieu: place, un_animal: `un ${animal}` }),
@@ -291,18 +374,21 @@ export class IndividualsSystem {
       causes: hardship && cause !== DeathCause.Predator ? [anomaly.startEventId] : [],
       details: { cause, person },
     });
+    if (cause === DeathCause.Hunger) this.camps[people.camp[person]!]!.hungerDeaths.push({ day: this.absoluteDay, event });
+    return event;
   }
 
   private publishSettlements(journal: Journal, tick: number): void {
     for (const camp of this.camps) {
       let members = 0;
       for (let p = 0; p < this.people.count; p++) if (this.people.camp[p] === camp.id) members++;
-      const place = describeLocation(this.world.landmasses, this.world.landmassNames, camp.fireX, camp.fireY, this.size);
+      const place = describeLocation(this.world.landmasses, this.world.landmassNames, camp.centerX, camp.centerY, this.size);
+      camp.settledDay = 0;
       journal.publish({
         tick,
         type: SETTLEMENT,
-        text: fillTemplate(this.params.settlementText, { personnes: String(members), lieu: place, huttes: String(camp.huts.length) }),
-        place: { x: camp.fireX, y: camp.fireY, label: place },
+        text: fillTemplate(this.params.settlementText, { personnes: String(members), lieu: place, batiments: this.production.describeBuildings(camp.id) }),
+        place: { x: camp.centerX, y: camp.centerY, label: place },
         actors: [],
         causes: [],
         details: { camp: camp.id },
@@ -321,6 +407,15 @@ export class IndividualsSystem {
     this.people.pathIndex[person] = 0;
     this.people.target[person] = tile;
     return true;
+  }
+
+  /** To a place of work: within the camp, by the known way home (no path search); elsewhere, with A*. */
+  goToWork(person: number, tile: number): boolean {
+    const camp = this.camps[this.people.camp[person]!]!;
+    const x = tile % this.size;
+    const near = camp.distanceTo(x, (tile - x) / this.size) <= this.params.tribe.campRadius + 1;
+    if (near && camp.stepHome(this.tileOf(person)) >= 0) return this.goHome(person, tile);
+    return this.goTo(person, tile);
   }
 
   /** Heads for a random spot `exploreTiles` away (a few tries to find a reachable one). */
@@ -412,60 +507,11 @@ export class IndividualsSystem {
     const tile = this.tileOf(person);
     let factor = this.terrain.speedOn(tile) * this.weather.typeAt(tile).movementFactor;
     if (people.ageYears[person]! < CHILD_AGE) factor *= params.body.childSpeedFactor;
-    if (this.actionId(person) === 'flee') factor *= params.body.fleeSpeedFactor;
+    if (this.behavior(person) === 'flee') factor *= params.body.fleeSpeedFactor;
     return factor;
   }
 
   // ----- perception and memory ------------------------------------------------------------
-
-  /** Best edible plant in sight (value / distance), or the nearest remembered one. */
-  findFood(person: number): number {
-    const { people, params } = this;
-    const r = params.body.perceptionTiles;
-    const x0 = people.x[person]!;
-    const y0 = people.y[person]!;
-    let best = -1;
-    let bestScore = 0;
-    for (let y = Math.max(0, y0 - r); y <= Math.min(this.size - 1, y0 + r); y++) {
-      for (let x = Math.max(0, x0 - r); x <= Math.min(this.size - 1, x0 + r); x++) {
-        const tile = y * this.size + x;
-        const produce = this.flora.speciesAt(tile)?.produce;
-        if (!produce) continue;
-        const value = this.edibleValue.get(produce.resource) ?? 0;
-        if (value <= 0) continue;
-        const available = this.flora.produceAvailable(tile, produce.resource) * value;
-        if (available <= 0) continue;
-        const score = available / (1 + Math.max(Math.abs(x - x0), Math.abs(y - y0)));
-        if (score > bestScore) {
-          bestScore = score;
-          best = tile;
-        }
-      }
-    }
-    return best >= 0 ? best : this.nearestMemory(person, 'food');
-  }
-
-  /** Nearest tree or shrub in sight that has branches. */
-  findWood(person: number): number {
-    const { people, params } = this;
-    const r = params.body.perceptionTiles;
-    const x0 = people.x[person]!;
-    const y0 = people.y[person]!;
-    let best = -1;
-    let bestDistance = Infinity;
-    for (let y = Math.max(0, y0 - r); y <= Math.min(this.size - 1, y0 + r); y++) {
-      for (let x = Math.max(0, x0 - r); x <= Math.min(this.size - 1, x0 + r); x++) {
-        const plant = this.flora.speciesAt(y * this.size + x);
-        if (!plant || plant.kind === 'herb' || !plant.materials?.some((m) => m.resource === 'branches')) continue;
-        const d = Math.max(Math.abs(x - x0), Math.abs(y - y0));
-        if (d < bestDistance) {
-          bestDistance = d;
-          best = y * this.size + x;
-        }
-      }
-    }
-    return best;
-  }
 
   remember(person: number, kind: 'water' | 'food', tile: number): void {
     const { people } = this;

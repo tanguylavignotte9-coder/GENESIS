@@ -1,0 +1,27 @@
+{
+  "knowledge": [
+    { "id": "gathering", "name": "Cueillette", "era": 0, "requires": [], "startsKnown": true },
+    { "id": "fire", "name": "Maîtrise du feu", "era": 0, "requires": [], "startsKnown": true },
+    { "id": "huts", "name": "Huttes", "era": 0, "requires": [], "startsKnown": true },
+    { "id": "stone_knapping", "name": "Taille de la pierre", "era": 0, "requires": [], "startsKnown": false },
+    { "id": "hunting", "name": "Chasse", "era": 0, "requires": ["stone_knapping"], "startsKnown": false },
+    { "id": "cooking", "name": "Cuisson", "era": 0, "requires": ["fire"], "startsKnown": false },
+    { "id": "hide_working", "name": "Travail des peaux", "era": 0, "requires": ["hunting"], "startsKnown": false },
+    { "id": "basketry", "name": "Vannerie", "era": 0, "requires": ["gathering"], "startsKnown": false },
+    { "id": "fishing", "name": "Pêche", "era": 0, "requires": ["stone_knapping", "basketry"], "startsKnown": false },
+    { "id": "preservation", "name": "Conservation", "era": 0, "requires": ["cooking"], "startsKnown": false },
+    { "id": "archery", "name": "Arc", "era": 0, "requires": ["hunting"], "startsKnown": false },
+    { "id": "canoe", "name": "Pirogue", "era": 0, "requires": ["stone_knapping", "fire"], "startsKnown": false },
+    { "id": "polished_stone", "name": "Pierre polie", "era": 1, "requires": ["stone_knapping"], "startsKnown": false },
+    { "id": "agriculture", "name": "Agriculture", "era": 1, "requires": ["gathering", "polished_stone"], "startsKnown": false },
+    { "id": "animal_husbandry", "name": "Élevage", "era": 1, "requires": ["hunting"], "startsKnown": false },
+    { "id": "pottery", "name": "Poterie", "era": 1, "requires": ["fire"], "startsKnown": false },
+    { "id": "milling", "name": "Mouture", "era": 1, "requires": ["agriculture"], "startsKnown": false },
+    { "id": "fermentation", "name": "Fermentation", "era": 1, "requires": ["agriculture", "pottery"], "startsKnown": false },
+    { "id": "weaving", "name": "Tissage", "era": 1, "requires": ["basketry"], "startsKnown": false },
+    { "id": "mud_brick", "name": "Terre crue", "era": 1, "requires": ["huts"], "startsKnown": false },
+    { "id": "stone_building", "name": "Construction en pierre", "era": 1, "requires": ["huts", "polished_stone"], "startsKnown": false },
+    { "id": "irrigation", "name": "Irrigation", "era": 1, "requires": ["agriculture"], "startsKnown": false },
+    { "id": "counting", "name": "Comptage", "era": 1, "requires": ["agriculture"], "startsKnown": false }
+  ]
+}

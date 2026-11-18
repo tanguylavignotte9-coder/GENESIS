@@ -1,7 +1,8 @@
 import type { Simulation } from '../sim/core/simulation';
 import { feltTemperature } from '../sim/systems/individuals/body';
 import { INPUTS } from '../sim/systems/individuals/params';
-import { HumanFlag, type HumansSnapshot, type PersonDetails, type Roster } from '../shared/messages';
+import { HumanFlag, type HumansSnapshot, type ItemLine, type PersonDetails, type Roster } from '../shared/messages';
+import type { Inventory } from '../sim/systems/production/inventory';
 
 const TOP = 3;
 
@@ -18,13 +19,16 @@ export function snapshotRoster(simulation: Simulation): Roster {
     actionLabels: actions.map((action) => action.def.label),
     actionNames: actions.map((action) => action.def.name),
     traitNames: params.traits.map((trait) => trait.name),
-    knowledgeNames: params.knowledge.map((item) => item.name),
+    knowledgeNames: simulation.data.knowledge.knowledge.map((item) => item.name),
+    skillNames: params.skills.map((skill) => skill.name),
+    professions: params.skills.map((skill) => skill.profession),
+    professionsFemale: params.skills.map((skill) => skill.professionFemale),
     weatherNames: simulation.data.weather.types.map((type) => type.name),
   };
 }
 
 export function snapshotHumans(simulation: Simulation): { snapshot: HumansSnapshot; transfer: ArrayBuffer[] } {
-  const { people, camps } = simulation.humans;
+  const { people } = simulation.humans;
   const flags = new Uint8Array(people.count);
   for (let p = 0; p < people.count; p++) flags[p] = (people.alive[p] ? HumanFlag.Alive : 0) | (people.working[p] ? HumanFlag.Working : 0);
   const snapshot: HumansSnapshot = {
@@ -32,7 +36,6 @@ export function snapshotHumans(simulation: Simulation): { snapshot: HumansSnapsh
     y: people.y.slice(),
     action: people.action.slice(),
     flags,
-    camps: camps.map((camp) => ({ fireX: camp.fireX, fireY: camp.fireY, lit: camp.lit, huts: camp.huts.map((hut) => hut.tile) })),
   };
   return { snapshot, transfer: [snapshot.x, snapshot.y, snapshot.action, snapshot.flags].map((array) => array.buffer as ArrayBuffer) };
 }
@@ -46,7 +49,11 @@ export function describePerson(simulation: Simulation, requestId: number, person
     const action = people.topActions[person * TOP + t]!;
     if (action >= 0) top.push({ action, score: people.topScores[person * TOP + t]! });
   }
-  const knowledge = params.knowledge.flatMap((_, k) => ((people.knowledge[person]! & (1 << k)) !== 0 ? [k] : []));
+  const knowledge = simulation.data.knowledge.knowledge.flatMap((_, k) => ((people.knowledge[person]! & (1 << k)) !== 0 ? [k] : []));
+  const production = simulation.production;
+  const job = production.jobs[person];
+  const skills = params.skills.map((_, s) => people.skill(person, s));
+  const practice = params.skills.map((_, s) => people.practice[person * people.skillCount + s]!);
   const count = (memory: Int32Array, slots: number): number => {
     let n = 0;
     for (let s = person * slots; s < (person + 1) * slots; s++) if (memory[s]! >= 0) n++;
@@ -67,10 +74,13 @@ export function describePerson(simulation: Simulation, requestId: number, person
       danger: people.danger[person]!,
     },
     health: Math.max(0, people.health[person]!),
-    food: people.food[person]!,
-    branches: people.branches[person]!,
-    carryFood: params.body.carryFood,
-    carryBranches: params.body.carryBranches,
+    carried: itemLines(production.carried[person]!),
+    load: production.load(person),
+    carryCapacity: production.carryCapacity(person),
+    skills,
+    practice,
+    trade: people.trade(person, params.skillLearning.professionMinHours),
+    work: job?.recipe && job.kind !== 'deposit' ? job.recipe.def.label : '',
     action: people.action[person]!,
     reason: INPUTS[action.reasonInput] ?? 'always',
     reasonValue: people.reasonValue[person]!,
@@ -81,4 +91,17 @@ export function describePerson(simulation: Simulation, requestId: number, person
     feltCelsius: feltTemperature(humans, person),
     weather: simulation.weather.at(humans.tileOf(person)),
   };
+}
+
+/** Piles of an inventory, merged by item (whatever the owner), for the display. */
+export function itemLines(inventory: Inventory): ItemLine[] {
+  const lines: ItemLine[] = [];
+  for (const pile of inventory.piles) {
+    const line = lines.find((other) => other.item === pile.item);
+    if (line) {
+      line.quality = (line.quality * line.qty + pile.quality * pile.qty) / (line.qty + pile.qty);
+      line.qty += pile.qty;
+    } else lines.push({ item: pile.item, qty: pile.qty, quality: pile.quality });
+  }
+  return lines.sort((a, b) => a.item - b.item);
 }

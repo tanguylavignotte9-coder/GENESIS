@@ -362,6 +362,23 @@ body:has(#stats:not([hidden])) #journal {
   user-select: text;
 }
 
+#building {
+  top: 120px;
+  left: 324px;
+  width: 280px;
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  background: rgba(16, 20, 28, 0.96);
+  user-select: text;
+}
+
+.sheet-list {
+  margin: 2px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .person-buttons {
   float: right;
   display: flex;

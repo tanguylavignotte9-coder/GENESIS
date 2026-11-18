@@ -26,6 +26,21 @@ Cinq règles tranchent toutes les décisions de conception. Une fonctionnalité 
 4. **Un monde cohérent.** Géographie, climat et ressources conditionnent tout. Une civilisation du désert ne ressemble pas à une civilisation de forêt.
 5. **Un moteur modulaire et piloté par les données.** Systèmes séparés, variables externalisées, interactions cartographiées. C'est ce qui permet à une IA de coder et faire évoluer le projet sans tout casser.
 
+### Philosophie d'équilibrage
+
+**L'équilibrage ne force jamais le destin.** Chaque système doit fonctionner seul ; c'est leur combinaison qui crée l'histoire, le drame, l'effondrement ou le triomphe. Il faut distinguer ce qui est mal équilibré de ce qui est simplement l'histoire.
+
+| Mal équilibré : à corriger | L'histoire : à laisser vivre |
+| --- | --- |
+| Le même résultat sur presque tous les mondes (toujours l'extinction, toujours l'explosion) | Un résultat extrême dans certains mondes seulement |
+| Un comportement individuel absurde (mourir de faim à côté de nourriture accessible) | Une mort logique compte tenu de ce que l'individu savait et pouvait faire |
+| Une action ou une stratégie qui domine toujours, une ressource jamais utile | Des choix différents selon le lieu, l'époque et la personnalité |
+| Un résultat sans chaîne de causes lisible | Un résultat expliqué par ses causes (sécheresse, puis famine, puis exode) |
+
+- On corrige au niveau de l'individu, en rendant une règle plus réaliste, jamais en pilotant le résultat global.
+- Sont interdits : quotas de population, filets de sécurité qui sauvent une tribu ou une espèce, rattrapage automatique du perdant, progrès garanti, événement déclenché pour relancer l'histoire.
+- On vise des fourchettes plausibles et de la diversité, jugées sur de nombreux mondes, jamais une valeur cible sur un seul.
+
 ## Périmètre
 
 La première version simule une seule espèce, l'humain, et laisse le spectateur observer sans intervenir.
@@ -487,6 +502,13 @@ Le HUD est la moitié du jeu : sans lui, les histoires émergentes restent invis
 
 **Atelier des variables :** une page de configuration liste toutes les variables du jeu, regroupées par système, chacune avec sa légende, son unité et ses bornes. On peut les modifier en direct pendant la simulation (celles qui touchent la génération du monde s'appliquent au prochain monde), revenir aux valeurs par défaut, et sauvegarder ou charger des presets. Prévu à l'étape 5 ; dès maintenant, chaque nouvelle variable est documentée pour l'alimenter.
 
+**Mesure des performances :** les mesures de Claude Code donnent un ordre d'idée, mais seul le PC de Tanguy fait foi. Le jeu inclut donc :
+
+- un **indicateur en jeu** (activable) : images par seconde, temps de calcul d'un jour de jeu, part du budget utilisée à la vitesse actuelle, nombre d'humains, d'animaux et de plantes ;
+- un **banc d'essai** lançable d'un clic (bouton ou `Benchmark-GENESIS.bat`) : il rejoue le test de charge (100 à 5 000 humains) sur le PC et enregistre un rapport daté dans un dossier `rapports/`, à transmettre à Claude Code.
+
+Le plafond de population du jeu est fixé d'après le banc d'essai lancé sur le PC de Tanguy. Prévu à l'étape 5.
+
 ## Fin de partie et relance
 
 Si la dernière tribu s'éteint, le jeu propose deux choix :
@@ -582,7 +604,7 @@ Chaque étape est livrée jouable : on peut lancer le jeu et voir le résultat. 
 | 2 · Temps et données | Horloge, calendrier, vitesses, fichiers de données, journal | Les saisons passent, vitesses x1 à x500 |
 | 3 · Faune et flore | Plantes et animaux simplifiés | Troupeaux qui migrent, forêts qui repoussent |
 | 4 · Premiers humains | Cycle jour-nuit, besoins, déplacements, routine, cerveau de base, mesure de performance | La tribu cueille, fait du feu, dort |
-| 5 · Atelier des variables | Page de configuration : toutes les variables avec légende, modification en direct, presets | On règle l'équilibre sans toucher au code |
+| 5 · Atelier et mesures | Page de configuration (variables avec légende, modification en direct, presets) ; outils de mesure des performances sur le PC du joueur | On règle l'équilibre sans toucher au code et on connaît les vraies performances |
 | 6 · Production | Recettes, objets, bâtiments, stocks | Huttes, outils, fumoirs |
 | 7 · Vie sociale | Relations, mémoire, émotions, conversations, connaissance limitée | Amitiés, rancunes, rumeurs |
 | 8 · Cycle de vie | Naissance, vieillissement, mort, héritage | Des générations qui se succèdent |

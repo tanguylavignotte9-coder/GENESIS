@@ -71,6 +71,33 @@ tests/                  tests Vitest (unitaires + simulations sans écran)
    pas de recalcul à chaque instant s'il n'y a rien de nouveau). Données lourdes (carte, positions,
    besoins) stockées de façon compacte (tableaux typés). Ne jamais agréger des individus en statistiques.
 
+## Philosophie d'équilibrage (fondamental)
+
+Ton pré-équilibrage ne doit **jamais forcer le destin**. Chaque système doit fonctionner
+correctement seul ; c'est leur combinaison qui crée l'histoire, le drame, l'effondrement ou le
+triomphe. Il faut distinguer ce qui est **mal équilibré** de ce qui est **simplement l'histoire**.
+
+| Mal équilibré : à corriger | L'histoire : à laisser vivre |
+| --- | --- |
+| Le même résultat sur presque toutes les graines (toujours l'extinction, toujours l'explosion) | Un résultat extrême dans certains mondes seulement |
+| Un comportement individuel absurde (mourir de faim à côté de nourriture accessible) | Une mort logique compte tenu de ce que l'individu savait et pouvait faire |
+| Une action ou une stratégie qui domine toujours, une ressource jamais utile | Des choix différents selon le lieu, l'époque et la personnalité |
+| Un résultat sans chaîne de causes lisible dans le journal | Un résultat expliqué par ses causes (sécheresse, puis famine, puis exode) |
+
+Règles :
+- **Corriger au niveau de l'individu**, en rendant une règle plus réaliste (« un vrai animal ou un
+  vrai humain ferait-il ça ? »), jamais en pilotant le résultat global.
+- **Interdits** : quotas de population, filets de sécurité qui sauvent une tribu ou une espèce,
+  rattrapage automatique du perdant, progrès garanti, événement déclenché pour « relancer »
+  l'histoire.
+- **Viser des fourchettes plausibles et de la diversité**, pas des valeurs cibles. Juger un
+  équilibre sur de nombreuses graines (la distribution des résultats), jamais sur une seule.
+- **Tester séparément** : chaque système avec des scénarios contrôlés (il fait ce qu'il doit) ;
+  l'ensemble avec des simulations longues qui vérifient l'absence d'absurdités, la présence de
+  causes et la variété des histoires, pas un résultat imposé.
+- Dans le compte rendu, quand un résultat surprenant apparaît, dis s'il s'agit d'un défaut
+  d'équilibre (et ce que tu as corrigé) ou d'une histoire légitime (et sa chaîne de causes).
+
 ## Conventions de code
 
 - Identifiants, noms de fichiers et commentaires de code en **anglais**.

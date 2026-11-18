@@ -22,6 +22,9 @@ import { DeathCause, People } from './people';
 import { INPUTS, type Behavior, type HumanParams } from './params';
 import { Pathfinder } from './pathfinding';
 import { Terrain } from './terrain';
+import { SocialLife } from './social/social-life';
+import type { SocialParams } from './social/params';
+import type { TimeParams } from '../../core/time-params';
 
 export const SETTLEMENT = 'humans.settlement';
 export const HUMAN_DEATH = 'humans.death';
@@ -48,6 +51,8 @@ export class IndividualsSystem {
   readonly size: number;
   /** Where people are, rebuilt after each step: what the rest of the world perceives of them. */
   readonly grid: SpatialGrid;
+  /** Relations, emotions, memories, conversations, news and ambitions (step 7). */
+  readonly social: SocialLife;
   private readonly pathfinder: Pathfinder;
   private predatorCodes: Uint8Array;
   private readonly inputs = new Float64Array(INPUTS.length);
@@ -65,6 +70,8 @@ export class IndividualsSystem {
     readonly flora: FloraSystem,
     readonly fauna: FaunaSystem,
     readonly params: HumanParams,
+    socialParams: SocialParams,
+    time: TimeParams,
     readonly knowledge: KnowledgeCatalog,
     readonly production: ProductionSystem,
     readonly rng: Rng,
@@ -89,6 +96,7 @@ export class IndividualsSystem {
     for (let p = 0; p < this.people.count; p++) this.people.nextThink[p] = p % this.thinkSteps;
     this.grid = new SpatialGrid(world.size, GRID_CELL_TILES);
     this.rebuildGrid();
+    this.social = new SocialLife(this, socialParams, time, rng, journal);
     interactions.register(
       'human',
       {
@@ -182,6 +190,7 @@ export class IndividualsSystem {
   foundFood(person: number, tile: number): void {
     this.remember(person, 'food', tile);
     const distance = this.forageTrip(person, tile);
+    this.social.onFoodFound(person, tile, distance);
     if (distance >= this.params.campMove.forageFarTiles) this.people.farFood[person] = tile;
   }
 
@@ -208,8 +217,10 @@ export class IndividualsSystem {
   /** One step for every living person (index order: deterministic). */
   runStep(hour: number, absoluteDay: number, journal: Journal, tick: number): void {
     this.hour = hour;
+    this.social.tick = tick;
     if (absoluteDay !== this.absoluteDay) {
       this.absoluteDay = absoluteDay;
+      this.social.newDay(absoluteDay);
       this.forgetOldPlaces();
       for (const camp of this.camps) considerMoving(this, camp, absoluteDay, tick);
     }
@@ -222,7 +233,11 @@ export class IndividualsSystem {
         this.die(p, cause, journal, tick, null);
         continue;
       }
-      if ((this.step + p) % this.params.stepsPerHour === 0) this.perceive(p);
+      this.social.liveStep(p, hours, this.isSleeping(p), people.hunger[p]!);
+      if ((this.step + p) % this.params.stepsPerHour === 0) {
+        this.perceive(p);
+        this.social.perceiveHour(p);
+      }
       if (this.step >= people.nextThink[p]!) this.think(p);
       if (performAction(this, p, this.actions[people.action[p]!]!, hours)) people.nextThink[p] = this.step + 1;
     }
@@ -237,6 +252,7 @@ export class IndividualsSystem {
     const current = people.action[person]!;
     const traitOffset = person * people.traitCount;
     const age = people.ageYears[person]!;
+    const wantedSkill = this.social.skillAmbition(person);
     for (let k = 0; k < this.actions.length; k++) {
       const action = this.actions[k]!;
       if ((action.requiredBit !== 0 && (people.knowledge[person]! & action.requiredBit) === 0) || age < action.minAge) {
@@ -244,6 +260,7 @@ export class IndividualsSystem {
         continue;
       }
       let score = scoreAction(action, this.inputs, people.traits, traitOffset);
+      if (wantedSkill >= 0 && action.skills.includes(wantedSkill)) score *= 1 + this.social.params.ambitions.skillBonus;
       score *= 1 + params.decision.randomness * (this.rng.nextFloat() * 2 - 1);
       if (k === current) {
         score *= 1 + params.decision.keepCurrentBonus;
@@ -303,6 +320,7 @@ export class IndividualsSystem {
     input[k++] = needs.build;
     input[k++] = needs.craft;
     input[k++] = 1;
+    this.social.fillInputs(person, input, k);
   }
 
   /** Every hour: predators in sight (danger) and whether the person is isolated. */
@@ -323,6 +341,7 @@ export class IndividualsSystem {
     });
     const wasSafe = people.threat[person]! < 0;
     people.threat[person] = threat;
+    if (wasSafe && threat >= 0) this.social.onThreat(person, fauna.store.x[threat]!, fauna.store.y[threat]!);
     const mate = this.nearestTribeMember(person);
     const gap = mate < 0 ? Infinity : Math.max(Math.abs(people.x[mate]! - x), Math.abs(people.y[mate]! - y));
     people.isolated[person] = gap > params.danger.isolationTiles ? 1 : 0;
@@ -346,7 +365,10 @@ export class IndividualsSystem {
     people.health[person] = people.health[person]! - attack.damage;
     people.danger[person] = FULL;
     people.nextThink[person] = this.step;
-    if (people.health[person]! > 0) return outcome;
+    if (people.health[person]! > 0) {
+      this.social.onAttacked(person);
+      return outcome;
+    }
     outcome.killed = true;
     outcome.remains = params.danger.corpseMeat;
     outcome.eventId = this.die(person, DeathCause.Predator, journal, attack.tick, attack);
@@ -379,6 +401,7 @@ export class IndividualsSystem {
       details: { cause, person },
     });
     if (cause === DeathCause.Hunger) this.camps[people.camp[person]!]!.hungerDeaths.push({ day: this.absoluteDay, event });
+    this.social.onDeath(person, cause, event);
     return event;
   }
 

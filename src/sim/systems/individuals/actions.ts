@@ -2,6 +2,7 @@ import { canDrink } from '../fauna/fresh-water';
 import type { JobKind } from '../production/jobs';
 import type { CompiledAction } from './brain';
 import type { IndividualsSystem } from './individuals-system';
+import { CONVERSATIONS, type ConversationKind } from './social/params';
 
 const FULL = 100;
 const SATISFIED = 5;
@@ -28,9 +29,12 @@ export function startAction(sys: IndividualsSystem, person: number, action: Comp
   people.working[person] = 0;
   people.paths[person] = null;
   people.target[person] = -1;
+  const talkWith = sys.social.state.talkWith[person]!;
+  sys.social.state.talkWith[person] = -1;
   const job = JOBS[action.def.behavior];
   const started = job ? startJob(sys, person, action, job) : startOther(sys, person, action);
   if (!started) {
+    sys.social.state.talkWith[person] = talkWith;
     people.working[person] = working;
     people.paths[person] = path;
     people.pathIndex[person] = pathIndex;
@@ -70,9 +74,64 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       const mate = sys.nearestTribeMember(person);
       return mate >= 0 && sys.goTo(person, sys.tileOf(mate));
     }
+    case 'converse': {
+      const partner = sys.social.partnerFor(person, action.def.conversation ?? 'chat');
+      return partner >= 0 && meet(sys, person, partner, action.def.conversation ?? 'chat');
+    }
+    case 'give': {
+      const receiver = sys.social.giftTarget(person);
+      return receiver >= 0 && meet(sys, person, receiver, null);
+    }
     default:
       return true;
   }
+}
+
+/** Heads for someone to talk to (or give to). */
+function meet(sys: IndividualsSystem, person: number, other: number, kind: string | null): boolean {
+  const social = sys.social.state;
+  social.talkWith[person] = other;
+  social.talkKind[person] = kind === null ? -1 : CONVERSATIONS.indexOf(kind as ConversationKind);
+  social.talkHours[person] = 0;
+  social.talkDone[person] = 0;
+  if (distance(sys, person, other) <= 1) {
+    sys.people.target[person] = sys.tileOf(person);
+    return true;
+  }
+  return sys.goTo(person, sys.tileOf(other));
+}
+
+function distance(sys: IndividualsSystem, a: number, b: number): number {
+  const { people } = sys;
+  return Math.max(Math.abs(people.x[a]! - people.x[b]!), Math.abs(people.y[a]! - people.y[b]!));
+}
+
+/**
+ * Walks up to the other (who may move: the way is planned again when reached), then talks or
+ * gives. Returns true when it is over (done, or the other gone, asleep or out of reach).
+ */
+function meeting(sys: IndividualsSystem, person: number, hours: number, gift: boolean): boolean {
+  const { people, social } = sys;
+  const state = social.state;
+  const other = state.talkWith[person]!;
+  if (other < 0 || people.alive[other] !== 1 || sys.isSleeping(other)) return true;
+  if (distance(sys, person, other) > 1) {
+    people.working[person] = 0;
+    if (distance(sys, person, other) > social.params.reachTiles * 2) return true;
+    const reached = sys.tileOf(person) === people.target[person] || sys.walk(person, hours) !== 'moving';
+    return reached && !sys.goTo(person, sys.tileOf(other));
+  }
+  people.working[person] = 1;
+  if (state.talkDone[person] === 0) {
+    state.talkDone[person] = 1;
+    if (gift) {
+      social.give(person, other);
+      return true;
+    }
+    social.talk(person, other, CONVERSATIONS[state.talkKind[person]!] ?? 'chat');
+  }
+  state.talkHours[person] = state.talkHours[person]! + hours;
+  return state.talkHours[person]! >= social.params.conversation.durationHours;
 }
 
 /** Asks the production system for a job, then heads for its first place (for food, memory and exploration help). */
@@ -136,6 +195,10 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
     case 'flee':
     case 'stay_with_group':
       return sys.arrived(person, hours, () => true);
+    case 'converse':
+      return meeting(sys, person, hours, false);
+    case 'give':
+      return meeting(sys, person, hours, true);
     default:
       people.working[person] = 1;
       return false;

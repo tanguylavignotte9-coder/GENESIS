@@ -1,0 +1,467 @@
+{
+  "reachTiles": 8,
+  "relations": {
+    "slots": 24,
+    "decayPerDay": 0.1,
+    "forgetBelow": 4,
+    "startingSpread": 30,
+    "startingMean": 8,
+    "kin": {
+      "spouse": {
+        "affection": 65,
+        "trust": 60,
+        "respect": 40
+      },
+      "parent": {
+        "affection": 60,
+        "trust": 55,
+        "respect": 50
+      },
+      "child": {
+        "affection": 70,
+        "trust": 45,
+        "respect": 20
+      },
+      "sibling": {
+        "affection": 40,
+        "trust": 35,
+        "respect": 25
+      }
+    },
+    "friendAffection": 35,
+    "greatFriendAffection": 60,
+    "rivalAffection": -25,
+    "fallingOutDrop": 45,
+    "reasonHalfLifeDays": 40
+  },
+  "emotions": {
+    "joy": {
+      "name": "Joie",
+      "decayPerHour": 3
+    },
+    "sadness": {
+      "name": "Tristesse",
+      "decayPerHour": 1.5
+    },
+    "anger": {
+      "name": "Colère",
+      "decayPerHour": 4
+    },
+    "fear": {
+      "name": "Peur",
+      "decayPerHour": 3
+    },
+    "jealousy": {
+      "name": "Jalousie",
+      "decayPerHour": 1.5
+    }
+  },
+  "loneliness": {
+    "perHour": 2.5,
+    "sociabilityEffect": 0.8,
+    "name": "Solitude"
+  },
+  "memories": {
+    "slots": 12,
+    "forgetBelow": 3,
+    "feelShare": 0.5,
+    "maxTraitDrift": 0.25,
+    "kinds": {
+      "grief": {
+        "name": "Deuil",
+        "emotion": "sadness",
+        "intensity": 80,
+        "halfLifeDays": 60,
+        "traits": {
+          "sociability": -0.03,
+          "prudence": 0.01
+        },
+        "text": "a perdu {autre}"
+      },
+      "witnessedDeath": {
+        "name": "Mort vue de près",
+        "emotion": "fear",
+        "intensity": 35,
+        "halfLifeDays": 20,
+        "traits": {
+          "prudence": 0.02
+        },
+        "text": "a vu mourir {autre}"
+      },
+      "attacked": {
+        "name": "Attaque",
+        "emotion": "fear",
+        "intensity": 70,
+        "halfLifeDays": 40,
+        "traits": {
+          "prudence": 0.04
+        },
+        "text": "a été attaqué{e} par un fauve"
+      },
+      "danger": {
+        "name": "Danger",
+        "emotion": "fear",
+        "intensity": 25,
+        "halfLifeDays": 10,
+        "traits": {},
+        "text": "sait qu’un fauve rôde"
+      },
+      "starving": {
+        "name": "Famine",
+        "emotion": "fear",
+        "intensity": 45,
+        "halfLifeDays": 40,
+        "traits": {
+          "generosity": -0.02,
+          "diligence": 0.02
+        },
+        "text": "a souffert de la faim"
+      },
+      "fed": {
+        "name": "Gratitude",
+        "emotion": "joy",
+        "intensity": 35,
+        "halfLifeDays": 30,
+        "traits": {
+          "generosity": 0.01
+        },
+        "text": "a été nourri{e} par {autre}"
+      },
+      "comforted": {
+        "name": "Réconfort",
+        "emotion": "joy",
+        "intensity": 30,
+        "halfLifeDays": 25,
+        "traits": {},
+        "text": "a été consolé{e} par {autre}"
+      },
+      "quarrel": {
+        "name": "Rancune",
+        "emotion": "anger",
+        "intensity": 40,
+        "halfLifeDays": 25,
+        "traits": {
+          "temper": 0.01
+        },
+        "text": "s’est disputé{e} avec {autre}"
+      },
+      "rejected": {
+        "name": "Rejet",
+        "emotion": "sadness",
+        "intensity": 30,
+        "halfLifeDays": 15,
+        "traits": {},
+        "text": "a été éconduit{e} par {autre}"
+      },
+      "couple": {
+        "name": "Amour",
+        "emotion": "joy",
+        "intensity": 60,
+        "halfLifeDays": 60,
+        "traits": {
+          "sociability": 0.02
+        },
+        "text": "s’est mis{e} en couple avec {autre}"
+      },
+      "separation": {
+        "name": "Séparation",
+        "emotion": "sadness",
+        "intensity": 55,
+        "halfLifeDays": 40,
+        "traits": {
+          "sociability": -0.02
+        },
+        "text": "s’est séparé{e} de {autre}"
+      },
+      "friendship": {
+        "name": "Amitié",
+        "emotion": "joy",
+        "intensity": 35,
+        "halfLifeDays": 40,
+        "traits": {},
+        "text": "est devenu{e} l’ami{e} de {autre}"
+      },
+      "jealous": {
+        "name": "Jalousie",
+        "emotion": "jealousy",
+        "intensity": 40,
+        "halfLifeDays": 15,
+        "traits": {},
+        "text": "a vu {autre} courtiser l’être aimé"
+      }
+    }
+  },
+  "conversation": {
+    "durationHours": 0.5,
+    "newsPerTalk": 2,
+    "kinds": {
+      "chat": {
+        "name": "Bavarder",
+        "listenerFeels": {
+          "affection": 3,
+          "trust": 0.8,
+          "respect": 0
+        },
+        "speakerFeels": {
+          "affection": 3,
+          "trust": 0.8,
+          "respect": 0
+        },
+        "lonelinessRelief": 45,
+        "joy": 8,
+        "reason": "chat"
+      },
+      "confide": {
+        "name": "Se confier",
+        "listenerFeels": {
+          "affection": 1.5,
+          "trust": 2,
+          "respect": 0
+        },
+        "speakerFeels": {
+          "affection": 3,
+          "trust": 3,
+          "respect": 0
+        },
+        "lonelinessRelief": 50,
+        "joy": 0,
+        "reason": "confided"
+      },
+      "console": {
+        "name": "Consoler",
+        "listenerFeels": {
+          "affection": 6,
+          "trust": 4,
+          "respect": 2
+        },
+        "speakerFeels": {
+          "affection": 2,
+          "trust": 1,
+          "respect": 0
+        },
+        "lonelinessRelief": 30,
+        "joy": 0,
+        "reason": "comforted"
+      },
+      "seduce": {
+        "name": "Séduire",
+        "listenerFeels": {
+          "affection": 5,
+          "trust": 1,
+          "respect": 0
+        },
+        "speakerFeels": {
+          "affection": 3,
+          "trust": 0,
+          "respect": 0
+        },
+        "lonelinessRelief": 30,
+        "joy": 15,
+        "reason": "courted"
+      },
+      "argue": {
+        "name": "Se disputer",
+        "listenerFeels": {
+          "affection": -7,
+          "trust": -4,
+          "respect": -3
+        },
+        "speakerFeels": {
+          "affection": -4,
+          "trust": -2,
+          "respect": -1
+        },
+        "lonelinessRelief": 0,
+        "joy": 0,
+        "reason": "quarrel"
+      }
+    },
+    "confideSadnessRelief": 25,
+    "consoleSadnessRelief": 30,
+    "argueAngerRelief": 35,
+    "argueAngerCaused": 30,
+    "chatOverheardJealousyTiles": 6,
+    "charmEffect": 0.5,
+    "temperEffect": 0.5,
+    "jealousyFeels": {
+      "affection": -10,
+      "trust": -5,
+      "respect": 0
+    },
+    "jealousyAnger": 20,
+    "frictionChance": 0.06,
+    "frictionFeels": {
+      "affection": -8,
+      "trust": -3,
+      "respect": -2
+    },
+    "frictionAnger": 15,
+    "frictionHungerEffect": 1.5,
+    "frictionMismatchEffect": 3,
+    "partnerRandomness": 25,
+    "likeMindedEffect": 1
+  },
+  "couples": {
+    "minAge": 16,
+    "maxAgeGap": 15,
+    "sameSexShare": 0.05,
+    "acceptAffection": 45,
+    "courtMinAffection": 10,
+    "takenTargetFactor": 0.1,
+    "breakupAffection": -15,
+    "mourningMemoryBelow": 25
+  },
+  "news": {
+    "slots": 16,
+    "detailLossChance": 0.25,
+    "witnessTiles": 10,
+    "discoveryDays": 15,
+    "foodFactMinTiles": 8,
+    "fuzzTiles": [
+      0,
+      4,
+      10
+    ],
+    "kinds": {
+      "death": {
+        "importance": 1,
+        "forgetDays": 400
+      },
+      "couple": {
+        "importance": 0.6,
+        "forgetDays": 200
+      },
+      "food": {
+        "importance": 0.4,
+        "forgetDays": 20
+      },
+      "danger": {
+        "importance": 0.7,
+        "forgetDays": 10
+      }
+    }
+  },
+  "sharing": {
+    "askHunger": 55,
+    "keepHunger": 70,
+    "foodUnitsPerGift": 3,
+    "receiverFeels": {
+      "affection": 8,
+      "trust": 6,
+      "respect": 3
+    },
+    "giverJoy": 6,
+    "itemGiftWeight": 0.3
+  },
+  "ambitions": {
+    "max": 3,
+    "friendsGoal": 3,
+    "masteryLevel": 0.6,
+    "skillBonus": 0.4,
+    "lonelyFriends": 1,
+    "kinds": {
+      "makeFriends": {
+        "name": "Se faire des amis",
+        "weight": 1,
+        "traits": {
+          "sociability": 1
+        }
+      },
+      "findPartner": {
+        "name": "Trouver un compagnon",
+        "weight": 1,
+        "traits": {
+          "sociability": 0.5
+        }
+      },
+      "excelSkill": {
+        "name": "Exceller dans son métier",
+        "weight": 0.8,
+        "traits": {
+          "diligence": 0.8,
+          "ambition": 0.8
+        }
+      },
+      "regainEsteem": {
+        "name": "Regagner l’estime de quelqu’un",
+        "weight": 1.2,
+        "traits": {
+          "temper": -0.6
+        }
+      }
+    },
+    "dailyChance": 0.15
+  },
+  "texts": {
+    "couple": "{a} et {b} forment un couple : {raisons}.",
+    "friendship": "{a} et {b} sont devenus de grands amis : {raisons}.",
+    "fallingOut": "{a} et {b} se brouillent : {raisons}.",
+    "separation": "{a} et {b} se séparent : {raisons}.",
+    "mourning": "{nom} apprend la mort de {mort} ({lien}){par} : le deuil commence.",
+    "mourningWitness": "{nom} voit mourir {mort} ({lien}) : le deuil commence.",
+    "noReason": "sans raison particulière",
+    "dated": "{texte} ({saison} de l’an {an})",
+    "toldBy": " par {nom}"
+  },
+  "reasons": {
+    "chat": {
+      "text": "longues conversations",
+      "dated": false
+    },
+    "confided": {
+      "text": "{nom} s’est confié{e} à {autre}",
+      "dated": false
+    },
+    "comforted": {
+      "text": "{autre} a consolé {nom}",
+      "dated": true
+    },
+    "courted": {
+      "text": "{autre} a courtisé {nom}",
+      "dated": false
+    },
+    "quarrel": {
+      "text": "disputes",
+      "dated": false
+    },
+    "fed": {
+      "text": "{autre} a nourri {nom}",
+      "dated": true
+    },
+    "gave": {
+      "text": "{autre} a donné un objet à {nom}",
+      "dated": true
+    },
+    "jealousy": {
+      "text": "{autre} a courtisé l’être aimé de {nom}",
+      "dated": false
+    },
+    "kin": {
+      "text": "liens du sang",
+      "dated": false
+    },
+    "spouse": {
+      "text": "vie commune",
+      "dated": false
+    },
+    "tribe": {
+      "text": "vie dans la même tribu",
+      "dated": false
+    }
+  },
+  "kinNames": {
+    "mother": "sa mère",
+    "father": "son père",
+    "son": "son fils",
+    "daughter": "sa fille",
+    "brother": "son frère",
+    "sister": "sa sœur",
+    "husband": "son compagnon",
+    "wife": "sa compagne",
+    "friend": "son ami",
+    "friendFemale": "son amie",
+    "acquaintance": "une connaissance",
+    "rival": "son rival",
+    "rivalFemale": "sa rivale"
+  }
+}

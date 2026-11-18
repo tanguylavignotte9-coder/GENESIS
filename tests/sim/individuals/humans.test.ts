@@ -168,14 +168,16 @@ describe('daily life', () => {
       attacks++;
       return attack(blow);
     };
-    for (let hour = 0; hour < 24; hour++) {
+    // The two stay side by side (re-placed at every step of the humans: their own decisions would take them away).
+    const quarter = hourTicks / data.humans.stepsPerHour;
+    for (let step = 0; step < 24 * data.humans.stepsPerHour; step++) {
       fauna.store.hunger[wolf] = 100;
       fauna.store.thirst[wolf] = 0;
       humans.people.x[p] = (fauna.store.x[wolf]! + 1) % SIZE;
       humans.people.y[p] = fauna.store.y[wolf]!;
       humans.people.x[friend] = humans.people.x[p]!;
       humans.people.y[friend] = humans.people.y[p]! + 1;
-      simulation.step(hourTicks);
+      simulation.step(quarter);
     }
     expect(attacks).toBe(0);
   });

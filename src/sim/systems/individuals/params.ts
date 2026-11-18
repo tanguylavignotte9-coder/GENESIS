@@ -1,4 +1,6 @@
 import { choice, DataFileError, identifier, text, validateData, variable, type Schema } from '../../core/data-validation';
+import { CONVERSATIONS, type ConversationKind } from './social/params';
+import { SOCIAL_INPUTS } from './social/inputs';
 
 /** Inputs an action's score can depend on (all normalized to 0..1). */
 export const INPUTS = [
@@ -22,11 +24,12 @@ export const INPUTS = [
   'buildNeed',
   'craftNeed',
   'always',
+  ...SOCIAL_INPUTS,
 ] as const;
 export type Input = (typeof INPUTS)[number];
 
 /** Built-in behaviours; each data action names one of them (work behaviours run recipes of data/recipes.json). */
-export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest'] as const;
+export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give'] as const;
 export type Behavior = (typeof BEHAVIORS)[number];
 
 export interface Consideration {
@@ -57,6 +60,10 @@ export interface ActionDef {
   traits: Record<string, number>;
   /** Knowledge needed to perform the action. */
   requires?: string;
+  /** Kind of conversation (behaviour "converse"). */
+  conversation?: ConversationKind;
+  /** Skills the action practises (someone who wants to master one of them prefers the action). */
+  skills?: string[];
 }
 
 export interface HumanParams {
@@ -315,8 +322,10 @@ export const HUMANS_SCHEMA: Schema = {
           },
           traits: { kind: 'record', values: v('number', -2, 2, 'Influence d’un trait', 'Effet d’un trait de caractère sur le score de l’action.', 'facteur') },
           requires: text('Savoir requis', 'Identifiant du savoir nécessaire pour faire cette action.', 'live', ID_PATTERN),
+          conversation: choice(CONVERSATIONS, 'Conversation', 'Sorte de conversation (comportement « converse ») : bavarder, se confier, consoler, séduire, se disputer.', 'newWorld'),
+          skills: { kind: 'array', items: text('Compétence exercée', 'Compétence que l’action fait pratiquer (celui qui veut y exceller la préfère).', 'live', ID_PATTERN) },
         },
-        optional: ['requires', 'recipes', 'items', 'minAge'],
+        optional: ['requires', 'recipes', 'items', 'minAge', 'conversation', 'skills'],
       },
     },
     deathTexts: {
@@ -353,8 +362,11 @@ export function parseHumanParams(raw: unknown, animalIds: readonly string[]): Hu
   const problems: string[] = [];
   const traits = new Set(params.traits.map((item) => item.id));
   for (const id of params.danger.predators) if (!animalIds.includes(id)) problems.push(`« danger.predators » : l'animal « ${id} » n'existe pas.`);
+  const skills = new Set(params.skills.map((skill) => skill.id));
   for (const action of params.actions) {
     for (const id of Object.keys(action.traits)) if (!traits.has(id)) problems.push(`action « ${action.id} » : le trait « ${id} » n'existe pas.`);
+    for (const id of action.skills ?? []) if (!skills.has(id)) problems.push(`action « ${action.id} » : la compétence « ${id} » n'existe pas.`);
+    if (action.behavior === 'converse' && !action.conversation) problems.push(`action « ${action.id} » : une conversation doit préciser « conversation ».`);
   }
   if (params.names.minSyllables > params.names.maxSyllables) problems.push('« names.minSyllables » doit être inférieur ou égal à « names.maxSyllables ».');
   if (params.site.minCelsius > params.site.maxCelsius) problems.push('« site.minCelsius » doit être inférieur ou égal à « site.maxCelsius ».');

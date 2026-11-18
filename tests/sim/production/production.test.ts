@@ -205,7 +205,8 @@ describe('hunting', () => {
     const hunted = (): number => fauna.deaths.reduce((sum, causes) => sum + causes[5]!, 0);
     const carcass = production.catalog.item('carcass');
     let brought = 0;
-    for (let d = 0; d < 6 && hunted() === 0; d++) simulation.step(data.time.ticksPerDay);
+    // Game runs away from hunters: it may take a few days (checked every hour, before the meat is eaten).
+    for (let h = 0; h < 15 * 24 && hunted() === 0; h++) simulation.step(hourTicks(data));
     for (const inventory of [...production.carried, production.stockOf(0)]) brought += inventory.count(carcass);
     // The carcass may already be butchered (and its meat eaten): its bones and hide remain.
     for (const id of ['meat', 'hide', 'bone', 'sinew']) {

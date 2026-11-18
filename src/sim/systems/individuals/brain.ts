@@ -20,6 +20,8 @@ export interface CompiledAction {
   recipes: number[];
   items: number[];
   minAge: number;
+  /** Skills the action practises (indices). */
+  skills: number[];
 }
 
 /** Index lookups of the production catalog (-1 when unknown). */
@@ -49,6 +51,7 @@ export function compileActions(params: HumanParams, knowledge: KnowledgeCatalog,
       recipes: (def.recipes ?? []).map((id) => lookup.recipe(id)).filter((k) => k >= 0),
       items: (def.items ?? []).map((id) => lookup.item(id)).filter((k) => k >= 0),
       minAge: def.minAge ?? 0,
+      skills: (def.skills ?? []).map((id) => params.skills.findIndex((skill) => skill.id === id)).filter((k) => k >= 0),
     };
   });
 }

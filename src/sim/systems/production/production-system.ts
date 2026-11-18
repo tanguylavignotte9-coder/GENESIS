@@ -445,6 +445,56 @@ export class ProductionSystem {
     return eaten;
   }
 
+  /**
+   * A gift of food: up to `units` of food value pass from what `from` carries to `to` (what spoils
+   * first goes first). Returns the food value given.
+   */
+  giveFood(from: number, to: number, units: number): number {
+    const source = this.carried[from]!;
+    const target = this.carried[to]!;
+    let given = 0;
+    while (given < units - 1e-9) {
+      let best = -1;
+      let bestLife = Infinity;
+      for (let k = 0; k < source.piles.length; k++) {
+        const pile = source.piles[k]!;
+        if (this.catalog.food[pile.item]! <= 0) continue;
+        const life = this.catalog.halfLife[pile.item]! || Number.MAX_VALUE;
+        if (life < bestLife) {
+          bestLife = life;
+          best = k;
+        }
+      }
+      if (best < 0) break;
+      const item = source.piles[best]!.item;
+      const food = this.catalog.food[item]!;
+      const taken = source.take(item, (units - given) / food);
+      target.put(item, taken.qty, taken.quality, to);
+      given += taken.qty * food;
+    }
+    return given;
+  }
+
+  /** A tool the person carries twice or more (one could be given away), or -1. */
+  spareItem(person: number): number {
+    for (const pile of this.carried[person]!.piles) {
+      if (this.catalog.items[pile.item]!.category === 'tool' && this.carried[person]!.count(pile.item) >= 2 - 1e-9) return pile.item;
+    }
+    return -1;
+  }
+
+  hasItem(person: number, item: number): boolean {
+    return this.carried[person]!.count(item) >= 1 - 1e-9;
+  }
+
+  /** A gift of one object; returns 1 if it changed hands. */
+  giveItem(from: number, to: number, item: number): number {
+    const taken = this.carried[from]!.take(item, 1);
+    if (taken.qty <= 0) return 0;
+    this.carried[to]!.put(item, taken.qty, taken.quality, to);
+    return 1;
+  }
+
   /** Common stock of a camp. */
   stockOf(camp: number): Inventory {
     return this.camps[camp]!.stock;

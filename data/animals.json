@@ -39,6 +39,7 @@
   },
   "carrion": { "rotPerDay": 0.15, "minimumMeat": 1 },
   "stats": { "intervalDays": 10 },
+  "humanPrey": { "hunters": ["wolf", "lion", "bear"], "minHunger": 30, "loneTiles": 6, "attackChancePerStep": 0.6, "attackDamage": 40 },
   "events": {
     "collapseShare": 0.5,
     "collapseMinPopulation": 25,

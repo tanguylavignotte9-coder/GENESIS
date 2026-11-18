@@ -1,5 +1,7 @@
+import type { Attack, AttackOutcome, Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
 import type { Rng } from '../../core/rng';
+import { SpatialGrid } from '../../core/spatial-grid';
 import { fillTemplate } from '../../core/text';
 import type { FaunaSystem } from '../fauna/fauna-system';
 import type { FloraSystem } from '../flora/flora-system';
@@ -23,6 +25,8 @@ const FULL = 100;
 const MINUTES_PER_HOUR = 60;
 const CHILD_AGE = 14;
 const EXPLORE_ATTEMPTS = 4;
+/** Cell size of the grid that lets the others find people quickly (technical, not gameplay). */
+const GRID_CELL_TILES = 16;
 type WalkResult = 'moving' | 'arrived' | 'stuck';
 
 /**
@@ -37,12 +41,14 @@ export class IndividualsSystem {
   readonly actions: CompiledAction[];
   readonly edibleValue: Map<string, number>;
   readonly size: number;
+  /** Where people are, rebuilt after each step: what the rest of the world perceives of them. */
+  readonly grid: SpatialGrid;
   private readonly pathfinder: Pathfinder;
-  private readonly predatorCodes: Uint8Array;
+  private predatorCodes: Uint8Array;
   private readonly inputs = new Float64Array(INPUTS.length);
   private readonly scores: Float64Array;
   private readonly order: number[] = [];
-  private readonly thinkSteps: number;
+  private thinkSteps: number;
   step = 0;
   hour = 0;
   private absoluteDay = 0;
@@ -57,21 +63,54 @@ export class IndividualsSystem {
     private readonly rng: Rng,
     journal: Journal,
     tick: number,
+    interactions: Interactions,
   ) {
     this.size = world.size;
     this.terrain = new Terrain(world, flora, params.terrain);
     this.pathfinder = new Pathfinder(world.size, this.terrain, params.terrain.maxPathNodes, params.terrain.heuristicWeight);
     this.actions = compileActions(params);
     this.scores = new Float64Array(this.actions.length);
-    this.edibleValue = new Map(Object.entries(params.edibleResources));
-    this.predatorCodes = Uint8Array.from(fauna.params.species, (species) => (params.danger.predators.includes(species.id) ? 1 : 0));
-    this.thinkSteps = Math.max(1, Math.round((params.thinkEveryMinutes / MINUTES_PER_HOUR) * params.stepsPerHour));
+    this.edibleValue = new Map();
+    this.predatorCodes = new Uint8Array(0);
+    this.thinkSteps = 1;
+    this.refreshParams();
     const created = createTribes(this, rng);
     this.people = created.people;
     this.camps.push(...created.camps);
     for (const camp of this.camps) camp.computeWayHome(this.terrain);
     for (let p = 0; p < this.people.count; p++) this.people.nextThink[p] = p % this.thinkSteps;
+    this.grid = new SpatialGrid(world.size, GRID_CELL_TILES);
+    this.rebuildGrid();
+    interactions.register(
+      'human',
+      {
+        forEachNear: (x, y, radius, visit) => this.grid.forEachNear(x, y, radius, visit),
+        x: (person) => this.people.x[person]!,
+        y: (person) => this.people.y[person]!,
+        alive: (person) => this.people.alive[person] === 1,
+      },
+      { sufferAttack: (person, attack, journal) => this.sufferAttack(person, attack, journal) },
+    );
     this.publishSettlements(journal, tick);
+  }
+
+  /** Recomputes what is derived from the parameters (after a live change in the variables workshop). */
+  refreshParams(): void {
+    const { params } = this;
+    const compiled = compileActions(params);
+    this.actions.splice(0, this.actions.length, ...compiled);
+    this.edibleValue.clear();
+    for (const [id, value] of Object.entries(params.edibleResources)) this.edibleValue.set(id, value);
+    this.predatorCodes = Uint8Array.from(this.fauna.params.species, (species) => (params.danger.predators.includes(species.id) ? 1 : 0));
+    this.thinkSteps = Math.max(1, Math.round((params.thinkEveryMinutes / MINUTES_PER_HOUR) * params.stepsPerHour));
+    this.pathfinder.maxNodes = params.terrain.maxPathNodes;
+    this.pathfinder.heuristicWeight = params.terrain.heuristicWeight;
+  }
+
+  private rebuildGrid(): void {
+    const { people, grid } = this;
+    grid.clear();
+    for (let p = 0; p < people.count; p++) if (people.alive[p] === 1) grid.insert(p, grid.cellOf(people.x[p]!, people.y[p]!));
   }
 
   get stepHours(): number {
@@ -108,14 +147,14 @@ export class IndividualsSystem {
       if (people.alive[p] === 0) continue;
       const cause = liveHours(this, p, hours);
       if (cause !== DeathCause.None) {
-        this.die(p, cause, journal, tick, -1);
+        this.die(p, cause, journal, tick, null);
         continue;
       }
       if ((this.step + p) % this.params.stepsPerHour === 0) this.perceive(p);
-      if (this.predatorAttack(p, journal, tick)) continue;
       if (this.step >= people.nextThink[p]!) this.think(p);
       if (performAction(this, p, this.actionId(p), hours)) people.nextThink[p] = this.step + 1;
     }
+    this.rebuildGrid();
     this.step++;
   }
 
@@ -209,35 +248,27 @@ export class IndividualsSystem {
   }
 
   /**
-   * A hungry predator nearby closes in on an isolated person and may attack.
-   * (The animal's move and meal are written into the fauna's state.)
+   * A predator's blow (through the interaction mechanism): the person is wounded, terrified and
+   * reconsiders at once (flee); if the wound is mortal, the body is left where the person fell.
    */
-  private predatorAttack(person: number, journal: Journal, tick: number): boolean {
-    const { people, fauna, params } = this;
-    const predator = people.threat[person]!;
-    if (predator < 0 || people.isolated[person] === 0 || fauna.store.alive[predator] === 0) return false;
-    if (fauna.store.hunger[predator]! < params.danger.predatorMinHunger) return false;
-    const px = fauna.store.x[predator]!;
-    const py = fauna.store.y[predator]!;
+  private sufferAttack(person: number, attack: Attack, journal: Journal): AttackOutcome {
+    const { people, params } = this;
     const x = people.x[person]!;
     const y = people.y[person]!;
-    if (Math.max(Math.abs(px - x), Math.abs(py - y)) > 1) {
-      const nx = px + Math.sign(x - px);
-      const ny = py + Math.sign(y - py);
-      if (fauna.isWalkable(nx, ny)) fauna.place(predator, nx, ny);
-      return false;
-    }
-    if (this.rng.nextFloat() >= params.danger.attackChancePerStep) return false;
-    people.health[person] = people.health[person]! - params.danger.attackDamage;
+    const outcome: AttackOutcome = { killed: false, remains: 0, x, y, eventId: -1 };
+    if (people.alive[person] === 0) return outcome;
+    people.health[person] = people.health[person]! - attack.damage;
     people.danger[person] = FULL;
-    if (people.health[person]! > 0) return false;
-    fauna.store.hunger[predator] = 0;
-    fauna.carrion.add(this.tileOf(person), params.danger.corpseMeat);
-    this.die(person, DeathCause.Predator, journal, tick, fauna.store.species[predator]!);
-    return true;
+    people.nextThink[person] = this.step;
+    if (people.health[person]! > 0) return outcome;
+    outcome.killed = true;
+    outcome.remains = params.danger.corpseMeat;
+    outcome.eventId = this.die(person, DeathCause.Predator, journal, attack.tick, attack);
+    this.grid.remove(person, this.grid.cellOf(x, y));
+    return outcome;
   }
 
-  private die(person: number, cause: number, journal: Journal, tick: number, animalSpecies: number): void {
+  private die(person: number, cause: number, journal: Journal, tick: number, attack: Attack | null): number {
     const { people } = this;
     people.alive[person] = 0;
     people.deathCause[person] = cause;
@@ -247,16 +278,16 @@ export class IndividualsSystem {
     const place = describeLocation(this.world.landmasses, this.world.landmassNames, x, y, this.size);
     const texts = this.params.deathTexts;
     const template = cause === DeathCause.Hunger ? texts.hunger : cause === DeathCause.Thirst ? texts.thirst : cause === DeathCause.Cold ? texts.cold : texts.predator;
-    const animal = this.fauna.params.species[animalSpecies]?.name.toLowerCase() ?? '';
+    const animal = attack?.attackerName ?? '';
     // A death by hunger, thirst or cold inside a hardship region is caused by that hardship.
     const anomaly = this.climate.anomalies[this.climate.anomalyIndex[tile]! - 1];
     const hardship = anomaly && this.climate.params.anomalies.types[anomaly.type]?.hardshipName !== undefined;
-    journal.publish({
+    return journal.publish({
       tick,
       type: HUMAN_DEATH,
       text: fillTemplate(template, { nom: people.names[person]!, e: people.female[person] ? 'e' : '', lieu: place, un_animal: `un ${animal}` }),
       place: { x, y, label: place },
-      actors: [{ kind: 'human', id: person }],
+      actors: attack ? [{ kind: 'human', id: person }, attack.attacker] : [{ kind: 'human', id: person }],
       causes: hardship && cause !== DeathCause.Predator ? [anomaly.startEventId] : [],
       details: { cause, person },
     });

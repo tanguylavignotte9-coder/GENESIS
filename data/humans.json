@@ -84,9 +84,6 @@
     "alertTiles": 7,
     "isolationTiles": 6,
     "groupFearShare": 0.35,
-    "predatorMinHunger": 30,
-    "attackChancePerStep": 0.2,
-    "attackDamage": 40,
     "corpseMeat": 25
   },
   "terrain": {

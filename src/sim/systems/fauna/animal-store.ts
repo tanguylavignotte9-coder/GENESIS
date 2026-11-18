@@ -55,8 +55,10 @@ export class AnimalStore {
   group = new Int32Array(0);
   targetX = new Int16Array(0);
   targetY = new Int16Array(0);
-  /** Hunted animal's slot (hunters) — or -1. */
+  /** Hunted being (hunters) — or -1: an animal slot, or a person if `huntsHuman` is 1. */
   targetAnimal = new Int32Array(0);
+  /** 1 while the hunter's target is a human (seen through the humans' view of the world). */
+  huntsHuman = new Uint8Array(0);
   /** Steps left in the current chase. */
   chase = new Int16Array(0);
   /** Days of pregnancy left, 0 = not pregnant. */
@@ -78,6 +80,7 @@ export class AnimalStore {
     this.alive[slot] = 1;
     this.uid[slot] = this.nextUid++;
     this.targetAnimal[slot] = -1;
+    this.huntsHuman[slot] = 0;
     this.chase[slot] = 0;
     this.pregnancy[slot] = 0;
     this.state[slot] = State.Rest;
@@ -113,6 +116,7 @@ export class AnimalStore {
     this.targetX = copy(this.targetX, (n) => new Int16Array(n));
     this.targetY = copy(this.targetY, (n) => new Int16Array(n));
     this.targetAnimal = copy(this.targetAnimal, (n) => new Int32Array(n));
+    this.huntsHuman = copy(this.huntsHuman, (n) => new Uint8Array(n));
     this.chase = copy(this.chase, (n) => new Int16Array(n));
     this.pregnancy = copy(this.pregnancy, (n) => new Int16Array(n));
     this.cell = copy(this.cell, (n) => new Int32Array(n));

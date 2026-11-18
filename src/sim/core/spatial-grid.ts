@@ -1,6 +1,6 @@
 /**
- * Coarse grid of cells listing the animals inside, to find neighbours (predators, prey, herd)
- * without scanning every animal. Lists keep a deterministic order.
+ * Coarse grid of cells listing the bodies inside (animals, humans), to find neighbours
+ * (predators, prey, herd) without scanning everybody. Lists keep a deterministic order.
  */
 export class SpatialGrid {
   readonly cellsPerSide: number;
@@ -28,6 +28,11 @@ export class SpatialGrid {
     if (at < 0) return;
     list[at] = list[list.length - 1]!;
     list.pop();
+  }
+
+  /** Empties every cell (before a full rebuild). */
+  clear(): void {
+    for (const list of this.cells) list.length = 0;
   }
 
   /** Calls `visit` for every animal in the cells overlapping the square of half-side `radius`. */

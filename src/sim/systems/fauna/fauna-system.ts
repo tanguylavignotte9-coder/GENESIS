@@ -1,3 +1,4 @@
+import type { Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
 import type { Rng } from '../../core/rng';
 import type { ClimateState } from '../world/climate-state';
@@ -10,12 +11,13 @@ import { Carrion } from './carrion';
 import { Census } from './census';
 import { FishStock } from './fish';
 import { buildDiets, type Diet } from './food';
+import { onAttackDone } from './human-prey';
 import { pathToFreshWater } from './fresh-water';
 import { maintainGroups } from './group-life';
 import { GroupStore } from './groups';
 import { liveOneDay } from './life';
 import type { AnimalSpecies, FaunaParams } from './params';
-import { SpatialGrid } from './spatial-grid';
+import { SpatialGrid } from '../../core/spatial-grid';
 
 export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4 } as const;
 export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs'] as const;
@@ -48,9 +50,13 @@ export class FaunaSystem {
   /** Last year each migration (species:landmass:direction) was reported in the journal. */
   readonly migrationReports = new Map<string, number>();
   step = 0;
+  /** Tick of the current step (for the interactions it starts). */
+  tick = 0;
+  /** canHuntHumans[species] = 1 for the species that may attack a lone human. */
+  canHuntHumans: Uint8Array;
   /** Hunger and thirst gained per step, per species. */
-  private readonly hungerPerStep: Float64Array;
-  private readonly thirstPerStep: Float64Array;
+  private hungerPerStep: Float64Array;
+  private thirstPerStep: Float64Array;
 
   constructor(
     readonly world: World,
@@ -60,6 +66,7 @@ export class FaunaSystem {
     readonly daysPerYear: number,
     readonly ticksPerDay: number,
     readonly rng: Rng,
+    readonly interactions: Interactions,
   ) {
     this.size = world.size;
     this.grid = new SpatialGrid(world.size, params.gridCellTiles);
@@ -74,10 +81,31 @@ export class FaunaSystem {
     });
     this.deaths = params.species.map(() => DEATH_CAUSE_NAMES.map(() => 0));
     this.diets = buildDiets(params);
-    this.hungerPerStep = Float64Array.from(params.species, (species) => species.hungerPerDay / params.stepsPerDay);
-    this.thirstPerStep = Float64Array.from(params.species, (species) => species.thirstPerDay / params.stepsPerDay);
+    this.hungerPerStep = new Float64Array(0);
+    this.thirstPerStep = new Float64Array(0);
+    this.canHuntHumans = new Uint8Array(0);
+    this.refreshParams();
     this.census = new Census(this);
     this.spawnAll();
+    interactions.register(
+      'animal',
+      {
+        forEachNear: (x, y, radius, visit) => this.grid.forEachNear(x, y, radius, visit),
+        x: (slot) => this.store.x[slot]!,
+        y: (slot) => this.store.y[slot]!,
+        alive: (slot) => this.store.alive[slot] === 1,
+      },
+      { attackDone: (slot, attack, outcome) => onAttackDone(this, slot, attack, outcome) },
+    );
+  }
+
+  /** Recomputes what is derived from the parameters (after a live change in the variables workshop). */
+  refreshParams(): void {
+    const { params } = this;
+    this.diets.splice(0, this.diets.length, ...buildDiets(params));
+    this.hungerPerStep = Float64Array.from(params.species, (species) => species.hungerPerDay / params.stepsPerDay);
+    this.thirstPerStep = Float64Array.from(params.species, (species) => species.thirstPerDay / params.stepsPerDay);
+    this.canHuntHumans = Uint8Array.from(params.species, (species) => (params.humanPrey.hunters.includes(species.id) ? 1 : 0));
   }
 
   speciesOf(slot: number): AnimalSpecies {
@@ -91,7 +119,8 @@ export class FaunaSystem {
   }
 
   /** One step for every living animal (in slot order: deterministic). */
-  runStep(): void {
+  runStep(tick: number): void {
+    this.tick = tick;
     const { store } = this;
     const { alive, hunger, thirst, species, uid } = store;
     const every = this.params.thinkEverySteps;

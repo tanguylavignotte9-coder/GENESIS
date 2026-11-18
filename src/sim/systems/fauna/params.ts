@@ -107,6 +107,8 @@ export interface FaunaParams {
   /** Carcasses: share of the meat that rots each day, and scraps below which they vanish. */
   carrion: { rotPerDay: number; minimumMeat: number };
   stats: { intervalDays: number };
+  /** Predators and humans: who may attack a person walking alone, and how. */
+  humanPrey: { hunters: string[]; minHunger: number; loneTiles: number; attackChancePerStep: number; attackDamage: number };
   events: {
     collapseShare: number;
     collapseMinPopulation: number;
@@ -179,6 +181,16 @@ const SCHEMA: Schema = {
     },
     carrion: { kind: 'object', fields: { rotPerDay: SHARE, minimumMeat: POSITIVE } },
     stats: { kind: 'object', fields: { intervalDays: COUNT } },
+    humanPrey: {
+      kind: 'object',
+      fields: {
+        hunters: { kind: 'array', items: { kind: 'string' } },
+        minHunger: { kind: 'number', min: 0, max: 100 },
+        loneTiles: { kind: 'integer', min: 1, max: 30 },
+        attackChancePerStep: SHARE,
+        attackDamage: { kind: 'number', min: 1, max: 100 },
+      },
+    },
     events: {
       kind: 'object',
       fields: {
@@ -253,6 +265,7 @@ export function parseFaunaParams(raw: unknown, biomes: BiomeTable, resources: Re
   if (speciesIds.size !== params.species.length) problems.push('deux animaux ont le même « id ».');
   if (params.species.length > MAX_SPECIES) problems.push(`au plus ${MAX_SPECIES} espèces animales sont possibles.`);
   if (params.stepsPerDay % params.thinkEverySteps !== 0) problems.push('« stepsPerDay » doit être un multiple de « thinkEverySteps ».');
+  for (const id of params.humanPrey.hunters) if (!speciesIds.has(id)) problems.push(`« humanPrey.hunters » : l'animal « ${id} » n'existe pas.`);
   for (const species of params.species) {
     const where = `animal « ${species.id} »`;
     for (const id of Object.keys(species.habitat)) if (!biomeIds.has(id)) problems.push(`${where} : le biome « ${id} » n'existe pas.`);

@@ -22,8 +22,8 @@ export class Pathfinder {
   constructor(
     private readonly size: number,
     private readonly terrain: Terrain,
-    private readonly maxNodes: number,
-    private readonly heuristicWeight: number,
+    public maxNodes: number,
+    public heuristicWeight: number,
   ) {
     const n = size * size;
     this.g = new Float32Array(n);

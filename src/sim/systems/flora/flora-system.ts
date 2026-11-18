@@ -20,7 +20,7 @@ export class FloraSystem {
   private readonly size: number;
   private readonly grassCoverOfBiome: Float32Array;
   private readonly initialCoverOfBiome: Float32Array;
-  private readonly shadeOfSpecies: Float32Array;
+  private shadeOfSpecies: Float32Array;
 
   constructor(
     private readonly world: World,
@@ -34,8 +34,16 @@ export class FloraSystem {
     const biomeIds = world.biomes.biomes.map((biome) => biome.id);
     this.grassCoverOfBiome = Float32Array.from(biomeIds, (id) => params.grass.coverByBiome[id] ?? 0);
     this.initialCoverOfBiome = Float32Array.from(biomeIds, (id) => params.initialCoverByBiome[id] ?? 0);
-    this.shadeOfSpecies = Float32Array.from(params.species, (species) => params.shadeByKind[species.kind]);
+    this.shadeOfSpecies = new Float32Array(0);
+    this.refreshParams();
     this.populate();
+  }
+
+  /** Recomputes what is derived from the parameters (after a live change in the variables workshop). */
+  refreshParams(): void {
+    const { params } = this;
+    this.grassCoverOfBiome.set(this.world.biomes.biomes.map((biome) => params.grass.coverByBiome[biome.id] ?? 0));
+    this.shadeOfSpecies = Float32Array.from(params.species, (species) => params.shadeByKind[species.kind]);
   }
 
   /** A plant can only grow on dry land (rivers are fords, lakes are water). */
@@ -76,6 +84,12 @@ export class FloraSystem {
     const taken = Math.min(amount, this.produceAvailable(index, resource));
     this.state.eaten[index] = Math.min(BYTE_MAX, this.state.eaten[index]! + Math.ceil(taken));
     return taken;
+  }
+
+  /** Damages the plant of a tile by `share` of its health (branches broken off); never kills it outright. */
+  harmPlant(index: number, share: number): void {
+    const harm = Math.round(share * BYTE_MAX);
+    this.state.health[index] = Math.max(1, this.state.health[index]! - harm);
   }
 
   /** Grazing: takes up to `amount` of grass not buried under snow; returns what was taken. */

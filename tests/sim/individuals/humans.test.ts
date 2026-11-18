@@ -132,11 +132,11 @@ describe('daily life', () => {
     expect(death?.text).toContain('soif');
   });
 
-  it('a hungry predator next to an isolated person attacks', () => {
+  /** Takes person `p` far from the others and puts a hungry wolf at hand. */
+  function loneWalkerAndWolf(): { simulation: Simulation; p: number; wolf: number } {
     const simulation = new Simulation(42, data);
     const { humans, fauna } = simulation;
     const p = 2;
-    // Take the person far from the others, with a hungry wolf at hand.
     let spot = -1;
     const camp = humans.camps[0]!;
     for (let d = 15; d < 60 && spot < 0; d++) {
@@ -146,21 +146,70 @@ describe('daily life', () => {
     expect(spot).toBeGreaterThanOrEqual(0);
     humans.people.x[p] = spot % SIZE;
     humans.people.y[p] = Math.floor(spot / SIZE);
-    const wolf = fauna.params.species.findIndex((s) => s.id === 'wolf');
-    const pack = fauna.groups.add(wolf, -1);
-    const slot = fauna.spawn(wolf, (spot % SIZE) + 1, Math.floor(spot / SIZE), pack, 1000);
-    fauna.groups.leader[pack] = slot;
+    const species = fauna.params.species.findIndex((s) => s.id === 'wolf');
+    const pack = fauna.groups.add(species, -1);
+    const wolf = fauna.spawn(species, (spot % SIZE) + 1, Math.floor(spot / SIZE), pack, 1000);
+    fauna.groups.leader[pack] = wolf;
+    return { simulation, p, wolf };
+  }
+
+  it('a hungry predator attacks a person walking alone (the fauna decides, the humans apply the wound)', () => {
+    const { simulation, p, wolf } = loneWalkerAndWolf();
+    const { humans, fauna } = simulation;
     const before = humans.people.health[p]!;
     let hurt = false;
-    for (let s = 0; s < 40 && !hurt; s++) {
-      fauna.store.hunger[slot] = 100;
-      fauna.place(slot, (humans.people.x[p]! + 1) % SIZE, humans.people.y[p]!);
-      humans.people.threat[p] = slot;
-      humans.people.isolated[p] = 1;
-      simulation.step(data.time.ticksPerDay / 24 / data.humans.stepsPerHour);
+    for (let hour = 0; hour < 48 && !hurt; hour++) {
+      fauna.store.hunger[wolf] = 100;
+      fauna.store.thirst[wolf] = 0;
+      // Keep the person alone where she is (her own decisions would take her home).
+      humans.people.x[p] = (fauna.store.x[wolf]! + 1) % SIZE;
+      humans.people.y[p] = fauna.store.y[wolf]!;
+      simulation.step(hourTicks);
       hurt = humans.people.health[p]! < before || humans.people.alive[p] === 0;
     }
     expect(hurt).toBe(true);
+  });
+
+  it('a predator does not attack a person surrounded by others', () => {
+    const { simulation, p, wolf } = loneWalkerAndWolf();
+    const { humans, fauna } = simulation;
+    const friend = 3;
+    let attacks = 0;
+    const attack = simulation.interactions.attack.bind(simulation.interactions);
+    simulation.interactions.attack = (blow) => {
+      attacks++;
+      return attack(blow);
+    };
+    for (let hour = 0; hour < 24; hour++) {
+      fauna.store.hunger[wolf] = 100;
+      fauna.store.thirst[wolf] = 0;
+      humans.people.x[p] = (fauna.store.x[wolf]! + 1) % SIZE;
+      humans.people.y[p] = fauna.store.y[wolf]!;
+      humans.people.x[friend] = humans.people.x[p]!;
+      humans.people.y[friend] = humans.people.y[p]! + 1;
+      simulation.step(hourTicks);
+    }
+    expect(attacks).toBe(0);
+  });
+
+  it('a person killed by a predator is in the journal with the animal, and the predator eats the body', () => {
+    const { simulation, p, wolf } = loneWalkerAndWolf();
+    const { humans, fauna } = simulation;
+    const outcome = simulation.interactions.attack({
+      attacker: { kind: 'animal', id: wolf },
+      target: { kind: 'human', id: p },
+      damage: 1000,
+      attackerName: 'loup',
+      tick: simulation.clock.tick,
+    });
+    expect(outcome.killed).toBe(true);
+    expect(humans.people.alive[p]).toBe(0);
+    expect(humans.people.deathCause[p]).toBe(DeathCause.Predator);
+    const death = simulation.journal.get(outcome.eventId)!;
+    expect(death.text).toContain('loup');
+    expect(death.actors).toContainEqual({ kind: 'animal', id: wolf });
+    expect(fauna.carrion.at(outcome.y * SIZE + outcome.x)).toBeGreaterThan(0);
+    expect(fauna.store.x[wolf]).toBe(outcome.x);
   });
 });
 

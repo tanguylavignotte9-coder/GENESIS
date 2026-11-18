@@ -1,5 +1,4 @@
 import { canDrink } from '../fauna/fresh-water';
-import { BYTE_MAX } from '../flora/flora-state';
 import type { IndividualsSystem } from './individuals-system';
 import type { ActionId } from './params';
 
@@ -140,8 +139,7 @@ function collectWoodHere(sys: IndividualsSystem, person: number, hours: number):
   if (!flora.speciesAt(tile)) return true;
   const taken = Math.min(params.body.carryBranches - people.branches[person]!, params.body.branchesPerHour * hours);
   people.branches[person] = people.branches[person]! + taken;
-  const harm = Math.round(taken * params.body.branchHarmToPlant * BYTE_MAX);
-  flora.state.health[tile] = Math.max(1, flora.state.health[tile]! - harm);
+  flora.harmPlant(tile, taken * params.body.branchHarmToPlant);
   return people.branches[person]! >= params.body.carryBranches - 0.01;
 }
 

@@ -115,9 +115,6 @@ export interface HumanParams {
     alertTiles: number;
     isolationTiles: number;
     groupFearShare: number;
-    predatorMinHunger: number;
-    attackChancePerStep: number;
-    attackDamage: number;
     corpseMeat: number;
   };
   terrain: { forestCost: number; shrubCost: number; riverCost: number; slopeCostPer100m: number; maxPathNodes: number; heuristicWeight: number };
@@ -249,9 +246,6 @@ export const HUMANS_SCHEMA: Schema = {
         alertTiles: v('integer', 1, 30, 'Vigilance', 'Distance à laquelle on repère un prédateur.', 'tuiles'),
         isolationTiles: v('integer', 1, 30, 'Isolement', 'Une personne sans personne d’autre à cette distance est isolée (et vulnérable).', 'tuiles'),
         groupFearShare: v('number', 0, 1, 'Peur en groupe', 'Part de la peur ressentie face à un prédateur quand on n’est pas seul.', 'fraction'),
-        predatorMinHunger: v('number', 0, 100, 'Faim d’un prédateur', 'Faim minimale d’un prédateur pour attaquer un humain isolé.', 'points'),
-        attackChancePerStep: v('number', 0, 1, 'Attaque', 'Chance par pas qu’un prédateur affamé tout proche attaque un humain isolé.', 'probabilité'),
-        attackDamage: v('number', 1, 100, 'Blessure', 'Santé perdue lors d’une attaque.', 'points'),
         corpseMeat: v('number', 0, 200, 'Dépouille', 'Viande laissée pour les charognards par un humain tué.', 'unités'),
       },
     },

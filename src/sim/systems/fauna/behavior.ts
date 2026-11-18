@@ -2,8 +2,10 @@ import { DeathCause, type FaunaSystem } from './fauna-system';
 import { canDrink } from './fresh-water';
 import { eatHere, foodValueAt } from './food';
 import { State as States } from './animal-store';
+import { humanTargetValid, huntHuman, nearestLoneHuman } from './human-prey';
+import { feastOnKill } from './kill';
 import type { AnimalSpecies } from './params';
-import type { SpatialGrid } from './spatial-grid';
+import type { SpatialGrid } from '../../core/spatial-grid';
 
 /** Local copy: avoids a module lookup per access in hot loops. */
 const State = { ...States };
@@ -45,7 +47,7 @@ export function think(fauna: FaunaSystem, slot: number): void {
       return;
     }
   }
-  if (store.state[slot] === State.Hunt && store.chase[slot]! > 0 && store.alive[store.targetAnimal[slot]!] === 1) return;
+  if (store.state[slot] === State.Hunt && store.chase[slot]! > 0 && huntTargetAlive(fauna, slot)) return;
 
   if (store.thirst[slot]! > params.needs.seekWaterAbove) {
     if (canDrink(fauna.world, x, y)) {
@@ -101,9 +103,14 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
     const n = params.species.length;
     const hunter = store.species[slot]!;
     const prey = nearestAnimal(fauna, fauna.grid, slot, species.huntRadius, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1);
-    if (prey >= 0) {
+    const preyDistance = prey >= 0 ? chebyshev(x, y, store.x[prey]!, store.y[prey]!) : Infinity;
+    // A person walking alone is a prey like another for a hungry predator: it goes for the nearest.
+    const human = nearestLoneHuman(fauna, slot, species.huntRadius);
+    if (prey >= 0 || human.id >= 0) {
+      const onHuman = human.distance < preyDistance;
       store.state[slot] = State.Hunt;
-      store.targetAnimal[slot] = prey;
+      store.targetAnimal[slot] = onHuman ? human.id : prey;
+      store.huntsHuman[slot] = onHuman ? 1 : 0;
       store.chase[slot] = params.behavior.chaseSteps;
       return true;
     }
@@ -156,6 +163,7 @@ function nearestAnimal(fauna: FaunaSystem, grid: SpatialGrid, slot: number, radi
 export function act(fauna: FaunaSystem, slot: number): void {
   const { store, params } = fauna;
   const species = fauna.speciesOf(slot);
+  noticeLoneHuman(fauna, slot, species);
   const state = store.state[slot]!;
   switch (state) {
     case State.Rest:
@@ -210,12 +218,41 @@ function seekWater(fauna: FaunaSystem, slot: number, species: AnimalSpecies): vo
   if (fauna.isWalkable(nx, ny)) fauna.place(slot, nx, ny);
 }
 
+/**
+ * A person walking alone draws attention at any moment (not only when the predator stops to think):
+ * a hungry predator that is not busy (hunting, eating, drinking, fleeing) goes for her.
+ */
+function noticeLoneHuman(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
+  const { store } = fauna;
+  if (fauna.canHuntHumans[store.species[slot]!] !== 1 || species.huntRadius <= 0) return;
+  const state = store.state[slot]!;
+  if (state === State.Hunt || state === State.Eat || state === State.Drink || state === State.Flee) return;
+  const human = nearestLoneHuman(fauna, slot, species.huntRadius);
+  if (human.id < 0) return;
+  store.state[slot] = State.Hunt;
+  store.targetAnimal[slot] = human.id;
+  store.huntsHuman[slot] = 1;
+  store.chase[slot] = fauna.params.behavior.chaseSteps;
+}
+
+function huntTargetAlive(fauna: FaunaSystem, slot: number): boolean {
+  const { store } = fauna;
+  const target = store.targetAnimal[slot]!;
+  if (target < 0) return false;
+  return store.huntsHuman[slot] === 1 ? humanTargetValid(fauna, target) : store.alive[target] === 1;
+}
+
 function hunt(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
-  const { store, params } = fauna;
+  const { store } = fauna;
   const prey = store.targetAnimal[slot]!;
   store.chase[slot] = store.chase[slot]! - 1;
-  if (prey < 0 || store.alive[prey] === 0 || store.chase[slot]! <= 0) {
+  if (store.chase[slot]! <= 0 || !huntTargetAlive(fauna, slot)) {
     store.state[slot] = State.Rest;
+    store.huntsHuman[slot] = 0;
+    return;
+  }
+  if (store.huntsHuman[slot] === 1) {
+    huntHuman(fauna, slot, species, (tx, ty) => moveToward(fauna, slot, species, tx, ty));
     return;
   }
   const px = store.x[prey]!;
@@ -232,15 +269,7 @@ function hunt(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
   fauna.kill(prey, DeathCause.Predation);
   // The kill becomes a carcass: the hunter eats first, the pack (and scavengers) come for the rest.
   fauna.carrion.add(py * fauna.size + px, adult ? preySpecies.meat : preySpecies.meat / 2);
-  fauna.place(slot, px, py);
-  store.state[slot] = State.Eat;
-  const group = store.group[slot]!;
-  fauna.grid.forEachNear(px, py, params.behavior.packShareRadius * 4, (other) => {
-    if (other === slot || store.group[other] !== group || store.state[other] === State.Eat) return;
-    store.state[other] = State.Forage;
-    store.targetX[other] = px;
-    store.targetY[other] = py;
-  });
+  feastOnKill(fauna, slot, px, py);
 }
 
 /** One tile toward the target (8 directions), if the animal moves this step and the ground allows it. */

@@ -8,6 +8,7 @@ import { generateWorld, type World } from '../systems/world/world';
 import { dateAtTick, type GameDate } from './calendar';
 import { SimClock } from './clock';
 import type { GameData } from './game-data';
+import { Interactions } from './interactions';
 import { Journal } from './journal';
 import { Rng } from './rng';
 import { daysPerYear } from './time-params';
@@ -24,6 +25,8 @@ export class Simulation {
   readonly rng: Rng;
   readonly clock = new SimClock();
   readonly journal = new Journal();
+  /** How beings of different systems see and act on each other (predators and humans…). */
+  readonly interactions = new Interactions(this.journal);
   readonly world: World;
   readonly climate: ClimateState;
   readonly flora: FloraSystem;
@@ -43,12 +46,12 @@ export class Simulation {
     const yearDays = daysPerYear(data.time);
     this.climate = new ClimateState(this.world, data.climate, yearDays);
     this.flora = new FloraSystem(this.world, this.climate, data.flora, yearDays, this.rng);
-    this.fauna = new FaunaSystem(this.world, this.climate, this.flora, data.fauna, yearDays, data.time.ticksPerDay, this.rng);
+    this.fauna = new FaunaSystem(this.world, this.climate, this.flora, data.fauna, yearDays, data.time.ticksPerDay, this.rng, this.interactions);
     this.weather = new WeatherState(this.world.size, data.weather);
     this.ticksPerStep = Math.max(1, Math.round(data.time.ticksPerDay / data.fauna.stepsPerDay));
     this.ticksPerHumanStep = Math.max(1, Math.round(data.time.ticksPerDay / HOURS_PER_DAY / data.humans.stepsPerHour));
     this.startDay(this.date);
-    this.humans = new IndividualsSystem(this.world, this.climate, this.weather, this.flora, this.fauna, data.humans, this.rng, this.journal, this.clock.tick);
+    this.humans = new IndividualsSystem(this.world, this.climate, this.weather, this.flora, this.fauna, data.humans, this.rng, this.journal, this.clock.tick, this.interactions);
   }
 
   /** Hour of the day, 0..24 (fractional). */
@@ -78,7 +81,7 @@ export class Simulation {
       remaining -= toNext;
       const now = this.clock.tick;
       if (now % ticksPerDay === 0) this.startDay(this.date);
-      if (now % this.ticksPerStep === 0) this.fauna.runStep();
+      if (now % this.ticksPerStep === 0) this.fauna.runStep(now);
       if (now % this.ticksPerHumanStep === 0) this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
     }
   }

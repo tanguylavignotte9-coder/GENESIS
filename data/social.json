@@ -33,7 +33,8 @@
     "greatFriendAffection": 60,
     "rivalAffection": -25,
     "fallingOutDrop": 45,
-    "reasonHalfLifeDays": 40
+    "reasonHalfLifeDays": 40,
+    "negativityBias": 3
   },
   "emotions": {
     "joy": {

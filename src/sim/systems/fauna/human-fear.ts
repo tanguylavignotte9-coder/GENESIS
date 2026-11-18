@@ -17,18 +17,23 @@ export function scareGame(fauna: FaunaSystem): void {
   const view = humans(fauna);
   if (!view || fauna.maxHumanFleeTiles <= 0) return;
   const { store, params } = fauna;
-  const reachMax = Math.ceil(fauna.maxHumanFleeTiles * (1 + params.humanFear.warinessSpread));
+  const fleeTiles = fauna.humanFleeTiles;
+  const reachMax = fauna.maxHumanFleeTiles * (1 + params.humanFear.warinessSpread);
+  // A passer-by is only noticed close by: only the animals near her are looked at.
+  const hunterReach = Math.ceil(reachMax);
+  const passerReach = Math.ceil(reachMax * params.humanFear.calmShare);
   view.forEachAlive((person) => {
     const px = view.x(person);
     const py = view.y(person);
     const hunting = view.hunting(person);
-    fauna.grid.forEachNear(px, py, reachMax, (slot) => {
-      if (store.state[slot] === State.Flee) return;
-      const tiles = fauna.speciesOf(slot).humanFleeTiles;
+    const look = hunting ? hunterReach : passerReach;
+    fauna.grid.forEachNear(px, py, look, (slot) => {
+      const distance = chebyshev(store.x[slot]!, store.y[slot]!, px, py);
+      if (distance >= look || store.state[slot] === State.Flee) return;
+      const tiles = fleeTiles[store.species[slot]!]!;
       if (tiles <= 0) return;
       const radius = tiles * store.wariness[slot]!;
       const reach = hunting ? radius : radius * params.humanFear.calmShare;
-      const distance = chebyshev(store.x[slot]!, store.y[slot]!, px, py);
       if (distance >= reach || fauna.rng.nextFloat() >= 1 - distance / reach) return;
       fleeFrom(fauna, slot, px, py);
       store.fleesHuman[slot] = 1;

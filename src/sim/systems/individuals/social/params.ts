@@ -74,6 +74,7 @@ export interface SocialParams {
     rivalAffection: number;
     fallingOutDrop: number;
     reasonHalfLifeDays: number;
+    negativityBias: number;
   };
   emotions: Record<EmotionId, { name: string; decayPerHour: number }>;
   loneliness: { perHour: number; sociabilityEffect: number; name: string };
@@ -221,6 +222,7 @@ export const SOCIAL_SCHEMA: Schema = {
         friendAffection: num(0, 100, 'Amitié', 'Affection à partir de laquelle on considère quelqu’un comme un ami.', 'points'),
         greatFriendAffection: num(0, 100, 'Grande amitié', 'Affection mutuelle à partir de laquelle deux personnes sont de grands amis (journal).', 'points'),
         rivalAffection: num(-100, 0, 'Rivalité', 'Affection en dessous de laquelle quelqu’un est un rival.', 'points'),
+        negativityBias: num(1, 10, 'Ce qui blesse marque', 'Une dispute ou une jalousie compte ce nombre de fois plus qu’un bon moment parmi les raisons retenues d’une relation.', 'facteur'),
         reasonHalfLifeDays: num(1, 4000, 'Mémoire des raisons', 'Les raisons d’une relation s’effacent avec le temps (demi-vie) : les plus récentes et les plus fortes restent.', 'jours'),
         fallingOutDrop: num(0, 200, 'Brouille', 'Chute d’affection depuis la meilleure valeur atteinte qui fait parler de brouille entre amis.', 'points'),
       },

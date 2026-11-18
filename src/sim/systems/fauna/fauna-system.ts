@@ -58,6 +58,8 @@ export class FaunaSystem {
   canHuntHumans: Uint8Array;
   /** Largest wariness distance toward humans among the species (0 = no species fears them). */
   maxHumanFleeTiles = 0;
+  /** Wariness distance toward humans of each species. */
+  humanFleeTiles = new Float64Array(0);
   /** Hunger and thirst gained per step, per species. */
   private hungerPerStep: Float64Array;
   private thirstPerStep: Float64Array;
@@ -116,7 +118,8 @@ export class FaunaSystem {
     this.diets.splice(0, this.diets.length, ...buildDiets(params));
     this.hungerPerStep = Float64Array.from(params.species, (species) => species.hungerPerDay / params.stepsPerDay);
     this.thirstPerStep = Float64Array.from(params.species, (species) => species.thirstPerDay / params.stepsPerDay);
-    this.maxHumanFleeTiles = Math.max(0, ...params.species.map((species) => species.humanFleeTiles));
+    this.humanFleeTiles = Float64Array.from(params.species, (species) => species.humanFleeTiles);
+    this.maxHumanFleeTiles = Math.max(0, ...this.humanFleeTiles);
     this.canHuntHumans = Uint8Array.from(params.species, (species) => (params.humanPrey.hunters.includes(species.id) ? 1 : 0));
   }
 

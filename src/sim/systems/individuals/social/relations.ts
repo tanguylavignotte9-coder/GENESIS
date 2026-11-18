@@ -118,7 +118,9 @@ export function feel(life: SocialLife, person: number, other: number, delta: Fee
   s.trust[slot] = clamp(s.trust[slot]! + delta.trust);
   s.respect[slot] = clamp(s.respect[slot]! + delta.respect);
   if (s.affection[slot]! > s.peakAffection[slot]!) s.peakAffection[slot] = s.affection[slot]!;
-  const weight = Math.abs(delta.affection) + Math.abs(delta.trust) + Math.abs(delta.respect);
+  // What hurts leaves a deeper mark than a good moment.
+  const bias = reason === 'quarrel' || reason === 'jealousy' ? life.params.relations.negativityBias : 1;
+  const weight = (Math.abs(delta.affection) + Math.abs(delta.trust) + Math.abs(delta.respect)) * bias;
   if (weight > 0) addReason(life, slot, reason, weight, event);
   return slot;
 }

@@ -83,6 +83,9 @@ function printRun(seed: number, years: number, data: GameData): void {
   for (const line of work.campMoves) console.log(`    ${line}`);
   console.log(`  Premiers objets       : ${fr.format(work.firstItems.length)}`);
   for (const line of work.firstItems) console.log(`    ${line}`);
+  console.log(`  Vie sociale           : ${fr.format(work.social.length)} événement(s) (couples, grandes amitiés, brouilles, séparations, deuils)`);
+  const shown = work.social.length <= MAX_LISTED_ANOMALIES ? work.social : [...work.social.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...work.social.slice(-MAX_LISTED_ANOMALIES / 2)];
+  for (const line of shown) console.log(`    ${line}`);
   console.log(`  Animaux               : ${fr.format(totalAnimals)} (début → fin, minimum–maximum observés)`);
   for (const line of report.animals) {
     console.log(`    ${line.name.padEnd(18)} ${fr.format(line.start).padStart(6)} → ${fr.format(line.end).padStart(6)}   (${fr.format(line.min)}–${fr.format(line.max)})`);

@@ -6,6 +6,10 @@ import { MIGRATION_START, POPULATION_COLLAPSE, SPECIES_EXTINCT } from './systems
 import { ANOMALY_START } from './systems/world/anomalies';
 import { CAMP_MOVED } from './systems/individuals/camp-move';
 import { BUILDING_DONE, FIRST_ITEM } from './systems/production/events';
+import { COUPLE_FORMED, FALLING_OUT, GREAT_FRIENDSHIP, MOURNING, SEPARATION } from './systems/individuals/social/milestones';
+
+/** Social events listed in the summary. */
+const SOCIAL_EVENTS = [COUPLE_FORMED, GREAT_FRIENDSHIP, FALLING_OUT, SEPARATION, MOURNING];
 
 /** Number of random draws shown in the report to prove the seed's determinism. */
 const FINGERPRINT_DRAWS = 3;
@@ -49,6 +53,8 @@ export interface HeadlessReport {
     openSites: number;
     firstItems: string[];
     campMoves: string[];
+    /** Couples, great friendships, falling-outs, separations and griefs, with their date. */
+    social: string[];
   };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
@@ -158,5 +164,9 @@ function summarizeProduction(simulation: Simulation): HeadlessReport['production
     openSites: production.buildings.filter((building) => building.state === 0).length,
     firstItems: dated(FIRST_ITEM),
     campMoves: dated(CAMP_MOVED),
+    social: journal
+      .all()
+      .filter((event) => SOCIAL_EVENTS.includes(event.type))
+      .map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
   };
 }

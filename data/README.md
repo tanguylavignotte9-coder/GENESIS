@@ -227,3 +227,21 @@ collectif), qualité des produits (compétence, outils, hasard), travail (rapidi
 matériaux, goût pour la nourriture qui se garde, emplacement des constructions), chasse (repérage, portée de la
 lance et de l'arc, réussite, taille d'une carcasse, patience), champs (croissance, rendement), sources de terrain
 (où trouver pierres, silex, argile, eau) et phrases du journal.
+
+## `social.json` — la vie sociale (étape 7)
+
+Toutes les valeurs sont expliquées dans l'Atelier des variables (système « Humains », fichier `social.json`).
+
+| Clé | Rôle |
+| --- | --- |
+| `reachTiles`, `scanEveryMinutes` | Distance à laquelle on va parler à quelqu'un ou le nourrir ; fréquence à laquelle on regarde qui est autour |
+| `relations` | Relations retenues (24 au plus), usure quotidienne, liens de départ, valeurs des liens familiaux, seuils d'amitié, de grande amitié, de rivalité et de brouille, mémoire des raisons |
+| `emotions` | Les cinq émotions (joie, tristesse, colère, peur, jalousie) : nom et apaisement par heure |
+| `loneliness` | Besoin de compagnie qui monte quand on ne parle à personne (plus vite chez les sociables) |
+| `memories` | Souvenirs marquants : force, estompage (demi-vie), émotion qu'ils entretiennent, effet sur la personnalité, texte de la fiche |
+| `conversation` | Bavarder, se confier, consoler, séduire, se disputer : effets sur l'affection, la confiance et le respect des deux côtés ; accrochages (caractères opposés, colériques, faim) ; jalousie ; nouvelles échangées |
+| `couples` | Âge, écart d'âge, attirance, affection nécessaire pour dire oui, séparation, fin du deuil |
+| `news` | Nouvelles retenues, témoins, perte de détails à chaque fois qu'on raconte (jamais de mensonge), oubli |
+| `sharing` | Faim qui pousse les autres à donner, ce qu'on garde pour soi, part donnée, gratitude |
+| `ambitions` | 1 à 3 ambitions : se faire des amis, trouver un compagnon, exceller dans son métier, regagner l'estime de quelqu'un |
+| `texts`, `reasons`, `kinNames`, `newsTexts` | Phrases du journal et de la fiche personnage |

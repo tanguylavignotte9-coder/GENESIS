@@ -462,6 +462,12 @@ export class ProductionSystem {
     return workAt(this, person, hours);
   }
 
+  /** Is the person out hunting game (what the animals see of her)? */
+  isHunting(person: number): boolean {
+    const recipe = this.jobs[person]?.recipe;
+    return recipe !== null && recipe !== undefined && recipe.prey.length > 0;
+  }
+
   /** Drops the person's job (the brain chose something else). */
   endJob(person: number): void {
     const job = this.jobs[person];

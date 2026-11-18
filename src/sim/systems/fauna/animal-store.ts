@@ -28,7 +28,11 @@ export const STATE_NAMES: readonly string[] = [
   'suit son groupe',
   'cherche à manger',
   'cherche de l’eau',
+  'fuit les humains',
 ];
+
+/** Display-only state code: fleeing a human (the simulation state is Flee, with `fleesHuman`). */
+export const FLEES_HUMAN_STATE = 10;
 
 export const Sex = { Female: 0, Male: 1 } as const;
 const INITIAL_CAPACITY = 1024;
@@ -61,6 +65,10 @@ export class AnimalStore {
   huntsHuman = new Uint8Array(0);
   /** Steps left in the current chase. */
   chase = new Int16Array(0);
+  /** Individual wariness toward humans (1 = as wary as the species on average). */
+  wariness = new Float32Array(0);
+  /** 1 while the animal is running away from a human (it sprints). */
+  fleesHuman = new Uint8Array(0);
   /** Days of pregnancy left, 0 = not pregnant. */
   pregnancy = new Int16Array(0);
   /** Spatial grid cell the animal is registered in. */
@@ -82,6 +90,8 @@ export class AnimalStore {
     this.targetAnimal[slot] = -1;
     this.huntsHuman[slot] = 0;
     this.chase[slot] = 0;
+    this.fleesHuman[slot] = 0;
+    this.wariness[slot] = 1;
     this.pregnancy[slot] = 0;
     this.state[slot] = State.Rest;
     this.living++;
@@ -118,6 +128,8 @@ export class AnimalStore {
     this.targetAnimal = copy(this.targetAnimal, (n) => new Int32Array(n));
     this.huntsHuman = copy(this.huntsHuman, (n) => new Uint8Array(n));
     this.chase = copy(this.chase, (n) => new Int16Array(n));
+    this.wariness = copy(this.wariness, (n) => new Float32Array(n));
+    this.fleesHuman = copy(this.fleesHuman, (n) => new Uint8Array(n));
     this.pregnancy = copy(this.pregnancy, (n) => new Int16Array(n));
     this.cell = copy(this.cell, (n) => new Int32Array(n));
     this.capacity = capacity;

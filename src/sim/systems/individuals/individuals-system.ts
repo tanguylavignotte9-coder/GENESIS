@@ -93,9 +93,13 @@ export class IndividualsSystem {
       'human',
       {
         forEachNear: (x, y, radius, visit) => this.grid.forEachNear(x, y, radius, visit),
+        forEachAlive: (visit) => {
+          for (let p = 0; p < this.people.count; p++) if (this.people.alive[p] === 1) visit(p);
+        },
         x: (person) => this.people.x[person]!,
         y: (person) => this.people.y[person]!,
         alive: (person) => this.people.alive[person] === 1,
+        hunting: (person) => this.production.isHunting(person),
       },
       { sufferAttack: (person, attack, journal) => this.sufferAttack(person, attack, journal) },
     );

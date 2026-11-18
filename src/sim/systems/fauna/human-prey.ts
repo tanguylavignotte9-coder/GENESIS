@@ -14,7 +14,7 @@ function chebyshev(ax: number, ay: number, bx: number, by: number): number {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
-function humans(fauna: FaunaSystem): BodyView | null {
+export function humans(fauna: FaunaSystem): BodyView | null {
   return fauna.interactions.view('human');
 }
 

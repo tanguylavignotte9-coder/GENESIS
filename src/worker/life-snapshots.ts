@@ -1,5 +1,6 @@
 import type { Simulation } from '../sim/core/simulation';
 import type { FaunaSnapshot, FloraSnapshot, Inspection } from '../shared/messages';
+import { FLEES_HUMAN_STATE, State } from '../sim/systems/fauna/animal-store';
 
 const PERCENT = 100;
 const BYTE_MAX = 255;
@@ -28,7 +29,7 @@ export function snapshotFauna(simulation: Simulation): { snapshot: FaunaSnapshot
     snapshot.species[k] = store.species[slot]!;
     snapshot.x[k] = store.x[slot]!;
     snapshot.y[k] = store.y[slot]!;
-    snapshot.state[k] = store.state[slot]!;
+    snapshot.state[k] = store.fleesHuman[slot] === 1 && store.state[slot] === State.Flee ? FLEES_HUMAN_STATE : store.state[slot]!;
     k++;
   }
   const { uid, species, x, y, state } = snapshot;
@@ -71,7 +72,7 @@ export function inspect(simulation: Simulation, requestId: number, tile: number,
       hunger: Math.round(store.hunger[slot]!),
       thirst: Math.round(store.thirst[slot]!),
       health: Math.round(Math.min(PERCENT, store.health[slot]!)),
-      state: store.state[slot]!,
+      state: store.fleesHuman[slot] === 1 && store.state[slot] === State.Flee ? FLEES_HUMAN_STATE : store.state[slot]!,
       pregnant: store.pregnancy[slot]! > 0,
       groupSize: fauna.groups.size[store.group[slot]!]!,
     };

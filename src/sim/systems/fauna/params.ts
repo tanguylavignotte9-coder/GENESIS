@@ -47,6 +47,10 @@ export interface AnimalSpecies {
   moveChance: number;
   /** Prey only: distance (tiles) at which a hunter is noticed. */
   fleeRadius: number;
+  /** Distance at which an animal of average wariness notices a hunter and runs away (0 = does not fear humans). */
+  humanFleeTiles: number;
+  /** Tiles run per step while fleeing a human. */
+  fleeSprintTiles: number;
   /** Hunters only: distance at which prey is looked for. */
   huntRadius: number;
   /** Hunters only: chance per step to bring down an adjacent prey. */
@@ -108,6 +112,8 @@ export interface FaunaParams {
   carrion: { rotPerDay: number; minimumMeat: number };
   stats: { intervalDays: number };
   /** Predators and humans: who may attack a person walking alone, and how. */
+  /** How game perceives humans: individual wariness, people who are not hunting. */
+  humanFear: { warinessSpread: number; calmShare: number };
   humanPrey: { hunters: string[]; minHunger: number; loneTiles: number; attackChancePerStep: number; attackDamage: number };
   events: {
     collapseShare: number;
@@ -158,6 +164,8 @@ const SPECIES_SCHEMA: Schema = {
     minCelsius: num(-80, 40, 'Résistance au froid', 'En dessous de cette température, l’animal souffre du froid.', '°C'),
     moveChance: share('Vitesse', 'Chance de se déplacer d’une case à chaque pas (1 = à chaque pas).'),
     fleeRadius: int(0, 64, 'Distance de fuite', 'Proies : distance à laquelle un chasseur est remarqué (0 = ne fuit jamais).', 'tuiles'),
+    humanFleeTiles: int(0, 64, 'Méfiance envers les humains', 'Gibier : distance à laquelle un animal de prudence moyenne remarque un chasseur humain et s’enfuit (0 = ne craint pas les humains). Plus le chasseur est proche, plus il a de chances d’être remarqué.', 'tuiles'),
+    fleeSprintTiles: int(1, 8, 'Course de fuite', 'Gibier : cases parcourues par pas (une heure de jeu) en fuyant un humain.', 'cases/pas'),
     huntRadius: int(0, 64, 'Rayon de chasse', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
     huntSuccess: share('Réussite de la chasse', 'Chasseurs : chance par pas de terrasser une proie à son contact.'),
     sprintTiles: int(1, 8, 'Course', 'Chasseurs : cases parcourues par pas pendant la poursuite.', 'cases/pas'),
@@ -244,6 +252,13 @@ export const ANIMALS_SCHEMA: Schema = {
       },
     },
     stats: { kind: 'object', fields: { intervalDays: int(1, 400, 'Fréquence du recensement', 'Les animaux sont comptés tous ces jours (courbes du panneau Statistiques).', 'jours') } },
+    humanFear: {
+      kind: 'object',
+      fields: {
+        warinessSpread: num(0, 1, 'Écart de prudence', 'Chaque animal naît plus ou moins prudent : sa distance de méfiance varie de ± cette fraction autour de celle de son espèce.', 'fraction', NEW_WORLD),
+        calmShare: share('Humains paisibles', 'Une personne qui ne chasse pas inquiète moins : elle n’est remarquée qu’à cette fraction de la distance de méfiance.'),
+      },
+    },
     humanPrey: {
       kind: 'object',
       fields: {

@@ -5,6 +5,9 @@
 export class SpatialGrid {
   readonly cellsPerSide: number;
   private readonly cells: number[][];
+  /** Cells that held someone since the last clear (only those are emptied). */
+  private readonly touched: number[] = [];
+  private readonly isTouched: Uint8Array;
 
   constructor(
     mapSize: number,
@@ -12,6 +15,7 @@ export class SpatialGrid {
   ) {
     this.cellsPerSide = Math.ceil(mapSize / cellTiles);
     this.cells = Array.from({ length: this.cellsPerSide * this.cellsPerSide }, () => []);
+    this.isTouched = new Uint8Array(this.cellsPerSide * this.cellsPerSide);
   }
 
   cellOf(x: number, y: number): number {
@@ -20,6 +24,10 @@ export class SpatialGrid {
 
   insert(slot: number, cell: number): void {
     this.cells[cell]!.push(slot);
+    if (this.isTouched[cell] === 0) {
+      this.isTouched[cell] = 1;
+      this.touched.push(cell);
+    }
   }
 
   remove(slot: number, cell: number): void {
@@ -32,7 +40,11 @@ export class SpatialGrid {
 
   /** Empties every cell (before a full rebuild). */
   clear(): void {
-    for (const list of this.cells) list.length = 0;
+    for (const cell of this.touched) {
+      this.cells[cell]!.length = 0;
+      this.isTouched[cell] = 0;
+    }
+    this.touched.length = 0;
   }
 
   /** Calls `visit` for every animal in the cells overlapping the square of half-side `radius`. */

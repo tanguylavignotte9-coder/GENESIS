@@ -22,9 +22,13 @@ export interface BodyRef {
 export interface BodyView {
   /** Calls `visit` for every living being in the cells around (x, y) (filter by distance yourself). */
   forEachNear(x: number, y: number, radius: number, visit: (id: number) => void): void;
+  /** Calls `visit` for every living being, in index order. */
+  forEachAlive(visit: (id: number) => void): void;
   x(id: number): number;
   y(id: number): number;
   alive(id: number): boolean;
+  /** True while the being is out hunting (game is warier of a hunter than of a passer-by). */
+  hunting(id: number): boolean;
 }
 
 export interface Attack {

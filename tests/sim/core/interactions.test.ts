@@ -8,7 +8,7 @@ describe('interactions between beings of different systems', () => {
     const interactions = new Interactions(journal);
     const order: string[] = [];
     let health = 30;
-    const view = { forEachNear: () => {}, x: () => 4, y: () => 5, alive: () => health > 0 };
+    const view = { forEachNear: () => {}, forEachAlive: () => {}, hunting: () => false, x: () => 4, y: () => 5, alive: () => health > 0 };
     interactions.register('human', view, {
       sufferAttack: (_id: number, attack: Attack): AttackOutcome => {
         order.push('target');

@@ -22,7 +22,18 @@ function setTarget(fauna: FaunaSystem, slot: number, state: number, x: number, y
   store.state[slot] = state;
   store.targetX[slot] = Math.max(0, Math.min(fauna.size - 1, Math.round(x)));
   store.targetY[slot] = Math.max(0, Math.min(fauna.size - 1, Math.round(y)));
+  store.fleesHuman[slot] = 0;
 }
+
+/** Runs `fleeDistance` tiles away from (fx, fy). */
+export function fleeFrom(fauna: FaunaSystem, slot: number, fx: number, fy: number): void {
+  const { store, params } = fauna;
+  const dx = store.x[slot]! - fx;
+  const dy = store.y[slot]! - fy;
+  const length = Math.max(1, Math.hypot(dx, dy));
+  setTarget(fauna, slot, State.Flee, store.x[slot]! + (dx / length) * params.behavior.fleeDistance, store.y[slot]! + (dy / length) * params.behavior.fleeDistance);
+}
+
 
 /** Decision: what the animal wants now, by priority (danger, thirst, hunger, herd, rest). */
 export function think(fauna: FaunaSystem, slot: number): void {
@@ -40,10 +51,7 @@ export function think(fauna: FaunaSystem, slot: number): void {
       return store.state[other] === State.Hunt || chebyshev(x, y, store.x[other]!, store.y[other]!) <= CLOSE_DANGER;
     });
     if (threat >= 0) {
-      const dx = x - store.x[threat]!;
-      const dy = y - store.y[threat]!;
-      const length = Math.max(1, Math.hypot(dx, dy));
-      setTarget(fauna, slot, State.Flee, x + (dx / length) * params.behavior.fleeDistance, y + (dy / length) * params.behavior.fleeDistance);
+      fleeFrom(fauna, slot, store.x[threat]!, store.y[threat]!);
       return;
     }
   }
@@ -191,7 +199,10 @@ function travel(fauna: FaunaSystem, slot: number, species: AnimalSpecies, state:
   }
   const arrived = store.x[slot] === store.targetX[slot] && store.y[slot] === store.targetY[slot];
   if (!arrived) {
-    moveToward(fauna, slot, species, store.targetX[slot]!, store.targetY[slot]!);
+    const steps = state === State.Flee && store.fleesHuman[slot] === 1 ? species.fleeSprintTiles : 1;
+    for (let k = 0; k < steps && (store.x[slot] !== store.targetX[slot] || store.y[slot] !== store.targetY[slot]); k++) {
+      moveToward(fauna, slot, species, store.targetX[slot]!, store.targetY[slot]!);
+    }
     return;
   }
   if (state === State.Forage) store.state[slot] = State.Eat;

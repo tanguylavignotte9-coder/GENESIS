@@ -5,7 +5,7 @@ import type { ClimateState } from '../world/climate-state';
 import { Water } from '../world/hydrology';
 import type { World } from '../world/world';
 import type { FloraSystem } from '../flora/flora-system';
-import { AnimalStore, Sex } from './animal-store';
+import { AnimalStore, Sex, State } from './animal-store';
 import { act, think } from './behavior';
 import { Carrion } from './carrion';
 import { Census } from './census';
@@ -13,6 +13,7 @@ import { FishStock } from './fish';
 import { buildDiets, type Diet } from './food';
 import { onAttackDone } from './human-prey';
 import { sufferHunt } from './hunted';
+import { scareGame } from './human-fear';
 import { pathToFreshWater } from './fresh-water';
 import { maintainGroups } from './group-life';
 import { GroupStore } from './groups';
@@ -55,6 +56,8 @@ export class FaunaSystem {
   tick = 0;
   /** canHuntHumans[species] = 1 for the species that may attack a lone human. */
   canHuntHumans: Uint8Array;
+  /** Largest wariness distance toward humans among the species (0 = no species fears them). */
+  maxHumanFleeTiles = 0;
   /** Hunger and thirst gained per step, per species. */
   private hungerPerStep: Float64Array;
   private thirstPerStep: Float64Array;
@@ -92,9 +95,13 @@ export class FaunaSystem {
       'animal',
       {
         forEachNear: (x, y, radius, visit) => this.grid.forEachNear(x, y, radius, visit),
+        forEachAlive: (visit) => {
+          for (let slot = 0; slot < this.store.slots; slot++) if (this.store.alive[slot] === 1) visit(slot);
+        },
         x: (slot) => this.store.x[slot]!,
         y: (slot) => this.store.y[slot]!,
         alive: (slot) => this.store.alive[slot] === 1,
+        hunting: (slot) => this.store.state[slot] === State.Hunt,
       },
       {
         attackDone: (slot, attack, outcome) => onAttackDone(this, slot, attack, outcome),
@@ -109,6 +116,7 @@ export class FaunaSystem {
     this.diets.splice(0, this.diets.length, ...buildDiets(params));
     this.hungerPerStep = Float64Array.from(params.species, (species) => species.hungerPerDay / params.stepsPerDay);
     this.thirstPerStep = Float64Array.from(params.species, (species) => species.thirstPerDay / params.stepsPerDay);
+    this.maxHumanFleeTiles = Math.max(0, ...params.species.map((species) => species.humanFleeTiles));
     this.canHuntHumans = Uint8Array.from(params.species, (species) => (params.humanPrey.hunters.includes(species.id) ? 1 : 0));
   }
 
@@ -129,6 +137,7 @@ export class FaunaSystem {
     const { alive, hunger, thirst, species, uid } = store;
     const every = this.params.thinkEverySteps;
     const phase = this.step % every;
+    scareGame(this);
     for (let slot = 0; slot < store.slots; slot++) {
       if (alive[slot] === 0) continue;
       const code = species[slot]!;
@@ -178,6 +187,7 @@ export class FaunaSystem {
     store.hunger[slot] = this.rng.nextFloat() * 30;
     store.thirst[slot] = this.rng.nextFloat() * 30;
     store.health[slot] = PERCENT;
+    store.wariness[slot] = 1 + this.params.humanFear.warinessSpread * (this.rng.nextFloat() * 2 - 1);
     store.group[slot] = group;
     store.x[slot] = x;
     store.y[slot] = y;

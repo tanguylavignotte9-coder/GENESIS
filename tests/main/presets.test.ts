@@ -26,4 +26,19 @@ describe('presets folder', () => {
     await store.remove('hivers-rudes.json');
     expect((await store.list()).map((preset) => preset.file)).toEqual(['casse.json']);
   });
+
+  it('remembers the last active preset, forgotten when it is deleted or reset', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'genesis-presets-'));
+    const store = new PresetStore(dir);
+    expect(await store.active()).toBeNull();
+    const entry = await store.save({ nom: 'Chasseurs', valeurs: {} });
+    await store.setActive(entry.file);
+    expect(await store.active()).toBe('chasseurs.json');
+    expect((await store.list()).map((preset) => preset.file)).toEqual(['chasseurs.json']);
+    await store.setActive(null);
+    expect(await store.active()).toBeNull();
+    await store.setActive(entry.file);
+    await store.remove(entry.file);
+    expect(await store.active()).toBeNull();
+  });
 });

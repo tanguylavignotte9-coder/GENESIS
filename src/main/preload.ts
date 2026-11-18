@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('genesis', {
   readPreset: (file: string) => invoke('presets:read', file),
   savePreset: (preset: unknown) => invoke('presets:save', preset),
   deletePreset: (file: string) => invoke('presets:delete', file),
+  activePreset: () => invoke('presets:getActive'),
+  setActivePreset: (file: string | null) => invoke('presets:setActive', file),
   runBenchmark: () => invoke('benchmark:run'),
   onBenchmarkLine: (listener: (line: string) => void) => {
     ipcRenderer.on(BENCHMARK_LINE, (_event, line: string) => listener(line));

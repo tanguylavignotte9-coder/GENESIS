@@ -40,6 +40,8 @@ function registerHandlers(): void {
   handle('presets:read', (file) => presets.read(String(file)));
   handle('presets:save', (preset) => presets.save(preset));
   handle('presets:delete', (file) => presets.remove(String(file)));
+  handle('presets:getActive', () => presets.active());
+  handle('presets:setActive', (file) => presets.setActive(typeof file === 'string' ? file : null));
   const line: Channel = 'benchmark:line';
   handle('benchmark:run', () => runBenchmark(appDir, (text) => window?.webContents.send(line, text)));
 }

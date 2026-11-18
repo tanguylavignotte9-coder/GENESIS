@@ -24,6 +24,9 @@ export interface GenesisBridge {
   readPreset(file: string): Promise<unknown>;
   savePreset(preset: PresetFile): Promise<PresetEntry>;
   deletePreset(file: string): Promise<void>;
+  /** File of the last preset loaded or saved (reloaded at startup), or null. */
+  activePreset(): Promise<string | null>;
+  setActivePreset(file: string | null): Promise<void>;
   runBenchmark(): Promise<BenchmarkResult>;
   onBenchmarkLine(listener: (line: string) => void): void;
 }

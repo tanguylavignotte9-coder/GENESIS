@@ -143,7 +143,10 @@ async function main(): Promise<void> {
       get: () => sim.workshopGet(),
       set: (file, key, value) => sim.workshopSet(file, key, value),
       reset: (file, key) => sim.workshopReset(file, key),
-      resetAll: () => sim.workshopResetAll(),
+      resetAll: () => {
+        sim.workshopResetAll();
+        presets.forgetActive();
+      },
     },
   );
   element<HTMLButtonElement>('workshop-toggle').addEventListener('click', (event) => {
@@ -350,6 +353,8 @@ async function main(): Promise<void> {
     }
   });
 
+  // The last active preset is reloaded before the first world (its values apply to it).
+  await presets.reloadActive();
   sim.start(randomSeed());
 }
 

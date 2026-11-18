@@ -51,12 +51,36 @@ export class PresetsBar {
     if (!this.bridge) return;
     try {
       const entry = await this.bridge.savePreset(preset);
+      await this.bridge.setActivePreset(entry.file);
       this.requests.saved(entry.name);
       this.requests.message([`Preset « ${entry.name} » enregistré dans presets/${entry.file}.`], true);
       await this.refresh(entry.file);
     } catch (error) {
       this.requests.message([`Impossible d’enregistrer le preset : ${errorText(error)}`], false);
     }
+  }
+
+  /**
+   * At startup: reloads the last active preset (loaded or saved during a previous game), before the
+   * first world is created. Returns false if there is none (default values).
+   */
+  async reloadActive(): Promise<boolean> {
+    if (!this.bridge) return false;
+    try {
+      const file = await this.bridge.activePreset();
+      if (!file) return false;
+      this.requests.load((await this.bridge.readPreset(file)) as PresetFile);
+      await this.refresh(file);
+      return true;
+    } catch (error) {
+      this.requests.message([`Impossible de recharger le dernier preset : ${errorText(error)}`], false);
+      return false;
+    }
+  }
+
+  /** Back to the default values: no preset to reload at the next launch. */
+  forgetActive(): void {
+    void this.bridge?.setActivePreset(null);
   }
 
   private async refresh(select?: string): Promise<void> {
@@ -85,6 +109,7 @@ export class PresetsBar {
     if (!this.bridge || file === '') return;
     try {
       this.requests.load((await this.bridge.readPreset(file)) as PresetFile);
+      await this.bridge.setActivePreset(file);
     } catch (error) {
       this.requests.message([`Impossible de lire le preset : ${errorText(error)}`], false);
     }

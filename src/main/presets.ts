@@ -13,6 +13,8 @@ interface PresetContent {
 }
 
 const PRESET_FILE = /^[a-z0-9-]+\.json$/;
+/** Remembers the last active preset between two launches (not a preset itself, ignored by git). */
+const ACTIVE_FILE = '.actif';
 
 /** "Loups affamés !" → "loups-affames" */
 export function slug(name: string): string {
@@ -70,5 +72,25 @@ export class PresetStore {
 
   async remove(file: string): Promise<void> {
     await rm(path.join(this.dir, checkedFile(file)), { force: true });
+    if ((await this.active()) === file) await this.setActive(null);
+  }
+
+  /** File of the last preset loaded or saved, if it still exists (reloaded when the game starts). */
+  async active(): Promise<string | null> {
+    try {
+      const file = (await readFile(path.join(this.dir, ACTIVE_FILE), 'utf8')).trim();
+      if (!PRESET_FILE.test(file)) return null;
+      await readFile(path.join(this.dir, file), 'utf8');
+      return file;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Records the active preset (null: default values, nothing to reload). */
+  async setActive(file: string | null): Promise<void> {
+    await mkdir(this.dir, { recursive: true });
+    if (file === null) await rm(path.join(this.dir, ACTIVE_FILE), { force: true });
+    else await writeFile(path.join(this.dir, ACTIVE_FILE), `${checkedFile(file)}\n`, 'utf8');
   }
 }

@@ -5,7 +5,8 @@ rem  1. Use Node.js from PATH, or download a portable Node.js into .runtime\
 rem  2. Run "npm ci" when node_modules\ is missing or package-lock.json changed
 rem  3. Build then start the game ("npm start")
 rem     With "--benchmark" (used by Benchmark-GENESIS.bat): build and run the
-rem     benchmark instead ("npm run benchmark"), report written in rapports\
+rem     benchmark instead ("npm run benchmark:game": the game opens, runs the
+rem     render test then the load test, writes the report in rapports\ and closes)
 rem  No administrator rights needed. Messages are in French for the player.
 rem ==========================================================================
 setlocal EnableExtensions
@@ -98,8 +99,9 @@ exit /b 0
 
 rem --------------------------------------------- 3 bis. Build and benchmark
 :benchmark
-echo [3/3] Construction puis lancement du banc d'essai (quelques minutes, ne fermez pas la fenêtre)...
-call npm run benchmark
+echo [3/3] Construction puis lancement du banc d'essai (environ 10 minutes, ne touchez à rien) :
+echo       le jeu s'ouvre, mesure l'affichage, puis la simulation, et se ferme tout seul.
+call npm run benchmark:game
 if errorlevel 1 goto :error_benchmark
 echo.
 echo Banc d'essai terminé : le rapport est dans le dossier rapports\

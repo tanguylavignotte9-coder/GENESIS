@@ -80,6 +80,15 @@ export class Camera {
     this.apply();
   }
 
+  /** Shows a tile at a given zoom (pixels per tile), e.g. for the render test. */
+  view(x: number, y: number, pixelsPerTile: number): void {
+    this.stopFollowing();
+    this.centerX = x + 0.5;
+    this.centerY = y + 0.5;
+    this.zoom = pixelsPerTile;
+    this.apply();
+  }
+
   /** Moves with the keyboard; call every frame. */
   update(elapsedMs: number): void {
     let dx = 0;

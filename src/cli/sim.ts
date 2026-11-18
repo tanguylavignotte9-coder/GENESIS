@@ -11,7 +11,7 @@ import { isValidSeed, Rng } from '../sim/core/rng';
 import { runHeadless } from '../sim/headless';
 import { computeWorldStats } from '../sim/systems/world/stats';
 import { generateWorld } from '../sim/systems/world/world';
-import { BUDGET_SHARE, LOAD_TEST_DAYS, runLoadTest, X500_DAY_BUDGET_MS } from './load-test';
+import { BUDGET_SHARE, ECOSYSTEM_WARMUP_YEARS, LOAD_TEST_DAYS, runLoadTest, X500_DAY_BUDGET_MS } from './load-test';
 
 const DEFAULT_SEED = 42;
 const DEFAULT_YEARS = 1;
@@ -108,7 +108,7 @@ function printRun(seed: number, years: number, data: GameData): void {
 
 function printLoadTest(seed: number, data: GameData): void {
   console.log('GENESIS — test de charge (humains, faune et flore, carte complète)');
-  console.log(`  Graine : ${seed} · ${LOAD_TEST_DAYS} jours de jeu mesurés par palier`);
+  console.log(`  Graine : ${seed} · faune et flore mises en route pendant ${ECOSYSTEM_WARMUP_YEARS} ans, puis ${LOAD_TEST_DAYS} jours de jeu mesurés par palier`);
   const result = runLoadTest(seed, data, (step) => {
     const share = Math.round(step.x500Share * PERCENT);
     console.log(`  ${fr.format(step.humans).padStart(6)} humains (${step.camps} camps) : ${step.msPerDay.toFixed(0).padStart(5)} ms par jour de jeu (${share} % du temps disponible en x500)`);

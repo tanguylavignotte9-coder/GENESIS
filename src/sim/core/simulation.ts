@@ -54,7 +54,11 @@ export class Simulation {
   /** Incremented each time the climate of the moment changes (once per game day). */
   climateVersion = 0;
 
-  constructor(seed: number, data: GameData) {
+  /**
+   * `ecosystemWarmupDays`: before the humans arrive, plants and animals live this many days alone
+   * (the benchmark measures a world whose fauna and flora have reached their balance).
+   */
+  constructor(seed: number, data: GameData, options: { ecosystemWarmupDays?: number } = {}) {
     this.seed = seed;
     this.data = data;
     this.rng = new Rng(seed);
@@ -67,6 +71,7 @@ export class Simulation {
     this.ticksPerStep = Math.max(1, Math.round(data.time.ticksPerDay / data.fauna.stepsPerDay));
     this.ticksPerHumanStep = Math.max(1, Math.round(data.time.ticksPerDay / HOURS_PER_DAY / data.humans.stepsPerHour));
     this.startDay(this.date);
+    this.warmUpEcosystem(options.ecosystemWarmupDays ?? 0);
     this.production = new ProductionSystem(
       this.world,
       this.climate,
@@ -140,6 +145,20 @@ export class Simulation {
         this.production.runStep(1 / this.data.humans.stepsPerHour, now);
         this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
       }
+    }
+  }
+
+  /** Days of plant and animal life only (no humans yet). */
+  private warmUpEcosystem(days: number): void {
+    const { ticksPerDay } = this.data.time;
+    const end = this.clock.tick + days * ticksPerDay;
+    while (this.clock.tick < end) {
+      const tick = this.clock.tick;
+      const toNext = Math.min(this.ticksPerStep - (tick % this.ticksPerStep), ticksPerDay - (tick % ticksPerDay));
+      this.clock.advance(toNext);
+      const now = this.clock.tick;
+      if (now % ticksPerDay === 0) this.startDay(this.date);
+      if (now % this.ticksPerStep === 0) this.fauna.runStep(now);
     }
   }
 

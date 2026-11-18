@@ -2,7 +2,8 @@ import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
 import { ClimateState } from '../sim/systems/world/climate-state';
-import type { ClimateYearSnapshot, FromSimMessage, LifeTables, Roster, WorldSnapshot } from '../shared/messages';
+import type { ClimateYearSnapshot, FromSimMessage, LifeTables, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
+import { runRenderTest, type RenderTestHost } from './bench/render-test';
 import '../shared/bridge';
 import { Hover } from './hover';
 import { JournalPanel } from './hud/journal-panel';
@@ -178,7 +179,42 @@ async function main(): Promise<void> {
       message: (messages, ok) => workshop.showMessages(messages, ok),
     },
   );
-  new BenchmarkPanel(element<HTMLButtonElement>('benchmark-run'), element('benchmark-log'), window.genesis, () => sim.setPaused(true));
+  let lastPerf: PerfSnapshot | null = null;
+  let knownSpeeds: readonly number[] = [];
+  /** Resolved once the benchmark world's humans and animals reached the display. */
+  let benchmarkWorld: { resolve: () => void; ready: boolean; humans: boolean; fauna: boolean } | null = null;
+  const benchmarkHost: RenderTestHost = {
+    startBenchmarkWorld: (seed, warmupYears) =>
+      new Promise<void>((resolve) => {
+        benchmarkWorld = { resolve, ready: false, humans: false, fauna: false };
+        sim.start(seed, { warmupYears });
+      }),
+    speeds: () => knownSpeeds,
+    setSpeed: (index) => sim.setSpeed(index),
+    world: () => world,
+    humans: () => people.snapshot,
+    fauna: () => animals.snapshot,
+    population: () => ({ animals: lastPerf?.animals ?? 0, plants: lastPerf?.plants ?? 0, humans: lastPerf?.humans ?? 0 }),
+    camera,
+    ticker: app.ticker,
+    viewSize: () => ({ width: mapElement.clientWidth, height: mapElement.clientHeight }),
+    progress: () => undefined,
+  };
+  const benchmarkPanel = new BenchmarkPanel(element<HTMLButtonElement>('benchmark-run'), element('benchmark-log'), element('bench-overlay'), window.genesis, {
+    renderTest: (print) => runRenderTest({ ...benchmarkHost, progress: print }),
+    pause: () => sim.setPaused(true),
+    showMap: () => workshop.close(),
+    newWorld: () => sim.start(randomSeed()),
+  });
+  const benchmarkProgress = (kind: 'ready' | 'humans' | 'fauna'): void => {
+    const pending = benchmarkWorld;
+    if (!pending) return;
+    pending[kind] = true;
+    if (pending.ready && pending.humans && pending.fauna) {
+      benchmarkWorld = null;
+      pending.resolve();
+    }
+  };
   const perfPanel = new PerfPanel(element('perf'));
   const tribe = new TribePanel(element('tribe'), element<HTMLButtonElement>('tribe-toggle'), element('tribe-list'), selectPerson);
   const followBadge = element('follow');
@@ -228,6 +264,12 @@ async function main(): Promise<void> {
         climateYear = null;
         if (workshop.isOpen) sim.workshopGet();
         panel.setWorld({ seed: message.seed, generationMs: message.generationMs, riverCount: world.riverCount, lakeCount: world.lakeCount });
+        knownSpeeds = message.speeds;
+        if (benchmarkWorld && message.benchmark) {
+          benchmarkWorld.humans = false;
+          benchmarkWorld.fauna = false;
+          benchmarkProgress('ready');
+        }
         return;
       case 'climateYear':
         climateYear = message.year;
@@ -243,9 +285,11 @@ async function main(): Promise<void> {
         return;
       case 'fauna':
         animals.setFauna(message.fauna, performance.now(), pace.msFor(motion.ticksPerAnimalStep));
+        benchmarkProgress('fauna');
         return;
       case 'humans':
         people.setHumans(message.humans, performance.now(), pace.msFor(motion.ticksPerHumanStep));
+        benchmarkProgress('humans');
         return;
       case 'weather':
         weatherRegions = message.regions;
@@ -284,6 +328,7 @@ async function main(): Promise<void> {
         return;
       case 'perf':
         perfPanel.setPerf(message.perf);
+        lastPerf = message.perf;
         return;
       case 'liveTables':
         applyLiveTables(message.climate, message.life, message.speeds);
@@ -311,6 +356,7 @@ async function main(): Promise<void> {
     if (speedKey !== speedsKey) {
       speedsKey = speedKey;
       time.setSpeeds(speeds);
+      knownSpeeds = speeds;
     }
   }
 
@@ -391,6 +437,7 @@ async function main(): Promise<void> {
   // The last active preset is reloaded before the first world (its values apply to it).
   await presets.reloadActive();
   sim.start(randomSeed());
+  await benchmarkPanel.startIfAuto();
 }
 
 main().catch((error: unknown) => {

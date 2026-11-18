@@ -11,7 +11,11 @@ import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
 
 /** Display -> simulation. */
 export type ToSimMessage =
-  | { type: 'start'; seed: number }
+  /**
+   * New world. `benchmark`: the render test's world — default values (never the active preset), and
+   * plants and animals live alone for `warmupYears` years first, to reach their balance.
+   */
+  | { type: 'start'; seed: number; benchmark?: { warmupYears: number } }
   /** Index into the speeds sent with 'worldReady'. */
   | { type: 'setSpeed'; speedIndex: number }
   | { type: 'setPaused'; paused: boolean }
@@ -295,6 +299,8 @@ export type FromSimMessage =
       weatherRegionTiles: number;
       /** Ticks between two steps of the humans and of the animals (for smooth movement on screen). */
       motion: { ticksPerHumanStep: number; ticksPerAnimalStep: number };
+      /** True for the render test's world. */
+      benchmark: boolean;
     }
   | { type: 'humans'; humans: HumansSnapshot }
   | { type: 'weather'; regions: Uint8Array }

@@ -43,7 +43,10 @@ function registerHandlers(): void {
   handle('presets:getActive', () => presets.active());
   handle('presets:setActive', (file) => presets.setActive(typeof file === 'string' ? file : null));
   const line: Channel = 'benchmark:line';
-  handle('benchmark:run', () => runBenchmark(appDir, (text) => window?.webContents.send(line, text)));
+  handle('benchmark:run', (render) => runBenchmark(appDir, render ?? null, (text) => window?.webContents.send(line, text)));
+  // Launched by Benchmark-GENESIS.bat ("electron . --benchmark"): the display runs the whole benchmark.
+  handle('benchmark:auto', () => process.argv.includes('--benchmark'));
+  handle('app:quit', () => app.quit());
 }
 
 void app.whenReady().then(() => {

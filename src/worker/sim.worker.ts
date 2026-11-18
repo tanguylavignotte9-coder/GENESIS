@@ -6,6 +6,7 @@
  */
 import { formatDate, dateAtTick } from '../sim/core/calendar';
 import { Simulation } from '../sim/core/simulation';
+import { loadGameData } from '../sim/core/game-data';
 import { daysPerYear } from '../sim/core/time-params';
 import { Workshop, type WorkshopResult } from '../sim/core/workshop';
 import type { FromSimMessage, JournalEntry, LifeTables, ToSimMessage } from '../shared/messages';
@@ -59,7 +60,7 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function start(seed: number): void {
+function start(seed: number, benchmark?: { warmupYears: number }): void {
   if (loop !== undefined) clearInterval(loop);
   loop = undefined;
   simulation = undefined;
@@ -68,7 +69,11 @@ function start(seed: number): void {
   const generationStart = performance.now();
   let created: Simulation;
   try {
-    created = new Simulation(seed, workshop.dataForNewWorld());
+    if (benchmark) {
+      const data = loadGameData();
+      const yearDays = data.time.daysPerSeason * data.time.seasons.length;
+      created = new Simulation(seed, data, { ecosystemWarmupDays: benchmark.warmupYears * yearDays });
+    } else created = new Simulation(seed, workshop.dataForNewWorld());
   } catch (error) {
     post({ type: 'error', message: errorMessage(error) });
     return;
@@ -91,6 +96,7 @@ function start(seed: number): void {
       roster: snapshotRoster(created),
       weatherRegionTiles: created.data.weather.regionTiles,
       motion: { ticksPerHumanStep: created.ticksPerHumanStep, ticksPerAnimalStep: created.ticksPerStep },
+      benchmark: benchmark !== undefined,
     },
     transfer,
   );
@@ -232,7 +238,7 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
   const message = event.data;
   switch (message.type) {
     case 'start':
-      start(message.seed);
+      start(message.seed, message.benchmark);
       return;
     case 'setSpeed':
       if (simulation && message.speedIndex >= 0 && message.speedIndex < simulation.data.time.speeds.length) {

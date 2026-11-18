@@ -15,7 +15,8 @@
     "sim": "tsx src/cli/sim.ts",
     "test:long": "vitest run --config vitest.long.config.mts",
     "build:bench": "vite build --config vite.bench.config.mts",
-    "benchmark": "npm run build:bench && node dist/bench/benchmark.mjs"
+    "benchmark": "npm run build:bench && node dist/bench/benchmark.mjs",
+    "benchmark:game": "npm run build && electron . --benchmark"
   },
   "dependencies": {
     "pixi.js": "8.23.0"

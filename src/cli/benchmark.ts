@@ -3,12 +3,14 @@
  * report in rapports/ (readable text + JSON), with the processor, cores, memory and system version.
  * Launched by Benchmark-GENESIS.bat, by the workshop button, or `npm run benchmark`.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+import type { RenderTestResult } from '../shared/bridge';
 import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { loadGameData } from '../sim/core/game-data';
-import { BUDGET_SHARE, LOAD_TEST_DAYS, runLoadTest, X500_DAY_BUDGET_MS, type LoadTestResult } from './load-test';
+import { BUDGET_SHARE, ECOSYSTEM_WARMUP_YEARS, LOAD_TEST_DAYS, runLoadTest, X500_DAY_BUDGET_MS, type LoadTestResult } from './load-test';
 
 const SEED = 42;
 const BYTES_PER_GB = 1024 * 1024 * 1024;
@@ -47,7 +49,32 @@ function stamp(date: Date): string {
   return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}_${two(date.getHours())}-${two(date.getMinutes())}-${two(date.getSeconds())}`;
 }
 
-function textReport(date: Date, pc: Machine, result: LoadTestResult, totalSeconds: number): string {
+function renderLines(render: RenderTestResult | null): string[] {
+  if (!render) return ['Test de rendu : non effectué (il se lance dans le jeu : bouton de l’Atelier ou Benchmark-GENESIS.bat).', ''];
+  const lines = [
+    `Test de rendu dans le jeu (graine ${render.seed}, après ${render.warmupYears} ans de faune et de flore : ${fr.format(render.animals)} animaux, ${fr.format(render.plants)} plantes, ${fr.format(render.humans)} humains)`,
+    `  Carte graphique : ${render.gpu}`,
+    `  Fabricant       : ${render.gpuVendor}`,
+    `  Zone de la carte : ${render.viewWidth} × ${render.viewHeight} pixels (échelle de l’écran ${fr.format(render.devicePixelRatio)})`,
+    '  Vue                  | Vitesse | Zoom (px/tuile) | Animaux visibles | Images/s (moyenne) | Images/s (1 % les plus lentes)',
+  ];
+  for (const m of render.measures) {
+    lines.push(
+      [
+        `  ${m.view.padEnd(20)}`,
+        `x${m.speed}`.padStart(7),
+        fr.format(m.pixelsPerTile).padStart(15),
+        fr.format(m.animalsInView).padStart(16),
+        fr.format(Math.round(m.meanFps)).padStart(18),
+        fr.format(Math.round(m.low1PercentFps)).padStart(30),
+      ].join(' | '),
+    );
+  }
+  lines.push('  Le jeu est fluide si la moyenne reste proche de la fréquence de l’écran (souvent 60) et les 1 % les plus lents au-dessus de 30 environ.', '');
+  return lines;
+}
+
+function textReport(date: Date, pc: Machine, result: LoadTestResult, render: RenderTestResult | null, totalSeconds: number): string {
   const lines = [
     'GENESIS — rapport du banc d’essai',
     `Date : ${date.toLocaleString('fr-FR')}`,
@@ -58,9 +85,11 @@ function textReport(date: Date, pc: Machine, result: LoadTestResult, totalSecond
     `  Cœurs        : ${pc.logicalCores} (logiques)`,
     `  Mémoire      : ${fr.format(pc.memoryGb)} Go`,
     `  Node.js      : ${pc.nodeVersion}`,
+    `  Carte graphique : ${render?.gpu ?? 'inconnue (test de rendu non effectué)'}`,
     '',
-    `Test de charge (graine ${result.seed}, carte complète, réglages par défaut, ${result.days} jours de jeu mesurés par palier)`,
-    '  Humains | Camps | Animaux | Plantes | Génération | Calcul d’un jour | Part du temps en x500 | Vitesse max. | Mémoire',
+    ...renderLines(render),
+    `Test de charge (graine ${result.seed}, carte complète, réglages par défaut, faune et flore mises en route pendant ${result.warmupYears} ans, puis ${result.days} jours de jeu mesurés par palier)`,
+    '  Humains | Camps | Animaux | Plantes | Génération | Mise en route | Calcul d’un jour | Jour le plus lent | Part du temps en x500 | Vitesse max. | Mémoire',
   ];
   for (const step of result.steps) {
     lines.push(
@@ -70,7 +99,9 @@ function textReport(date: Date, pc: Machine, result: LoadTestResult, totalSecond
         fr.format(step.animals).padStart(7),
         fr.format(step.plants).padStart(7),
         `${fr.format(step.generationMs / MS_PER_SECOND)} s`.padStart(10),
+        `${fr.format(Math.round(step.warmupMs / MS_PER_SECOND))} s`.padStart(13),
         `${Math.round(step.msPerDay)} ms`.padStart(16),
+        `${Math.round(step.worstDayMs)} ms`.padStart(17),
         `${Math.round(step.x500Share * PERCENT)} %`.padStart(21),
         `x${Math.round(step.maxSpeed)}`.padStart(12),
         `${Math.round(step.memoryMb)} Mo`.padStart(7),
@@ -87,13 +118,20 @@ function textReport(date: Date, pc: Machine, result: LoadTestResult, totalSecond
   return lines.join('\n');
 }
 
+function readRender(): RenderTestResult | null {
+  const { values } = parseArgs({ options: { render: { type: 'string' } } });
+  if (!values.render) return null;
+  return JSON.parse(readFileSync(values.render, 'utf8')) as RenderTestResult;
+}
+
 function main(): void {
   const startedAt = performance.now();
+  const render = readRender();
   const date = new Date();
   const pc = machine();
   console.log('GENESIS — banc d’essai');
   console.log(`Ordinateur : ${pc.processor}, ${pc.logicalCores} cœurs, ${fr.format(pc.memoryGb)} Go, ${pc.system}`);
-  console.log(`Test de charge : ${LOAD_TEST_DAYS} jours de jeu par palier, de 100 à 5 000 humains (quelques minutes)…`);
+  console.log(`Test de charge : mise en route de la faune et de la flore (${ECOSYSTEM_WARMUP_YEARS} ans), puis ${LOAD_TEST_DAYS} jours de jeu par palier, de 100 à 5 000 humains (plusieurs minutes)…`);
   const result = runLoadTest(SEED, loadGameData(), (step) => {
     console.log(`  ${fr.format(step.humans)} humains : ${Math.round(step.msPerDay)} ms par jour de jeu (${Math.round(step.x500Share * PERCENT)} % du temps en x500)`);
   });
@@ -101,9 +139,9 @@ function main(): void {
   const dir = path.join(process.cwd(), 'rapports');
   mkdirSync(dir, { recursive: true });
   const base = `banc-essai_${stamp(date)}`;
-  const text = textReport(date, pc, result, totalSeconds);
+  const text = textReport(date, pc, result, render, totalSeconds);
   writeFileSync(path.join(dir, `${base}.txt`), text, 'utf8');
-  const json = { date: date.toISOString(), machine: pc, loadTest: result, totalSeconds };
+  const json = { date: date.toISOString(), machine: pc, renderTest: render, loadTest: result, totalSeconds };
   writeFileSync(path.join(dir, `${base}.json`), `${JSON.stringify(json, null, 2)}\n`, 'utf8');
   console.log('');
   console.log(text);

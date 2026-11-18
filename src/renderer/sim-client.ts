@@ -12,8 +12,8 @@ export class SimClient {
     this.worker.onerror = (event) => onMessage({ type: 'error', message: event.message });
   }
 
-  start(seed: number): void {
-    this.send({ type: 'start', seed });
+  start(seed: number, benchmark?: { warmupYears: number }): void {
+    this.send(benchmark ? { type: 'start', seed, benchmark } : { type: 'start', seed });
   }
 
   setSpeed(speedIndex: number): void {

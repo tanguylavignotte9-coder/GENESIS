@@ -73,7 +73,7 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 - Le reste d'un arbre abattu est perdu (pas de tas de bois au sol).
 
 **Mesures (serveurs de Claude Code, `tsx`) :** 1 020 humains : ~355 ms par jour de jeu (342 avant
-l'étape) ; tribu de 30 : voir compte rendu. PC de Tanguy (banc d'essai du 18 nov., étape 5) : 1 020 humains
+l’étape) ; tribu de 30 avec toute la faune et la flore : 74 ms par jour de jeu. Tests longs : 8/8 en 21 min. PC de Tanguy (banc d'essai du 18 nov., étape 5) : 1 020 humains
 en 215 ms/jour, plafond conseillé ~4 000 humains en x500 — à refaire avec l'étape 6.
 
 ---

@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-18T18:46:25.663Z",
+  "machine": {
+    "system": "Windows 11 Home",
+    "systemVersion": "win32 10.0.26200",
+    "architecture": "x64",
+    "processor": "Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz",
+    "logicalCores": 8,
+    "memoryGb": 15.8,
+    "nodeVersion": "24.21.0"
+  },
+  "loadTest": {
+    "seed": 42,
+    "days": 3,
+    "steps": [
+      {
+        "humans": 120,
+        "camps": 4,
+        "animals": 7361,
+        "plants": 131923,
+        "generationMs": 1768.4873,
+        "msPerDay": 91.86346666666675,
+        "x500Share": 0.0956911111111112,
+        "maxSpeed": 5225.145723508506,
+        "memoryMb": 174.13671875
+      },
+      {
+        "humans": 510,
+        "camps": 17,
+        "animals": 7363,
+        "plants": 131892,
+        "generationMs": 1755.9897999999998,
+        "msPerDay": 141.98176666666677,
+        "x500Share": 0.14789767361111122,
+        "maxSpeed": 3380.715786745385,
+        "memoryMb": 285.49609375
+      },
+      {
+        "humans": 1020,
+        "camps": 34,
+        "animals": 7365,
+        "plants": 131776,
+        "generationMs": 1942.1539000000002,
+        "msPerDay": 215.43153333333308,
+        "x500Share": 0.22440784722222196,
+        "maxSpeed": 2228.086077154291,
+        "memoryMb": 293.6484375
+      },
+      {
+        "humans": 2010,
+        "camps": 67,
+        "animals": 7365,
+        "plants": 131739,
+        "generationMs": 2412.978800000001,
+        "msPerDay": 371.3822333333337,
+        "x500Share": 0.38685649305555597,
+        "maxSpeed": 1292.4689360925258,
+        "memoryMb": 301.1171875
+      },
+      {
+        "humans": 5010,
+        "camps": 167,
+        "animals": 7345,
+        "plants": 131775,
+        "generationMs": 3903.5231999999996,
+        "msPerDay": 824.0996000000001,
+        "x500Share": 0.8584370833333335,
+        "maxSpeed": 582.4538684401739,
+        "memoryMb": 315.76171875
+      }
+    ],
+    "advisedHumans": 4002
+  },
+  "totalSeconds": 18.418264100000002
+}

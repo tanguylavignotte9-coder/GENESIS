@@ -1,0 +1,21 @@
+GENESIS — rapport du banc d’essai
+Date : 18/11/2026 19:46:25
+
+Ordinateur
+  Système      : Windows 11 Home (win32 10.0.26200, x64)
+  Processeur   : Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz
+  Cœurs        : 8 (logiques)
+  Mémoire      : 15,8 Go
+  Node.js      : 24.21.0
+
+Test de charge (graine 42, carte complète, réglages par défaut, 3 jours de jeu mesurés par palier)
+  Humains | Camps | Animaux | Plantes | Génération | Calcul d’un jour | Part du temps en x500 | Vitesse max. | Mémoire
+      120 |     4 |   7 361 | 131 923 |      1,8 s |            92 ms |                  10 % |        x5225 |  174 Mo
+      510 |    17 |   7 363 | 131 892 |      1,8 s |           142 ms |                  15 % |        x3381 |  285 Mo
+    1 020 |    34 |   7 365 | 131 776 |      1,9 s |           215 ms |                  22 % |        x2228 |  294 Mo
+    2 010 |    67 |   7 365 | 131 739 |      2,4 s |           371 ms |                  39 % |        x1292 |  301 Mo
+    5 010 |   167 |   7 345 | 131 775 |      3,9 s |           824 ms |                  86 % |         x582 |  316 Mo
+
+Plafond conseillé en x500 : environ 4 002 humains (un jour de jeu en moins de 672 ms, soit 70 % de 0,96 s).
+« Vitesse max. » : vitesse que la simulation seule pourrait tenir (x1 = 8 minutes réelles par jour de jeu).
+Durée totale du banc d’essai : 18,4 s.

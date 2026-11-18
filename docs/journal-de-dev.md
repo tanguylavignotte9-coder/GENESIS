@@ -8,6 +8,96 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Étape 7 · Vie sociale (et préalables) — 18 nov. 2026
+
+**Fait (préalables) :**
+- **Fluidité en x1** : `renderer/life/glide.ts`. Quand un humain ou un animal change de tuile, son dessin
+  glisse depuis sa position affichée jusqu'à la nouvelle, pendant la durée de son pas mesurée sur la vitesse
+  réelle du jeu (`SimPace`, à partir de l'horloge envoyée par le worker). Marche animée (deux foulées et un
+  petit rebond, les petits animaux sautillent) dans `art/human.ts` et `art/animal.ts`. Si un pas dure moins de
+  40 ms (x100, x500) ou si le saut dépasse 4 tuiles, le dessin se place directement.
+- **Banc d'essai** : mise en route de 15 ans de faune et de flore avant les humains (option
+  `ecosystemWarmupDays` de `Simulation`), 20 jours mesurés par palier avec le jour le plus lent, test de rendu
+  dans le jeu (`renderer/bench/render-test.ts` : carte entière, camp zoomé, forêt la plus peuplée ; x1 et
+  x25 ; images/s moyennes et 1 % les plus lentes ; carte graphique via WebGL). `Benchmark-GENESIS.bat` lance
+  désormais `npm run benchmark:game` : le jeu s'ouvre, fait le test de rendu puis le test de charge (processus
+  séparé), écrit le rapport et se ferme. Le bouton de l'Atelier fait de même sans fermer. `npm run benchmark`
+  (sans fenêtre) reste possible, sans test de rendu.
+- **Chasse** : le gibier perçoit les humains (`fauna/human-fear.ts`, boucle sur les personnes, peu nombreuses) :
+  un chasseur est remarqué à la distance de méfiance de l'espèce × la prudence propre de l'animal (tirée à la
+  naissance), un passant à 40 % de cette distance ; plus il est proche, plus il est remarqué ; l'animal fuit en
+  courant (`fleeSprintTiles`). Les prédateurs ne fuient pas (riposte : étape 11). Info-bulle « fuit les humains ».
+
+**Fait (étape 7, `src/sim/systems/individuals/social/`, `data/social.json`) :**
+- Relations (24 au plus par personne, tableaux typés) sur trois axes, liens familiaux (conjoint, parent,
+  enfant, frère ou sœur), 3 raisons principales par relation avec leur date et l'événement du journal qui les
+  explique ; les raisons s'estompent (les récentes et fortes restent) ; usure vers la valeur de base.
+- Émotions (joie, tristesse, colère, peur, jalousie) et solitude, mises à jour chaque heure ; souvenirs
+  marquants (13 sortes : deuil, rancune, gratitude, peur, amour…) qui s'estompent et entretiennent leur
+  émotion (elle revient après une consolation) ; la personnalité évolue un peu (±0,25 au plus depuis la
+  naissance). Nouveaux traits : générosité, colère facile, ambition.
+- Conversations comme actions (`behavior: "converse"`) : bavarder, se réconcilier, se confier, consoler,
+  séduire, se disputer. Elles changent les relations des deux côtés (charme des sociables, « qui se ressemble
+  s'assemble »), peuvent tourner à l'accrochage (colériques, caractères opposés, faim), font circuler les
+  nouvelles. Séduire mène au couple si l'affection est réciproque ; refus si pas d'attirance ; jalousie du
+  conjoint qui voit la scène. Séparation si l'affection d'un conjoint s'effondre.
+- Connaissance limitée (`news.ts`) : morts, couples, coins de nourriture loin du camp, dangers. Témoins dans un
+  rayon de 10 tuiles, corps retrouvé par qui passe près pendant 15 jours, puis bouche à oreille ; chaque
+  récit peut perdre un détail (cause, précision du lieu). Le deuil commence quand on apprend la mort.
+- Partage (`behavior: "give"`) : nourriture portée donnée à un proche qui a faim, selon la relation, la faim,
+  la générosité (les parents nourrissent leurs enfants en priorité) ; un outil en double à un ami qui n'en a
+  pas. Gratitude (« Lo a nourri Ka (hiver de l'an 2) »).
+- Ambitions (1 à 3) : se faire des amis, trouver un compagnon, exceller dans son métier (bonus aux actions qui
+  exercent la compétence, champ `skills` des actions), regagner l'estime de quelqu'un (après une dispute).
+- Journal : couples, grandes amitiés, brouilles, séparations, deuils, avec leurs causes. Fiche personnage :
+  émotions, solitude, ambitions, relations cliquables avec valeurs et raisons, souvenirs datés, nouvelles
+  connues. **Les personnes citées dans le journal sont cliquables** (dette de l'étape 4 résolue).
+- `npm run sim` liste les événements sociaux. Tests : `tests/sim/individuals/social.test.ts` (15 scénarios),
+  `tests/sim/fauna/human-fear.test.ts`, `tests/renderer/glide.test.ts`, test long `tests/long/social.test.ts`.
+
+**Décisions et écarts (à valider) :**
+- La vie sociale est un sous-dossier du système des individus (le design range relations, mémoire et émotions
+  dans « l'Individu »), pas un septième système.
+- L'interlocuteur n'interrompt pas ce qu'il fait (pas d'action « écouter ») : simplification.
+- Attirance : pour l'autre sexe, sauf une part réglable (`couples.sameSexShare`, 5 %) attirée par le même sexe.
+- Accrochages ajoutés pour que des rivalités naissent (sans eux, la tribu était harmonieuse sur toutes les
+  graines : **défaut d'équilibre corrigé** par une règle individuelle réaliste).
+- Peu de nouveaux couples : sans vieillissement (étape 8) presque tous les adultes de départ sont en couple ;
+  les veufs reprennent un compagnon une fois le deuil apaisé. **Histoire légitime** à ce stade.
+- Beaucoup de personnes ont l'ambition « se faire des amis » (0 à 3 amis hors famille après 2 ans) : réaliste
+  pour une bande de 30, à surveiller quand la population grandira.
+- La chasse réussit environ deux fois moins souvent (le gibier fuit) : **histoire légitime**, l'arc et
+  l'expérience prennent de la valeur.
+- Le test de rendu remplace le monde en cours par un monde de test (graine 42, valeurs par défaut), puis un
+  nouveau monde est lancé.
+- L'affichage montre le mouvement avec un pas de retard sur la simulation (le glissement suit la tuile atteinte).
+- Après 15 ans de mise en route, la graine 42 compte ~12 400 animaux et ~281 000 plantes (pas tout à fait
+  15 000 : le chiffre réel est écrit dans le rapport).
+
+**Dette technique :**
+- Dons d'objets rares (les outils sont surtout dans le stock commun) → règles de propriété, **étape 9**.
+- Mensonges, secrets → plus tard ; enseignement des savoirs → **étape 10** ; violence → **étape 11**.
+- Riposte des gros animaux chassés → **étape 11**.
+- Les naissances (couples féconds) → **étape 8**.
+- Le test de rendu n'a été essayé qu'avec un rendu logiciel (serveurs de Claude Code) : à valider sur le PC.
+
+**Dettes résolues :** partage entre personnes (étape 4 et 6), personnes cliquables dans le journal (étape 4),
+le gibier qui ne fuyait pas les chasseurs (étape 6 ; la riposte reste pour l'étape 11).
+
+**Mesures (serveurs de Claude Code) :**
+- Banc d'essai (graine 42, 15 ans de mise en route : ~12 400 animaux et ~281 000 plantes, 20 jours mesurés) :
+  avant la vie sociale 120 / 510 / 1 020 / 2 010 / 5 010 humains = 103 / 216 / 348 / 577 / 1 434 ms par jour ;
+  après l'étape 108 / 229 / 405 / 747 / 1 875 ms. Plafond conseillé en x500 : ~2 340 → ~1 790 humains.
+- Coût de la vie sociale et de la fuite du gibier (`tsx`, sans mise en route) : tribu de 30 → ~0 à 4 ms par jour
+  (dans le bruit de mesure, ~51 ms au total) ; 1 000 humains → ~+35 à +45 ms par jour (~357 contre ~320 ms).
+  Le coût grandit plus vite que la population quand les camps sont serrés (2 000 et 5 000 humains : +30 %).
+- Test de rendu : vérifié seulement avec un rendu logiciel (sans carte graphique) ; les vrais chiffres viendront
+  du PC de Tanguy.
+- Tests rapides : 342 en ~25 s. Tests longs : 9/9 (dont le nouveau test social) en ~13 min ; le test social
+  relancé après les derniers réglages : réussi.
+
+---
+
 ## Étape 6 · Production — 18 nov. 2026
 
 **Fait :**

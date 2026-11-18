@@ -4,10 +4,12 @@ import { remember } from './feelings';
 import { learn, witness, type Fact } from './news';
 import { addKin, kinBase, removeKin } from './relations';
 import type { SocialLife } from './social-life';
-import { Kin } from './state';
+import { REASONS } from './params';
+import { Kin, REASONS_PER_RELATION } from './state';
 import { pairReasons, tieName } from './texts';
 
 const FULL = 100;
+const CONFLICT = new Set<number>([REASONS.indexOf('quarrel'), REASONS.indexOf('jealousy')]);
 
 export const COUPLE_FORMED = 'social.couple';
 export const GREAT_FRIENDSHIP = 'social.friendship';
@@ -32,6 +34,13 @@ function publishPair(life: SocialLife, type: string, template: string, a: number
     causes,
     details: { a, b },
   });
+}
+
+/** Does the relation keep a reason of conflict (quarrels, jealousy)? */
+function hasConflict(life: SocialLife, slot: number): boolean {
+  const s = life.state;
+  for (let r = slot * REASONS_PER_RELATION; r < (slot + 1) * REASONS_PER_RELATION; r++) if (CONFLICT.has(s.reasonCode[r]!)) return true;
+  return false;
 }
 
 /** Can `a` be drawn to `b` as a partner (age, attraction, not family)? */
@@ -106,7 +115,8 @@ export function checkPair(life: SocialLife, a: number, b: number): void {
     remember(life, b, 'friendship', a, 1, event);
   }
   for (const slot of [ab, ba]) {
-    const fell = s.peakAffection[slot]! >= rel.friendAffection && s.affection[slot]! <= s.peakAffection[slot]! - rel.fallingOutDrop;
+    // A friendship that merely fades is no falling-out: quarrels or jealousy must have done it.
+    const fell = s.peakAffection[slot]! >= rel.friendAffection && s.affection[slot]! <= s.peakAffection[slot]! - rel.fallingOutDrop && hasConflict(life, slot);
     if (!fell || spouses || s.toldFallingOut[ab] === 1) continue;
     s.toldFallingOut[ab] = 1;
     s.toldFallingOut[ba] = 1;

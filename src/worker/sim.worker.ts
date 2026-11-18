@@ -5,10 +5,11 @@
  * each new day and the new journal events.
  */
 import { formatDate, dateAtTick } from '../sim/core/calendar';
-import { loadGameData, type GameData } from '../sim/core/game-data';
 import { Simulation } from '../sim/core/simulation';
 import { daysPerYear } from '../sim/core/time-params';
-import type { FromSimMessage, JournalEntry, ToSimMessage } from '../shared/messages';
+import { Workshop, type WorkshopResult } from '../sim/core/workshop';
+import type { FromSimMessage, JournalEntry, LifeTables, ToSimMessage } from '../shared/messages';
+import { PerfMeter } from './perf-meter';
 import { snapshotWorld } from './world-snapshot';
 import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
 import { describePerson, snapshotHumans, snapshotRoster } from './human-snapshots';
@@ -21,8 +22,19 @@ const LOOP_INTERVAL_MS = 50;
 const MS_PER_SECOND = 1000;
 /** If the computer falls behind, at most this much real time is caught up at once. */
 const MAX_CATCH_UP_SECONDS = 0.5;
+/**
+ * Computation allowed per loop (technical). When the simulation cannot keep up with the requested
+ * speed, the rest is dropped: the game slows down instead of freezing, and the perf panel shows the
+ * speed really reached. No population cap is imposed.
+ */
+const STEP_BUDGET_MS = 40;
+/** Ticks computed between two looks at the clock (a quarter of a game hour at 4 800 ticks a day). */
+const TICKS_PER_CHUNK = 50;
+const PERF_INTERVAL_MS = 500;
 
-let data: GameData | undefined;
+const workshop = new Workshop();
+const perf = new PerfMeter();
+let lastPerfAt = 0;
 let simulation: Simulation | undefined;
 let loop: ReturnType<typeof setInterval> | undefined;
 let paused = false;
@@ -55,13 +67,14 @@ function start(seed: number): void {
   const generationStart = performance.now();
   let created: Simulation;
   try {
-    data ??= loadGameData();
-    created = new Simulation(seed, data);
+    created = new Simulation(seed, workshop.dataForNewWorld());
   } catch (error) {
     post({ type: 'error', message: errorMessage(error) });
     return;
   }
   simulation = created;
+  workshop.attach(created);
+  perf.reset();
   const generationMs = performance.now() - generationStart;
   const { snapshot, transfer } = snapshotWorld(created.world);
   post(
@@ -73,7 +86,7 @@ function start(seed: number): void {
       speeds: created.data.time.speeds,
       climate: created.data.climate,
       daysPerYear: daysPerYear(created.data.time),
-      life: { plants: created.data.flora.species, animals: created.data.fauna.species, resources: created.data.resources, animalStates: STATE_NAMES },
+      life: lifeTables(created),
       roster: snapshotRoster(created),
       weatherRegionTiles: created.data.weather.regionTiles,
     },
@@ -91,20 +104,65 @@ function start(seed: number): void {
   loop = setInterval(runLoop, LOOP_INTERVAL_MS);
 }
 
+function lifeTables(current: Simulation): LifeTables {
+  return { plants: current.data.flora.species, animals: current.data.fauna.species, resources: current.data.resources, animalStates: STATE_NAMES };
+}
+
 function runLoop(): void {
   const current = simulation;
   if (!current) return;
   const now = performance.now();
-  const elapsedSeconds = Math.min(MAX_CATCH_UP_SECONDS, (now - lastLoopAt) / MS_PER_SECOND);
+  const realMs = now - lastLoopAt;
+  const elapsedSeconds = Math.min(MAX_CATCH_UP_SECONDS, realMs / MS_PER_SECOND);
   lastLoopAt = now;
+  let done = 0;
+  let computeMs = 0;
   if (!paused) {
     const { ticksPerRealSecond, speeds } = current.data.time;
     pendingTicks += elapsedSeconds * ticksPerRealSecond * (speeds[speedIndex] ?? 1);
-    const ticks = Math.floor(pendingTicks);
-    pendingTicks -= ticks;
-    current.step(ticks);
+    const wanted = Math.floor(pendingTicks);
+    const startedAt = performance.now();
+    while (done < wanted && performance.now() - startedAt < STEP_BUDGET_MS) {
+      const ticks = Math.min(TICKS_PER_CHUNK, wanted - done);
+      current.step(ticks);
+      done += ticks;
+    }
+    computeMs = performance.now() - startedAt;
+    // What could not be computed in time is dropped (the game slows down), only the fraction is kept.
+    pendingTicks -= wanted;
   }
+  perf.add(realMs, computeMs, done);
   publishChanges(current);
+  if (now - lastPerfAt >= PERF_INTERVAL_MS) {
+    lastPerfAt = now;
+    publishPerf(current);
+  }
+}
+
+function publishPerf(current: Simulation): void {
+  const { ticksPerDay, ticksPerRealSecond, speeds } = current.data.time;
+  post({
+    type: 'perf',
+    perf: {
+      ...perf.summary(ticksPerDay, ticksPerRealSecond),
+      requestedSpeed: speeds[speedIndex] ?? 1,
+      paused,
+      humans: current.humans.people.living,
+      animals: current.fauna.store.living,
+      plants: current.flora.countLiving(),
+    },
+  });
+}
+
+function publishWorkshop(result: WorkshopResult = { ok: true, messages: [] }): void {
+  post({
+    type: 'workshop',
+    workshop: { variables: workshop.variables(), presetName: workshop.presetName, modified: workshop.modified, messages: result.messages, ok: result.ok },
+  });
+  const current = simulation;
+  if (!current) return;
+  speedIndex = Math.min(speedIndex, current.data.time.speeds.length - 1);
+  post({ type: 'liveTables', climate: current.data.climate, life: lifeTables(current), speeds: current.data.time.speeds });
 }
 
 /** Sends what changed since the last loop: climate (once per day), new events, date. */
@@ -182,6 +240,28 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
     }
     case 'inspect':
       if (simulation) post({ type: 'inspection', inspection: inspect(simulation, message.requestId, message.tile, message.animalUid) });
+      return;
+    case 'workshopGet':
+      publishWorkshop();
+      return;
+    case 'workshopSet':
+      publishWorkshop(workshop.set(message.file, message.key, message.value));
+      return;
+    case 'workshopReset':
+      publishWorkshop(workshop.reset(message.file, message.key));
+      return;
+    case 'workshopResetAll':
+      publishWorkshop(workshop.resetAll());
+      return;
+    case 'workshopLoadPreset':
+      publishWorkshop(workshop.loadPreset(message.preset));
+      return;
+    case 'workshopMakePreset':
+      post({ type: 'workshopPreset', preset: workshop.toPreset(message.name) });
+      return;
+    case 'workshopSaved':
+      workshop.markSaved(message.name);
+      publishWorkshop();
       return;
   }
 };

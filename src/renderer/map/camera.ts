@@ -156,7 +156,9 @@ export class Camera {
   }
 
   private onKey(event: KeyboardEvent, down: boolean): void {
-    if (event.target instanceof HTMLInputElement) return;
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+    // A full page (variables workshop) is open: the keys are for it, not for the map.
+    if (down && document.body.classList.contains('page-open')) return;
     if (!(event.code in PAN_KEYS)) return;
     if (down) this.pressed.add(event.code);
     else this.pressed.delete(event.code);

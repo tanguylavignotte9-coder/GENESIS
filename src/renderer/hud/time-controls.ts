@@ -50,7 +50,8 @@ export class TimeControls {
   }
 
   private onKey(event: KeyboardEvent): void {
-    if (event.target instanceof HTMLInputElement || event.repeat) return;
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.repeat) return;
+    if (document.body.classList.contains('page-open')) return;
     if (event.code === 'Space') {
       event.preventDefault();
       this.togglePause();

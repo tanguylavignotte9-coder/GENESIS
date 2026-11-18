@@ -2,9 +2,14 @@ import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
 import { ClimateState } from '../sim/systems/world/climate-state';
-import type { FromSimMessage, LifeTables, Roster, WorldSnapshot } from '../shared/messages';
+import type { ClimateYearSnapshot, FromSimMessage, LifeTables, Roster, WorldSnapshot } from '../shared/messages';
+import '../shared/bridge';
 import { Hover } from './hover';
 import { JournalPanel } from './hud/journal-panel';
+import { PerfPanel } from './hud/perf-panel';
+import { BenchmarkPanel } from './hud/workshop/benchmark-panel';
+import { PresetsBar } from './hud/workshop/presets-bar';
+import { WorkshopPage } from './hud/workshop/workshop-page';
 import { PersonSheet } from './hud/person-sheet';
 import { TribePanel } from './hud/tribe-panel';
 import { StatsPanel } from './hud/stats-panel';
@@ -22,6 +27,8 @@ import { VIEW } from './view-settings';
 import './style.css';
 
 const BACKGROUND_COLOR = '#0b0d12';
+/** The performance indicator is refreshed twice a second. */
+const PERF_REFRESH_MS = 500;
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -55,6 +62,10 @@ async function main(): Promise<void> {
   let personRequest = 0;
   let lastPersonRequest = 0;
   let mouse: { x: number; y: number } | null = null;
+  let climateYear: ClimateYearSnapshot | null = null;
+  let tablesKey = '';
+  let speedsKey = '';
+  let lastPerfAt = 0;
 
   const sim = new SimClient((message: FromSimMessage) => onMessage(message));
   const hover = new Hover(sim, animals, people);
@@ -117,6 +128,46 @@ async function main(): Promise<void> {
       camera.focusOn(Math.floor(spot.x), Math.floor(spot.y));
     }
   };
+  const workshop = new WorkshopPage(
+    {
+      page: element('workshop'),
+      close: element<HTMLButtonElement>('workshop-close'),
+      search: element<HTMLInputElement>('workshop-search'),
+      nav: element('workshop-nav'),
+      list: element('workshop-list'),
+      status: element('workshop-status'),
+      message: element('workshop-message'),
+      resetAll: element<HTMLButtonElement>('workshop-reset-all'),
+    },
+    {
+      get: () => sim.workshopGet(),
+      set: (file, key, value) => sim.workshopSet(file, key, value),
+      reset: (file, key) => sim.workshopReset(file, key),
+      resetAll: () => sim.workshopResetAll(),
+    },
+  );
+  element<HTMLButtonElement>('workshop-toggle').addEventListener('click', (event) => {
+    (event.currentTarget as HTMLButtonElement).blur();
+    workshop.open();
+  });
+  const presets = new PresetsBar(
+    {
+      list: element<HTMLSelectElement>('preset-list'),
+      load: element<HTMLButtonElement>('preset-load'),
+      remove: element<HTMLButtonElement>('preset-delete'),
+      name: element<HTMLInputElement>('preset-name'),
+      save: element<HTMLButtonElement>('preset-save'),
+    },
+    window.genesis,
+    {
+      makePreset: (name) => sim.workshopMakePreset(name),
+      load: (preset) => sim.workshopLoadPreset(preset),
+      saved: (name) => sim.workshopSaved(name),
+      message: (messages, ok) => workshop.showMessages(messages, ok),
+    },
+  );
+  new BenchmarkPanel(element<HTMLButtonElement>('benchmark-run'), element('benchmark-log'), window.genesis, () => sim.setPaused(true));
+  const perfPanel = new PerfPanel(element('perf'));
   const tribe = new TribePanel(element('tribe'), element<HTMLButtonElement>('tribe-toggle'), element('tribe-list'), selectPerson);
   const followBadge = element('follow');
   const followText = element('follow-text');
@@ -156,9 +207,14 @@ async function main(): Promise<void> {
         hover.reset();
         camera.reset(world.size);
         time.setSpeeds(message.speeds);
+        speedsKey = JSON.stringify(message.speeds);
+        tablesKey = JSON.stringify([life.plants, life.animals]);
+        climateYear = null;
+        if (workshop.isOpen) sim.workshopGet();
         panel.setWorld({ seed: message.seed, generationMs: message.generationMs, riverCount: world.riverCount, lakeCount: world.lakeCount });
         return;
       case 'climateYear':
+        climateYear = message.year;
         climate?.setAnomalies(message.year.anomalies, message.year.anomalyIndex, message.year.anomalyWeight);
         if (climate) mapView.setClimate(climate);
         return;
@@ -197,6 +253,40 @@ async function main(): Promise<void> {
       case 'error':
         panel.showError(message.message);
         return;
+      case 'workshop':
+        workshop.receive(message.workshop);
+        return;
+      case 'workshopPreset':
+        void presets.onPreset(message.preset);
+        return;
+      case 'perf':
+        perfPanel.setPerf(message.perf);
+        return;
+      case 'liveTables':
+        applyLiveTables(message.climate, message.life, message.speeds);
+        return;
+    }
+  }
+
+  /** A live change in the workshop: redraw with the new climate, species and speeds. */
+  function applyLiveTables(params: ClimateState['params'], tables: LifeTables, speeds: number[]): void {
+    if (!world) return;
+    const day = climate?.dayOfYear ?? 0;
+    climate = new ClimateState(world, params, daysPerYear);
+    if (climateYear) climate.setAnomalies(climateYear.anomalies, climateYear.anomalyIndex, climateYear.anomalyWeight);
+    climate.setDay(day);
+    mapView.setClimate(climate);
+    life = tables;
+    const key = JSON.stringify([tables.plants, tables.animals]);
+    if (key !== tablesKey) {
+      tablesKey = key;
+      plants.setSpecies(tables.plants, world.size);
+      animals.setSpecies(tables.animals);
+    }
+    const speedKey = JSON.stringify(speeds);
+    if (speedKey !== speedsKey) {
+      speedsKey = speedKey;
+      time.setSpeeds(speeds);
     }
   }
 
@@ -241,6 +331,10 @@ async function main(): Promise<void> {
     people.update(visible, camera.pixelsPerTile);
     night.update(climate, hour);
     const now = performance.now();
+    if (now - lastPerfAt > PERF_REFRESH_MS) {
+      lastPerfAt = now;
+      perfPanel.update(app.ticker.FPS);
+    }
     tribe.update(people.snapshot, now);
     if (sheet.isOpen && now - lastPersonRequest > VIEW.inspectEveryMs) {
       lastPersonRequest = now;

@@ -276,6 +276,7 @@ body:has(#stats:not([hidden])) #journal {
 #help {
   bottom: 12px;
   left: 12px;
+  max-width: calc(100vw - 360px);
   color: var(--hud-muted);
   font-size: 12px;
 }
@@ -452,4 +453,288 @@ body:has(#stats:not([hidden])) #journal {
 .bar-value {
   text-align: right;
   color: var(--hud-muted);
+}
+
+/* ----- Performance indicator (F3) ----- */
+
+#perf {
+  bottom: 72px;
+  left: 12px;
+  width: 250px;
+  font-size: 12px;
+  line-height: 1.6;
+  background: rgba(16, 20, 28, 0.94);
+}
+
+.perf-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.perf-row.late b,
+.perf-note {
+  color: var(--error);
+}
+
+.perf-note {
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* ----- Variables workshop (F2) ----- */
+
+#workshop-toggle {
+  bottom: 12px;
+  right: 222px;
+  padding: 6px 12px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#workshop {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  user-select: text;
+}
+
+.workshop-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px 8px;
+  border-bottom: 1px solid var(--hud-border);
+}
+
+.workshop-header h2 {
+  margin: 0 0 2px;
+  font-size: 19px;
+}
+
+.workshop-header > div {
+  flex: 1;
+}
+
+#workshop input,
+#workshop select,
+#workshop button {
+  padding: 4px 8px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+#workshop button {
+  cursor: pointer;
+}
+
+#workshop button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#workshop button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#workshop select option {
+  background: #161a22;
+}
+
+#workshop-search {
+  width: 280px;
+}
+
+.workshop-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--hud-border);
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workshop-message {
+  margin: 8px 20px 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(79, 143, 224, 0.15);
+  white-space: pre-line;
+  font-size: 13px;
+}
+
+.workshop-message.error {
+  background: rgba(255, 138, 128, 0.15);
+  color: var(--error);
+}
+
+#benchmark-log {
+  margin: 8px 20px 0;
+  max-height: 160px;
+  overflow-y: auto;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+}
+
+.workshop-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+#workshop-nav {
+  width: 220px;
+  overflow-y: auto;
+  padding: 10px 8px 20px 20px;
+  border-right: 1px solid var(--hud-border);
+}
+
+.workshop-system {
+  margin: 12px 0 4px;
+  color: var(--hud-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+#workshop .workshop-file {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin: 2px 0;
+  border-color: transparent;
+  background: none;
+  text-align: left;
+}
+
+#workshop .workshop-file.active {
+  background: var(--accent);
+  color: white;
+}
+
+.workshop-count {
+  color: inherit;
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+#workshop-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 24px 40px;
+}
+
+.workshop-section {
+  margin: 18px 0 6px;
+  font-size: 15px;
+  color: var(--accent-hover);
+}
+
+.workshop-results {
+  margin: 12px 0;
+  color: var(--hud-muted);
+}
+
+.var-row {
+  padding: 8px 10px;
+  border-top: 1px solid var(--hud-border);
+}
+
+.var-row.changed {
+  border-left: 3px solid var(--accent);
+}
+
+.var-row.waiting {
+  border-left-color: #e0b44f;
+}
+
+.var-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.var-label {
+  font-weight: 600;
+}
+
+.var-badge {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: rgba(224, 180, 79, 0.2);
+  color: #e0b44f;
+  font-size: 11px;
+}
+
+.var-badge.live {
+  background: rgba(106, 162, 234, 0.15);
+  color: var(--accent-hover);
+}
+
+.var-where {
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+.var-help {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.var-meta {
+  margin-top: 2px;
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+.var-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.var-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#workshop .var-slider {
+  width: 260px;
+  padding: 0;
+}
+
+#workshop .var-number {
+  width: 110px;
+}
+
+#workshop .var-text {
+  width: 420px;
+  max-width: 60vw;
+}
+
+.var-note {
+  margin-top: 4px;
+  color: #e0b44f;
+  font-size: 12px;
 }

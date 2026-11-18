@@ -6,6 +6,8 @@ import type { ResourceCatalog } from '../sim/core/resources';
 import type { AnimalSpecies } from '../sim/systems/fauna/params';
 import type { PlantSpecies } from '../sim/systems/flora/params';
 import type { ActiveAnomaly } from '../sim/systems/world/climate-state';
+import type { VariableValue } from '../sim/core/variables';
+import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
 
 /** Display -> simulation. */
 export type ToSimMessage =
@@ -16,7 +18,41 @@ export type ToSimMessage =
   /** Asks for the details of a tile (plant, grass, fish) and, if `animalUid` >= 0, of an animal. */
   | { type: 'inspect'; requestId: number; tile: number; animalUid: number }
   /** Asks for the character sheet of a person. */
-  | { type: 'inspectPerson'; requestId: number; person: number };
+  | { type: 'inspectPerson'; requestId: number; person: number }
+  /** Variables workshop: get the variables, change one, reset, presets. */
+  | { type: 'workshopGet' }
+  | { type: 'workshopSet'; file: string; key: string; value: VariableValue }
+  | { type: 'workshopReset'; file: string; key: string }
+  | { type: 'workshopResetAll' }
+  | { type: 'workshopLoadPreset'; preset: PresetFile }
+  /** Asks for the current values as a preset, to save it under this name. */
+  | { type: 'workshopMakePreset'; name: string }
+  | { type: 'workshopSaved'; name: string };
+
+/** State of the variables workshop (sent after every change). */
+export interface WorkshopSnapshot {
+  variables: WorkshopVariable[];
+  presetName: string | null;
+  modified: boolean;
+  /** Refusal or warnings of the last operation (French). */
+  messages: string[];
+  ok: boolean;
+}
+
+/** Performance of the simulation thread (sent twice a second). */
+export interface PerfSnapshot {
+  /** Mean computation time of one game day, in ms (over the last measures). */
+  msPerDay: number;
+  /** Share of the real time the simulation thread spent computing (0..1). */
+  busyShare: number;
+  requestedSpeed: number;
+  /** Speed really reached (game time / real time, as a speed multiplier). */
+  actualSpeed: number;
+  paused: boolean;
+  humans: number;
+  animals: number;
+  plants: number;
+}
 
 /** Copy of the generated map sent to the display (arrays are transferred, not shared). */
 export interface WorldSnapshot {
@@ -197,4 +233,9 @@ export type FromSimMessage =
   | { type: 'climateDay'; dayOfYear: number }
   | { type: 'journal'; entries: JournalEntry[] }
   | { type: 'status'; seed: number; tick: number; date: string; hour: number; paused: boolean; speedIndex: number }
+  | { type: 'workshop'; workshop: WorkshopSnapshot }
+  | { type: 'workshopPreset'; preset: PresetFile }
+  /** After a live change: the tables the display draws with (climate, species, speeds). */
+  | { type: 'liveTables'; climate: ClimateParams; life: LifeTables; speeds: number[] }
+  | { type: 'perf'; perf: PerfSnapshot }
   | { type: 'error'; message: string };

@@ -58,9 +58,46 @@
       <div id="stats-legend"></div>
     </section>
 
+    <button id="workshop-toggle" class="panel" type="button" title="Atelier des variables (F2)">Atelier</button>
+
+    <section id="perf" class="panel" hidden></section>
+
     <div id="help" class="panel">
-      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur une personne : sa fiche · Clic sur un animal : le suivre
+      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur une personne : sa fiche · Clic sur un animal : le suivre · F2 : atelier des variables · F3 : performances
     </div>
+
+    <section id="workshop" hidden>
+      <header class="workshop-header">
+        <div>
+          <h2>Atelier des variables</h2>
+          <div id="workshop-status" class="muted"></div>
+        </div>
+        <input id="workshop-search" type="search" placeholder="Rechercher (ex. : loup faim)" spellcheck="false" />
+        <button id="workshop-close" type="button" title="Fermer (Échap ou F2)">✕</button>
+      </header>
+      <div class="workshop-tools">
+        <span class="tool-group">
+          <label for="preset-list">Presets</label>
+          <select id="preset-list"></select>
+          <button id="preset-load" type="button">Charger</button>
+          <button id="preset-delete" type="button">Supprimer</button>
+        </span>
+        <span class="tool-group">
+          <input id="preset-name" type="text" placeholder="Nom du preset" spellcheck="false" />
+          <button id="preset-save" type="button">Enregistrer</button>
+        </span>
+        <span class="tool-group">
+          <button id="workshop-reset-all" type="button">Tout remettre par défaut</button>
+          <button id="benchmark-run" type="button">Lancer le banc d’essai</button>
+        </span>
+      </div>
+      <div id="workshop-message" class="workshop-message" hidden></div>
+      <pre id="benchmark-log" hidden></pre>
+      <div class="workshop-body">
+        <nav id="workshop-nav"></nav>
+        <div id="workshop-list"></div>
+      </div>
+    </section>
 
     <div id="tooltip" class="panel" hidden></div>
 

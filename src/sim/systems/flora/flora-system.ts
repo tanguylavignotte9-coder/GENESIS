@@ -104,6 +104,13 @@ export class FloraSystem {
     return this.state.grass[index]! * (1 - this.climate.snowAt(index));
   }
 
+  /** Number of living plants (all species). */
+  countLiving(): number {
+    let count = 0;
+    for (const k of this.state.species) if (k !== 0) count++;
+    return count;
+  }
+
   /** Number of living plants of each species. */
   countBySpecies(): number[] {
     const counts = new Array<number>(this.params.species.length).fill(0);

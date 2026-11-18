@@ -463,5 +463,23 @@
     "acquaintance": "une connaissance",
     "rival": "son rival",
     "rivalFemale": "sa rivale"
+  },
+  "newsTexts": {
+    "death": "{nom} est mort{e}{cause}",
+    "causes": [
+      "",
+      " de faim",
+      " de soif",
+      " de froid",
+      ", tué{e} par un fauve"
+    ],
+    "unknownCause": " (on ne sait pas comment)",
+    "couple": "{a} et {b} forment un couple",
+    "food": "De quoi manger à {distance} tuiles vers {direction}",
+    "danger": "Un fauve rôde à {distance} tuiles vers {direction}",
+    "around": "environ {distance}",
+    "nearby": "tout près",
+    "secondHand": " (entendu dire)",
+    "farHand": " (rapporté de loin)"
   }
 }

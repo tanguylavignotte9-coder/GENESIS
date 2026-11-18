@@ -24,6 +24,16 @@ const REASONS: Record<string, { label: string; percent: boolean }> = {
   isolation: { label: 'loin des autres', percent: false },
   awayFromCamp: { label: 'loin du camp', percent: false },
   always: { label: 'rien d’urgent', percent: false },
+  loneliness: { label: 'solitude', percent: true },
+  joy: { label: 'joie', percent: true },
+  sadness: { label: 'tristesse', percent: true },
+  anger: { label: 'colère', percent: true },
+  fear: { label: 'peur', percent: true },
+  jealousy: { label: 'jalousie', percent: true },
+  consolable: { label: 'quelqu’un de triste à côté', percent: false },
+  suitor: { label: 'quelqu’un lui plaît', percent: false },
+  needyNear: { label: 'quelqu’un a faim à côté', percent: false },
+  wantsEsteem: { label: 'veut regagner l’estime de quelqu’un', percent: false },
 };
 
 const NEEDS: { key: keyof PersonDetails['needs']; label: string }[] = [
@@ -68,6 +78,7 @@ export class PersonSheet {
     closeButton: HTMLButtonElement,
     private readonly followButton: HTMLButtonElement,
     private readonly onClose: () => void,
+    private readonly onPerson: (person: number) => void = () => undefined,
   ) {
     closeButton.addEventListener('click', () => this.close());
   }
@@ -106,7 +117,7 @@ export class PersonSheet {
 
     const family: string[] = [];
     const name = (q: number): string => roster.names[q] ?? '?';
-    if (roster.spouse[p]! >= 0) family.push(`${female ? 'Époux' : 'Épouse'} : ${name(roster.spouse[p]!)}`);
+    if (details.spouse >= 0) family.push(`${female ? 'Compagnon' : 'Compagne'} : ${name(details.spouse)}`);
     if (roster.mother[p]! >= 0) family.push(`Mère : ${name(roster.mother[p]!)}`);
     if (roster.father[p]! >= 0) family.push(`Père : ${name(roster.father[p]!)}`);
     const children = roster.names.flatMap((_, q) => (roster.mother[q] === p || roster.father[q] === p ? [name(q)] : []));
@@ -124,7 +135,9 @@ export class PersonSheet {
 
     nodes.push(el('div', 'sheet-section', 'Besoins'));
     for (const need of NEEDS) nodes.push(bar(need.label, details.needs[need.key], 'need'));
+    nodes.push(bar(details.social.loneliness.name, details.social.loneliness.value, 'need'));
     nodes.push(bar('Santé', details.health, 'good'));
+    nodes.push(...this.socialNodes(details, female));
 
     nodes.push(el('div', 'sheet-section', 'Caractère'));
     roster.traitNames.forEach((trait, t) => nodes.push(bar(trait, (details.traits[t] ?? 0) * PERCENT, 'good')));
@@ -155,5 +168,42 @@ export class PersonSheet {
       el('div', 'sheet-text muted', `Ressenti : ${fr.format(details.feltCelsius)} °C · ${roster.weatherNames[details.weather] ?? ''}`),
     );
     this.body.replaceChildren(...nodes);
+  }
+
+  /** Emotions, ambitions, relations (with their reasons), marking memories and important news. */
+  private socialNodes(details: PersonDetails, female: boolean): HTMLElement[] {
+    const social = details.social;
+    const nodes: HTMLElement[] = [el('div', 'sheet-section', 'Émotions')];
+    const felt = social.emotions.filter((emotion) => emotion.value >= 1);
+    if (felt.length === 0) nodes.push(el('div', 'sheet-text muted', 'Calme'));
+    for (const emotion of felt) nodes.push(bar(emotion.name, emotion.value, 'need'));
+    nodes.push(el('div', 'sheet-section', 'Ambitions'), el('div', 'sheet-text', social.ambitions.join(' · ') || 'Aucune pour l’instant'));
+    nodes.push(el('div', 'sheet-section', 'Relations'));
+    if (social.relations.length === 0) nodes.push(el('div', 'sheet-text muted', 'Personne'));
+    const list = el('ul', 'sheet-relations');
+    for (const relation of social.relations) {
+      const item = el('li');
+      const who = el('span', 'person-link', relation.name);
+      who.addEventListener('click', () => this.onPerson(relation.person));
+      const values = el(
+        'span',
+        relation.affection < 0 ? 'relation-values negative' : 'relation-values',
+        `affection ${fr.format(relation.affection)} · confiance ${fr.format(relation.trust)} · respect ${fr.format(relation.respect)}`,
+      );
+      item.append(who, el('span', 'relation-tie', ` (${relation.tie})`), el('br'), values);
+      if (relation.reasons.length) item.append(el('div', 'relation-reasons', relation.reasons.join(' ; ')));
+      list.append(item);
+    }
+    nodes.push(list);
+    nodes.push(el('div', 'sheet-section', 'Souvenirs marquants'));
+    if (social.memories.length === 0) nodes.push(el('div', 'sheet-text muted', 'Aucun'));
+    const memories = el('ul', 'sheet-list');
+    for (const memory of social.memories) memories.append(el('li', '', `${memory.text} (${memory.date})`));
+    nodes.push(memories, el('div', 'sheet-section', female ? 'Ce qu’elle sait d’important' : 'Ce qu’il sait d’important'));
+    if (social.news.length === 0) nodes.push(el('div', 'sheet-text muted', 'Rien de particulier'));
+    const news = el('ul', 'sheet-list');
+    for (const line of social.news) news.append(el('li', '', line));
+    nodes.push(news);
+    return nodes;
   }
 }

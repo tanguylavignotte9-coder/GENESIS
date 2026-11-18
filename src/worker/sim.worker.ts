@@ -219,6 +219,7 @@ function publishChanges(current: Simulation): void {
       text: event.text,
       place: event.place,
       causes: event.causes,
+      people: event.actors.flatMap((actor) => (actor.kind === 'human' ? [actor.id] : [])),
     }));
     sentEvents = current.journal.size;
     post({ type: 'journal', entries });

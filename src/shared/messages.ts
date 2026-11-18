@@ -8,6 +8,7 @@ import type { PlantSpecies } from '../sim/systems/flora/params';
 import type { ActiveAnomaly } from '../sim/systems/world/climate-state';
 import type { VariableValue } from '../sim/core/variables';
 import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
+import type { SocialDetails } from '../sim/systems/individuals/social/describe';
 
 /** Display -> simulation. */
 export type ToSimMessage =
@@ -271,6 +272,9 @@ export interface PersonDetails {
   rememberedFood: number;
   feltCelsius: number;
   weather: number;
+  /** Current partner (-1 none): couples form and part during the game. */
+  spouse: number;
+  social: SocialDetails;
 }
 
 /** A journal event as shown to the player. */
@@ -281,6 +285,8 @@ export interface JournalEntry {
   text: string;
   place: EventPlace | null;
   causes: number[];
+  /** People named in the event (clickable in the journal). */
+  people: number[];
 }
 
 /** Simulation -> display. */

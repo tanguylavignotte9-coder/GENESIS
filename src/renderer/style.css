@@ -766,3 +766,42 @@ body:has(#stats:not([hidden])) #journal {
   font-size: 12px;
   z-index: 50;
 }
+
+.sheet-relations {
+  margin: 2px 0 0;
+  padding-left: 0;
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sheet-relations li {
+  margin-bottom: 5px;
+}
+
+.person-link {
+  color: #9fd3ff;
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.person-link:hover {
+  color: #d4ecff;
+}
+
+.relation-tie,
+.relation-reasons {
+  color: var(--hud-muted);
+}
+
+.relation-values {
+  color: #b8e0b0;
+}
+
+.relation-values.negative {
+  color: #f0a8a0;
+}
+
+.relation-reasons {
+  font-style: italic;
+}

@@ -140,6 +140,18 @@ export interface SocialParams {
   };
   reasons: Record<ReasonId, { text: string; dated: boolean }>;
   kinNames: Record<KinName, string>;
+  newsTexts: {
+    death: string;
+    causes: string[];
+    unknownCause: string;
+    couple: string;
+    food: string;
+    danger: string;
+    around: string;
+    nearby: string;
+    secondHand: string;
+    farHand: string;
+  };
 }
 
 export const KIN_NAMES = ['mother', 'father', 'son', 'daughter', 'brother', 'sister', 'husband', 'wife', 'friend', 'friendFemale', 'acquaintance', 'rival', 'rivalFemale'] as const;
@@ -330,6 +342,21 @@ export const SOCIAL_SCHEMA: Schema = {
       },
     }),
     kinNames: fixed(KIN_NAMES, text('Lien', 'Nom d’un lien entre deux personnes, dans les phrases du journal et la fiche (« sa mère »).')),
+    newsTexts: {
+      kind: 'object',
+      fields: {
+        death: text('Une mort', 'Nouvelle d’une mort (fiche personnage). Remplacements : {nom}, {e}, {cause}.'),
+        causes: { kind: 'array', minLength: 5, maxLength: 5, items: text('Cause de mort', 'Fin de phrase selon la cause : aucune, faim, soif, froid, fauve. Remplacement : {e}.') },
+        unknownCause: text('Cause inconnue', 'Quand la nouvelle a perdu la cause en route.'),
+        couple: text('Un couple', 'Nouvelle d’un couple. Remplacements : {a}, {b}.'),
+        food: text('Un coin de nourriture', 'Remplacements : {distance}, {direction}.'),
+        danger: text('Un danger', 'Remplacements : {distance}, {direction}.'),
+        around: text('Distance approximative', 'Distance d’un lieu entendu dire. Remplacement : {distance}.'),
+        nearby: text('Tout près', 'Un lieu tout proche.'),
+        secondHand: text('De deuxième main', 'Ajouté à une nouvelle entendue d’un témoin.'),
+        farHand: text('Rapporté de loin', 'Ajouté à une nouvelle passée par plusieurs bouches.'),
+      },
+    },
   },
 };
 

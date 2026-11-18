@@ -106,14 +106,28 @@ async function main(): Promise<void> {
     (paused) => sim.setPaused(paused),
     (speedIndex) => sim.setSpeed(speedIndex),
   );
-  const journal = new JournalPanel(element('journal'), element<HTMLButtonElement>('journal-toggle'), element('journal-list'), (place) => {
-    camera.stopFollowing();
-    camera.focusOn(place.x, place.y);
-  });
+  const journal = new JournalPanel(
+    element('journal'),
+    element<HTMLButtonElement>('journal-toggle'),
+    element('journal-list'),
+    (place) => {
+      camera.stopFollowing();
+      camera.focusOn(place.x, place.y);
+    },
+    (person) => selectPerson(person),
+    (person) => roster?.names[person] ?? '',
+  );
   const stats = new StatsPanel(element('stats'), element<HTMLButtonElement>('stats-toggle'), element<HTMLCanvasElement>('stats-chart'), element('stats-legend'));
-  const sheet = new PersonSheet(element('person'), element('person-body'), element<HTMLButtonElement>('person-close'), element<HTMLButtonElement>('person-follow'), () => {
-    if (people.selected >= 0 && !followingPerson) people.selected = -1;
-  });
+  const sheet = new PersonSheet(
+    element('person'),
+    element('person-body'),
+    element<HTMLButtonElement>('person-close'),
+    element<HTMLButtonElement>('person-follow'),
+    () => {
+      if (people.selected >= 0 && !followingPerson) people.selected = -1;
+    },
+    (person) => selectPerson(person),
+  );
   const buildingPanel = new BuildingPanel(element('building'), element('building-body'), element<HTMLButtonElement>('building-close'), () => (buildings.selected = -1));
   let buildingRequest = 0;
   let lastBuildingRequest = 0;

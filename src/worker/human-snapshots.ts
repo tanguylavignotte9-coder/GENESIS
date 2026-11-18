@@ -1,6 +1,7 @@
 import type { Simulation } from '../sim/core/simulation';
 import { feltTemperature } from '../sim/systems/individuals/body';
 import { INPUTS } from '../sim/systems/individuals/params';
+import { describeSocial } from '../sim/systems/individuals/social/describe';
 import { HumanFlag, type HumansSnapshot, type ItemLine, type PersonDetails, type Roster } from '../shared/messages';
 import type { Inventory } from '../sim/systems/production/inventory';
 
@@ -90,6 +91,8 @@ export function describePerson(simulation: Simulation, requestId: number, person
     rememberedFood: count(people.foodMemory, people.foodSlots),
     feltCelsius: feltTemperature(humans, person),
     weather: simulation.weather.at(humans.tileOf(person)),
+    spouse: people.spouse[person]!,
+    social: describeSocial(humans.social, person),
   };
 }
 

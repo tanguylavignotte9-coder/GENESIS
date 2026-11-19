@@ -14,7 +14,7 @@ import { CampState, type CampNeeds } from './camps';
 import { Catalog, type BuildingType } from './catalog';
 import { publishBuildingDone } from './events';
 import { campOwner, Inventory, type RemarkableItem } from './inventory';
-import { depositable, leaveUnfinished, releaseClaim, releaseExpected, Stage, startJob, workAt, type Job, type JobSpec, type WorkResult } from './jobs';
+import { depositable, leaveUnfinished, releaseClaim, releasePick, releaseExpected, Stage, startJob, workAt, type Job, type JobSpec, type WorkResult } from './jobs';
 import { listNames, withIndefinite } from './events';
 import type { BuildingCatalog, ItemCatalog, ProductionParams, RecipeBook } from './params';
 import { computeNeeds } from './plans';
@@ -81,6 +81,8 @@ export class ProductionSystem {
   jobs: (Job | null)[] = [];
   /** Building id where each person sleeps (-1 = in the open, by the fire). */
   bedOf = new Int32Array(0);
+  /** Plants someone is heading to pick, and how many pickers (the others look for another plant). */
+  readonly pickers = new Map<number, number>();
   /** Remarkable objects (none yet: the structure is ready). */
   readonly remarkable: RemarkableItem[] = [];
   people!: WorkerView;
@@ -562,6 +564,7 @@ export class ProductionSystem {
     const job = this.jobs[person];
     if (job && job.pending >= 0) this.camps[this.people.camp(person)]!.pending[job.pending]! -= job.pendingQty;
     if (job) {
+      releasePick(this, job);
       releaseClaim(this, job);
       releaseExpected(this, person, job);
       leaveUnfinished(this, person, job);

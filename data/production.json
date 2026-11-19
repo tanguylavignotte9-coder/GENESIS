@@ -6,7 +6,7 @@
   "stock": { "openPileSpoilFactor": 1.4, "minQuantity": 0.05 },
   "spoilage": { "referenceCelsius": 15, "doublingCelsius": 10, "minFactor": 0.15, "maxFactor": 3 },
   "custom": {
-    "foodReserveDaysBySeason": [2, 3, 6, 4],
+    "foodReserveDaysBySeason": [3, 8, 14, 6],
     "firewoodReserveHours": 36,
     "storageFullShare": 0.8,
     "urgency": { "fire": 1, "shelter": 0.9, "openSite": 0.6, "storage": 0.45, "station": 0.5, "perMember": 0.35, "craft": 0.6 }

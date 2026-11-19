@@ -26,7 +26,7 @@ import { SocialLife } from './social/social-life';
 import type { SocialParams } from './social/params';
 import { LifeCycle } from './life/life-cycle';
 import type { LifeParams } from './life/params';
-import { diseaseDeathInfo } from './life/disease';
+import { diseaseDeathInfo, weakenedInfo } from './life/disease';
 import { inheritTraits } from './life/birth';
 import type { NameGenerator } from './names';
 import { SOCIAL_INPUTS } from './social/inputs';
@@ -419,7 +419,7 @@ export class IndividualsSystem {
     const template = this.params.deathTexts[DEATH_TEXT_KEYS[cause] ?? 'hunger'];
     const animal = info.attack?.attackerName ?? '';
     const causes = [...(info.causes ?? [])];
-    const vars: Record<string, string> = { age: String(Math.floor(people.ageYears[person]!)), ...info.vars };
+    const vars: Record<string, string> = { age: String(Math.floor(people.ageYears[person]!)), aggravation: '', ...info.vars };
     const needs = cause === DeathCause.Hunger || cause === DeathCause.Thirst || cause === DeathCause.Cold;
     // A death by hunger, thirst or cold inside a hardship region is caused by that hardship.
     const hardship = this.life.hardshipAt(tile);
@@ -430,6 +430,11 @@ export class IndividualsSystem {
       const disease = diseaseDeathInfo(this.life, person);
       causes.push(...disease.causes);
       Object.assign(vars, disease.vars);
+    } else if (cause !== DeathCause.Hunger) {
+      // Weakened by hunger or cold, one falls more easily to a predator, thirst or the cold: the journal says so.
+      const weakened = weakenedInfo(this.life, person);
+      causes.push(...weakened.causes);
+      if (!vars['aggravation']) vars['aggravation'] = weakened.text;
     }
     people.alive[person] = 0;
     people.deathCause[person] = cause;

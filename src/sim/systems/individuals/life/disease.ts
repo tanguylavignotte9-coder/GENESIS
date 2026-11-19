@@ -187,6 +187,15 @@ export function onDiseaseDeath(life: LifeCycle, person: number, cause: number): 
   state.disease[person] = -1;
 }
 
+/** A person weakened by hunger or cold (", affaibli par la faim") and the famine under way, if any. */
+export function weakenedInfo(life: LifeCycle, person: number): { text: string; causes: number[] } {
+  const { people } = life;
+  const text = aggravationText(life, [person], people.female[person] === 1);
+  const famine = life.famineEvent(people.camp[person]!);
+  const hungry = weakness(life.params.frailty.hungerFrom, people.hunger[person]!) >= TOLD_WEAKNESS;
+  return { text, causes: famine >= 0 && hungry ? [famine] : [] };
+}
+
 /** Words and causes of a death by disease ("de fièvre à 2 ans, affaibli par la faim"), for the journal. */
 export function diseaseDeathInfo(life: LifeCycle, person: number): { vars: Record<string, string>; causes: number[] } {
   const { state, people } = life;

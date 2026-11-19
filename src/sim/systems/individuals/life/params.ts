@@ -90,6 +90,7 @@ export interface LifeParams {
     epidemicEnd: string;
     famine: string;
     adoption: string;
+    wetNurse: string;
     inheritance: string;
     inheritanceShared: string;
     weakenedByHunger: string;
@@ -324,6 +325,7 @@ export const LIFE_SCHEMA: Schema = {
         epidemicEnd: text('Fin d’épidémie', 'Journal. Remplacements : {maladie}, {morts}, {malades}.'),
         famine: text('Famine', 'Journal. Remplacements : {lieu}, {morts}, {jours}.'),
         adoption: text('Orphelin recueilli', 'Journal. Remplacements : {tuteur}, {enfant}, {e} (« e » pour une fille), {lien}, {parent}.'),
+        wetNurse: text('Nourrice', 'Journal : une femme qui allaite prend le bébé d’une morte. Remplacements : {tuteur}, {enfant}, {lien}, {parent}.'),
         inheritance: text('Héritage', 'Journal, un seul héritier. Remplacements : {heritier}, {mort}, {objets}.'),
         inheritanceShared: text('Héritage partagé', 'Journal, plusieurs héritiers (les enfants). Remplacements : {heritier} (« Ka et Lo »), {mort}, {objets}.'),
         weakenedByHunger: text('Affaibli par la faim', 'Fin de phrase d’une mort de maladie ou d’une épidémie. Remplacement : {e}.'),

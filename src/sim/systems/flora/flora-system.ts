@@ -3,7 +3,7 @@ import { Water } from '../world/hydrology';
 import type { ClimateState } from '../world/climate-state';
 import type { World } from '../world/world';
 import { localDayOfYear, speciesFitness } from './fitness';
-import { AGE_MAX_DAYS, BYTE_MAX, FloraState } from './flora-state';
+import { addEaten, AGE_MAX_DAYS, BYTE_MAX, EATEN_SCALE, FloraState } from './flora-state';
 import type { FloraParams, PlantSpecies } from './params';
 
 /** Fraction of its lifespan over which an old plant may die (after its maximum age). */
@@ -76,13 +76,13 @@ export class FloraSystem {
     const day = this.localDay(index);
     if (day < produce.fromDay || day >= produce.toDay) return 0;
     const total = (produce.amount * this.state.health[index]!) / BYTE_MAX;
-    return Math.max(0, total - this.state.eaten[index]!);
+    return Math.max(0, total - this.state.eaten[index]! / EATEN_SCALE);
   }
 
   /** Takes up to `amount` of a tile's produce; returns what was taken. */
   takeProduce(index: number, resource: string, amount: number): number {
     const taken = Math.min(amount, this.produceAvailable(index, resource));
-    this.state.eaten[index] = Math.min(BYTE_MAX, this.state.eaten[index]! + Math.ceil(taken));
+    addEaten(this.state, index, taken);
     return taken;
   }
 
@@ -101,9 +101,9 @@ export class FloraSystem {
     const material = species?.kind === 'tree' ? species.materials?.find((m) => m.resource === resource) : undefined;
     if (!material) return 0;
     const total = (material.amount * this.state.growth[index]!) / BYTE_MAX;
-    const taken = Math.max(0, Math.min(amount, total - this.state.eaten[index]!));
-    this.state.eaten[index] = Math.min(BYTE_MAX, this.state.eaten[index]! + Math.ceil(taken));
-    if (this.state.eaten[index]! >= total) this.state.clear(index);
+    const taken = Math.max(0, Math.min(amount, total - this.state.eaten[index]! / EATEN_SCALE));
+    addEaten(this.state, index, taken);
+    if (this.state.eaten[index]! / EATEN_SCALE >= total - 1e-6) this.state.clear(index);
     return taken;
   }
 

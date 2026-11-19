@@ -120,11 +120,11 @@ export function terrainGives(sys: ProductionSystem, tile: number, source: Terrai
  * nutrition). Searched within `radius` tiles; -1 if nothing.
  */
 export function findSource(sys: ProductionSystem, person: number, recipe: Recipe, wanted: readonly number[], radius: number): number {
-  return findSourceFrom(sys, sys.people.x(person), sys.people.y(person), sys.people.camp(person), recipe, wanted, radius);
+  return findSourceFrom(sys, sys.people.x(person), sys.people.y(person), sys.people.camp(person), recipe, wanted, radius, true);
 }
 
 /** Same search from any place (the camp's center, when custom weighs what can be made). */
-export function findSourceFrom(sys: ProductionSystem, x0: number, y0: number, camp: number, recipe: Recipe, wanted: readonly number[], radius: number): number {
+export function findSourceFrom(sys: ProductionSystem, x0: number, y0: number, camp: number, recipe: Recipe, wanted: readonly number[], radius: number, seeOthers = false): number {
   const kind = recipe.def.source?.kind;
   if (kind === 'field') {
     let best = -1;
@@ -152,6 +152,8 @@ export function findSourceFrom(sys: ProductionSystem, x0: number, y0: number, ca
       if (kind === 'plantProduce') {
         const resource = sys.catalog.items[item]!.id;
         amount = sys.flora.produceAvailable(tile, resource) * Math.max(0.2, sys.catalog.food[item]!) * keeping(sys, item);
+        // A plant someone is already heading for is worth less: better pick another one.
+        if (seeOthers) amount /= 1 + (sys.pickers.get(tile) ?? 0);
       }
       const score = amount / (1 + Math.max(Math.abs(x - x0), Math.abs(y - y0)));
       if (score > bestScore) {

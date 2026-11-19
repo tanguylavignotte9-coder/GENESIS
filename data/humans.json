@@ -672,9 +672,9 @@
   ],
   "deathTexts": {
     "hunger": "{nom} est mort{e} de faim dans {lieu}.",
-    "thirst": "{nom} est mort{e} de soif dans {lieu}.",
-    "cold": "{nom} est mort{e} de froid dans {lieu}.",
-    "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}.",
+    "thirst": "{nom} est mort{e} de soif dans {lieu}{aggravation}.",
+    "cold": "{nom} est mort{e} de froid dans {lieu}{aggravation}.",
+    "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}{aggravation}.",
     "oldAge": "{nom} s’éteint de vieillesse à {age} ans, dans {lieu}.",
     "disease": "{nom} meurt de {maladie} à {age} ans{aggravation}, dans {lieu}.",
     "childbirth": "{nom} meurt en couches à {age} ans, dans {lieu}."

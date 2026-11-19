@@ -58,6 +58,8 @@ export interface Job {
   expectedFire: number;
   /** The craft's inputs are already in the work (taken from the hands when work began). */
   inputsUsed: boolean;
+  /** Plant this person is going to pick (-1 none): others prefer another one. */
+  pickTile: number;
   /** Seeds harvested to be sown right after (the sowing recipe), or null. */
   thenSow: Recipe | null;
 }
@@ -110,7 +112,24 @@ function newJob(kind: JobKind, stage: StageCode, recipe: Recipe | null, target: 
     expectedFire: 0,
     inputsUsed: false,
     thenSow: null,
+    pickTile: -1,
   };
+}
+
+/** The plant a picker heads for: the others see it and look for another one. */
+function pick(sys: ProductionSystem, job: Job, tile: number): void {
+  releasePick(sys, job);
+  job.pickTile = tile;
+  sys.pickers.set(tile, (sys.pickers.get(tile) ?? 0) + 1);
+}
+
+/** The picker is done with that plant (or gives up). */
+export function releasePick(sys: ProductionSystem, job: Job): void {
+  if (job.pickTile < 0) return;
+  const left = (sys.pickers.get(job.pickTile) ?? 1) - 1;
+  if (left > 0) sys.pickers.set(job.pickTile, left);
+  else sys.pickers.delete(job.pickTile);
+  job.pickTile = -1;
 }
 
 /** Takes back a builder's promise to bring a material (delivered, or given up). */
@@ -246,6 +265,7 @@ function startHarvest(sys: ProductionSystem, person: number, recipes: Recipe[], 
       if (tile < 0 && kind === 'plantProduce' && fallback >= 0) tile = fallback;
       if (tile < 0) continue;
       job = newJob('harvest', Stage.Harvest, recipe, tile);
+      if (kind === 'plantProduce') pick(sys, job, tile);
     }
     job.wanted = [...wanted];
     if (!toolHere) {
@@ -591,6 +611,7 @@ function harvest(sys: ProductionSystem, person: number, job: Job, hours: number,
 }
 
 function finishHarvest(sys: ProductionSystem, person: number, job: Job, out: WorkResult): void {
+  releasePick(sys, job);
   if (job.forSite && nextBuildStep(sys, person, job)) moveTo(out, job.target);
   else if (job.thenSow && sowNow(sys, person, job, job.thenSow)) moveTo(out, job.target);
   else if (job.thenSow && job.recipe) {

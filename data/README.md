@@ -166,7 +166,7 @@ par les humains et leur vitesse de marche.
 | `traits` | Traits de caractère (prudence, sociabilité, curiosité, ardeur au travail) |
 | `skills`, `skillLearning` | Compétences (cueillette, artisanat, chasse…), le métier affiché pour chacune, vitesse d'apprentissage par la pratique |
 | `stepsPerHour`, `thinkEveryMinutes` | Rythme d'action et de réflexion de chaque personne |
-| `needs` | Vitesse de la faim, de la soif, de la fatigue, du froid ; dégâts et guérison |
+| `needs` | Vitesse de la faim (moins vite en dormant), de la soif, de la fatigue, du froid ; dégâts et guérison (un jeûne tue en plusieurs semaines) |
 | `body` | Vitesse de marche, perception, charge qu'on peut porter (`carryCapacity`), vitesse des repas |
 | `camp` | Chaleur maximale d'un abri ou d'un feu, territoire connu autour du camp (le feu et les huttes sont des bâtiments : `buildings.json`) |
 | `memory` | Nombre de points d'eau et de coins de cueillette retenus, durée avant l'oubli |
@@ -186,6 +186,9 @@ fait l'action au meilleur score qui est possible à ce moment-là ; `reason` ind
 raison dans sa fiche. `behavior` choisit le comportement programmé ; les comportements de travail
 (`harvest`, `craft`, `build`, `deposit`, `tend_fire`) exécutent les recettes de `recipes.json` (`recipes`
 donne les recettes utilisables, `items` ce qu'une récolte cherche). `minAge` : âge minimal.
+Depuis l'étape 8, des entrées et des comportements servent aux enfants et aux malades : `infant` (bébé
+porté, comportement `carried`), `child`, `young`, `guardianAway` (loin de son parent, comportement
+`follow_guardian`), `playmates` (comportement `play`), `sick` (garder le lit).
 
 ## `knowledge.json` — les savoirs
 

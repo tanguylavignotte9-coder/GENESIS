@@ -185,6 +185,7 @@
     "epidemicEnd": "L’épidémie de {maladie} est passée : {malades} malades, {morts} mort(s).",
     "famine": "La famine frappe la tribu dans {lieu} : {morts} morts de faim en {jours} jours.",
     "adoption": "{tuteur}, {lien}, recueille {enfant}, orphelin{e} depuis la mort de {parent}.",
+    "wetNurse": "{tuteur}, {lien}, prend {enfant} au sein et l’élève : sa mère, {parent}, est morte.",
     "inheritance": "{heritier} hérite des affaires de {mort} : {objets}.",
     "inheritanceShared": "{heritier} se partagent les affaires de {mort} : {objets}.",
     "weakenedByHunger": ", affaibli{e} par la faim",

@@ -157,7 +157,7 @@ const namedList = (what: string): Schema => ({
     fields: { id: identifier('Identifiant', `Nom technique (${what}).`), name: text('Nom', `Nom affiché (${what}).`, 'newWorld') },
   },
 });
-const DEATH_HELP = 'Phrase du journal. Remplacements : {nom}, {e} (« e » pour une femme), {lieu}, {un_animal}, {age}.';
+const DEATH_HELP = 'Phrase du journal. Remplacements : {nom}, {e} (« e » pour une femme), {lieu}, {un_animal}, {age}, {aggravation} (« , affaibli par la faim » quand la faim ou le froid avaient affaibli la personne).';
 
 export const HUMANS_SCHEMA: Schema = {
   kind: 'object',

@@ -92,12 +92,12 @@ export function lookForGuardians(life: LifeCycle): void {
       }
     }
     if (best < 0) continue;
-    adopt(life, child, best, parent, orphan.event);
+    adopt(life, child, best, parent, orphan.event, orphan.needsNurse);
     life.orphans.splice(k, 1);
   }
 }
 
-function adopt(life: LifeCycle, child: number, guardian: number, parent: number, deathEvent: number): void {
+function adopt(life: LifeCycle, child: number, guardian: number, parent: number, deathEvent: number, nurse: boolean): void {
   const { people, params, state, sys } = life;
   state.guardian[child] = guardian;
   life.adoptions++;
@@ -110,7 +110,7 @@ function adopt(life: LifeCycle, child: number, guardian: number, parent: number,
   const event = life.journal.publish({
     tick: life.tick,
     type: ADOPTION,
-    text: fillTemplate(params.texts.adoption, {
+    text: fillTemplate(nurse ? params.texts.wetNurse : params.texts.adoption, {
       tuteur: people.names[guardian]!,
       enfant: people.names[child]!,
       e: people.female[child] === 1 ? 'e' : '',

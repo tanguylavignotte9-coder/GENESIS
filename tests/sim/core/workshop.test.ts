@@ -115,5 +115,6 @@ describe('the variables workshop', () => {
     // A few changes break a rule between two values (min above max…): they are refused, not applied.
     expect(applied).toBeGreaterThan(live.length * 0.9);
     simulation.step(hourTicks * 24);
-  });
+    // Several hundred variables, each one validated with all the data files.
+  }, 90_000);
 });

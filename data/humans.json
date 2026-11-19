@@ -160,6 +160,7 @@
   },
   "camp": {
     "shelterMaxCelsius": 20,
+    "besideFireCelsius": 16,
     "homeRadiusTiles": 70
   },
   "memory": {

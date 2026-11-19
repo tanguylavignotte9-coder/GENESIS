@@ -112,7 +112,7 @@ export interface HumanParams {
     eatUnitsPerHour: number;
     drinkPerHour: number;
   };
-  camp: { shelterMaxCelsius: number; homeRadiusTiles: number };
+  camp: { shelterMaxCelsius: number; besideFireCelsius: number; homeRadiusTiles: number };
   memory: { waterSlots: number; foodSlots: number; forgetDays: number };
   danger: {
     predators: string[];
@@ -253,6 +253,7 @@ export const HUMANS_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         shelterMaxCelsius: v('number', 0, 40, 'Chaleur d’un abri', 'Un feu, un abri ou un vêtement réchauffe jusqu’à cette température ressentie, pas au-delà.', '°C'),
+        besideFireCelsius: v('number', -10, 40, 'Au coin du feu', 'Température ressentie au moins par qui se réchauffe tout contre un feu allumé, quel que soit le temps.', '°C'),
         homeRadiusTiles: v('integer', 10, 200, 'Territoire du camp', 'Distance jusqu’à laquelle le chemin du retour au camp est connu.', 'tuiles', 'newWorld'),
       },
     },

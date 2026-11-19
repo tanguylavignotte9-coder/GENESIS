@@ -9,6 +9,9 @@ const FULL = 100;
  */
 export function feltTemperature(sys: IndividualsSystem, person: number): number {
   const { people, production } = sys;
+  // A baby in arms shares the warmth of the body that carries it.
+  const carrier = sys.life.carrier(person);
+  if (carrier >= 0 && carrier !== person) return feltTemperature(sys, carrier);
   const tile = people.y[person]! * sys.size + people.x[person]!;
   const felt = sys.climate.temperatureAt(tile) + sys.weather.typeAt(tile).feltCelsius;
   let bonus = production.fireWarmthAt(people.camp[person]!, people.x[person]!, people.y[person]!) + production.clothingWarmth(person);
@@ -18,7 +21,12 @@ export function feltTemperature(sys: IndividualsSystem, person: number): number 
   }
   // Fire, shelter and clothes bring warmth up to a pleasant temperature, never beyond.
   const cap = sys.params.camp.shelterMaxCelsius;
-  return bonus > 0 && felt < cap ? Math.min(felt + bonus, cap) : felt;
+  const warmed = bonus > 0 && felt < cap ? Math.min(felt + bonus, cap) : felt;
+  // Sitting right by a lit fire to warm up, one does not freeze, whatever the weather.
+  if (sys.behavior(person) === 'warm_up' && people.working[person] === 1 && production.fireWarmthAt(people.camp[person]!, people.x[person]!, people.y[person]!) > 0) {
+    return Math.max(warmed, sys.params.camp.besideFireCelsius);
+  }
+  return warmed;
 }
 
 /** Needs and health over `hours`; returns the cause of death, or None if the person survives. */

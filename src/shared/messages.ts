@@ -108,12 +108,25 @@ export interface FloraSnapshot {
 }
 
 /** Every living animal, packed (sent several times per second). */
+/** Pace of movement: ticks and game hours between two steps of a person and of an animal. */
+export interface MotionInfo {
+  ticksPerHumanStep: number;
+  ticksPerAnimalStep: number;
+  hoursPerHumanStep: number;
+  hoursPerAnimalStep: number;
+}
+
 export interface FaunaSnapshot {
   count: number;
   uid: Int32Array;
   species: Uint8Array;
-  x: Int16Array;
-  y: Int16Array;
+  /** Free position (decimal tiles) and velocity (tiles per game hour). */
+  x: Float32Array;
+  y: Float32Array;
+  vx: Float32Array;
+  vy: Float32Array;
+  /** 0 still, 1 walking, 2 running (Gait of sim/core/motion). */
+  gait: Uint8Array;
   state: Uint8Array;
 }
 
@@ -177,8 +190,12 @@ export interface Roster {
 
 /** Where everybody is and what they do (sent several times per second). */
 export interface HumansSnapshot {
-  x: Int16Array;
-  y: Int16Array;
+  /** Free position (decimal tiles), velocity (tiles per game hour) and gait (0 still, 1 walking, 2 running). */
+  x: Float32Array;
+  y: Float32Array;
+  vx: Float32Array;
+  vy: Float32Array;
+  gait: Uint8Array;
   action: Uint8Array;
   /** Bit 0 alive, bit 1 working on the spot (asleep when the action is "sleep"). */
   flags: Uint8Array;
@@ -322,7 +339,7 @@ export type FromSimMessage =
       roster: Roster;
       weatherRegionTiles: number;
       /** Ticks between two steps of the humans and of the animals (for smooth movement on screen). */
-      motion: { ticksPerHumanStep: number; ticksPerAnimalStep: number };
+      motion: MotionInfo;
       /** True for the render test's world. */
       benchmark: boolean;
     }

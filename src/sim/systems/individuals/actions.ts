@@ -86,7 +86,10 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       return sys.life.carrier(person) >= 0;
     case 'follow_guardian': {
       const guardian = sys.life.state.guardian[person]!;
-      return sys.life.alive(guardian) && guardian !== person && sys.goTo(person, sys.tileOf(guardian));
+      if (!sys.life.alive(guardian) || guardian === person) return false;
+      if (people.distance(person, guardian) > sys.params.movement.followNearTiles) return sys.goTo(person, sys.tileOf(guardian));
+      people.target[person] = sys.tileOf(guardian);
+      return true;
     }
     default:
       return true;
@@ -100,16 +103,10 @@ function meet(sys: IndividualsSystem, person: number, other: number, kind: strin
   social.talkKind[person] = kind === null ? -1 : CONVERSATIONS.indexOf(kind as ConversationKind);
   social.talkHours[person] = 0;
   social.talkDone[person] = 0;
-  if (distance(sys, person, other) <= 1) {
-    sys.people.target[person] = sys.tileOf(person);
-    return true;
-  }
+  // Close enough to see each other: one walks up to the other directly, without planning a path.
+  sys.people.target[person] = sys.tileOf(other);
+  if (sys.people.distance(person, other) <= sys.params.movement.followNearTiles) return true;
   return sys.goTo(person, sys.tileOf(other));
-}
-
-function distance(sys: IndividualsSystem, a: number, b: number): number {
-  const { people } = sys;
-  return Math.max(Math.abs(people.x[a]! - people.x[b]!), Math.abs(people.y[a]! - people.y[b]!));
 }
 
 /**
@@ -121,10 +118,17 @@ function meeting(sys: IndividualsSystem, person: number, hours: number, gift: bo
   const state = social.state;
   const other = state.talkWith[person]!;
   if (other < 0 || people.alive[other] !== 1 || sys.isSleeping(other)) return true;
-  if (distance(sys, person, other) > 1) {
+  const talk = sys.params.movement.talkTiles;
+  const d = people.distance(person, other);
+  if (d > talk) {
     people.working[person] = 0;
-    if (distance(sys, person, other) > social.params.reachTiles * 2) return true;
-    const reached = sys.tileOf(person) === people.target[person] || sys.walk(person, hours) !== 'moving';
+    if (d > social.params.reachTiles * 2) return true;
+    if (d <= sys.params.movement.followNearTiles) {
+      people.paths[person] = null;
+      sys.approach(person, other, talk, hours);
+      return false;
+    }
+    const reached = people.settled[person] === 1 || sys.walk(person, hours) !== 'moving';
     return reached && !sys.goTo(person, sys.tileOf(other));
   }
   people.working[person] = 1;
@@ -158,7 +162,7 @@ function startJob(sys: IndividualsSystem, person: number, action: CompiledAction
     return true;
   }
   if (tile === sys.tileOf(person)) {
-    people.target[person] = tile;
+    sys.stayAt(person, tile);
     return true;
   }
   return sys.goToWork(person, tile);
@@ -210,8 +214,10 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
       return meeting(sys, person, hours, true);
     case 'carried':
       return beCarried(sys, person, hours);
-    case 'follow_guardian':
-      return sys.arrived(person, hours, () => true);
+    case 'follow_guardian': {
+      const guardian = sys.life.state.guardian[person]!;
+      return !sys.life.alive(guardian) || sys.follow(person, guardian, hours);
+    }
     case 'play':
       people.working[person] = 1;
       sys.life.play(person, hours);
@@ -231,8 +237,11 @@ function beCarried(sys: IndividualsSystem, person: number, hours: number): boole
   const { people, production, life, params } = sys;
   const carrier = life.carrier(person);
   if (carrier < 0) return true;
-  people.x[person] = people.x[carrier]!;
-  people.y[person] = people.y[carrier]!;
+  // In arms: the child goes where its carrier goes.
+  sys.setPosition(person, people.px[carrier]!, people.py[carrier]!);
+  people.vx[person] = people.vx[carrier]!;
+  people.vy[person] = people.vy[carrier]!;
+  people.lastWalk[person] = sys.step;
   people.working[person] = 1;
   people.fatigue[person] = Math.max(0, people.fatigue[person]! - params.needs.restPerHour * hours);
   people.thirst[person] = Math.min(people.thirst[person]!, people.thirst[carrier]!);
@@ -243,7 +252,7 @@ function beCarried(sys: IndividualsSystem, person: number, hours: number): boole
   else {
     const camp = people.camp[person]!;
     const stock = production.stockTile(camp);
-    const near = Math.max(Math.abs(people.x[person]! - (stock % sys.size)), Math.abs(people.y[person]! - Math.floor(stock / sys.size))) <= params.tribe.campRadius;
+    const near = people.distanceToTile(person, stock, sys.size) <= params.tribe.campRadius;
     if (near && production.stockFood(camp) > 0) eaten = production.eat(person, wanted, true);
   }
   people.hunger[person] = Math.max(0, people.hunger[person]! - eaten * params.body.hungerPerFoodUnit);

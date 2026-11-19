@@ -3,16 +3,14 @@ import { State } from './animal-store';
 import type { FaunaSystem } from './fauna-system';
 import { feastOnKill } from './kill';
 import type { AnimalSpecies } from './params';
+import { chase } from './behavior';
+import { distance } from '../../core/motion';
 
 /**
  * Predators and humans. A hungry predator sees the humans around through the world's view of them
  * (positions only), picks a person who walks alone and attacks through the common interaction
  * mechanism: the humans' system applies the wound or the death, then the predator eats the remains.
  */
-
-function chebyshev(ax: number, ay: number, bx: number, by: number): number {
-  return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
-}
 
 export function humans(fauna: FaunaSystem): BodyView | null {
   return fauna.interactions.view('human');
@@ -24,7 +22,7 @@ function isAlone(view: BodyView, person: number, radius: number): boolean {
   const y = view.y(person);
   let alone = true;
   view.forEachNear(x, y, radius, (other) => {
-    if (alone && other !== person && view.alive(other) && chebyshev(x, y, view.x(other), view.y(other)) <= radius) alone = false;
+    if (alone && other !== person && view.alive(other) && distance(x, y, view.x(other), view.y(other)) <= radius) alone = false;
   });
   return alone;
 }
@@ -35,16 +33,16 @@ export function nearestLoneHuman(fauna: FaunaSystem, slot: number, radius: numbe
   const none = { id: -1, distance: Infinity };
   const view = humans(fauna);
   if (!view || fauna.canHuntHumans[store.species[slot]!] !== 1 || store.hunger[slot]! < params.humanPrey.minHunger) return none;
-  const x = store.x[slot]!;
-  const y = store.y[slot]!;
+  const x = store.px[slot]!;
+  const y = store.py[slot]!;
   let best = -1;
-  let bestDistance = radius + 1;
+  let bestDistance = radius;
   view.forEachNear(x, y, radius, (person) => {
     if (!view.alive(person)) return;
-    const distance = chebyshev(x, y, view.x(person), view.y(person));
-    if (distance < bestDistance && isAlone(view, person, params.humanPrey.loneTiles)) {
+    const d = distance(x, y, view.x(person), view.y(person));
+    if (d <= bestDistance && isAlone(view, person, params.humanPrey.loneTiles)) {
       best = person;
-      bestDistance = distance;
+      bestDistance = d;
     }
   });
   return best < 0 ? none : { id: best, distance: bestDistance };
@@ -57,7 +55,7 @@ export function humanTargetValid(fauna: FaunaSystem, person: number): boolean {
 }
 
 /** One step of the chase of a person: run closer, then attack. */
-export function huntHuman(fauna: FaunaSystem, slot: number, species: AnimalSpecies, moveToward: (tx: number, ty: number) => void): void {
+export function huntHuman(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
   const { store, params } = fauna;
   const person = store.targetAnimal[slot]!;
   const view = humans(fauna);
@@ -65,12 +63,7 @@ export function huntHuman(fauna: FaunaSystem, slot: number, species: AnimalSpeci
     store.state[slot] = State.Rest;
     return;
   }
-  const px = view.x(person);
-  const py = view.y(person);
-  if (chebyshev(store.x[slot]!, store.y[slot]!, px, py) > 1) {
-    for (let k = 0; k < species.sprintTiles && chebyshev(store.x[slot]!, store.y[slot]!, px, py) > 1; k++) moveToward(px, py);
-    return;
-  }
+  if (!chase(fauna, slot, species, view.x(person), view.y(person))) return;
   if (fauna.rng.nextFloat() >= params.humanPrey.attackChancePerStep) return;
   fauna.interactions.attack({
     attacker: { kind: 'animal', id: slot },
@@ -85,5 +78,5 @@ export function huntHuman(fauna: FaunaSystem, slot: number, species: AnimalSpeci
 export function onAttackDone(fauna: FaunaSystem, slot: number, _attack: Attack, outcome: AttackOutcome): void {
   if (!outcome.killed) return;
   fauna.carrion.add(outcome.y * fauna.size + outcome.x, outcome.remains);
-  feastOnKill(fauna, slot, outcome.x, outcome.y);
+  feastOnKill(fauna, slot, outcome.x + 0.5, outcome.y + 0.5);
 }

@@ -1,3 +1,4 @@
+import { ringSpot } from '../../core/motion';
 import type { Rng } from '../../core/rng';
 import { startingKnowledge } from '../../core/knowledge';
 import { Camp } from './camp';
@@ -53,6 +54,8 @@ function composeTribe(size: number, sys: IndividualsSystem, rng: Rng): Member[] 
 }
 
 /** Creates the starting tribes: camps at credible sites, families, names, traits and knowledge. */
+const SPOT = { x: 0, y: 0 };
+
 export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[]; families: number[][][]; names: NameGenerator } {
   const { params } = sys;
   const sites = chooseSites(sys.world, sys.flora, sys.fauna, sys.terrain, params, sys.edibleResources, params.tribe.count, rng);
@@ -83,8 +86,17 @@ export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People
       people.hunger[p] = rng.nextFloat() * INITIAL_NEED_MAX;
       people.thirst[p] = rng.nextFloat() * INITIAL_NEED_MAX;
       people.fatigue[p] = rng.nextFloat() * INITIAL_NEED_MAX;
-      people.x[p] = camp.centerX;
-      people.y[p] = camp.centerY;
+      // The tribe arrives gathered in a circle around the heart of its camp.
+      ringSpot(p - first, camp.center, sys.size, params.movement.fireRingTiles, params.movement.fireRingSpread, SPOT);
+      const spotTile = Math.floor(SPOT.y) * sys.size + Math.floor(SPOT.x);
+      if (!sys.terrain.walkable(spotTile)) {
+        SPOT.x = camp.centerX + 0.5;
+        SPOT.y = camp.centerY + 0.5;
+      }
+      people.px[p] = SPOT.x;
+      people.py[p] = SPOT.y;
+      people.x[p] = Math.floor(SPOT.x);
+      people.y[p] = Math.floor(SPOT.y);
       const group = groups.get(member.family) ?? [];
       group.push(p);
       groups.set(member.family, group);

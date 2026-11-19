@@ -32,8 +32,7 @@ function twoStrangers(simulation: Simulation): [number, number] {
 /** Puts `b` next to `a`. */
 function sideBySide(simulation: Simulation, a: number, b: number): void {
   const { people } = simulation.humans;
-  people.x[b] = people.x[a]! + 1;
-  people.y[b] = people.y[a]!;
+  people.placeAt(b, people.px[a]! + 1, people.py[a]!);
 }
 
 describe('relations', () => {
@@ -103,13 +102,10 @@ describe('limited knowledge and grief', () => {
     const witnessPerson = Array.from({ length: people.count }, (_, p) => p).find((p) => p !== child && p !== mother && social.kinOf(p, child) === 0)!;
     // The child dies far from the mother, under the eyes of one person only.
     for (let p = 0; p < people.count; p++) {
-      people.x[p] = 10 + (p % 5);
-      people.y[p] = 10;
+      people.placeAt(p, 10 + (p % 5) + 0.5, 10 + 0.5);
     }
-    people.x[child] = 200;
-    people.y[child] = 200;
-    people.x[witnessPerson] = 201;
-    people.y[witnessPerson] = 200;
+    people.placeAt(child, 200 + 0.5, 200 + 0.5);
+    people.placeAt(witnessPerson, 201 + 0.5, 200 + 0.5);
     humans['rebuildGrid']();
     people.alive[child] = 0;
     social.onDeath(child, 1, -1);

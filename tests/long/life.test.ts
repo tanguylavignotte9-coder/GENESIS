@@ -40,7 +40,7 @@ function live(seed: number): Story {
         const child = Number(event.details['person']);
         const guardian = guardians[child] ?? -1;
         if (guardian < 0 || people.alive[guardian] !== 1 || people.ageYears[child]! >= data.life.stages.adultAge) continue;
-        const near = Math.max(Math.abs(people.x[guardian]! - people.x[child]!), Math.abs(people.y[guardian]! - people.y[child]!)) <= 2;
+        const near = people.distance(guardian, child) <= 2.5;
         if (near && simulation.production.carriedFood(guardian) > data.social.sharing.foodUnitsPerGift && people.hunger[guardian]! < data.social.sharing.keepHunger) starvedNextToGuardianFood++;
       }
     }

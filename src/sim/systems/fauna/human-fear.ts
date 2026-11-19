@@ -3,9 +3,7 @@ import { fleeFrom } from './behavior';
 import type { FaunaSystem } from './fauna-system';
 import { humans } from './human-prey';
 
-function chebyshev(ax: number, ay: number, bx: number, by: number): number {
-  return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
-}
+import { distance as realDistance } from '../../core/motion';
 
 /**
  * Game and humans. At every step, each animal near a person may notice her: a hunter within the
@@ -28,7 +26,7 @@ export function scareGame(fauna: FaunaSystem): void {
     const hunting = view.hunting(person);
     const look = hunting ? hunterReach : passerReach;
     fauna.grid.forEachNear(px, py, look, (slot) => {
-      const distance = chebyshev(store.x[slot]!, store.y[slot]!, px, py);
+      const distance = realDistance(store.px[slot]!, store.py[slot]!, px, py);
       if (distance >= look || store.state[slot] === State.Flee) return;
       const tiles = fleeTiles[store.species[slot]!]!;
       if (tiles <= 0) return;

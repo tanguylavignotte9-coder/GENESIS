@@ -53,7 +53,7 @@ export function considerConception(life: LifeCycle, woman: number): void {
   const { people, params, state } = life;
   const man = people.spouse[woman]!;
   if (man < 0 || !life.alive(man) || people.female[man] === 1 || people.camp[man] !== people.camp[woman]) return;
-  const d = Math.max(Math.abs(people.x[man]! - people.x[woman]!), Math.abs(people.y[man]! - people.y[woman]!));
+  const d = people.distance(man, woman);
   if (d > params.fertility.togetherTiles) return;
   const body = fertility(life, woman, man);
   if (body <= 0) return;

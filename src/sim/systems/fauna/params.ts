@@ -43,19 +43,19 @@ export interface AnimalSpecies {
   thirstPerDay: number;
   /** Below this temperature, the animal suffers from the cold. */
   minCelsius: number;
-  /** Chance to actually move each step (speed). */
-  moveChance: number;
+  /** Walking speed, tiles per hour. */
+  walkTilesPerHour: number;
   /** Prey only: distance (tiles) at which a hunter is noticed. */
   fleeRadius: number;
   /** Distance at which an animal of average wariness notices a hunter and runs away (0 = does not fear humans). */
   humanFleeTiles: number;
-  /** Tiles run per step while fleeing a human. */
+  /** Running speed while fleeing a human, tiles per hour. */
   fleeSprintTiles: number;
   /** Hunters only: distance at which prey is looked for. */
   huntRadius: number;
   /** Hunters only: chance per step to bring down an adjacent prey. */
   huntSuccess: number;
-  /** Hunters only: tiles covered per step while chasing (a sprint). */
+  /** Hunters only: running speed while chasing, tiles per hour. */
   sprintTiles: number;
   /** Food units its body gives to the hunters who kill it. */
   meat: number;
@@ -100,6 +100,19 @@ export interface FaunaParams {
     breedingMaxHunger: number;
     /** A female finds a mate if an adult male of her species is within this distance. */
     mateRadius: number;
+  };
+  /** Natural movement (core/motion): acceleration, running, herds, packs, avoidance. */
+  movement: {
+    accelTilesPerHour2: number;
+    panicRunFactor: number;
+    wanderSpeedShare: number;
+    arriveTiles: number;
+    personalSpaceTiles: number;
+    avoidTilesPerHour: number;
+    herdSpacingTiles: number;
+    herdSlackTiles: number;
+    encircleTiles: number;
+    catchTiles: number;
   };
   fish: {
     maxAmount: number;
@@ -162,13 +175,13 @@ const SPECIES_SCHEMA: Schema = {
     foodPerDay: num(0.01, 100, 'Ration', 'Unités de nourriture qui couvrent une journée de faim.', 'unités/jour'),
     thirstPerDay: num(0, 100, 'Soif', 'Points de soif gagnés par jour (100 = assoiffé).', 'points/jour'),
     minCelsius: num(-80, 40, 'Résistance au froid', 'En dessous de cette température, l’animal souffre du froid.', '°C'),
-    moveChance: share('Vitesse', 'Chance de se déplacer d’une case à chaque pas (1 = à chaque pas).'),
+    walkTilesPerHour: num(0.1, 20, 'Vitesse de marche', 'Distance parcourue en une heure de jeu en marchant.', 'tuiles/heure'),
     fleeRadius: int(0, 64, 'Distance de fuite', 'Proies : distance à laquelle un chasseur est remarqué (0 = ne fuit jamais).', 'tuiles'),
     humanFleeTiles: int(0, 64, 'Méfiance envers les humains', 'Gibier : distance à laquelle un animal de prudence moyenne remarque un chasseur humain et s’enfuit (0 = ne craint pas les humains). Plus le chasseur est proche, plus il a de chances d’être remarqué.', 'tuiles'),
-    fleeSprintTiles: int(1, 8, 'Course de fuite', 'Gibier : cases parcourues par pas (une heure de jeu) en fuyant un humain.', 'cases/pas'),
+    fleeSprintTiles: num(0.1, 20, 'Course de fuite', 'Gibier : vitesse de course en fuyant un humain.', 'tuiles/heure'),
     huntRadius: int(0, 64, 'Rayon de chasse', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
     huntSuccess: share('Réussite de la chasse', 'Chasseurs : chance par pas de terrasser une proie à son contact.'),
-    sprintTiles: int(1, 8, 'Course', 'Chasseurs : cases parcourues par pas pendant la poursuite.', 'cases/pas'),
+    sprintTiles: num(0.1, 20, 'Course', 'Chasseurs : vitesse de course pendant la poursuite.', 'tuiles/heure'),
     meat: num(0, 1000, 'Viande', 'Unités de nourriture que donne le corps d’un adulte à ses chasseurs (moitié pour un petit).', 'unités'),
     migratory: flag('Migrateur', 'Les troupeaux partent vers l’équateur en automne et reviennent au printemps.'),
     migrationTiles: int(0, 1000, 'Distance de migration', 'Distance du voyage saisonnier.', 'tuiles'),
@@ -189,7 +202,7 @@ const SPECIES_SCHEMA: Schema = {
 export const ANIMALS_SCHEMA: Schema = {
   kind: 'object',
   fields: {
-    stepsPerDay: int(1, 240, 'Pas par jour', 'Nombre de fois par jour où chaque animal agit (et se déplace d’au plus une case).', 'pas', NEW_WORLD),
+    stepsPerDay: int(1, 240, 'Pas par jour', 'Nombre de fois par jour où chaque animal agit et se déplace (24 = une fois par heure de jeu).', 'pas', NEW_WORLD),
     thinkEverySteps: int(1, 64, 'Rythme de réflexion', 'Un animal choisit quoi faire une fois tous ces pas, chacun à son rythme (doit diviser les pas par jour).', 'pas'),
     gridCellTiles: int(2, 256, 'Grille des voisins', 'Taille des cases de la grille qui sert à trouver les voisins (technique : vitesse de calcul).', 'tuiles', NEW_WORLD),
     needs: {
@@ -224,6 +237,21 @@ export const ANIMALS_SCHEMA: Schema = {
         breedingMinHealth: num(0, 100, 'Santé pour se reproduire', 'Santé minimale d’une femelle pour concevoir.', 'points'),
         breedingMaxHunger: num(0, 100, 'Faim pour se reproduire', 'Au-dessus de cette faim, une femelle ne conçoit pas.', 'points'),
         mateRadius: int(1, 200, 'Recherche d’un partenaire', 'Une femelle trouve un mâle adulte de son espèce dans ce rayon.', 'tuiles'),
+      },
+    },
+    movement: {
+      kind: 'object',
+      fields: {
+        accelTilesPerHour2: num(0.5, 100, 'Accélération', 'Changement de vitesse possible en une heure : démarrer, freiner, tourner (plus faible = virages plus larges).', 'tuiles/heure²'),
+        panicRunFactor: num(1, 4, 'Course de panique', 'Une proie qui fuit un prédateur court à sa vitesse de marche multipliée par ce facteur.', 'facteur'),
+        wanderSpeedShare: share('Allure de promenade', 'Un animal qui se promène marche à cette part de sa vitesse.'),
+        arriveTiles: num(0.05, 2, 'Arrivée', 'Distance à laquelle l’animal est arrivé là où il allait.', 'tuiles'),
+        personalSpaceTiles: num(0, 3, 'Espace personnel', 'Distance en dessous de laquelle deux animaux s’écartent doucement l’un de l’autre.', 'tuiles'),
+        avoidTilesPerHour: num(0, 10, 'Évitement', 'Force avec laquelle deux animaux trop proches s’écartent.', 'tuiles/heure'),
+        herdSpacingTiles: num(0.2, 5, 'Espacement du troupeau', 'Distance typique entre deux bêtes d’un troupeau qui avance ou se repose.', 'tuiles'),
+        herdSlackTiles: num(0.2, 20, 'Souplesse du troupeau', 'Une bête rejoint sa place dans le troupeau quand elle s’en écarte de plus que cette distance.', 'tuiles'),
+        encircleTiles: num(0, 20, 'Encerclement', 'Les chasseurs d’une meute approchent la proie de plusieurs côtés, à cette distance, avant de se ruer dessus.', 'tuiles'),
+        catchTiles: num(0.3, 3, 'Contact', 'Distance à laquelle un chasseur peut terrasser sa proie.', 'tuiles'),
       },
     },
     fish: {

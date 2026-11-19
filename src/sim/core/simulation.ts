@@ -153,7 +153,14 @@ export class Simulation {
     }
   }
 
-  /** Days of plant and animal life only (no humans yet). */
+  /**
+   * Days of plant and animal life only: before the humans arrive (warm-up), or to study the
+   * ecosystem alone (the humans stay where they are and time does not pass for them).
+   */
+  runEcosystemOnly(days: number): void {
+    this.warmUpEcosystem(days);
+  }
+
   private warmUpEcosystem(days: number): void {
     const { ticksPerDay } = this.data.time;
     const end = this.clock.tick + days * ticksPerDay;

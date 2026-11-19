@@ -121,7 +121,7 @@ function court(life: SocialLife, speaker: number, listener: number): boolean {
 function jealousy(life: SocialLife, partner: number, suitor: number, loved: number): void {
   const reach = life.params.conversation.chatOverheardJealousyTiles;
   const { people } = life;
-  if (Math.max(Math.abs(people.x[partner]! - people.x[loved]!), Math.abs(people.y[partner]! - people.y[loved]!)) > reach) return;
+  if (people.distance(partner, loved) > reach) return;
   remember(life, partner, 'jealous', suitor, 1);
   feel(life, partner, suitor, life.params.conversation.jealousyFeels, 'jealousy');
   stir(life, partner, 'anger', life.params.conversation.jealousyAnger);

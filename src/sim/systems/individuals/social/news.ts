@@ -1,3 +1,4 @@
+import { distance } from '../../../core/motion';
 import { NEWS_KINDS, type NewsKind } from './params';
 import type { SocialLife } from './social-life';
 
@@ -113,13 +114,13 @@ export function witness(life: SocialLife, fact: Fact, x: number, y: number): num
   return seen;
 }
 
-/** Someone passing by a recent death finds out what happened. */
+/** Someone passing by a recent death finds out what happened. (x, y): where she is, in decimal tiles. */
 export function discoverDeaths(life: SocialLife, person: number, x: number, y: number, perception: number): void {
   const size = life.size;
   for (const fact of life.news.unfoundDeaths) {
-    const fx = fact.tile % size;
-    const fy = (fact.tile - fx) / size;
-    if (Math.max(Math.abs(fx - x), Math.abs(fy - y)) <= perception) learn(life, person, fact, 0, -1);
+    const fx = (fact.tile % size) + 0.5;
+    const fy = Math.floor(fact.tile / size) + 0.5;
+    if (distance(fx, fy, x, y) <= perception) learn(life, person, fact, 0, -1);
   }
 }
 

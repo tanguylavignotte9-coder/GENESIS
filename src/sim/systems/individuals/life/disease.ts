@@ -72,12 +72,12 @@ export function spreadDisease(life: LifeCycle, sick: number): void {
   const def = params.diseases[code];
   if (!def || !def.contagious || def.transmitPerHour <= 0) return;
   const reach = def.contagionTiles;
-  const x = people.x[sick]!;
-  const y = people.y[sick]!;
+  const x = people.px[sick]!;
+  const y = people.py[sick]!;
   const caught: number[] = [];
   sys.grid.forEachNear(x, y, reach, (other) => {
     if (other === sick || !susceptible(life, other, code)) return;
-    if (Math.max(Math.abs(people.x[other]! - x), Math.abs(people.y[other]! - y)) > reach) return;
+    if (people.distance(other, sick) > reach) return;
     const chance = def.transmitPerHour * Math.sqrt(vulnerabilityAt(params, people.ageYears[other]!)) * (1 + def.hungerOnsetEffect * weakness(params.frailty.hungerFrom, people.hunger[other]!));
     if (rng.nextFloat() < chance) caught.push(other);
   });

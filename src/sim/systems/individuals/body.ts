@@ -1,3 +1,4 @@
+import { Gait } from '../../core/motion';
 import { DeathCause } from './people';
 import type { IndividualsSystem } from './individuals-system';
 
@@ -14,7 +15,7 @@ export function feltTemperature(sys: IndividualsSystem, person: number): number 
   if (carrier >= 0 && carrier !== person) return feltTemperature(sys, carrier);
   const tile = people.y[person]! * sys.size + people.x[person]!;
   const felt = sys.climate.temperatureAt(tile) + sys.weather.typeAt(tile).feltCelsius;
-  let bonus = production.fireWarmthAt(people.camp[person]!, people.x[person]!, people.y[person]!) + production.clothingWarmth(person);
+  let bonus = production.fireWarmthAt(people.camp[person]!, people.px[person]!, people.py[person]!) + production.clothingWarmth(person);
   if (sys.isSleeping(person)) {
     const bed = production.bed(person);
     if (bed.tile === tile) bonus += bed.warmth;
@@ -23,7 +24,7 @@ export function feltTemperature(sys: IndividualsSystem, person: number): number 
   const cap = sys.params.camp.shelterMaxCelsius;
   const warmed = bonus > 0 && felt < cap ? Math.min(felt + bonus, cap) : felt;
   // Sitting right by a lit fire to warm up, one does not freeze, whatever the weather.
-  if (sys.behavior(person) === 'warm_up' && people.working[person] === 1 && production.fireWarmthAt(people.camp[person]!, people.x[person]!, people.y[person]!) > 0) {
+  if (sys.behavior(person) === 'warm_up' && people.working[person] === 1 && production.fireWarmthAt(people.camp[person]!, people.px[person]!, people.py[person]!) > 0) {
     return Math.max(warmed, sys.params.camp.besideFireCelsius);
   }
   return warmed;
@@ -41,7 +42,9 @@ export function liveHours(sys: IndividualsSystem, person: number, hours: number)
   life.nurseStep(person, hours);
   // Less strength, less endurance: the old, the sick and the pregnant tire sooner.
   const endurance = 1 + life.params.aging.enduranceEffect * (1 - life.vigor(person));
-  if (!sys.isSleeping(person)) people.fatigue[person] = Math.min(FULL, people.fatigue[person]! + needs.fatiguePerHour * endurance * hours);
+  // Running wears one out faster than walking.
+  const effort = people.gait[person] === Gait.Run ? sys.params.movement.runFatigueFactor : 1;
+  if (!sys.isSleeping(person)) people.fatigue[person] = Math.min(FULL, people.fatigue[person]! + needs.fatiguePerHour * endurance * effort * hours);
   const chill = needs.comfortCelsius - feltTemperature(sys, person);
   const cold = chill > 0 ? people.cold[person]! + chill * needs.coldPerDegreeHour * hours : people.cold[person]! - needs.warmingPerHour * hours;
   people.cold[person] = Math.max(0, Math.min(FULL, cold));

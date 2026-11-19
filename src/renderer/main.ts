@@ -2,7 +2,7 @@ import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
 import { ClimateState } from '../sim/systems/world/climate-state';
-import type { ClimateYearSnapshot, FromSimMessage, LifeTables, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
+import type { ClimateYearSnapshot, FromSimMessage, LifeTables, MotionInfo, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
 import { runRenderTest, type RenderTestHost } from './bench/render-test';
 import '../shared/bridge';
 import { Hover } from './hover';
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   let speedsKey = '';
   let lastPerfAt = 0;
   const pace = new SimPace();
-  let motion = { ticksPerHumanStep: 1, ticksPerAnimalStep: 1 };
+  let motion: MotionInfo = { ticksPerHumanStep: 1, ticksPerAnimalStep: 1, hoursPerHumanStep: 1, hoursPerAnimalStep: 1 };
 
   const sim = new SimClient((message: FromSimMessage) => onMessage(message));
   const hover = new Hover(sim, animals, people, buildings);
@@ -311,11 +311,11 @@ async function main(): Promise<void> {
         plants.setFlora(message.flora);
         return;
       case 'fauna':
-        animals.setFauna(message.fauna, performance.now(), pace.msFor(motion.ticksPerAnimalStep));
+        animals.setFauna(message.fauna, performance.now(), pace.msFor(motion.ticksPerAnimalStep), motion.hoursPerAnimalStep);
         benchmarkProgress('fauna');
         return;
       case 'humans':
-        people.setHumans(message.humans, performance.now(), pace.msFor(motion.ticksPerHumanStep));
+        people.setHumans(message.humans, performance.now(), pace.msFor(motion.ticksPerHumanStep), motion.hoursPerHumanStep);
         benchmarkProgress('humans');
         return;
       case 'weather':

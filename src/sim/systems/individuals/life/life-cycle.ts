@@ -121,7 +121,7 @@ export class LifeCycle {
     if (people.ageYears[person]! >= params.stages.weaningAge) return -1;
     for (const woman of [people.mother[person]!, this.state.guardian[person]!]) {
       if (woman < 0 || !this.hasMilk(woman)) continue;
-      const d = Math.max(Math.abs(people.x[woman]! - people.x[person]!), Math.abs(people.y[woman]! - people.y[person]!));
+      const d = people.distance(woman, person);
       if (d <= params.infancy.nurseTiles) return woman;
     }
     return -1;
@@ -227,14 +227,12 @@ export class LifeCycle {
     if (people.ageYears[child]! < params.childhood.observeMinAge) return;
     const recent = sys.step - sys.params.stepsPerHour;
     const reach = params.childhood.observeTiles;
-    const x = people.x[child]!;
-    const y = people.y[child]!;
     const working = (adult: number): boolean =>
-      this.alive(adult) && !this.isChild(adult) && state.lastSkill[adult]! >= 0 && state.lastSkillStep[adult]! >= recent && Math.max(Math.abs(people.x[adult]! - x), Math.abs(people.y[adult]! - y)) <= reach;
+      this.alive(adult) && !this.isChild(adult) && state.lastSkill[adult]! >= 0 && state.lastSkillStep[adult]! >= recent && people.distance(adult, child) <= reach;
     // The guardian first; otherwise any adult at work nearby.
     let teacher = working(state.guardian[child]!) ? state.guardian[child]! : -1;
     if (teacher < 0) {
-      sys.grid.forEachNear(x, y, reach, (adult) => {
+      sys.grid.forEachNear(people.px[child]!, people.py[child]!, reach, (adult) => {
         if (teacher < 0 && adult !== child && working(adult)) teacher = adult;
       });
     }
@@ -347,7 +345,7 @@ export class LifeCycle {
     const guardian = state.guardian[person]!;
     let away = 0;
     if (child && this.alive(guardian)) {
-      const d = Math.max(Math.abs(people.x[guardian]! - people.x[person]!), Math.abs(people.y[guardian]! - people.y[person]!));
+      const d = people.distance(guardian, person);
       away = Math.min(1, d / (2 * params.childhood.followTiles));
     }
     inputs[k++] = away;
@@ -362,7 +360,7 @@ export class LifeCycle {
     let n = 0;
     sys.grid.forEachNear(people.x[person]!, people.y[person]!, reach, (other) => {
       if (other === person || people.alive[other] !== 1 || people.ageYears[other]! >= params.stages.playUntilAge || this.isInfant(other) || sys.isSleeping(other)) return;
-      if (Math.max(Math.abs(people.x[other]! - people.x[person]!), Math.abs(people.y[other]! - people.y[person]!)) <= reach) n++;
+      if (people.distance(other, person) <= reach) n++;
     });
     return Math.min(1, n / 2);
   }
@@ -376,7 +374,7 @@ export class LifeCycle {
     const reach = rules.playmateTiles;
     sys.grid.forEachNear(people.x[person]!, people.y[person]!, reach, (other) => {
       if (other === person || people.alive[other] !== 1 || this.isInfant(other) || people.ageYears[other]! >= params.stages.playUntilAge || sys.isSleeping(other)) return;
-      if (Math.max(Math.abs(people.x[other]! - people.x[person]!), Math.abs(people.y[other]! - people.y[person]!)) > reach) return;
+      if (people.distance(other, person) > reach) return;
       social.cheer(person, 0, rules.lonelinessReliefPerHour * hours);
       social.playedWith(person, other, rules.affectionPerHour * hours);
     });

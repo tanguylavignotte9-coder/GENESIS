@@ -44,8 +44,26 @@ export class People {
   readonly cold: Float32Array;
   readonly danger: Float32Array;
   readonly health: Float32Array;
+  /** Tile under the person's feet (integer part of the free position). */
   readonly x: Int16Array;
   readonly y: Int16Array;
+  /** Free position (decimal tiles), velocity (tiles per hour) and gait: natural movement (core/motion). */
+  readonly px: Float32Array;
+  readonly py: Float32Array;
+  readonly vx: Float32Array;
+  readonly vy: Float32Array;
+  readonly gait: Uint8Array;
+  /** Point the person walks to at the end of the current trip (her own spot at the target). */
+  readonly goalX: Float32Array;
+  readonly goalY: Float32Array;
+  /** Number of the place the person took at her target (no two people of a camp take the same). */
+  readonly spotSlot: Uint8Array;
+  /** 1 once arrived on the goal point of the current target. */
+  readonly settled: Uint8Array;
+  /** Steps in a row without being able to move (blocked by water): the trip is given up. */
+  readonly blocked: Uint8Array;
+  /** Step of the last walk (whoever did not walk this step slows to a stop). */
+  readonly lastWalk: Int32Array;
   /** Index of the current action in the data list. */
   readonly action: Uint8Array;
   /** Target tile of the action (-1 = none). */
@@ -103,6 +121,17 @@ export class People {
     this.health = new Float32Array(count).fill(100);
     this.x = new Int16Array(count);
     this.y = new Int16Array(count);
+    this.px = new Float32Array(count);
+    this.py = new Float32Array(count);
+    this.vx = new Float32Array(count);
+    this.vy = new Float32Array(count);
+    this.gait = new Uint8Array(count);
+    this.goalX = new Float32Array(count);
+    this.goalY = new Float32Array(count);
+    this.spotSlot = new Uint8Array(count);
+    this.settled = new Uint8Array(count);
+    this.blocked = new Uint8Array(count);
+    this.lastWalk = new Int32Array(count).fill(-1);
     this.action = new Uint8Array(count);
     this.target = new Int32Array(count).fill(-1);
     this.working = new Uint8Array(count);
@@ -136,6 +165,34 @@ export class People {
     const person = this.count++;
     this.alive[person] = 1;
     return person;
+  }
+
+  /** Puts a person at a free position (decimal tiles); the tile under her feet follows. */
+  placeAt(person: number, fx: number, fy: number): void {
+    this.px[person] = fx;
+    this.py[person] = fy;
+    this.x[person] = Math.floor(fx);
+    this.y[person] = Math.floor(fy);
+  }
+
+  /** Real distance between two people (tiles, from their free positions). */
+  distance(a: number, b: number): number {
+    const dx = this.px[a]! - this.px[b]!;
+    const dy = this.py[a]! - this.py[b]!;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /** Real distance from a person to a point (decimal tiles). */
+  distanceTo(person: number, x: number, y: number): number {
+    const dx = this.px[person]! - x;
+    const dy = this.py[person]! - y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /** Real distance from a person to the middle of a tile. */
+  distanceToTile(person: number, tile: number, size: number): number {
+    const tx = tile % size;
+    return this.distanceTo(person, tx + 0.5, (tile - tx) / size + 0.5);
   }
 
   trait(person: number, trait: number): number {

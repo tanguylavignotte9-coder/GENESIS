@@ -110,8 +110,7 @@ describe('couples and births', () => {
     const { woman, man } = couple(simulation);
     wellFed(simulation);
     life.state.lastBirthDay[woman] = NEVER_DAY;
-    people.x[man] = people.x[woman]!;
-    people.y[man] = people.y[woman]!;
+    people.placeAt(man, people.px[woman]!, people.py[woman]!);
     expect(fertility(life, woman, man)).toBeGreaterThan(0);
     expect(desireForChild(life, woman, man)).toBeGreaterThan(0);
     life.state.nourishment[woman] = 99;
@@ -215,8 +214,7 @@ describe('childhood', () => {
     const { people, life } = humans;
     const child = Array.from({ length: people.count }, (_, p) => p).find((p) => people.ageYears[p]! >= 5 && people.ageYears[p]! < 12)!;
     const adult = life.state.guardian[child]!;
-    people.x[adult] = people.x[child]!;
-    people.y[adult] = people.y[child]!;
+    people.placeAt(adult, people.px[child]!, people.py[child]!);
     humans['rebuildGrid']();
     humans.practise(adult, 0, 0.1);
     const before = people.skill(child, 0);
@@ -252,8 +250,7 @@ describe('diseases', () => {
     const { people, life } = humans;
     const sick = 0;
     const neighbour = 1;
-    people.x[neighbour] = people.x[sick]!;
-    people.y[neighbour] = people.y[sick]!;
+    people.placeAt(neighbour, people.px[sick]!, people.py[sick]!);
     humans['rebuildGrid']();
     const fever = data.life.diseases.findIndex((disease) => disease.contagious);
     life.params.diseases[fever]!.transmitPerHour = 1;
@@ -366,8 +363,7 @@ describe('orphans and inheritance', () => {
     const { woman, man } = couple(simulation);
     const knife = production.catalog.itemIndex.get('stone_knife')!;
     production.carried[man]!.put(knife, 1, 0.5, man);
-    people.x[man] = humans.camps[0]!.centerX;
-    people.y[man] = humans.camps[0]!.centerY;
+    people.placeAt(man, humans.camps[0]!.centerX + 0.5, humans.camps[0]!.centerY + 0.5);
     humans.die(man, DeathCause.Predator, simulation.clock.tick);
     expect(production.hasItem(woman, knife)).toBe(true);
     const inheritance = simulation.journal.all().find((event) => event.type === INHERITANCE)!;

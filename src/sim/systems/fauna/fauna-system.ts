@@ -20,6 +20,12 @@ import { GroupStore } from './groups';
 import { liveOneDay } from './life';
 import type { AnimalSpecies, FaunaParams } from './params';
 import { SpatialGrid } from '../../core/spatial-grid';
+import { personalSpot } from '../../core/motion';
+
+const HOURS_PER_DAY = 24;
+/** Initial animals are spread this far around the middle of their tile (tiles). */
+const SPAWN_SPREAD = 0.4;
+const SPOT = { x: 0, y: 0 };
 
 export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4, Hunted: 5 } as const;
 export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs', 'chasseurs'] as const;
@@ -52,6 +58,10 @@ export class FaunaSystem {
   /** Last year each migration (species:landmass:direction) was reported in the journal. */
   readonly migrationReports = new Map<string, number>();
   step = 0;
+  /** Game hours between two steps of an animal. */
+  readonly hoursPerStep: number;
+  /** Ground an animal may walk on (no sea, no lake). */
+  readonly walkableTile = (tile: number): boolean => this.world.ocean[tile] === 0 && this.world.water[tile] !== Water.Lake;
   /** Tick of the current step (for the interactions it starts). */
   tick = 0;
   /** canHuntHumans[species] = 1 for the species that may attack a lone human. */
@@ -75,6 +85,7 @@ export class FaunaSystem {
     readonly interactions: Interactions,
   ) {
     this.size = world.size;
+    this.hoursPerStep = HOURS_PER_DAY / params.stepsPerDay;
     this.grid = new SpatialGrid(world.size, params.gridCellTiles);
     this.hunterGrid = new SpatialGrid(world.size, params.gridCellTiles);
     this.isHunter = Uint8Array.from(params.species, (species) => (species.prey.length > 0 ? 1 : 0));
@@ -100,8 +111,8 @@ export class FaunaSystem {
         forEachAlive: (visit) => {
           for (let slot = 0; slot < this.store.slots; slot++) if (this.store.alive[slot] === 1) visit(slot);
         },
-        x: (slot) => this.store.x[slot]!,
-        y: (slot) => this.store.y[slot]!,
+        x: (slot) => this.store.px[slot]!,
+        y: (slot) => this.store.py[slot]!,
         alive: (slot) => this.store.alive[slot] === 1,
         hunting: (slot) => this.store.state[slot] === State.Hunt,
       },
@@ -163,9 +174,13 @@ export class FaunaSystem {
     this.census.onDay(absoluteDay, journal, tick);
   }
 
-  /** Moves an animal to a tile, keeping the spatial grid up to date. */
-  place(slot: number, x: number, y: number): void {
+  /** Puts an animal at a free position (decimal tiles), keeping its tile and the spatial grid up to date. */
+  place(slot: number, fx: number, fy: number): void {
     const { store } = this;
+    const x = Math.max(0, Math.min(this.size - 1, Math.floor(fx)));
+    const y = Math.max(0, Math.min(this.size - 1, Math.floor(fy)));
+    store.px[slot] = fx;
+    store.py[slot] = fy;
     store.x[slot] = x;
     store.y[slot] = y;
     const cell = this.grid.cellOf(x, y);
@@ -180,8 +195,8 @@ export class FaunaSystem {
     }
   }
 
-  /** Creates an animal (newborn or initial population). */
-  spawn(species: number, x: number, y: number, group: number, ageDays: number): number {
+  /** Creates an animal (newborn or initial population) at a free position (decimal tiles). */
+  spawn(species: number, fx: number, fy: number, group: number, ageDays: number): number {
     const { store } = this;
     const slot = store.add();
     store.species[slot] = species;
@@ -192,10 +207,14 @@ export class FaunaSystem {
     store.health[slot] = PERCENT;
     store.wariness[slot] = 1 + this.params.humanFear.warinessSpread * (this.rng.nextFloat() * 2 - 1);
     store.group[slot] = group;
+    const x = Math.floor(fx);
+    const y = Math.floor(fy);
+    store.px[slot] = fx;
+    store.py[slot] = fy;
     store.x[slot] = x;
     store.y[slot] = y;
-    store.targetX[slot] = x;
-    store.targetY[slot] = y;
+    store.targetX[slot] = fx;
+    store.targetY[slot] = fy;
     store.cell[slot] = this.grid.cellOf(x, y);
     this.grid.insert(slot, store.cell[slot]!);
     if (this.isHunter[species] === 1) this.hunterGrid.insert(slot, store.cell[slot]!);
@@ -240,13 +259,12 @@ export class FaunaSystem {
       while (placed < target) {
         const tile = this.pickHabitatTile(weightOf, maxWeight);
         if (tile < 0) return;
-        const x = tile % this.size;
-        const y = (tile - x) / this.size;
         const members = Math.min(target - placed, this.rng.nextIntInclusive(species.groupSize[0], species.groupSize[1]));
         const group = this.groups.add(code, -1);
         for (let m = 0; m < members; m++) {
           const age = this.rng.nextFloat() * species.maxAgeYears * 0.7 * this.daysPerYear;
-          const slot = this.spawn(code, x, y, group, age);
+          personalSpot(placed + m, tile, this.size, SPAWN_SPREAD, SPOT);
+          const slot = this.spawn(code, SPOT.x, SPOT.y, group, age);
           if (m === 0) this.groups.leader[group] = slot;
         }
         placed += members;

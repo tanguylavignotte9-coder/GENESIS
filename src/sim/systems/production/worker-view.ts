@@ -7,8 +7,12 @@ export interface WorkerView {
   readonly count: number;
   alive(person: number): boolean;
   camp(person: number): number;
+  /** Tile under the person's feet. */
   x(person: number): number;
   y(person: number): number;
+  /** Free position of the person (decimal tiles). */
+  px(person: number): number;
+  py(person: number): number;
   /** Bit field of the knowledge the person has. */
   knowledge(person: number): number;
   /** Skill level 0..1 (index in the humans' skill list). */

@@ -141,12 +141,12 @@ export class SocialLife {
     return kin;
   }
 
-  /** Living people within `radius` tiles of (x, y). */
+  /** Living people within `radius` tiles (real distance) of the point (x, y), in decimal tiles. */
   forEachNear(x: number, y: number, radius: number, visit: (person: number) => void): void {
     const { people } = this;
     this.sys.grid.forEachNear(x, y, radius, (person) => {
       if (people.alive[person] !== 1) return;
-      if (Math.max(Math.abs(people.x[person]! - x), Math.abs(people.y[person]! - y)) <= radius) visit(person);
+      if (people.distanceTo(person, x, y) <= radius) visit(person);
     });
   }
 
@@ -213,7 +213,7 @@ export class SocialLife {
     liveFeelings(this, person, 1, !asleep, this.trait(person, 'sociability'));
     if (this.people.hunger[person]! >= FULL) remember(this, person, 'starving', -1, 1);
     if (this.news.unfoundDeaths.length === 0) return;
-    discoverDeaths(this, person, this.people.x[person]!, this.people.y[person]!, this.sys.params.body.perceptionTiles);
+    discoverDeaths(this, person, this.people.px[person]!, this.people.py[person]!, this.sys.params.body.perceptionTiles);
   }
 
   /** Every day: relations wear, memories fade, old news is forgotten, ambitions are reconsidered. */
@@ -231,7 +231,7 @@ export class SocialLife {
   onDeath(person: number, cause: number, event: number): void {
     const fact = this.news.add('death', person, -1, this.tileOf(person), this.day, event, cause);
     this.news.unfoundDeaths.push(fact);
-    witness(this, fact, this.people.x[person]!, this.people.y[person]!);
+    witness(this, fact, this.people.px[person]!, this.people.py[person]!);
     const s = this.state;
     s.talkWith[person] = -1;
     for (let p = 0; p < this.people.count; p++) if (s.talkWith[p] === person) s.talkWith[p] = -1;
@@ -242,7 +242,7 @@ export class SocialLife {
     remember(this, person, 'attacked', -1, 1);
     const fact = this.news.add('danger', person, -1, this.tileOf(person), this.day, -1);
     learn(this, person, fact, 0, -1);
-    witness(this, fact, this.people.x[person]!, this.people.y[person]!);
+    witness(this, fact, this.people.px[person]!, this.people.py[person]!);
   }
 
   /** A predator seen: a danger worth telling (once a day at most per person). */
@@ -404,8 +404,6 @@ export class SocialLife {
     const { people, params, state: s } = this;
     this.seenAt[person] = this.sys.step;
     const reach = params.reachTiles;
-    const x = people.x[person]!;
-    const y = people.y[person]!;
     const c = person * CANDIDATE_KINDS;
     const best = BEST.fill(0);
     this.candidates.fill(-1, c, c + CANDIDATE_KINDS);
@@ -420,7 +418,7 @@ export class SocialLife {
     for (let slot = base; slot < base + s.relationSlots; slot++) {
       const other = s.relOther[slot]!;
       if (other < 0 || people.alive[other] !== 1) continue;
-      if (Math.max(Math.abs(people.x[other]! - x), Math.abs(people.y[other]! - y)) > reach) continue;
+      if (people.distance(other, person) > reach) continue;
       if (this.sys.isSleeping(other)) continue;
       const affection = s.affection[slot]!;
       const kin = s.kin[slot]!;
@@ -444,7 +442,7 @@ export class SocialLife {
     // Lonely with nobody known around: the nearest member of the tribe will do.
     if (this.candidates[c] === -1) {
       const mate = this.sys.nearestTribeMember(person);
-      const near = mate >= 0 && Math.max(Math.abs(people.x[mate]! - x), Math.abs(people.y[mate]! - y)) <= reach && !this.sys.isSleeping(mate);
+      const near = mate >= 0 && people.distance(mate, person) <= reach && !this.sys.isSleeping(mate);
       if (near) this.candidates[c] = mate;
     }
     const seen = this.seen;

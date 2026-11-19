@@ -69,7 +69,7 @@ describe('game and humans', () => {
     const simulation = new Simulation(4, data);
     const { fauna } = simulation;
     const wolf = firstOf(simulation, 'wolf');
-    simulation.interactions.register('human', onePerson(fauna.store.x[wolf]! + 1, fauna.store.y[wolf]!, true), {});
+    simulation.interactions.register('human', onePerson(fauna.store.px[wolf]! + 1, fauna.store.py[wolf]!, true), {});
     scareGame(fauna);
     expect(fauna.store.fleesHuman[wolf]).toBe(0);
   });

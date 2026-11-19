@@ -84,3 +84,35 @@ export class Pathfinder {
     return Int32Array.from(reversed.reverse());
   }
 }
+
+/**
+ * Draws an A* path (tiles from the one after `start` to the goal) in straight lines where the view
+ * is clear: from each kept point, the farthest point of the path (within `lookahead` steps) that can
+ * be reached in a straight line over ground no harder than both ends is kept, the tiles in between
+ * are dropped. Elsewhere (around water, along a forest edge) the path keeps its turns, which the
+ * walker rounds off. The last tile (the goal) is always kept.
+ */
+export function smoothPath(terrain: Terrain, size: number, start: number, path: Int32Array, lookahead: number): Int32Array {
+  if (path.length <= 1) return path;
+  const kept: number[] = [];
+  let anchor = start;
+  let at = -1;
+  while (at < path.length - 1) {
+    const ax = (anchor % size) + 0.5;
+    const ay = Math.floor(anchor / size) + 0.5;
+    const anchorSpeed = terrain.speedOn(anchor);
+    let next = at + 1;
+    for (let k = Math.min(path.length - 1, at + lookahead); k > at + 1; k--) {
+      const tile = path[k]!;
+      const minSpeed = Math.min(anchorSpeed, terrain.speedOn(tile));
+      if (terrain.clearLine(ax, ay, (tile % size) + 0.5, Math.floor(tile / size) + 0.5, minSpeed)) {
+        next = k;
+        break;
+      }
+    }
+    kept.push(path[next]!);
+    anchor = path[next]!;
+    at = next;
+  }
+  return Int32Array.from(kept);
+}

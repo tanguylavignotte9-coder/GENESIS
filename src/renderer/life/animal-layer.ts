@@ -1,14 +1,14 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { AnimalSpecies } from '../../sim/systems/fauna/params';
 import type { FaunaSnapshot } from '../../shared/messages';
-import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
 import { drawAnimal, type AnimalArt } from '../art/animal';
 import { Glide, type GlidePoint } from './glide';
 
-/** Animals of a herd are spread a little around their tile so they do not overlap exactly. */
-const SPREAD = 0.6;
+const RUN = 2;
+/** Below this horizontal speed (tiles per hour) the animal keeps the side it faced (technical). */
+const FACING_MIN_SPEED = 0.1;
 const RING_RADIUS = 0.9;
 const RING_COLOR = 0xffe27a;
 
@@ -27,7 +27,9 @@ export class AnimalLayer {
   private freeSlots: number[] = [];
   private nextSlot = 0;
   private readonly glide = new Glide(16384);
-  private readonly point: GlidePoint = { x: 0, y: 0, moving: false, facing: 1 };
+  private readonly point: GlidePoint = { x: 0, y: 0, gait: 0, headingX: 1, headingY: 0 };
+  /** Side each animal faces (by glide slot): 1 right, -1 left. */
+  private facing = new Int8Array(16384).fill(1);
   private readonly ring = new Graphics();
   followedUid = -1;
 
@@ -47,8 +49,11 @@ export class AnimalLayer {
     this.glide.clear();
   }
 
-  /** New positions from the simulation; `stepMs` = real duration of one animal step at the current pace. */
-  setFauna(fauna: FaunaSnapshot, now: number, stepMs: number): void {
+  /**
+   * New positions from the simulation; `stepMs` = real duration of one animal step at the current
+   * pace, `stepHours` its duration in game hours.
+   */
+  setFauna(fauna: FaunaSnapshot, now: number, stepMs: number, stepHours: number): void {
     const next = this.seen;
     next.clear();
     for (let k = 0; k < fauna.count; k++) {
@@ -56,7 +61,14 @@ export class AnimalLayer {
       let slot = this.slots.get(uid);
       if (slot === undefined) slot = this.freeSlots.pop() ?? this.nextSlot++;
       next.set(uid, slot);
-      this.glide.set(slot, this.spotX(uid, fauna.x[k]!), this.spotY(uid, fauna.y[k]!), now, stepMs);
+      this.glide.set(slot, fauna.x[k]!, fauna.y[k]!, fauna.vx[k]!, fauna.vy[k]!, fauna.gait[k]!, now, stepMs, stepHours);
+      if (slot >= this.facing.length) {
+        const grown = new Int8Array(this.facing.length * 2).fill(1);
+        grown.set(this.facing);
+        this.facing = grown;
+      }
+      const vx = fauna.vx[k]!;
+      if (vx > FACING_MIN_SPEED || vx < -FACING_MIN_SPEED) this.facing[slot] = vx < 0 ? -1 : 1;
     }
     for (const [uid, slot] of this.slots) {
       if (next.has(uid)) continue;
@@ -107,6 +119,7 @@ export class AnimalLayer {
     const point = this.point;
     if (fauna && pixelsPerTile >= VIEW.animalMinPixelsPerTile) {
       const frame = Math.floor(now / VIEW.walkFrameMs);
+      const runFrame = Math.floor(now / VIEW.runFrameMs);
       for (let k = 0; k < fauna.count; k++) {
         const x = fauna.x[k]!;
         const y = fauna.y[k]!;
@@ -116,13 +129,15 @@ export class AnimalLayer {
         const slot = this.slots.get(uid);
         if (!art || slot === undefined) continue;
         this.glide.at(slot, now, point);
-        const stride = point.moving ? 1 + ((frame + uid) % 2) : 0;
+        const running = point.gait === RUN;
+        const stride = point.gait !== 0 ? 1 + (((running ? runFrame : frame) + uid) % 2) : 0;
         const texture = art.frames[stride]!;
         const sprite = this.sprite(used++);
         sprite.texture = texture;
         const scale = art.tiles / texture.width;
-        sprite.scale.set(scale * point.facing, scale);
-        sprite.position.set(point.x, point.y - (stride === 1 ? VIEW.walkBounceTiles : 0));
+        sprite.scale.set(scale * this.facing[slot]!, scale);
+        const bounce = stride === 1 ? (running ? VIEW.runBounceTiles : VIEW.walkBounceTiles) : 0;
+        sprite.position.set(point.x, point.y - bounce);
         sprite.visible = true;
       }
     }
@@ -130,14 +145,6 @@ export class AnimalLayer {
     const followed = this.followedUid >= 0 ? this.positionOf(this.followedUid) : null;
     this.ring.visible = followed !== null && pixelsPerTile >= VIEW.animalMinPixelsPerTile;
     if (followed) this.ring.position.set(followed.x, followed.y);
-  }
-
-  private spotX(uid: number, x: number): number {
-    return x + 0.5 + (tileHash(uid, 1, 5) - 0.5) * SPREAD;
-  }
-
-  private spotY(uid: number, y: number): number {
-    return y + 0.5 + (tileHash(uid, 2, 5) - 0.5) * SPREAD;
   }
 
   private sprite(index: number): Sprite {

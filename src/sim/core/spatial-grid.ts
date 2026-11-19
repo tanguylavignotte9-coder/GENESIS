@@ -47,6 +47,25 @@ export class SpatialGrid {
     this.touched.length = 0;
   }
 
+  /**
+   * Copies into `out` the beings of the cells overlapping the square of half-side `radius` around
+   * (x, y) and returns how many (at most out.length). No callback: for the hottest loops.
+   */
+  gather(x: number, y: number, radius: number, out: Int32Array): number {
+    const c0 = Math.max(0, Math.floor((x - radius) / this.cellTiles));
+    const c1 = Math.min(this.cellsPerSide - 1, Math.floor((x + radius) / this.cellTiles));
+    const r0 = Math.max(0, Math.floor((y - radius) / this.cellTiles));
+    const r1 = Math.min(this.cellsPerSide - 1, Math.floor((y + radius) / this.cellTiles));
+    let n = 0;
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        const list = this.cells[r * this.cellsPerSide + c]!;
+        for (let k = 0; k < list.length && n < out.length; k++) out[n++] = list[k]!;
+      }
+    }
+    return n;
+  }
+
   /** Calls `visit` for every animal in the cells overlapping the square of half-side `radius`. */
   forEachNear(x: number, y: number, radius: number, visit: (slot: number) => void): void {
     const c0 = Math.max(0, Math.floor((x - radius) / this.cellTiles));

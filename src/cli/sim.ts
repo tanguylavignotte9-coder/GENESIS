@@ -3,12 +3,14 @@
  *   npm run sim -- --seed 42 --years 100   run the simulation and print a summary (abnormal years…)
  *   npm run sim -- --seed 42 --world       generate a world and print its statistics
  *   npm run sim -- --seed 42 --load-test   time a game day with 100 … 5 000 humans (several camps)
+ *   npm run sim -- --seed 42 --years 200 --ecosystem   plants and animals alone, census every 10 years
  */
 import { performance } from 'node:perf_hooks';
 import { parseArgs } from 'node:util';
 import { loadGameData, type GameData } from '../sim/core/game-data';
 import { isValidSeed, Rng } from '../sim/core/rng';
 import { runHeadless } from '../sim/headless';
+import { runEcosystem } from '../sim/ecosystem-report';
 import { computeWorldStats } from '../sim/systems/world/stats';
 import { generateWorld } from '../sim/systems/world/world';
 import { BUDGET_SHARE, ECOSYSTEM_WARMUP_YEARS, LOAD_TEST_DAYS, runLoadTest, X500_DAY_BUDGET_MS } from './load-test';
@@ -130,15 +132,32 @@ function printLoadTest(seed: number, data: GameData): void {
   console.log(`  Plafond conseillé en x500 : environ ${fr.format(result.advisedHumans)} humains (un jour de jeu en moins de ${budget.toFixed(0)} ms, soit ${BUDGET_SHARE * PERCENT} % de 0,96 s)`);
 }
 
+/** Years between two censuses of the ecosystem report. */
+const ECOSYSTEM_EVERY_YEARS = 10;
+
+function printEcosystem(seed: number, years: number, data: GameData): void {
+  const startedAt = performance.now();
+  const report = runEcosystem(seed, years, ECOSYSTEM_EVERY_YEARS, data, () => performance.now());
+  console.log('GENESIS — écosystème seul (faune et flore, sans humains)');
+  console.log(`  Graine : ${seed} · ${years} ans · recensement tous les ${ECOSYSTEM_EVERY_YEARS} ans`);
+  const header = report.samples.map((s) => `an ${s.year}`.padStart(8)).join('');
+  console.log(`  Animaux${' '.repeat(12)}${header}`);
+  report.animalNames.forEach((name, k) => console.log(`    ${name.padEnd(17)}${report.samples.map((s) => fr.format(s.animals[k]!).padStart(8)).join('')}`));
+  console.log(`  Plantes${' '.repeat(12)}${header}`);
+  report.plantNames.forEach((name, k) => console.log(`    ${name.padEnd(17)}${report.samples.map((s) => fr.format(s.plants[k]!).padStart(8)).join('')}`));
+  console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms · durée totale ${seconds(startedAt).toFixed(0)} s`);
+}
+
 function main(): void {
   const { values } = parseArgs({
-    options: { seed: { type: 'string' }, years: { type: 'string' }, world: { type: 'boolean' }, 'load-test': { type: 'boolean' } },
+    options: { seed: { type: 'string' }, years: { type: 'string' }, world: { type: 'boolean' }, 'load-test': { type: 'boolean' }, ecosystem: { type: 'boolean' } },
   });
   const seed = parseIntegerOption('seed', values.seed, DEFAULT_SEED);
   if (!isValidSeed(seed)) throw new Error(`La graine doit être comprise entre 0 et 4294967295 (reçu : ${seed}).`);
   const data = loadGameData();
   if (values['load-test']) printLoadTest(seed, data);
   else if (values.world) printWorld(seed, data);
+  else if (values.ecosystem) printEcosystem(seed, parseIntegerOption('years', values.years, DEFAULT_YEARS), data);
   else printRun(seed, parseIntegerOption('years', values.years, DEFAULT_YEARS), data);
 }
 

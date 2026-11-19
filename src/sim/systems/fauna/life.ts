@@ -106,7 +106,7 @@ function giveBirth(fauna: FaunaSystem, mother: number): void {
   const species = fauna.speciesOf(mother);
   const young = fauna.rng.nextIntInclusive(species.litter[0], species.litter[1]);
   for (let k = 0; k < young; k++) {
-    const child = fauna.spawn(store.species[mother]!, store.x[mother]!, store.y[mother]!, store.group[mother]!, 0);
+    const child = fauna.spawn(store.species[mother]!, store.px[mother]!, store.py[mother]!, store.group[mother]!, 0);
     store.hunger[child] = 0;
     store.thirst[child] = 0;
   }

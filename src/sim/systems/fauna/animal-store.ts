@@ -50,15 +50,26 @@ export class AnimalStore {
   species = new Uint8Array(0);
   sex = new Uint8Array(0);
   ageDays = new Float32Array(0);
+  /** Tile under the animal (integer part of its free position). */
   x = new Int16Array(0);
   y = new Int16Array(0);
+  /** Free position (decimal tiles), velocity (tiles per hour) and gait: natural movement (core/motion). */
+  px = new Float32Array(0);
+  py = new Float32Array(0);
+  vx = new Float32Array(0);
+  vy = new Float32Array(0);
+  gait = new Uint8Array(0);
+  /** Last push away from too close neighbours (tiles per hour), refreshed when the animal thinks. */
+  pushX = new Float32Array(0);
+  pushY = new Float32Array(0);
   hunger = new Float32Array(0);
   thirst = new Float32Array(0);
   health = new Float32Array(0);
   state = new Uint8Array(0);
   group = new Int32Array(0);
-  targetX = new Int16Array(0);
-  targetY = new Int16Array(0);
+  /** Point the animal heads for (decimal tiles). */
+  targetX = new Float32Array(0);
+  targetY = new Float32Array(0);
   /** Hunted being (hunters) — or -1: an animal slot, or a person if `huntsHuman` is 1. */
   targetAnimal = new Int32Array(0);
   /** 1 while the hunter's target is a human (seen through the humans' view of the world). */
@@ -94,6 +105,11 @@ export class AnimalStore {
     this.wariness[slot] = 1;
     this.pregnancy[slot] = 0;
     this.state[slot] = State.Rest;
+    this.vx[slot] = 0;
+    this.vy[slot] = 0;
+    this.gait[slot] = 0;
+    this.pushX[slot] = 0;
+    this.pushY[slot] = 0;
     this.living++;
     return slot;
   }
@@ -118,13 +134,20 @@ export class AnimalStore {
     this.ageDays = copy(this.ageDays, (n) => new Float32Array(n));
     this.x = copy(this.x, (n) => new Int16Array(n));
     this.y = copy(this.y, (n) => new Int16Array(n));
+    this.px = copy(this.px, (n) => new Float32Array(n));
+    this.py = copy(this.py, (n) => new Float32Array(n));
+    this.vx = copy(this.vx, (n) => new Float32Array(n));
+    this.vy = copy(this.vy, (n) => new Float32Array(n));
+    this.gait = copy(this.gait, (n) => new Uint8Array(n));
+    this.pushX = copy(this.pushX, (n) => new Float32Array(n));
+    this.pushY = copy(this.pushY, (n) => new Float32Array(n));
     this.hunger = copy(this.hunger, (n) => new Float32Array(n));
     this.thirst = copy(this.thirst, (n) => new Float32Array(n));
     this.health = copy(this.health, (n) => new Float32Array(n));
     this.state = copy(this.state, (n) => new Uint8Array(n));
     this.group = copy(this.group, (n) => new Int32Array(n));
-    this.targetX = copy(this.targetX, (n) => new Int16Array(n));
-    this.targetY = copy(this.targetY, (n) => new Int16Array(n));
+    this.targetX = copy(this.targetX, (n) => new Float32Array(n));
+    this.targetY = copy(this.targetY, (n) => new Float32Array(n));
     this.targetAnimal = copy(this.targetAnimal, (n) => new Int32Array(n));
     this.huntsHuman = copy(this.huntsHuman, (n) => new Uint8Array(n));
     this.chase = copy(this.chase, (n) => new Int16Array(n));

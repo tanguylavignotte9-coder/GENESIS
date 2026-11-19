@@ -35,13 +35,18 @@ export function snapshotHumans(simulation: Simulation): { snapshot: HumansSnapsh
   const { people } = simulation.humans;
   const flags = new Uint8Array(people.count);
   for (let p = 0; p < people.count; p++) flags[p] = (people.alive[p] ? HumanFlag.Alive : 0) | (people.working[p] ? HumanFlag.Working : 0);
+  const n = people.count;
   const snapshot: HumansSnapshot = {
-    x: people.x.slice(0, people.count),
-    y: people.y.slice(0, people.count),
-    action: people.action.slice(0, people.count),
+    x: people.px.slice(0, n),
+    y: people.py.slice(0, n),
+    vx: people.vx.slice(0, n),
+    vy: people.vy.slice(0, n),
+    gait: people.gait.slice(0, n),
+    action: people.action.slice(0, n),
     flags,
   };
-  return { snapshot, transfer: [snapshot.x, snapshot.y, snapshot.action, snapshot.flags].map((array) => array.buffer as ArrayBuffer) };
+  const { x, y, vx, vy, gait, action } = snapshot;
+  return { snapshot, transfer: [x, y, vx, vy, gait, action, flags].map((array) => array.buffer as ArrayBuffer) };
 }
 
 export function describePerson(simulation: Simulation, requestId: number, person: number): PersonDetails | null {

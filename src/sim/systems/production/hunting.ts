@@ -1,3 +1,4 @@
+import { distance } from '../../core/motion';
 import type { Recipe } from './catalog';
 import type { Job, WorkResult } from './jobs';
 import type { ProductionSystem } from './production-system';
@@ -11,10 +12,10 @@ import type { ProductionSystem } from './production-system';
 
 /** Nearest game in sight: animal slot, its uid and tile, or null. */
 export function goHunting(sys: ProductionSystem, person: number, recipe: Recipe): { slot: number; uid: number; tile: number } | null {
-  return nearestPrey(sys, sys.people.x(person), sys.people.y(person), recipe, sys.params.hunting.searchTiles);
+  return nearestPrey(sys, sys.people.px(person), sys.people.py(person), recipe, sys.params.hunting.searchTiles);
 }
 
-/** Is there game of the recipe's species within `radius` of (x, y)? */
+/** Is there game of the recipe's species within `radius` of (x, y) (decimal tiles)? */
 export function preyNear(sys: ProductionSystem, x: number, y: number, recipe: Recipe, radius: number): boolean {
   return nearestPrey(sys, x, y, recipe, radius) !== null;
 }
@@ -22,10 +23,10 @@ export function preyNear(sys: ProductionSystem, x: number, y: number, recipe: Re
 function nearestPrey(sys: ProductionSystem, x: number, y: number, recipe: Recipe, radius: number): { slot: number; uid: number; tile: number } | null {
   const { fauna } = sys;
   let best = -1;
-  let bestDistance = radius + 1;
+  let bestDistance = radius;
   fauna.grid.forEachNear(x, y, radius, (slot) => {
     if (fauna.store.alive[slot] !== 1 || !recipe.prey.includes(fauna.store.species[slot]!)) return;
-    const d = Math.max(Math.abs(fauna.store.x[slot]! - x), Math.abs(fauna.store.y[slot]! - y));
+    const d = distance(fauna.store.px[slot]!, fauna.store.py[slot]!, x, y);
     if (d < bestDistance || (d === bestDistance && slot < best)) {
       best = slot;
       bestDistance = d;
@@ -59,10 +60,9 @@ export function huntStep(sys: ProductionSystem, person: number, job: Job, hours:
     job.prey = next.slot;
     job.preyUid = next.uid;
   }
-  const px = fauna.store.x[job.prey]!;
-  const py = fauna.store.y[job.prey]!;
-  const distance = Math.max(Math.abs(px - sys.people.x(person)), Math.abs(py - sys.people.y(person)));
-  if (distance <= strikeRange(sys, person)) {
+  const store = fauna.store;
+  const away = distance(store.px[job.prey]!, store.py[job.prey]!, sys.people.px(person), sys.people.py(person));
+  if (away <= strikeRange(sys, person)) {
     const skill = recipe.skill >= 0 ? sys.people.skill(person, recipe.skill) : 0;
     const chance = (params.hunting.successChance + params.hunting.skillBonus * skill) * hours;
     if (sys.rng.nextFloat() < chance) {
@@ -76,7 +76,7 @@ export function huntStep(sys: ProductionSystem, person: number, job: Job, hours:
     return;
   }
   out.status = 'move';
-  out.tile = py * sys.size + px;
+  out.tile = store.y[job.prey]! * sys.size + store.x[job.prey]!;
 }
 
 /** The blow: the fauna applies the death, the hunter takes the carcass (as much as can be carried). */

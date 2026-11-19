@@ -32,8 +32,8 @@ describe('variables catalog', () => {
 
   it('finds a variable again from its key (list entries by id)', () => {
     const workshop = new Workshop();
-    const wolf = variable(workshop, 'animals.json', 'species.wolf.moveChance');
-    expect(resolveKey({ species: [{ id: 'deer' }, { id: 'wolf', moveChance: 1 }] }, 'species.wolf.moveChance')).toEqual(['species', 1, 'moveChance']);
+    const wolf = variable(workshop, 'animals.json', 'species.wolf.walkTilesPerHour');
+    expect(resolveKey({ species: [{ id: 'deer' }, { id: 'wolf', walkTilesPerHour: 1 }] }, 'species.wolf.walkTilesPerHour')).toEqual(['species', 1, 'walkTilesPerHour']);
     expect(wolf.path[0]).toBe('species');
   });
 });
@@ -61,10 +61,10 @@ describe('the variables workshop', () => {
 
   it('refuses a value out of bounds, with a French explanation, and changes nothing', () => {
     const { workshop, simulation } = running();
-    const result = workshop.set('animals.json', 'species.wolf.moveChance', 3);
+    const result = workshop.set('animals.json', 'species.wolf.walkTilesPerHour', 30);
     expect(result.ok).toBe(false);
-    expect(result.messages.join(' ')).toContain('doit être un nombre compris entre 0 et 1');
-    expect(variable(workshop, 'animals.json', 'species.wolf.moveChance').value).toBe(1);
+    expect(result.messages.join(' ')).toContain('doit être un nombre compris entre 0.1 et 20');
+    expect(variable(workshop, 'animals.json', 'species.wolf.walkTilesPerHour').value).toBe(1);
     expect(simulation.journal.all().some((entry) => entry.type === VARIABLE_CHANGED && entry.text.includes('Vitesse'))).toBe(false);
   });
 

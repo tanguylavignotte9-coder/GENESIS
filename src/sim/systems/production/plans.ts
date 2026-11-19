@@ -267,7 +267,7 @@ function sourceNearCamp(sys: ProductionSystem, camp: CampState, recipe: Recipe, 
     const x = camp.center % sys.size;
     const y = Math.floor(camp.center / sys.size);
     const radius = sys.params.work.searchTiles;
-    found = recipe.def.source?.kind === 'prey' ? preyNear(sys, x, y, recipe, radius) : findSourceFrom(sys, x, y, camp.id, recipe, [item], radius) >= 0;
+    found = recipe.def.source?.kind === 'prey' ? preyNear(sys, x + 0.5, y + 0.5, recipe, radius) : findSourceFrom(sys, x, y, camp.id, recipe, [item], radius) >= 0;
     sourceCache.set(key, found);
   }
   return found;

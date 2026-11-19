@@ -42,4 +42,7 @@ export const VIEW = {
   /** Walking animation: duration of one stride frame (ms) and height of the bounce (tiles). */
   walkFrameMs: 200,
   walkBounceTiles: 0.04,
+  /** Running animation: quicker strides, higher bounce. */
+  runFrameMs: 110,
+  runBounceTiles: 0.07,
 } as const;

@@ -78,7 +78,7 @@ export function formCouple(life: SocialLife, a: number, b: number): void {
   const fact = life.news.add('couple', a, b, life.tileOf(a), life.day, event);
   learn(life, a, fact, 0, -1);
   learn(life, b, fact, 0, -1);
-  witness(life, fact, people.x[a]!, people.y[a]!);
+  witness(life, fact, people.px[a]!, people.py[a]!);
 }
 
 function separate(life: SocialLife, a: number, b: number): void {

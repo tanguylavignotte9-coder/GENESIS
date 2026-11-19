@@ -112,6 +112,31 @@ export interface HumanParams {
     eatUnitsPerHour: number;
     drinkPerHour: number;
   };
+  /** Natural movement (core/motion): steering, avoidance, spots at rest, speed, walking together. */
+  movement: {
+    accelTilesPerHour2: number;
+    arriveTiles: number;
+    cornerTiles: number;
+    smoothLookaheadTiles: number;
+    personalSpaceTiles: number;
+    avoidTilesPerHour: number;
+    spotOffsetTiles: number;
+    fireRingTiles: number;
+    fireRingSpread: number;
+    marshSpeed: number;
+    snowSlowdown: number;
+    slopeSlowdownPer100m: number;
+    fatigueSlowdown: number;
+    loadSlowdown: number;
+    runFatigueFactor: number;
+    companionTiles: number;
+    besideTiles: number;
+    companionPullTiles: number;
+    followBehindTiles: number;
+    followNearTiles: number;
+    talkTiles: number;
+    stuckSteps: number;
+  };
   camp: { shelterMaxCelsius: number; besideFireCelsius: number; homeRadiusTiles: number };
   memory: { waterSlots: number; foodSlots: number; forgetDays: number };
   danger: {
@@ -240,13 +265,40 @@ export const HUMANS_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         walkTilesPerHour: v('number', 0.5, 20, 'Vitesse de marche', 'Tuiles parcourues par heure sur terrain plat, par beau temps.', 'tuiles/heure'),
-        fleeSpeedFactor: v('number', 1, 3, 'Course', 'Facteur de vitesse quand on fuit.', 'facteur'),
+        fleeSpeedFactor: v('number', 1, 3, 'Course', 'Facteur de vitesse quand on court : fuir un danger, poursuivre le gibier.', 'facteur'),
         perceptionTiles: v('integer', 2, 40, 'Perception', 'Distance à laquelle on repère eau, plantes et prédateurs.', 'tuiles'),
         exploreTiles: v('integer', 2, 100, 'Exploration', 'Distance à laquelle on part chercher quand rien n’est en vue ni en mémoire.', 'tuiles'),
         carryCapacity: v('number', 1, 200, 'Charge portée', 'Encombrement total qu’une personne peut porter (une poignée de baies = 1, une carcasse = 6).', 'charge'),
         hungerPerFoodUnit: v('number', 0.5, 50, 'Valeur nutritive', 'Points de faim apaisés par une unité de nourriture.', 'points/unité'),
         eatUnitsPerHour: v('number', 1, 100, 'Vitesse du repas', 'Unités de nourriture mangées par heure.', 'unités/heure'),
         drinkPerHour: v('number', 10, 1000, 'Vitesse pour boire', 'Points de soif apaisés par heure en buvant.', 'points/heure'),
+      },
+    },
+    movement: {
+      kind: 'object',
+      fields: {
+        accelTilesPerHour2: v('number', 1, 200, 'Accélération', 'Changement de vitesse possible en une heure : démarrer, freiner, tourner (plus faible = virages plus larges).', 'tuiles/heure²'),
+        arriveTiles: v('number', 0.01, 1, 'Arrivée', 'Distance à laquelle on est arrivé à sa place.', 'tuiles'),
+        cornerTiles: v('number', 0.1, 3, 'Virages', 'On commence à tourner vers le point suivant du chemin à cette distance du coin : le chemin s’arrondit.', 'tuiles'),
+        smoothLookaheadTiles: v('integer', 1, 64, 'Lignes droites', 'Quand la vue est dégagée, un chemin est tiré en ligne droite sur au plus ce nombre de tuiles.', 'tuiles'),
+        personalSpaceTiles: v('number', 0, 3, 'Espace personnel', 'Distance en dessous de laquelle deux personnes s’écartent doucement l’une de l’autre.', 'tuiles'),
+        avoidTilesPerHour: v('number', 0, 20, 'Évitement', 'Force avec laquelle deux personnes trop proches s’écartent.', 'tuiles/heure'),
+        spotOffsetTiles: v('number', 0, 0.49, 'Place sur un lieu', 'Chacun se tient à sa propre place sur un lieu (chantier, stock, couche) jusqu’à cette distance de son milieu : personne ne s’empile.', 'tuiles'),
+        fireRingTiles: v('number', 0.5, 3, 'Cercle autour du feu', 'Distance du feu à laquelle on s’assoit en cercle pour se réchauffer.', 'tuiles'),
+        fireRingSpread: v('number', 0, 1, 'Rangs autour du feu', 'Écart entre les rangs du cercle quand beaucoup de monde se réchauffe.', 'tuiles'),
+        marshSpeed: v('number', 0.1, 1, 'Marais', 'Facteur de vitesse dans un marais.', 'facteur'),
+        snowSlowdown: v('number', 0, 0.9, 'Neige', 'Part de la vitesse perdue dans une neige épaisse.', 'fraction'),
+        slopeSlowdownPer100m: v('number', 0, 5, 'Pente', 'Ralentissement par 100 m de dénivelé entre deux tuiles voisines (la vitesse est divisée par 1 + ce nombre × le dénivelé).', 'facteur/100 m'),
+        fatigueSlowdown: v('number', 0, 0.9, 'Fatigue', 'Part de la vitesse perdue par une personne épuisée (à partir de la moitié de la fatigue).', 'fraction'),
+        loadSlowdown: v('number', 0, 0.9, 'Charge', 'Part de la vitesse perdue quand on porte sa pleine charge.', 'fraction'),
+        runFatigueFactor: v('number', 1, 10, 'Essoufflement', 'Courir fatigue autant de fois plus que marcher.', 'facteur'),
+        companionTiles: v('number', 0, 10, 'Marcher ensemble', 'Un compagnon ou un parent qui va dans le même sens à moins de cette distance : on marche à ses côtés.', 'tuiles'),
+        besideTiles: v('number', 0.3, 3, 'Côte à côte', 'Écart entre deux personnes qui marchent ensemble.', 'tuiles'),
+        companionPullTiles: v('number', 0, 10, 'Attrait du compagnon', 'Force qui ramène à côté de celui avec qui l’on marche.', 'tuiles/heure'),
+        followBehindTiles: v('number', 0.3, 3, 'Suivre son parent', 'Un enfant qui suit son parent se tient à cette distance derrière lui, un peu de côté.', 'tuiles'),
+        followNearTiles: v('number', 1, 30, 'Garder son parent en vue', 'Plus loin que cela, l’enfant cherche un chemin pour rejoindre son parent ; plus près, il le suit à vue.', 'tuiles'),
+        talkTiles: v('number', 0.3, 5, 'Distance de conversation', 'On s’approche à cette distance de quelqu’un pour lui parler ou lui donner quelque chose.', 'tuiles'),
+        stuckSteps: v('integer', 1, 50, 'Chemin bloqué', 'Après ce nombre de pas sans pouvoir avancer, on renonce au trajet.', 'pas'),
       },
     },
     camp: {

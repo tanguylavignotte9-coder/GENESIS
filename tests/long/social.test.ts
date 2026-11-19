@@ -29,7 +29,7 @@ function twoYears(seed: number): Story {
       if (people.deathCause[p] !== DeathCause.Hunger) continue;
       for (const parent of [people.mother[p]!, people.father[p]!]) {
         if (parent < 0 || people.alive[parent] !== 1) continue;
-        const near = Math.max(Math.abs(people.x[parent]! - people.x[p]!), Math.abs(people.y[parent]! - people.y[p]!)) <= 2;
+        const near = people.distance(parent, p) <= 2.5;
         if (near && simulation.production.carriedFood(parent) > data.social.sharing.foodUnitsPerGift && people.hunger[parent]! < data.social.sharing.keepHunger) starvedNextToParentFood++;
       }
     }

@@ -18,8 +18,11 @@ export function snapshotFauna(simulation: Simulation): { snapshot: FaunaSnapshot
     count,
     uid: new Int32Array(count),
     species: new Uint8Array(count),
-    x: new Int16Array(count),
-    y: new Int16Array(count),
+    x: new Float32Array(count),
+    y: new Float32Array(count),
+    vx: new Float32Array(count),
+    vy: new Float32Array(count),
+    gait: new Uint8Array(count),
     state: new Uint8Array(count),
   };
   let k = 0;
@@ -27,13 +30,16 @@ export function snapshotFauna(simulation: Simulation): { snapshot: FaunaSnapshot
     if (store.alive[slot] === 0) continue;
     snapshot.uid[k] = store.uid[slot]!;
     snapshot.species[k] = store.species[slot]!;
-    snapshot.x[k] = store.x[slot]!;
-    snapshot.y[k] = store.y[slot]!;
+    snapshot.x[k] = store.px[slot]!;
+    snapshot.y[k] = store.py[slot]!;
+    snapshot.vx[k] = store.vx[slot]!;
+    snapshot.vy[k] = store.vy[slot]!;
+    snapshot.gait[k] = store.gait[slot]!;
     snapshot.state[k] = store.fleesHuman[slot] === 1 && store.state[slot] === State.Flee ? FLEES_HUMAN_STATE : store.state[slot]!;
     k++;
   }
-  const { uid, species, x, y, state } = snapshot;
-  return { snapshot, transfer: [uid, species, x, y, state].map((array) => array.buffer as ArrayBuffer) };
+  const { uid, species, x, y, vx, vy, gait, state } = snapshot;
+  return { snapshot, transfer: [uid, species, x, y, vx, vy, gait, state].map((array) => array.buffer as ArrayBuffer) };
 }
 
 /** Details of a tile and (optionally) of an animal, for the tooltip. */

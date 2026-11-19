@@ -52,6 +52,8 @@ let sentHumanSamples = 0;
 let sentRosterDay = -1;
 let sentRosterCount = 0;
 let sentRosterLiving = 0;
+let sentFaunaStep = -1;
+let sentHumanStep = -1;
 
 /** The plants change slowly: the display gets them every few game days (technical setting). */
 const FLORA_SEND_INTERVAL_DAYS = 2;
@@ -99,7 +101,12 @@ function start(seed: number, benchmark?: { warmupYears: number }): void {
       life: lifeTables(created),
       roster: snapshotRoster(created),
       weatherRegionTiles: created.data.weather.regionTiles,
-      motion: { ticksPerHumanStep: created.ticksPerHumanStep, ticksPerAnimalStep: created.ticksPerStep },
+      motion: {
+        ticksPerHumanStep: created.ticksPerHumanStep,
+        ticksPerAnimalStep: created.ticksPerStep,
+        hoursPerHumanStep: 1 / created.data.humans.stepsPerHour,
+        hoursPerAnimalStep: created.fauna.hoursPerStep,
+      },
       benchmark: benchmark !== undefined,
     },
     transfer,
@@ -109,6 +116,8 @@ function start(seed: number, benchmark?: { warmupYears: number }): void {
   sentAnomalies = null;
   sentEvents = 0;
   sentFloraDay = -1;
+  sentFaunaStep = -1;
+  sentHumanStep = -1;
   sentSamples = 0;
   sentHumanSamples = 0;
   sentRosterDay = -1;
@@ -208,8 +217,12 @@ function publishChanges(current: Simulation): void {
     const flora = snapshotFlora(current);
     post({ type: 'flora', flora: flora.snapshot }, flora.transfer);
   }
-  const fauna = snapshotFauna(current);
-  post({ type: 'fauna', fauna: fauna.snapshot }, fauna.transfer);
+  // Beings move only at their steps: positions are sent when a step happened (or a new world began).
+  if (current.fauna.step !== sentFaunaStep) {
+    sentFaunaStep = current.fauna.step;
+    const fauna = snapshotFauna(current);
+    post({ type: 'fauna', fauna: fauna.snapshot }, fauna.transfer);
+  }
   // Births, ages and couples change the roster: sent again when someone is born, and once a day.
   const count = current.humans.people.count;
   const living = current.humans.people.living;
@@ -222,8 +235,11 @@ function publishChanges(current: Simulation): void {
     sentHumanSamples += stats.samples.length;
     post({ type: 'humanStats', stats });
   }
-  const humans = snapshotHumans(current);
-  post({ type: 'humans', humans: humans.snapshot }, humans.transfer);
+  if (current.humans.step !== sentHumanStep) {
+    sentHumanStep = current.humans.step;
+    const humans = snapshotHumans(current);
+    post({ type: 'humans', humans: humans.snapshot }, humans.transfer);
+  }
   post({ type: 'buildings', buildings: snapshotBuildings(current) });
   const history = current.fauna.census.history;
   if (history.length > sentSamples) {

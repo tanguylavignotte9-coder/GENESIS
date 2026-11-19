@@ -1,13 +1,13 @@
 import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { HumanFlag, type HumansSnapshot, type Roster } from '../../shared/messages';
-import { CHILD_SCALE, drawHuman, HUMAN_TILES } from '../art/human';
+import { CHILD_SCALE, drawHuman, HUMAN_TILES, type HumanView } from '../art/human';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
 import { Glide, type GlidePoint } from './glide';
 
-const SPREAD = 0.5;
 const CHILD_AGE = 14;
+const RUN = 2;
 const VARIANTS = 64;
 const RING_COLOR = 0x7fd4ff;
 const RING_RADIUS = 0.75;
@@ -22,7 +22,7 @@ export class HumanLayer {
   private roster: Roster | null = null;
   private humans: HumansSnapshot | null = null;
   private readonly glide = new Glide();
-  private readonly point: GlidePoint = { x: 0, y: 0, moving: false, facing: 1 };
+  private readonly point: GlidePoint = { x: 0, y: 0, gait: 0, headingX: 1, headingY: 0 };
   /** Person whose sheet is open / who is followed (-1 = none). */
   selected = -1;
   sleepActionCode = -1;
@@ -46,16 +46,18 @@ export class HumanLayer {
     this.roster = roster;
   }
 
-  /** New positions from the simulation; `stepMs` = real duration of one human step at the current pace. */
-  setHumans(humans: HumansSnapshot, now: number, stepMs: number): void {
+  /**
+   * New positions from the simulation; `stepMs` = real duration of one human step at the current
+   * pace, `stepHours` its duration in game hours.
+   */
+  setHumans(humans: HumansSnapshot, now: number, stepMs: number, stepHours: number): void {
     this.humans = humans;
     for (let p = 0; p < humans.x.length; p++) {
       if ((humans.flags[p]! & HumanFlag.Alive) === 0) {
         this.glide.forget(p);
         continue;
       }
-      const spot = this.spot(p, humans.x[p]!, humans.y[p]!);
-      this.glide.set(p, spot.x, spot.y, now, stepMs);
+      this.glide.set(p, humans.x[p]!, humans.y[p]!, humans.vx[p]!, humans.vy[p]!, humans.gait[p]!, now, stepMs, stepHours);
     }
   }
 
@@ -103,14 +105,21 @@ export class HumanLayer {
         if (x < visible.minX - 1 || x > visible.maxX + 1 || y < visible.minY - 1 || y > visible.maxY + 1) continue;
         const asleep = humans.action[p] === this.sleepActionCode && (humans.flags[p]! & HumanFlag.Working) !== 0;
         this.glide.at(p, now, point);
-        // Walking: two strides in turn, with a small bounce on the first.
-        const stride = point.moving && !asleep ? 1 + ((Math.floor(now / VIEW.walkFrameMs) + p) % 2) : 0;
-        const texture = this.texture(roster.female[p] === 1, Math.floor(tileHash(p, 7, 3) * VARIANTS), asleep, stride);
+        // Walking or running: two strides in turn (quicker when running), with a small bounce on the first.
+        const running = point.gait === RUN;
+        const frameMs = running ? VIEW.runFrameMs : VIEW.walkFrameMs;
+        const stride = point.gait !== 0 && !asleep ? 1 + ((Math.floor(now / frameMs) + p) % 2) : 0;
+        // Looking where one goes: from the front, the back, or the side (mirrored to the left).
+        const across = Math.abs(point.headingX) >= Math.abs(point.headingY);
+        const view: HumanView = across ? 'side' : point.headingY > 0 ? 'front' : 'back';
+        const texture = this.texture(roster.female[p] === 1, Math.floor(tileHash(p, 7, 3) * VARIANTS), asleep, view, stride, running);
         const sprite = this.sprite(used++);
         const child = roster.ageYears[p]! < CHILD_AGE ? CHILD_SCALE : 1;
+        const scale = (HUMAN_TILES * child) / (asleep ? texture.height : texture.width);
         sprite.texture = texture;
-        sprite.scale.set((HUMAN_TILES * child) / (asleep ? texture.height : texture.width));
-        sprite.position.set(point.x, point.y - (stride === 1 ? VIEW.walkBounceTiles : 0));
+        sprite.scale.set(view === 'side' && point.headingX < 0 && !asleep ? -scale : scale, scale);
+        const bounce = stride === 1 ? (running ? VIEW.runBounceTiles : VIEW.walkBounceTiles) : 0;
+        sprite.position.set(point.x, point.y - bounce);
         sprite.visible = true;
       }
     }
@@ -120,15 +129,11 @@ export class HumanLayer {
     if (selected) this.ring.position.set(selected.x, selected.y);
   }
 
-  private spot(person: number, x: number, y: number): { x: number; y: number } {
-    return { x: x + 0.5 + (tileHash(person, 1, 8) - 0.5) * SPREAD, y: y + 0.5 + (tileHash(person, 2, 8) - 0.5) * SPREAD };
-  }
-
-  private texture(female: boolean, variant: number, asleep: boolean, stride: number): Texture {
-    const key = `${female ? 1 : 0}:${variant}:${asleep ? 1 : 0}:${stride}`;
+  private texture(female: boolean, variant: number, asleep: boolean, view: HumanView, stride: number, running: boolean): Texture {
+    const key = `${female ? 1 : 0}:${variant}:${asleep ? 1 : 0}:${view}:${stride}:${running ? 1 : 0}`;
     let texture = this.textures.get(key);
     if (!texture) {
-      texture = drawHuman({ female, variant, asleep, stride });
+      texture = drawHuman({ female, variant, asleep, view, stride, running });
       this.textures.set(key, texture);
     }
     return texture;

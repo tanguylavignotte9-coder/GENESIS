@@ -132,8 +132,7 @@ describe('daily life', () => {
       if (humans.terrain.walkable(tile) && humans.terrain.walkable(tile + 1)) spot = tile;
     }
     expect(spot).toBeGreaterThanOrEqual(0);
-    humans.people.x[p] = spot % SIZE;
-    humans.people.y[p] = Math.floor(spot / SIZE);
+    humans.people.placeAt(p, spot % SIZE + 0.5, Math.floor(spot / SIZE) + 0.5);
     const species = fauna.params.species.findIndex((s) => s.id === 'wolf');
     const pack = fauna.groups.add(species, -1);
     const wolf = fauna.spawn(species, (spot % SIZE) + 1, Math.floor(spot / SIZE), pack, 1000);
@@ -150,8 +149,7 @@ describe('daily life', () => {
       fauna.store.hunger[wolf] = 100;
       fauna.store.thirst[wolf] = 0;
       // Keep the person alone where she is (her own decisions would take her home).
-      humans.people.x[p] = (fauna.store.x[wolf]! + 1) % SIZE;
-      humans.people.y[p] = fauna.store.y[wolf]!;
+      humans.people.placeAt(p, (fauna.store.px[wolf]! + 1) % SIZE, fauna.store.py[wolf]!);
       simulation.step(hourTicks);
       hurt = humans.people.health[p]! < before || humans.people.alive[p] === 0;
     }
@@ -173,10 +171,8 @@ describe('daily life', () => {
     for (let step = 0; step < 24 * data.humans.stepsPerHour; step++) {
       fauna.store.hunger[wolf] = 100;
       fauna.store.thirst[wolf] = 0;
-      humans.people.x[p] = (fauna.store.x[wolf]! + 1) % SIZE;
-      humans.people.y[p] = fauna.store.y[wolf]!;
-      humans.people.x[friend] = humans.people.x[p]!;
-      humans.people.y[friend] = humans.people.y[p]! + 1;
+      humans.people.placeAt(p, (fauna.store.px[wolf]! + 1) % SIZE, fauna.store.py[wolf]!);
+      humans.people.placeAt(friend, humans.people.px[p]!, humans.people.py[p]! + 1);
       simulation.step(quarter);
     }
     expect(attacks).toBe(0);

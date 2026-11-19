@@ -1,3 +1,4 @@
+import { distance } from '../../core/motion';
 import { grownTo } from '../../core/columns';
 import type { Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
@@ -401,6 +402,11 @@ export class ProductionSystem {
     return Math.min(1, bulk / this.carryCapacity(person));
   }
 
+  /** Share of the person's carrying capacity in use (everything carried), 0..1. */
+  loadShare(person: number): number {
+    return Math.min(1, this.carried[person]!.bulk(this.catalog.bulk) / this.carryCapacity(person));
+  }
+
   /** Carrying goods for a job under way (inputs to craft, materials to deliver, wood for the fire). */
   carriesForWork(person: number): boolean {
     const job = this.jobs[person];
@@ -440,14 +446,15 @@ export class ProductionSystem {
     return best;
   }
 
-  /** Warmth felt from a lit fire of the camp nearby. */
+  /** Warmth felt from a lit fire of the camp nearby, at a free position (decimal tiles). */
   fireWarmthAt(camp: number, x: number, y: number): number {
     const fire = this.fireOf(camp);
     if (!fire || fire.fuel <= 0) return 0;
     const def = this.typeOf(fire).def;
     const size = this.size;
-    const d = Math.max(Math.abs(x - (fire.tile % size)), Math.abs(y - Math.floor(fire.tile / size)));
-    return d <= def.warmthTiles ? def.warmthCelsius : 0;
+    const d = distance(x, y, (fire.tile % size) + 0.5, Math.floor(fire.tile / size) + 0.5);
+    // The warmth reaches the fire's tile and `warmthTiles` tiles around it.
+    return d <= def.warmthTiles + 0.5 ? def.warmthCelsius : 0;
   }
 
   /** Tile of the person's bed and the shelter's warmth (-1 / 0 when sleeping in the open). */

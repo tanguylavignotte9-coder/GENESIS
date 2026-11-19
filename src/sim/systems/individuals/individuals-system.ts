@@ -20,7 +20,8 @@ import { considerMoving } from './camp-move';
 import { createTribes } from './tribe';
 import { DeathCause, People } from './people';
 import { INPUTS, type Behavior, type HumanParams } from './params';
-import { Pathfinder } from './pathfinding';
+import { Pathfinder, smoothPath } from './pathfinding';
+import { advance, distance, personalSpot, ringSpot, separation, speedOf, steer, stop, updateGait, type SteerGoal } from '../../core/motion';
 import { Terrain } from './terrain';
 import { SocialLife } from './social/social-life';
 import type { SocialParams } from './social/params';
@@ -39,9 +40,31 @@ const MINUTES_PER_HOUR = 60;
 /** What the journal says of each death cause (index = DeathCause). */
 const DEATH_TEXT_KEYS = ['hunger', 'hunger', 'thirst', 'cold', 'predator', 'oldAge', 'disease', 'childbirth'] as const;
 const EXPLORE_ATTEMPTS = 4;
+const MARSH_BIOME = 'marsh';
 /** Cell size of the grid that lets the others find people quickly (technical, not gameplay). */
 const GRID_CELL_TILES = 16;
 type WalkResult = 'moving' | 'arrived' | 'stuck';
+/** Below this distance in a step, the person did not move (technical). */
+const BLOCKED_TILES = 0.005;
+/** Tiles of the way home looked at ahead, and of the way to water (technical). */
+const HOME_LOOKAHEAD = 4;
+const WATER_LOOKAHEAD = 3;
+/** Speed (tiles per hour) above which someone is walking, not standing. */
+const WALKING_SPEED = 0.5;
+/** Two walkers go "the same way" when their headings are this close (cosine). */
+const SAME_WAY = 0.7;
+/** A following child keeps this share of its distance to the side of its guardian. */
+const FOLLOW_SIDE_SHARE = 0.6;
+/** A child this many times its following distance from its standing guardian is by her side. */
+const FOLLOW_STAND_FACTOR = 1.6;
+/** One stops a little short of the person one walks up to. */
+const APPROACH_STOP_SHARE = 0.8;
+const HALF = 0.5;
+const METERS_PER_100 = 100;
+const EPSILON = 1e-6;
+/** Places looked at around one spot (technical: three rings of 16). */
+const SPOT_SLOTS = 48;
+const NEAR_BUFFER = 256;
 
 /**
  * Humans (version 1): needs, body, spatial memory and a utility-AI brain that picks an action
@@ -71,6 +94,18 @@ export class IndividualsSystem {
   private readonly scores: Float64Array;
   private readonly order: number[] = [];
   private thinkSteps: number;
+  private readonly spot = { x: 0, y: 0 };
+  private readonly takenSlots = new Uint8Array(SPOT_SLOTS);
+  /** Neighbours looked at for avoidance, and those that do not count (technical buffers). */
+  private readonly near = new Int32Array(NEAR_BUFFER);
+  private noAvoid = new Uint8Array(0);
+  private readonly push = { x: 0, y: 0 };
+  private readonly way = { x: 0, y: 0, final: true };
+  private readonly goal: SteerGoal = { x: 0, y: 0, speed: 0, accel: 0, arrive: true, pushX: 0, pushY: 0 };
+  /** Biome index of marshes (slow going), -1 if none. */
+  private readonly marshBiome: number;
+  /** Ground a person may walk on. */
+  readonly walkableTile = (tile: number): boolean => this.terrain.walkable(tile);
   step = 0;
   hour = 0;
   private absoluteDay = 0;
@@ -93,6 +128,7 @@ export class IndividualsSystem {
     interactions: Interactions,
   ) {
     this.size = world.size;
+    this.marshBiome = world.biomes.biomes.findIndex((biome) => biome.id === MARSH_BIOME);
     this.terrain = new Terrain(world, flora, params.terrain);
     this.pathfinder = new Pathfinder(world.size, this.terrain, params.terrain.maxPathNodes, params.terrain.heuristicWeight);
     this.actions = [];
@@ -120,8 +156,8 @@ export class IndividualsSystem {
         forEachAlive: (visit) => {
           for (let p = 0; p < this.people.count; p++) if (this.people.alive[p] === 1) visit(p);
         },
-        x: (person) => this.people.x[person]!,
-        y: (person) => this.people.y[person]!,
+        x: (person) => this.people.px[person]!,
+        y: (person) => this.people.py[person]!,
         alive: (person) => this.people.alive[person] === 1,
         hunting: (person) => this.production.isHunting(person),
       },
@@ -180,6 +216,8 @@ export class IndividualsSystem {
       camp: (p) => people.camp[p]!,
       x: (p) => people.x[p]!,
       y: (p) => people.y[p]!,
+      px: (p) => people.px[p]!,
+      py: (p) => people.py[p]!,
       knowledge: (p) => people.knowledge[p]!,
       skill: (p, s) => people.skill(p, s),
       ageYears: (p) => people.ageYears[p]!,
@@ -269,6 +307,7 @@ export class IndividualsSystem {
       }
       if (this.step >= people.nextThink[p]!) this.think(p);
       if (performAction(this, p, this.actions[people.action[p]!]!, hours)) people.nextThink[p] = this.step + 1;
+      this.stopIdle(p);
     }
     this.rebuildGrid();
     this.step++;
@@ -334,14 +373,14 @@ export class IndividualsSystem {
     input[k++] = goods;
     // Back at the camp with goods in hand, one puts them in the common stock.
     const stock = production.stockTile(camp.id);
-    const nearStock = Math.max(Math.abs(people.x[person]! - (stock % this.size)), Math.abs(people.y[person]! - Math.floor(stock / this.size))) <= params.tribe.campRadius;
+    const nearStock = people.distanceToTile(person, stock, this.size) <= params.tribe.campRadius;
     input[k++] = production.carriesForWork(person) ? 0 : goods > 0 && nearStock ? Math.max(goods, params.decision.depositAtCamp) : goods;
     input[k++] = production.fuelAvailable(person) ? 1 : 0;
     input[k++] = production.fireLow(camp.id, person);
     input[k++] = production.fireLit(camp.id) ? 1 : 0;
     input[k++] = Math.min(1, distance / params.body.perceptionTiles / 2);
     const mate = this.nearestTribeMember(person);
-    const gap = mate < 0 ? 0 : Math.max(Math.abs(people.x[mate]! - people.x[person]!), Math.abs(people.y[mate]! - people.y[person]!));
+    const gap = mate < 0 ? 0 : people.distance(mate, person);
     input[k++] = Math.min(1, gap / (2 * params.danger.isolationTiles));
     const reserves = production.reserveNeeds(person);
     input[k++] = reserves.food;
@@ -356,15 +395,15 @@ export class IndividualsSystem {
   /** Every hour: predators in sight (danger) and whether the person is isolated. */
   private perceive(person: number): void {
     const { people, fauna, params } = this;
-    const x = people.x[person]!;
-    const y = people.y[person]!;
+    const x = people.px[person]!;
+    const y = people.py[person]!;
     const radius = params.danger.alertTiles;
     let threat = -1;
-    let best = radius + 1;
+    let best = radius;
     fauna.grid.forEachNear(x, y, radius, (slot) => {
       if (this.predatorCodes[fauna.store.species[slot]!] !== 1) return;
-      const d = Math.max(Math.abs(fauna.store.x[slot]! - x), Math.abs(fauna.store.y[slot]! - y));
-      if (d < best) {
+      const d = distance(fauna.store.px[slot]!, fauna.store.py[slot]!, x, y);
+      if (d <= best) {
         best = d;
         threat = slot;
       }
@@ -373,7 +412,7 @@ export class IndividualsSystem {
     people.threat[person] = threat;
     if (wasSafe && threat >= 0) this.social.onThreat(person, fauna.store.x[threat]!, fauna.store.y[threat]!);
     const mate = this.nearestTribeMember(person);
-    const gap = mate < 0 ? Infinity : Math.max(Math.abs(people.x[mate]! - x), Math.abs(people.y[mate]! - y));
+    const gap = mate < 0 ? Infinity : people.distance(mate, person);
     people.isolated[person] = gap > params.danger.isolationTiles ? 1 : 0;
     if (threat >= 0) {
       // Alone, a predator is terrifying; among the others, it is only worrying.
@@ -480,8 +519,7 @@ export class IndividualsSystem {
     people.knowledge[child] = people.knowledge[mother]! | (father >= 0 ? people.knowledge[father]! : 0);
     inheritTraits(this.life, child, mother, father);
     people.health[child] = this.life.params.birth.newbornHealth;
-    people.x[child] = people.x[mother]!;
-    people.y[child] = people.y[mother]!;
+    this.setPosition(child, people.px[mother]!, people.py[mother]!);
     people.nextThink[child] = this.step;
     const state = this.life.state;
     state.birthDay[child] = this.absoluteDay;
@@ -510,16 +548,69 @@ export class IndividualsSystem {
     }
   }
 
-  // ----- movement -------------------------------------------------------------------------
+  // ----- movement (natural: free positions, smoothed paths, steering; core/motion) -------
 
-  /** Plans a path to a tile with A*. */
+  /** Puts a person at a free position (decimal tiles), keeping the tile under her feet. */
+  setPosition(person: number, fx: number, fy: number): void {
+    const { people } = this;
+    people.px[person] = fx;
+    people.py[person] = fy;
+    people.x[person] = Math.max(0, Math.min(this.size - 1, Math.floor(fx)));
+    people.y[person] = Math.max(0, Math.min(this.size - 1, Math.floor(fy)));
+  }
+
+  /**
+   * Where the person will stand at `tile`: in a circle around the camp fire, elsewhere a place of
+   * her own on the tile (several people at a work site or the stock never stack on one point).
+   */
+  private setGoal(person: number, tile: number): void {
+    const { people } = this;
+    const movement = this.params.movement;
+    const spot = this.spot;
+    const fire = tile === this.production.fireTile(people.camp[person]!);
+    // The places already taken there by the others of the camp.
+    const taken = this.takenSlots.fill(0);
+    for (const other of this.campMembers(people.camp[person]!)) {
+      if (other !== person && people.target[other] === tile && people.spotSlot[other]! < taken.length) taken[people.spotSlot[other]!] = 1;
+    }
+    // The first free place that is not on water.
+    let slot = 0;
+    let found = false;
+    for (; slot < taken.length && !found; slot++) {
+      if (taken[slot] === 1) continue;
+      if (fire) ringSpot(slot, tile, this.size, movement.fireRingTiles, movement.fireRingSpread, spot);
+      else personalSpot(slot, tile, this.size, movement.spotOffsetTiles, spot);
+      const inside = spot.x >= 0 && spot.y >= 0 && spot.x < this.size && spot.y < this.size;
+      found = inside && this.terrain.walkable(Math.floor(spot.y) * this.size + Math.floor(spot.x));
+    }
+    if (!found) {
+      slot = taken.length;
+      spot.x = (tile % this.size) + 0.5;
+      spot.y = Math.floor(tile / this.size) + 0.5;
+    } else slot--;
+    people.spotSlot[person] = slot;
+    people.goalX[person] = spot.x;
+    people.goalY[person] = spot.y;
+    people.settled[person] = 0;
+    people.blocked[person] = 0;
+  }
+
+  /** The action takes place on a tile already reached (or very near): the person only takes her place there. */
+  stayAt(person: number, tile: number): void {
+    this.people.paths[person] = null;
+    this.people.target[person] = tile;
+    this.setGoal(person, tile);
+  }
+
+  /** Plans a path to a tile with A*, then draws it in straight lines where the view is clear. */
   goTo(person: number, tile: number): boolean {
     const here = this.tileOf(person);
-    const path = here === tile ? new Int32Array(0) : this.pathfinder.find(here, tile);
-    if (!path) return false;
-    this.people.paths[person] = path;
+    const raw = here === tile ? new Int32Array(0) : this.pathfinder.find(here, tile);
+    if (!raw) return false;
+    this.people.paths[person] = smoothPath(this.terrain, this.size, here, raw, this.params.movement.smoothLookaheadTiles);
     this.people.pathIndex[person] = 0;
     this.people.target[person] = tile;
+    this.setGoal(person, tile);
     return true;
   }
 
@@ -550,79 +641,273 @@ export class IndividualsSystem {
   goHome(person: number, tile: number): boolean {
     const camp = this.camps[this.people.camp[person]!]!;
     if (camp.stepHome(this.tileOf(person)) < 0) return this.goTo(person, tile);
-    this.people.paths[person] = null;
-    this.people.target[person] = tile;
+    this.stayAt(person, tile);
     return true;
   }
 
   /** Walks toward the target; calls `onSpot` once there. Returns true when the action is over. */
   arrived(person: number, hours: number, onSpot: () => boolean): boolean {
-    if (this.tileOf(person) === this.people.target[person] || this.people.target[person] === -1) return onSpot();
+    const { people } = this;
+    if (people.target[person] === -1 || people.settled[person] === 1) return onSpot();
     const result = this.walk(person, hours);
     if (result === 'stuck') return true;
     return result === 'arrived' ? onSpot() : false;
   }
 
-  /** Moves along the path or the way home, at the speed allowed by terrain, weather and age. */
+  /** One step along the path (or the way home) toward the person's spot at the target. */
   walk(person: number, hours: number): WalkResult {
     const { people } = this;
-    const target = people.target[person]!;
     people.working[person] = 0;
-    people.moveProgress[person] = people.moveProgress[person]! + this.params.body.walkTilesPerHour * hours * this.speedFactor(person);
-    while (people.moveProgress[person]! >= 1) {
-      const here = this.tileOf(person);
-      if (here === target) return 'arrived';
-      const next = this.nextTile(person, here, target);
-      if (next < 0 || !this.terrain.walkable(next)) return 'stuck';
-      people.moveProgress[person] = people.moveProgress[person]! - 1;
-      people.x[person] = next % this.size;
-      people.y[person] = (next - (next % this.size)) / this.size;
+    if (people.settled[person] === 1) return 'arrived';
+    const way = this.waypoint(person);
+    if (!way) return this.giveUp(person);
+    const moved = this.moveStep(person, way.x, way.y, way.final, hours);
+    if (way.final && people.distanceTo(person, way.x, way.y) <= this.params.movement.arriveTiles) {
+      this.setPosition(person, way.x, way.y);
+      stop(people, person);
+      people.settled[person] = 1;
+      return 'arrived';
     }
-    return this.tileOf(person) === target ? 'arrived' : 'moving';
+    if (moved < BLOCKED_TILES) {
+      people.blocked[person] = people.blocked[person]! + 1;
+      if (people.blocked[person]! >= this.params.movement.stuckSteps) return this.giveUp(person);
+    } else people.blocked[person] = 0;
+    return 'moving';
+  }
+
+  private giveUp(person: number): WalkResult {
+    stop(this.people, person);
+    this.people.blocked[person] = 0;
+    return 'stuck';
+  }
+
+  /**
+   * The next point to walk to: the next corner of the smoothed path (one turns before reaching it,
+   * which rounds the corners), or along the camp's way home as far as the view is clear, or the
+   * person's own spot at the end.
+   */
+  private waypoint(person: number): { x: number; y: number; final: boolean } | null {
+    const { people } = this;
+    const way = this.way;
+    const target = people.target[person]!;
+    way.final = true;
+    way.x = people.goalX[person]!;
+    way.y = people.goalY[person]!;
+    const path = people.paths[person];
+    if (path) {
+      let index = people.pathIndex[person]!;
+      while (index < path.length - 1) {
+        const tile = path[index]!;
+        const cx = (tile % this.size) + 0.5;
+        const cy = Math.floor(tile / this.size) + 0.5;
+        if (people.distanceTo(person, cx, cy) > this.params.movement.cornerTiles) {
+          way.x = cx;
+          way.y = cy;
+          way.final = false;
+          break;
+        }
+        index++;
+      }
+      people.pathIndex[person] = index;
+      return way;
+    }
+    const here = this.tileOf(person);
+    const tx = target % this.size;
+    const ty = (target - tx) / this.size;
+    if (Math.max(Math.abs(tx - people.x[person]!), Math.abs(ty - people.y[person]!)) <= this.params.tribe.campRadius + 1) return way;
+    const camp = this.camps[people.camp[person]!]!;
+    let next = camp.stepHome(here);
+    if (next < 0) return null;
+    // Looks a few tiles ahead on the way home and walks straight there while the view is clear.
+    const minSpeed = this.terrain.speedOn(here);
+    for (let k = 0; k < HOME_LOOKAHEAD; k++) {
+      const further = camp.stepHome(next);
+      if (further < 0 || further === next) break;
+      const fx = (further % this.size) + 0.5;
+      const fy = Math.floor(further / this.size) + 0.5;
+      if (!this.terrain.clearLine(people.px[person]!, people.py[person]!, fx, fy, Math.min(minSpeed, this.terrain.speedOn(further)))) break;
+      next = further;
+    }
+    way.x = (next % this.size) + 0.5;
+    way.y = Math.floor(next / this.size) + 0.5;
+    way.final = false;
+    return way;
+  }
+
+  /**
+   * One step of steering toward (tx, ty): speed of the moment (terrain, weather, age, fatigue,
+   * load, running), soft avoidance of the others, walking beside one's companion. Returns the
+   * distance travelled.
+   */
+  moveStep(person: number, tx: number, ty: number, arrive: boolean, hours: number): number {
+    const { people, params } = this;
+    if (this.noAvoid.length < people.capacity) this.noAvoid = new Uint8Array(people.capacity);
+    const movement = params.movement;
+    const running = this.isRunning(person);
+    const push = this.push;
+    const count = this.grid.gather(people.px[person]!, people.py[person]!, movement.personalSpaceTiles, this.near);
+    // Children in arms move with their carrier: they are not in the way.
+    for (let n = 0; n < count; n++) {
+      const other = this.near[n]!;
+      this.noAvoid[other] = people.alive[other] === 0 || this.life.carrier(other) >= 0 ? 1 : 0;
+    }
+    separation(people, person, movement.personalSpaceTiles, movement.avoidTilesPerHour, this.near, count, this.noAvoid, push);
+    // Near one's own place, the others no longer push: everyone has a spot of their own to reach.
+    if (arrive) {
+      const near = people.distanceTo(person, tx, ty) / movement.personalSpaceTiles - 1;
+      if (near < 1) {
+        const keep = Math.max(0, near);
+        push.x *= keep;
+        push.y *= keep;
+      }
+    }
+    this.besideCompanion(person, push);
+    const goal = this.goal;
+    goal.x = tx;
+    goal.y = ty;
+    goal.speed = params.body.walkTilesPerHour * this.speedFactor(person, running, tx, ty);
+    goal.accel = movement.accelTilesPerHour2 * (running ? 2 : 1);
+    goal.arrive = arrive;
+    goal.pushX = push.x;
+    goal.pushY = push.y;
+    steer(people, person, goal, hours);
+    const moved = advance(people, person, hours, this.size, this.walkableTile);
+    this.setPosition(person, people.px[person]!, people.py[person]!);
+    updateGait(people, person, running);
+    people.lastWalk[person] = this.step;
+    return moved;
+  }
+
+  /**
+   * Couples walk side by side: when one's companion walks the same way close by, a gentle pull
+   * toward the place at their side (each keeps to one side).
+   */
+  private besideCompanion(person: number, push: { x: number; y: number }): void {
+    const { people } = this;
+    const movement = this.params.movement;
+    const mate = people.spouse[person]!;
+    if (mate < 0 || people.alive[mate] === 0 || movement.companionTiles <= 0) return;
+    const d = people.distance(person, mate);
+    if (d > movement.companionTiles || d < EPSILON) return;
+    const mateSpeed = speedOf(people, mate);
+    const ownSpeed = speedOf(people, person);
+    if (mateSpeed < WALKING_SPEED || ownSpeed < WALKING_SPEED) return;
+    const hx = people.vx[mate]! / mateSpeed;
+    const hy = people.vy[mate]! / mateSpeed;
+    // Same way: the two headings point nearly together.
+    if ((people.vx[person]! / ownSpeed) * hx + (people.vy[person]! / ownSpeed) * hy < SAME_WAY) return;
+    const side = person < mate ? 1 : -1;
+    const sx = people.px[mate]! - hy * side * movement.besideTiles;
+    const sy = people.py[mate]! + hx * side * movement.besideTiles;
+    const dx = sx - people.px[person]!;
+    const dy = sy - people.py[person]!;
+    const gap = Math.sqrt(dx * dx + dy * dy);
+    if (gap < EPSILON) return;
+    const pull = Math.min(movement.companionPullTiles, gap * movement.companionPullTiles);
+    push.x += (dx / gap) * pull;
+    push.y += (dy / gap) * pull;
+  }
+
+  /**
+   * A child follows its guardian: far away, by a path; in sight, a little behind and to the side,
+   * keeping pace. Over when the guardian stops and the child is at its side.
+   */
+  follow(person: number, leader: number, hours: number): boolean {
+    const { people } = this;
+    const movement = this.params.movement;
+    const d = people.distance(person, leader);
+    if (d > movement.followNearTiles) {
+      if (people.paths[person] === null || people.settled[person] === 1) {
+        if (!this.goTo(person, this.tileOf(leader))) return true;
+      }
+      return this.walk(person, hours) === 'stuck';
+    }
+    people.paths[person] = null;
+    people.working[person] = 0;
+    const speed = speedOf(people, leader);
+    const behind = movement.followBehindTiles;
+    if (speed < WALKING_SPEED) {
+      // The guardian stands: the child comes to her side and stays there.
+      if (d <= behind * FOLLOW_STAND_FACTOR) {
+        stop(people, person);
+        return true;
+      }
+      const share = (d - behind) / d;
+      this.moveStep(person, people.px[person]! + (people.px[leader]! - people.px[person]!) * share, people.py[person]! + (people.py[leader]! - people.py[person]!) * share, true, hours);
+      return false;
+    }
+    // She walks: a little behind her and to one side, at her pace.
+    const hx = people.vx[leader]! / speed;
+    const hy = people.vy[leader]! / speed;
+    const side = person % 2 === 0 ? 1 : -1;
+    const sx = people.px[leader]! - hx * behind - hy * side * behind * FOLLOW_SIDE_SHARE;
+    const sy = people.py[leader]! - hy * behind + hx * side * behind * FOLLOW_SIDE_SHARE;
+    this.moveStep(person, sx, sy, true, hours);
+    return false;
+  }
+
+  /** Walks up to another person until `gap` tiles from her (a conversation, a gift). True when there. */
+  approach(person: number, other: number, gap: number, hours: number): boolean {
+    const { people } = this;
+    const d = people.distance(person, other);
+    if (d <= gap) {
+      stop(people, person);
+      return true;
+    }
+    const share = (d - gap * APPROACH_STOP_SHARE) / d;
+    this.moveStep(person, people.px[person]! + (people.px[other]! - people.px[person]!) * share, people.py[person]! + (people.py[other]! - people.py[person]!) * share, true, hours);
+    return people.distance(person, other) <= gap;
   }
 
   /** Follows the known path toward the nearest river or lake (for someone who does not know where water is). */
   walkToWater(person: number, hours: number): boolean {
-    const { people } = this;
-    people.moveProgress[person] = people.moveProgress[person]! + this.params.body.walkTilesPerHour * hours * this.speedFactor(person);
-    while (people.moveProgress[person]! >= 1) {
-      const next = this.fauna.waterPath[this.tileOf(person)]!;
-      if (next < 0) return false;
-      if (!this.terrain.walkable(next)) return true;
-      people.moveProgress[person] = people.moveProgress[person]! - 1;
-      people.x[person] = next % this.size;
-      people.y[person] = (next - (next % this.size)) / this.size;
+    let at = this.tileOf(person);
+    if (this.fauna.waterPath[at]! < 0) return false;
+    for (let k = 0; k < WATER_LOOKAHEAD; k++) {
+      const next = this.fauna.waterPath[at]!;
+      if (next < 0 || !this.terrain.walkable(next)) break;
+      at = next;
     }
+    this.people.working[person] = 0;
+    this.moveStep(person, (at % this.size) + 0.5, Math.floor(at / this.size) + 0.5, false, hours);
     return true;
   }
 
-  private nextTile(person: number, here: number, target: number): number {
-    const { people } = this;
-    const path = people.paths[person];
-    if (path) {
-      const index = people.pathIndex[person]!;
-      people.pathIndex[person] = index + 1;
-      return index < path.length ? path[index]! : -1;
-    }
-    const camp = this.camps[people.camp[person]!]!;
-    const tx = target % this.size;
-    const ty = (target - tx) / this.size;
-    const x = people.x[person]!;
-    const y = people.y[person]!;
-    if (Math.max(Math.abs(tx - x), Math.abs(ty - y)) <= this.params.tribe.campRadius + 1) {
-      const step = (y + Math.sign(ty - y)) * this.size + x + Math.sign(tx - x);
-      if (this.terrain.walkable(step)) return step;
-    }
-    return camp.stepHome(here);
+  /** Running: fleeing a danger, or chasing game. */
+  isRunning(person: number): boolean {
+    return this.behavior(person) === 'flee' || this.production.isHunting(person);
   }
 
-  private speedFactor(person: number): number {
+  /** Speed factor of the moment: ground, snow, slope, weather, strength, fatigue, load, running. */
+  private speedFactor(person: number, running: boolean, tx: number, ty: number): number {
     const { people, params } = this;
+    const movement = params.movement;
     const tile = this.tileOf(person);
     let factor = this.terrain.speedOn(tile) * this.weather.typeAt(tile).movementFactor;
+    if (this.world.biome[tile] === this.marshBiome) factor *= movement.marshSpeed;
+    factor *= 1 - movement.snowSlowdown * this.climate.snowAt(tile);
+    // Slope: the tile one step ahead, toward the point walked to.
+    const d = people.distanceTo(person, tx, ty);
+    if (d > EPSILON) {
+      const ax = Math.floor(people.px[person]! + (tx - people.px[person]!) / d);
+      const ay = Math.floor(people.py[person]! + (ty - people.py[person]!) / d);
+      if (ax >= 0 && ay >= 0 && ax < this.size && ay < this.size) {
+        const climb = Math.abs(this.terrain.elevation(ay * this.size + ax) - this.terrain.elevation(tile));
+        factor /= 1 + (movement.slopeSlowdownPer100m * climb) / METERS_PER_100;
+      }
+    }
     factor *= this.life.vigor(person);
-    if (this.behavior(person) === 'flee') factor *= params.body.fleeSpeedFactor;
+    const tired = people.fatigue[person]! / FULL;
+    if (tired > HALF) factor *= 1 - (movement.fatigueSlowdown * (tired - HALF)) / HALF;
+    factor *= 1 - movement.loadSlowdown * this.production.loadShare(person);
+    if (running) factor *= params.body.fleeSpeedFactor;
     return factor;
+  }
+
+  /** Who did not walk this step slows down to a stop (no gliding while working on the spot). */
+  private stopIdle(person: number): void {
+    const { people } = this;
+    if (people.lastWalk[person] !== this.step && (people.vx[person] !== 0 || people.vy[person] !== 0)) stop(people, person);
   }
 
   // ----- perception and memory ------------------------------------------------------------
@@ -660,15 +945,12 @@ export class IndividualsSystem {
     const { people } = this;
     const slots = kind === 'water' ? people.waterSlots : people.foodSlots;
     const tiles = kind === 'water' ? people.waterMemory : people.foodMemory;
-    const x = people.x[person]!;
-    const y = people.y[person]!;
     let best = -1;
     let bestDistance = Infinity;
     for (let s = person * slots; s < (person + 1) * slots; s++) {
       const tile = tiles[s]!;
       if (tile < 0) continue;
-      const tx = tile % this.size;
-      const d = Math.max(Math.abs(tx - x), Math.abs((tile - tx) / this.size - y));
+      const d = people.distanceToTile(person, tile, this.size);
       if (d < bestDistance) {
         bestDistance = d;
         best = tile;
@@ -688,13 +970,11 @@ export class IndividualsSystem {
   nearestTribeMember(person: number): number {
     const { people } = this;
     const camp = people.camp[person]!;
-    const x = people.x[person]!;
-    const y = people.y[person]!;
     let best = -1;
     let bestDistance = Infinity;
     for (const other of this.campMembers(camp)) {
       if (other === person) continue;
-      const d = Math.max(Math.abs(people.x[other]! - x), Math.abs(people.y[other]! - y));
+      const d = people.distance(other, person);
       if (d < bestDistance) {
         bestDistance = d;
         best = other;

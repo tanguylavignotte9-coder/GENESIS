@@ -59,17 +59,17 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       return production.stockFood(campId) > 0 && sys.goHome(person, production.stockTile(campId));
     }
     case 'warm_up':
-      return production.fireLit(camp.id) && sys.goHome(person, production.fireTile(camp.id));
+      return production.fireLit(camp.id) && sys.goHome(person, production.fireTile(camp.id), true);
     case 'sleep': {
       const bed = production.bed(person).tile;
-      return sys.goHome(person, bed >= 0 ? bed : production.fireTile(camp.id));
+      return sys.goHome(person, bed >= 0 ? bed : production.fireTile(camp.id), bed < 0);
     }
     case 'return_camp':
-      return sys.goHome(person, camp.center);
+      return sys.goHome(person, camp.center, true);
     case 'flee':
       // Fleeing means running back to the others; once at the camp there is nowhere safer to go.
       if (camp.distanceTo(people.x[person]!, people.y[person]!) <= sys.params.tribe.campRadius) return false;
-      return people.threat[person]! >= 0 && sys.goHome(person, camp.center);
+      return people.threat[person]! >= 0 && sys.goHome(person, camp.center, true);
     case 'stay_with_group': {
       const mate = sys.nearestTribeMember(person);
       return mate >= 0 && sys.goTo(person, sys.tileOf(mate));
@@ -182,6 +182,11 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
   switch (behavior) {
     case 'drink':
       if (!canDrink(sys.world, people.x[person]!, people.y[person]!)) {
+        // Arrived where one remembered water, and none to drink: the memory was wrong, think again.
+        if (people.settled[person] === 1 && people.target[person]! >= 0) {
+          sys.forget(person, 'water', people.target[person]!);
+          return true;
+        }
         if (people.paths[person]) return sys.walk(person, hours) === 'stuck';
         return !sys.walkToWater(person, hours);
       }

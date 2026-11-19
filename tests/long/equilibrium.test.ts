@@ -37,6 +37,14 @@ describe.each([42, 7])('ecosystem over %i… years (seed)', (seed) => {
       expect(endTotal).toBeLessThan(startTotal * 5);
       const late = totals.slice(STABLE_FROM_YEAR - 1);
       expect(Math.max(...late) / Math.min(...late)).toBeLessThan(1.5);
+      // The landscape stays varied: trees have not taken every tile, the wild herbs (roots, cereals,
+      // fibres) and berry shrubs still grow.
+      const plants = simulation.flora.countBySpecies();
+      const alive = (resource: string): number =>
+        data.flora.species.reduce((sum, species, k) => sum + (species.produce?.resource === resource ? plants[k]! : 0), 0);
+      for (const resource of ['roots', 'wild_cereals', 'plant_fiber', 'berries', 'flax']) expect(alive(resource), resource).toBeGreaterThan(1000);
+      const trees = data.flora.species.reduce((sum, species, k) => sum + (species.kind === 'tree' ? plants[k]! : 0), 0);
+      expect(trees / plants.reduce((a, b) => a + b, 0)).toBeLessThan(0.7);
     },
     1_500_000,
   );

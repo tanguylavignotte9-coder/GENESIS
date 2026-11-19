@@ -50,13 +50,25 @@ describe('people walk freely, off the grid', () => {
     const { humans, production } = simulation;
     const { people } = humans;
     const fire = production.fireTile(0);
-    for (let p = 0; p < 12; p++) humans.goHome(p, fire);
+    for (let p = 0; p < 12; p++) humans.goHome(p, fire, true);
     const fx = (fire % SIZE) + 0.5;
     const fy = Math.floor(fire / SIZE) + 0.5;
     for (let a = 0; a < 12; a++) {
       expect(distance(people.goalX[a]!, people.goalY[a]!, fx, fy)).toBeGreaterThan(0.5);
       for (let b = a + 1; b < 12; b++) expect(distance(people.goalX[a]!, people.goalY[a]!, people.goalX[b]!, people.goalY[b]!)).toBeGreaterThan(0.3);
     }
+  });
+
+  it('only those who warm up or sleep in the open sit around the fire; going to the fire tile for anything else (water, stock), one stands on it', () => {
+    const simulation = new Simulation(42, data);
+    const { humans, production } = simulation;
+    const { people } = humans;
+    const fire = production.fireTile(0);
+    humans.goHome(0, fire);
+    expect(Math.floor(people.goalX[0]!)).toBe(fire % SIZE);
+    expect(Math.floor(people.goalY[0]!)).toBe(Math.floor(fire / SIZE));
+    humans.goHome(1, fire, true);
+    expect(distance(people.goalX[1]!, people.goalY[1]!, (fire % SIZE) + 0.5, Math.floor(fire / SIZE) + 0.5)).toBeGreaterThan(0.5);
   });
 
   it('several people working on one tile each take a place of their own', () => {

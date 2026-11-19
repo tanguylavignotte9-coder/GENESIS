@@ -560,14 +560,15 @@ export class IndividualsSystem {
   }
 
   /**
-   * Where the person will stand at `tile`: in a circle around the camp fire, elsewhere a place of
-   * her own on the tile (several people at a work site or the stock never stack on one point).
+   * Where the person will stand at `tile`: a place of her own on the tile (several people at a work
+   * site, the stock or a bed never stack on one point); with `aroundFire`, a place in the circle around
+   * the camp's fire (to warm up, to sleep in the open, to gather at the camp).
    */
-  private setGoal(person: number, tile: number): void {
+  private setGoal(person: number, tile: number, aroundFire = false): void {
     const { people } = this;
     const movement = this.params.movement;
     const spot = this.spot;
-    const fire = tile === this.production.fireTile(people.camp[person]!);
+    const fire = aroundFire && tile === this.production.fireTile(people.camp[person]!);
     // The places already taken there by the others of the camp.
     const taken = this.takenSlots.fill(0);
     for (const other of this.campMembers(people.camp[person]!)) {
@@ -596,21 +597,21 @@ export class IndividualsSystem {
   }
 
   /** The action takes place on a tile already reached (or very near): the person only takes her place there. */
-  stayAt(person: number, tile: number): void {
+  stayAt(person: number, tile: number, aroundFire = false): void {
     this.people.paths[person] = null;
     this.people.target[person] = tile;
-    this.setGoal(person, tile);
+    this.setGoal(person, tile, aroundFire);
   }
 
   /** Plans a path to a tile with A*, then draws it in straight lines where the view is clear. */
-  goTo(person: number, tile: number): boolean {
+  goTo(person: number, tile: number, aroundFire = false): boolean {
     const here = this.tileOf(person);
     const raw = here === tile ? new Int32Array(0) : this.pathfinder.find(here, tile);
     if (!raw) return false;
     this.people.paths[person] = smoothPath(this.terrain, this.size, here, raw, this.params.movement.smoothLookaheadTiles);
     this.people.pathIndex[person] = 0;
     this.people.target[person] = tile;
-    this.setGoal(person, tile);
+    this.setGoal(person, tile, aroundFire);
     return true;
   }
 
@@ -637,11 +638,14 @@ export class IndividualsSystem {
     return false;
   }
 
-  /** Heads for a place of the camp, following the way home (or A* when outside the territory). */
-  goHome(person: number, tile: number): boolean {
+  /**
+   * Heads for a place of the camp, following the way home (or A* when outside the territory);
+   * `aroundFire`: to a place in the circle around the fire.
+   */
+  goHome(person: number, tile: number, aroundFire = false): boolean {
     const camp = this.camps[this.people.camp[person]!]!;
-    if (camp.stepHome(this.tileOf(person)) < 0) return this.goTo(person, tile);
-    this.stayAt(person, tile);
+    if (camp.stepHome(this.tileOf(person)) < 0) return this.goTo(person, tile, aroundFire);
+    this.stayAt(person, tile, aroundFire);
     return true;
   }
 

@@ -107,6 +107,18 @@ Règles :
 - Dans le compte rendu, quand un résultat surprenant apparaît, dis s'il s'agit d'un défaut
   d'équilibre (et ce que tu as corrigé) ou d'une histoire légitime (et sa chaîne de causes).
 
+### Équilibrer sans y passer des heures
+
+Les simulations longues coûtent cher en temps. Méthode :
+- **Itérer vite** : pendant les réglages, utilise des simulations courtes et ciblées (carte
+  réduite, 30 à 50 ans, 2 ou 3 graines, uniquement le scénario concerné), lancées en parallèle.
+- **Valider une seule fois** : une seule validation longue en fin d'étape (par exemple 10 graines,
+  200 ans), lancée en parallèle. Si les résultats sont dans des fourchettes plausibles et variés,
+  on s'arrête là : pas de nouveau réglage « pour améliorer ».
+- **Budget** : si la validation finale doit dépasser environ 45 minutes, réduis-la (moins de
+  graines ou d'années) et indique-le dans le compte rendu.
+- Après un petit ajustement, ne relance que le test concerné, pas toute la validation.
+
 ## Conventions de code
 
 - Identifiants, noms de fichiers et commentaires de code en **anglais**.

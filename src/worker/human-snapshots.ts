@@ -2,21 +2,24 @@ import type { Simulation } from '../sim/core/simulation';
 import { feltTemperature } from '../sim/systems/individuals/body';
 import { INPUTS } from '../sim/systems/individuals/params';
 import { describeSocial } from '../sim/systems/individuals/social/describe';
-import { HumanFlag, type HumansSnapshot, type ItemLine, type PersonDetails, type Roster } from '../shared/messages';
+import { describeLife } from '../sim/systems/individuals/life/describe';
+import { HumanFlag, type HumanStats, type HumansSnapshot, type ItemLine, type PersonDetails, type Roster } from '../shared/messages';
 import type { Inventory } from '../sim/systems/production/inventory';
 
 const TOP = 3;
 
 export function snapshotRoster(simulation: Simulation): Roster {
   const { people, actions, params } = simulation.humans;
+  const n = people.count;
   return {
-    names: people.names.slice(),
-    female: people.female.slice(),
-    ageYears: people.ageYears.slice(),
-    mother: people.mother.slice(),
-    father: people.father.slice(),
-    spouse: people.spouse.slice(),
-    camp: people.camp.slice(),
+    names: people.names.slice(0, n),
+    alive: people.alive.slice(0, n),
+    female: people.female.slice(0, n),
+    ageYears: people.ageYears.slice(0, n),
+    mother: people.mother.slice(0, n),
+    father: people.father.slice(0, n),
+    spouse: people.spouse.slice(0, n),
+    camp: people.camp.slice(0, n),
     actionLabels: actions.map((action) => action.def.label),
     actionNames: actions.map((action) => action.def.name),
     traitNames: params.traits.map((trait) => trait.name),
@@ -33,9 +36,9 @@ export function snapshotHumans(simulation: Simulation): { snapshot: HumansSnapsh
   const flags = new Uint8Array(people.count);
   for (let p = 0; p < people.count; p++) flags[p] = (people.alive[p] ? HumanFlag.Alive : 0) | (people.working[p] ? HumanFlag.Working : 0);
   const snapshot: HumansSnapshot = {
-    x: people.x.slice(),
-    y: people.y.slice(),
-    action: people.action.slice(),
+    x: people.x.slice(0, people.count),
+    y: people.y.slice(0, people.count),
+    action: people.action.slice(0, people.count),
     flags,
   };
   return { snapshot, transfer: [snapshot.x, snapshot.y, snapshot.action, snapshot.flags].map((array) => array.buffer as ArrayBuffer) };
@@ -93,6 +96,38 @@ export function describePerson(simulation: Simulation, requestId: number, person
     weather: simulation.weather.at(humans.tileOf(person)),
     spouse: people.spouse[person]!,
     social: describeSocial(humans.social, person),
+    life: describeLife(humans.life, person),
+  };
+}
+
+/** Width of an age band of the pyramid (display). */
+const BAND_YEARS = 5;
+const DEATH_CAUSES = ['', 'Faim', 'Soif', 'Froid', 'Prédateur', 'Vieillesse', 'Maladie', 'En couches'];
+
+/** Population of the humans: census points since `fromSample`, age pyramid of the living, causes of death. */
+export function snapshotHumanStats(simulation: Simulation, fromSample: number): HumanStats {
+  const { people, life } = simulation.humans;
+  const men: number[] = [];
+  const women: number[] = [];
+  const deaths = DEATH_CAUSES.map(() => 0);
+  for (let p = 0; p < people.count; p++) {
+    if (people.alive[p] === 0) {
+      deaths[people.deathCause[p]!]!++;
+      continue;
+    }
+    const band = Math.floor(people.ageYears[p]! / BAND_YEARS);
+    const side = people.female[p] === 1 ? women : men;
+    while (men.length <= band) men.push(0);
+    while (women.length <= band) women.push(0);
+    side[band]!++;
+  }
+  return {
+    samples: life.census.slice(fromSample),
+    bandYears: BAND_YEARS,
+    men,
+    women,
+    deaths: DEATH_CAUSES.flatMap((cause, k) => (k > 0 && deaths[k]! > 0 ? [{ cause, count: deaths[k]! }] : [])),
+    births: life.births,
   };
 }
 

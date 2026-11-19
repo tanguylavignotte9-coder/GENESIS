@@ -41,6 +41,11 @@ export class HumanLayer {
     this.sleepActionCode = roster.actionNames.indexOf('Dormir');
   }
 
+  /** The roster changed (births, deaths, ages): keep the positions and the selection. */
+  updateRoster(roster: Roster): void {
+    this.roster = roster;
+  }
+
   /** New positions from the simulation; `stepMs` = real duration of one human step at the current pace. */
   setHumans(humans: HumansSnapshot, now: number, stepMs: number): void {
     this.humans = humans;

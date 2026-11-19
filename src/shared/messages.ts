@@ -9,6 +9,7 @@ import type { ActiveAnomaly } from '../sim/systems/world/climate-state';
 import type { VariableValue } from '../sim/core/variables';
 import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
 import type { SocialDetails } from '../sim/systems/individuals/social/describe';
+import type { LifeFacts } from '../sim/systems/individuals/life/describe';
 
 /** Display -> simulation. */
 export type ToSimMessage =
@@ -154,6 +155,8 @@ export interface Inspection {
 /** Who the humans are (sent once per world): identity and family links. */
 export interface Roster {
   names: string[];
+  /** 1 = alive (the roster is sent again when someone is born or dies, and once a day). */
+  alive: Uint8Array;
   female: Uint8Array;
   ageYears: Float32Array;
   mother: Int32Array;
@@ -275,6 +278,21 @@ export interface PersonDetails {
   /** Current partner (-1 none): couples form and part during the game. */
   spouse: number;
   social: SocialDetails;
+  life: LifeDetails;
+}
+
+/** Life cycle side of a character sheet. */
+export type LifeDetails = LifeFacts;
+
+/** Human population (sent once a game day): census since the last message, age pyramid, causes of death. */
+export interface HumanStats {
+  samples: { day: number; humans: number }[];
+  /** Living people per age band (bandYears wide), men and women. */
+  bandYears: number;
+  men: number[];
+  women: number[];
+  deaths: { cause: string; count: number }[];
+  births: number;
 }
 
 /** A journal event as shown to the player. */
@@ -311,6 +329,9 @@ export type FromSimMessage =
   | { type: 'humans'; humans: HumansSnapshot }
   | { type: 'weather'; regions: Uint8Array }
   | { type: 'person'; details: PersonDetails }
+  /** The people changed (births, ages, couples): identity and family links again. */
+  | { type: 'roster'; roster: Roster }
+  | { type: 'humanStats'; stats: HumanStats }
   | { type: 'buildings'; buildings: BuildingsSnapshot }
   | { type: 'building'; details: BuildingDetails }
   | { type: 'flora'; flora: FloraSnapshot }

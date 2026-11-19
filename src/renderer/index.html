@@ -60,9 +60,29 @@
 
     <button id="stats-toggle" class="panel" type="button">Statistiques</button>
     <section id="stats" class="panel" hidden>
-      <div class="stats-title">Populations animales</div>
-      <canvas id="stats-chart"></canvas>
-      <div id="stats-legend"></div>
+      <div class="stats-tabs">
+        <button id="stats-tab-humans" type="button" class="active">Humains</button>
+        <button id="stats-tab-animals" type="button">Animaux</button>
+      </div>
+      <div id="stats-humans">
+        <div class="stats-title">Population humaine</div>
+        <canvas id="humans-chart"></canvas>
+        <div class="stats-row">
+          <div class="stats-cell">
+            <div class="stats-title">Pyramide des âges</div>
+            <canvas id="pyramid-chart"></canvas>
+          </div>
+          <div class="stats-cell">
+            <div class="stats-title">Causes de décès</div>
+            <div id="death-causes"></div>
+          </div>
+        </div>
+      </div>
+      <div id="stats-animals" hidden>
+        <div class="stats-title">Populations animales</div>
+        <canvas id="stats-chart"></canvas>
+        <div id="stats-legend"></div>
+      </div>
     </section>
 
     <button id="workshop-toggle" class="panel" type="button" title="Atelier des variables (F2)">Atelier</button>

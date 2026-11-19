@@ -242,7 +242,7 @@ body {
 
 /* When the statistics are open, the journal leaves them room. */
 body:has(#stats:not([hidden])) #journal {
-  max-height: calc(100vh - 210px - 300px);
+  max-height: calc(100vh - 210px - 430px);
 }
 
 .stats-title {
@@ -250,10 +250,126 @@ body:has(#stats:not([hidden])) #journal {
   margin-bottom: 6px;
 }
 
-#stats-chart {
+#stats-chart,
+#humans-chart {
   display: block;
   width: 100%;
-  height: 200px;
+  height: 170px;
+}
+
+.stats-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.stats-tabs button {
+  padding: 3px 10px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--hud-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stats-tabs button.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--hud-text);
+}
+
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.stats-cell {
+  flex: 1;
+  min-width: 0;
+}
+
+#pyramid-chart {
+  display: block;
+  width: 100%;
+  height: 150px;
+}
+
+#death-causes {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cause-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cause-row .cause-name {
+  width: 74px;
+  color: var(--hud-muted);
+}
+
+.cause-row .cause-bar {
+  height: 8px;
+  border-radius: 2px;
+  background: #c98a6a;
+}
+
+.family-tree {
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+.tree-row {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.tree-label {
+  flex: 0 0 92px;
+  color: var(--hud-muted);
+}
+
+.tree-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tree-chip {
+  padding: 1px 6px;
+  border: 1px solid var(--hud-border);
+  border-radius: 10px;
+  color: #9fd3ff;
+  cursor: pointer;
+}
+
+.tree-chip small {
+  color: var(--hud-muted);
+}
+
+.tree-chip:hover {
+  background: rgba(159, 211, 255, 0.12);
+}
+
+.tree-chip.dead {
+  color: var(--hud-muted);
+  border-style: dashed;
+}
+
+.tree-chip.self {
+  color: #ffe9a8;
+  border-color: #ffe9a8;
+  cursor: default;
+}
+
+.sheet-warning {
+  color: #ffb38a;
 }
 
 #stats-legend {

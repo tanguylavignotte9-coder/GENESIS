@@ -33,15 +33,27 @@ export class TribePanel {
     this.toggle.textContent = `Tribu (${living})`;
     if (this.panel.hidden || now - this.lastRender < REFRESH_MS) return;
     this.lastRender = now;
-    const items = roster.names.map((name, p) => {
-      const item = document.createElement('li');
+    // The living first (the dead stay reachable from the journal and the family trees).
+    const items: HTMLElement[] = [];
+    let dead = 0;
+    roster.names.forEach((name, p) => {
       const alive = (humans.flags[p]! & HumanFlag.Alive) !== 0;
+      if (!alive) {
+        dead++;
+        return;
+      }
+      const item = document.createElement('li');
       const age = Math.floor(roster.ageYears[p]!);
-      item.textContent = `${name}, ${age} an${age > 1 ? 's' : ''} — ${alive ? roster.actionLabels[humans.action[p]!] : roster.female[p] ? 'morte' : 'mort'}`;
-      if (!alive) item.className = 'dead';
+      item.textContent = `${name}, ${age} an${age > 1 ? 's' : ''} — ${roster.actionLabels[humans.action[p]!]}`;
       item.addEventListener('click', () => this.onSelect(p));
-      return item;
+      items.push(item);
     });
+    if (dead > 0) {
+      const item = document.createElement('li');
+      item.className = 'dead';
+      item.textContent = `… et ${dead} mort${dead > 1 ? 's' : ''} depuis le début (voir le journal et les arbres familiaux)`;
+      items.push(item);
+    }
     this.list.replaceChildren(...items);
   }
 }

@@ -1,9 +1,11 @@
 import type { LifeTables, PersonDetails, Roster } from '../../shared/messages';
 import { itemText } from './building-lines';
+import { familyTree, lifeLines } from './family-tree';
 
 const fr = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
 const PERCENT = 100;
-const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'attaque d’un prédateur'];
+const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'attaque d’un prédateur', 'vieillesse', 'maladie', 'en couches'];
+const STAGES = { baby: 'bébé', child: 'enfant', adult: 'adulte', elder: 'ancien' } as const;
 
 /** French words for the inputs that explain a decision ("Va boire — soif 72 %"). */
 const REASONS: Record<string, { label: string; percent: boolean }> = {
@@ -34,6 +36,10 @@ const REASONS: Record<string, { label: string; percent: boolean }> = {
   suitor: { label: 'quelqu’un lui plaît', percent: false },
   needyNear: { label: 'quelqu’un a faim à côté', percent: false },
   wantsEsteem: { label: 'veut regagner l’estime de quelqu’un', percent: false },
+  infant: { label: 'trop petit pour marcher', percent: false },
+  guardianAway: { label: 'loin de son parent', percent: true },
+  playmates: { label: 'des enfants jouent à côté', percent: false },
+  sick: { label: 'malade', percent: false },
 };
 
 const NEEDS: { key: keyof PersonDetails['needs']; label: string }[] = [
@@ -112,17 +118,17 @@ export class PersonSheet {
     const age = Math.floor(roster.ageYears[p]!);
     const nodes: HTMLElement[] = [];
     const title = el('div', 'sheet-title', roster.names[p] ?? '?');
-    nodes.push(title, el('div', 'sheet-sub', `${female ? 'Femme' : 'Homme'}, ${age} an${age > 1 ? 's' : ''}`));
-    if (!details.alive) nodes.push(el('div', 'sheet-dead', `Mort${female ? 'e' : ''} (${DEATH_CAUSES[details.deathCause] ?? '?'})`));
+    const stage = STAGES[details.life.stage];
+    const born = details.life.born ? ` · né${female ? 'e' : ''} le ${details.life.born}` : '';
+    nodes.push(title, el('div', 'sheet-sub', `${female ? 'Femme' : 'Homme'}, ${age} an${age > 1 ? 's' : ''} (${stage})${born}`));
+    if (!details.alive) {
+      const when = details.life.died ? `, ${details.life.died}` : '';
+      nodes.push(el('div', 'sheet-dead', `Mort${female ? 'e' : ''} (${DEATH_CAUSES[details.deathCause] ?? '?'})${when}`));
+    }
 
-    const family: string[] = [];
-    const name = (q: number): string => roster.names[q] ?? '?';
-    if (details.spouse >= 0) family.push(`${female ? 'Compagnon' : 'Compagne'} : ${name(details.spouse)}`);
-    if (roster.mother[p]! >= 0) family.push(`Mère : ${name(roster.mother[p]!)}`);
-    if (roster.father[p]! >= 0) family.push(`Père : ${name(roster.father[p]!)}`);
-    const children = roster.names.flatMap((_, q) => (roster.mother[q] === p || roster.father[q] === p ? [name(q)] : []));
-    if (children.length) family.push(`Enfants : ${children.join(', ')}`);
-    nodes.push(el('div', 'sheet-section', 'Famille'), el('div', 'sheet-text', family.join(' · ') || 'Sans famille proche'));
+    nodes.push(el('div', 'sheet-section', 'Santé et vie'));
+    for (const line of lifeLines(details, roster, this.onPerson)) nodes.push(line);
+    nodes.push(el('div', 'sheet-section', 'Famille'), familyTree(p, details.spouse, roster, this.onPerson));
 
     if (details.alive) {
       const action = roster.actionLabels[details.action] ?? '?';

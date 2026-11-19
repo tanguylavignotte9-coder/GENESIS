@@ -13,7 +13,7 @@ import type { FromSimMessage, JournalEntry, LifeTables, ToSimMessage } from '../
 import { PerfMeter } from './perf-meter';
 import { snapshotWorld } from './world-snapshot';
 import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
-import { describePerson, snapshotHumans, snapshotRoster } from './human-snapshots';
+import { describePerson, snapshotHumanStats, snapshotHumans, snapshotRoster } from './human-snapshots';
 import { describeBuilding, snapshotBuildings } from './building-snapshots';
 import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
 
@@ -48,6 +48,10 @@ let sentAnomalies: unknown = null;
 let sentEvents = 0;
 let sentFloraDay = -1;
 let sentSamples = 0;
+let sentHumanSamples = 0;
+let sentRosterDay = -1;
+let sentRosterCount = 0;
+let sentRosterLiving = 0;
 
 /** The plants change slowly: the display gets them every few game days (technical setting). */
 const FLORA_SEND_INTERVAL_DAYS = 2;
@@ -106,6 +110,9 @@ function start(seed: number, benchmark?: { warmupYears: number }): void {
   sentEvents = 0;
   sentFloraDay = -1;
   sentSamples = 0;
+  sentHumanSamples = 0;
+  sentRosterDay = -1;
+  sentRosterCount = created.humans.people.count;
   pendingTicks = 0;
   lastLoopAt = performance.now();
   publishChanges(created);
@@ -203,6 +210,18 @@ function publishChanges(current: Simulation): void {
   }
   const fauna = snapshotFauna(current);
   post({ type: 'fauna', fauna: fauna.snapshot }, fauna.transfer);
+  // Births, ages and couples change the roster: sent again when someone is born, and once a day.
+  const count = current.humans.people.count;
+  const living = current.humans.people.living;
+  if (count !== sentRosterCount || living !== sentRosterLiving || day !== sentRosterDay) {
+    sentRosterCount = count;
+    sentRosterLiving = living;
+    sentRosterDay = day;
+    post({ type: 'roster', roster: snapshotRoster(current) });
+    const stats = snapshotHumanStats(current, sentHumanSamples);
+    sentHumanSamples += stats.samples.length;
+    post({ type: 'humanStats', stats });
+  }
   const humans = snapshotHumans(current);
   post({ type: 'humans', humans: humans.snapshot }, humans.transfer);
   post({ type: 'buildings', buildings: snapshotBuildings(current) });

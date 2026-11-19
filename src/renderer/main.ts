@@ -117,7 +117,20 @@ async function main(): Promise<void> {
     (person) => selectPerson(person),
     (person) => roster?.names[person] ?? '',
   );
-  const stats = new StatsPanel(element('stats'), element<HTMLButtonElement>('stats-toggle'), element<HTMLCanvasElement>('stats-chart'), element('stats-legend'));
+  const stats = new StatsPanel(
+    element('stats'),
+    element<HTMLButtonElement>('stats-toggle'),
+    element<HTMLCanvasElement>('stats-chart'),
+    element('stats-legend'),
+    { tab: element<HTMLButtonElement>('stats-tab-animals'), block: element('stats-animals') },
+    {
+      tab: element<HTMLButtonElement>('stats-tab-humans'),
+      block: element('stats-humans'),
+      curve: element<HTMLCanvasElement>('humans-chart'),
+      pyramid: element<HTMLCanvasElement>('pyramid-chart'),
+      causes: element('death-causes'),
+    },
+  );
   const sheet = new PersonSheet(
     element('person'),
     element('person-body'),
@@ -319,6 +332,14 @@ async function main(): Promise<void> {
         return;
       case 'populations':
         stats.add(message.samples);
+        return;
+      case 'humanStats':
+        stats.addHumans(message.stats);
+        return;
+      case 'roster':
+        roster = message.roster;
+        people.updateRoster(roster);
+        tribe.setRoster(roster);
         return;
       case 'inspection':
         hover.receive(message.inspection);

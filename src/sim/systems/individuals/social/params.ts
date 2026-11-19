@@ -19,6 +19,10 @@ export const MEMORY_KINDS = [
   'separation',
   'friendship',
   'jealous',
+  'childBorn',
+  'lostBaby',
+  'adopted',
+  'lostOne',
 ] as const;
 export type MemoryKind = (typeof MEMORY_KINDS)[number];
 
@@ -26,7 +30,7 @@ export const CONVERSATIONS = ['chat', 'confide', 'console', 'seduce', 'argue'] a
 export type ConversationKind = (typeof CONVERSATIONS)[number];
 
 /** Why a relation is what it is (the main reasons are kept with it). */
-export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe'] as const;
+export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played'] as const;
 export type ReasonId = (typeof REASONS)[number];
 
 export const NEWS_KINDS = ['death', 'couple', 'food', 'danger'] as const;
@@ -350,7 +354,7 @@ export const SOCIAL_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         death: text('Une mort', 'Nouvelle d’une mort (fiche personnage). Remplacements : {nom}, {e}, {cause}.'),
-        causes: { kind: 'array', minLength: 5, maxLength: 5, items: text('Cause de mort', 'Fin de phrase selon la cause : aucune, faim, soif, froid, fauve. Remplacement : {e}.') },
+        causes: { kind: 'array', minLength: 8, maxLength: 8, items: text('Cause de mort', 'Fin de phrase selon la cause : aucune, faim, soif, froid, fauve, vieillesse, maladie, en couches. Remplacement : {e}.') },
         unknownCause: text('Cause inconnue', 'Quand la nouvelle a perdu la cause en route.'),
         couple: text('Un couple', 'Nouvelle d’un couple. Remplacements : {a}, {b}.'),
         food: text('Un coin de nourriture', 'Remplacements : {distance}, {direction}.'),

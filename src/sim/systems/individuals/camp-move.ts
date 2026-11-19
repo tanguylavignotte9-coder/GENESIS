@@ -26,12 +26,11 @@ export function considerMoving(sys: IndividualsSystem, camp: Camp, day: number, 
   const rules = params.campMove;
   while (camp.hungerDeaths.length > 0 && day - camp.hungerDeaths[0]!.day > rules.minDaysBetweenMoves) camp.hungerDeaths.shift();
   if (day - camp.settledDay < rules.minDaysBetweenMoves) return;
-  const { first, last } = sys.campMembers(camp.id);
   const curiosity = params.traits.findIndex((trait) => trait.id === 'curiosity');
   const adults: number[] = [];
   const proposals: number[] = [];
-  for (let p = first; p < last; p++) {
-    if (people.alive[p] === 0 || people.ageYears[p]! < params.tribe.adultAge[0]) continue;
+  for (const p of sys.campMembers(camp.id)) {
+    if (people.ageYears[p]! < params.tribe.adultAge[0]) continue;
     adults.push(p);
     const eager = curiosity >= 0 ? 2 * people.trait(p, curiosity) - 1 : 0;
     const threshold = rules.forageFarTiles * (1 - rules.curiosityEffect * eager);
@@ -104,10 +103,8 @@ function moveCamp(sys: IndividualsSystem, camp: Camp, destination: number, day: 
   camp.hungerDeaths.length = 0;
   camp.relocate(destination, sys.terrain);
   camp.settledDay = day;
-  const { first, last } = sys.campMembers(camp.id);
   let movers = 0;
-  for (let p = first; p < last; p++) {
-    if (people.alive[p] === 0) continue;
+  for (const p of sys.campMembers(camp.id)) {
     movers++;
     people.forageDistance[p] = 0;
     people.farFood[p] = -1;

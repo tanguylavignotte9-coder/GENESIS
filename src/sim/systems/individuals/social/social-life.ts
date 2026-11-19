@@ -1,3 +1,4 @@
+import { appendColumns, grownTo } from '../../../core/columns';
 import type { Journal } from '../../../core/journal';
 import type { Rng } from '../../../core/rng';
 import type { TimeParams } from '../../../core/time-params';
@@ -38,12 +39,12 @@ export class SocialLife {
   /** Emotion index of each memory kind. */
   readonly memoryEmotion: Int8Array;
   private readonly traitIndices = new Map<string, number>();
-  private readonly candidates: Int32Array;
+  private candidates: Int32Array;
   /** Item a person would give (-1 = food). */
-  private readonly giftItem: Int32Array;
+  private giftItem: Int32Array;
   /** What the person saw around at the last look (inputs after the emotions), and when (step). */
-  private readonly seen: Float32Array;
-  private readonly seenAt: Int32Array;
+  private seen: Float32Array;
+  private seenAt: Int32Array;
   day = 0;
   tick = 0;
 
@@ -68,6 +69,19 @@ export class SocialLife {
     this.state.birthTraits.set(people.traits);
     for (let p = 0; p < people.count; p++) this.state.sameSex[p] = rng.nextFloat() < params.couples.sameSexShare ? 1 : 0;
     this.knitTribes();
+  }
+
+  /** Room for the people born since (the arrays grow with the population). */
+  grow(): void {
+    const capacity = this.people.capacity;
+    if (this.seenAt.length >= capacity) return;
+    const s = this.state;
+    appendColumns(s, new SocialState(capacity - s.count, this.people.traitCount, s.relationSlots, s.memorySlots, s.newsSlots));
+    s.count = capacity;
+    this.candidates = grownTo(this.candidates, capacity * CANDIDATE_KINDS, -1);
+    this.giftItem = grownTo(this.giftItem, capacity, -1);
+    this.seen = grownTo(this.seen, capacity * SEEN_VALUES, 0);
+    this.seenAt = grownTo(this.seenAt, capacity, NEVER);
   }
 
   get humanParams(): HumanParams {
@@ -171,10 +185,9 @@ export class SocialLife {
     const { rng, params } = this;
     const { startingMean, startingSpread } = params.relations;
     for (let camp = 0; camp < this.sys.camps.length; camp++) {
-      const { first, last } = this.sys.campMembers(camp);
-      for (let p = first; p < last; p++) {
-        const others: number[] = [];
-        for (let q = first; q < last; q++) if (q !== p) others.push(q);
+      const members = this.sys.campMembers(camp);
+      for (const p of members) {
+        const others = members.filter((q) => q !== p);
         // Family first, then the others in a random order (only the relations that count are kept).
         const kin = others.filter((q) => this.kinOf(p, q) !== 0);
         const rest = others.filter((q) => this.kinOf(p, q) === 0);
@@ -288,6 +301,82 @@ export class SocialLife {
     }
   }
 
+  // ----- the life cycle (step 8) ----------------------------------------------------------
+
+  affectionFor(person: number, other: number): number {
+    return affectionFor(this, person, other);
+  }
+
+  /** Strength (0..1 of its kind's intensity) of the strongest memory of a kind. */
+  memoryOf(person: number, kind: MemoryKind): number {
+    return memoryWeight(this, person, kind) / Math.max(1, this.params.memories.kinds[kind].intensity);
+  }
+
+  /** Journal event kept with a memory of a kind about `other` (-1 if none). */
+  memoryEvent(person: number, kind: MemoryKind, other: number): number {
+    const s = this.state;
+    const code = MEMORY_KINDS.indexOf(kind);
+    for (let k = person * s.memorySlots; k < (person + 1) * s.memorySlots; k++) if (s.memKind[k] === code && s.memOther[k] === other) return s.memEvent[k]!;
+    return -1;
+  }
+
+  /** How strongly childhood shapes a personality: a child is marked more, and further from birth. */
+  shaping(person: number): { factor: number; extraDrift: number } {
+    const life = this.sys.life;
+    if (!life.isChild(person)) return NO_SHAPING;
+    return { factor: life.params.childhood.shapingFactor, extraDrift: life.params.childhood.extraDrift };
+  }
+
+  /** A newborn: its own nature (attraction), its family ties, and the joy of its parents. */
+  childBorn(child: number, event: number): void {
+    const { people, state: s } = this;
+    this.grow();
+    const n = people.traitCount;
+    s.birthTraits.set(people.traits.subarray(child * n, (child + 1) * n), child * n);
+    s.sameSex[child] = this.rng.nextFloat() < this.params.couples.sameSexShare ? 1 : 0;
+    for (const parent of [people.mother[child]!, people.father[child]!]) {
+      if (!this.alive(parent)) continue;
+      relationSlot(this, parent, child, true);
+      relationSlot(this, child, parent, true);
+      remember(this, parent, 'childBorn', child, 1, event);
+    }
+    for (const other of this.sys.campMembers(people.camp[child]!)) {
+      if (other === child || (this.kinOf(child, other) & Kin.Sibling) === 0) continue;
+      relationSlot(this, other, child, true);
+      relationSlot(this, child, other, true);
+    }
+  }
+
+  /** A child lost before (or at) birth: sorrow for the mother and the father. */
+  lostBaby(mother: number, father: number, event = -1): void {
+    remember(this, mother, 'lostBaby', -1, 1, event);
+    if (this.alive(father)) remember(this, father, 'lostBaby', -1, 1, event);
+  }
+
+  /** An orphan taken in: gratitude and affection on both sides. */
+  adopted(child: number, guardian: number, event: number): void {
+    const kin = this.params.relations.kin;
+    feel(this, child, guardian, kin.parent, 'adopted', event);
+    feel(this, guardian, child, kin.child, 'adopted', event);
+    remember(this, child, 'adopted', guardian, 1, event);
+  }
+
+  /** Respect for an elder grows with the years. */
+  respectElder(person: number, elder: number, gain: number): void {
+    feel(this, person, elder, { affection: 0, trust: 0, respect: gain }, 'elder');
+  }
+
+  /** Joy, and loneliness eased. */
+  cheer(person: number, joy: number, lonelinessRelief: number): void {
+    if (joy > 0) stir(this, person, 'joy', joy);
+    if (lonelinessRelief > 0) this.state.loneliness[person] = Math.max(0, this.state.loneliness[person]! - lonelinessRelief);
+  }
+
+  /** Children who play together grow fond of each other. */
+  playedWith(person: number, other: number, affection: number): void {
+    feel(this, person, other, { affection, trust: affection / 2, respect: 0 }, 'played');
+  }
+
   // ----- the brain -------------------------------------------------------------------------
 
   /**
@@ -346,7 +435,7 @@ export class SocialLife {
       }
       if (affection < 0) this.consider(c, 4, other, -affection / FULL, best);
       if (canFeed && people.hunger[other]! >= params.sharing.askHunger && production.carriedFood(other) <= 0) {
-        const bond = kin & Kin.Child ? 1 : clamp01((Math.max(affection, kin !== 0 ? FULL / 2 : 0) + FULL / 5) / FULL);
+        const bond = kin & Kin.Child || this.sys.life.state.guardian[other] === person ? 1 : clamp01((Math.max(affection, kin !== 0 ? FULL / 2 : 0) + FULL / 5) / FULL);
         if (this.consider(c, GIVE, other, (people.hunger[other]! / FULL) * bond, best)) this.giftItem[person] = -1;
       } else if (spare >= 0 && this.candidates[c + GIVE]! < 0 && affection >= params.relations.friendAffection && !production.hasItem(other, spare)) {
         if (this.consider(c, GIVE, other, (affection / FULL) * params.sharing.itemGiftWeight, best)) this.giftItem[person] = spare;
@@ -415,6 +504,7 @@ export class SocialLife {
 }
 
 const BEST = new Float64Array(CANDIDATE_KINDS);
+const NO_SHAPING = { factor: 1, extraDrift: 0 };
 /** Inputs that come from looking around (SOCIAL_INPUTS after loneliness and the emotions). */
 const SEEN_VALUES = 9;
 const NEVER = -1;

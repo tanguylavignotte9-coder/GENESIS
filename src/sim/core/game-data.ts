@@ -5,6 +5,7 @@ import climateJson from '../../../data/climate.json';
 import humansJson from '../../../data/humans.json';
 import itemsJson from '../../../data/items.json';
 import knowledgeJson from '../../../data/knowledge.json';
+import lifeJson from '../../../data/life.json';
 import plantsJson from '../../../data/plants.json';
 import productionJson from '../../../data/production.json';
 import recipesJson from '../../../data/recipes.json';
@@ -17,6 +18,7 @@ import { ANIMALS_SCHEMA, parseFaunaParams, type FaunaParams } from '../systems/f
 import { parseFloraParams, PLANTS_SCHEMA, type FloraParams } from '../systems/flora/params';
 import { checkHumanLinks, HUMANS_SCHEMA, parseHumanParams, type HumanParams } from '../systems/individuals/params';
 import { parseSocialParams, SOCIAL_SCHEMA, type SocialParams } from '../systems/individuals/social/params';
+import { LIFE_SCHEMA, parseLifeParams, type LifeParams } from '../systems/individuals/life/params';
 import { checkProductionLinks } from '../systems/production/links';
 import {
   BUILDINGS_SCHEMA,
@@ -53,6 +55,7 @@ export interface GameData {
   weather: WeatherParams;
   humans: HumanParams;
   social: SocialParams;
+  life: LifeParams;
   knowledge: KnowledgeCatalog;
   items: ItemCatalog;
   recipes: RecipeBook;
@@ -84,6 +87,7 @@ export const DATA_FILES: readonly DataFileInfo[] = [
   { file: 'animals.json', key: 'fauna', system: 'Faune', schema: ANIMALS_SCHEMA },
   { file: 'humans.json', key: 'humans', system: 'Humains', schema: HUMANS_SCHEMA },
   { file: 'social.json', key: 'social', system: 'Humains', schema: SOCIAL_SCHEMA },
+  { file: 'life.json', key: 'life', system: 'Humains', schema: LIFE_SCHEMA },
   { file: 'knowledge.json', key: 'knowledge', system: 'Production', schema: KNOWLEDGE_SCHEMA },
   { file: 'items.json', key: 'items', system: 'Production', schema: ITEMS_SCHEMA },
   { file: 'recipes.json', key: 'recipes', system: 'Production', schema: RECIPES_SCHEMA },
@@ -107,6 +111,7 @@ export function defaultRawData(): RawGameData {
     weather: weatherJson,
     humans: humansJson,
     social: socialJson,
+    life: lifeJson,
     knowledge: knowledgeJson,
     items: itemsJson,
     recipes: recipesJson,
@@ -130,6 +135,7 @@ export function parseGameData(raw: RawGameData): GameData {
     raw.social,
     humans.traits.map((trait) => trait.id),
   );
+  const life = parseLifeParams(raw.life);
   const knowledge = parseKnowledge(raw.knowledge);
   const items = parseItems(raw.items);
   const recipes = parseRecipes(raw.recipes);
@@ -164,6 +170,7 @@ export function parseGameData(raw: RawGameData): GameData {
     weather: parseWeatherParams(raw.weather),
     humans,
     social,
+    life,
     knowledge,
     items,
     recipes,

@@ -82,6 +82,12 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       const receiver = sys.social.giftTarget(person);
       return receiver >= 0 && meet(sys, person, receiver, null);
     }
+    case 'carried':
+      return sys.life.carrier(person) >= 0;
+    case 'follow_guardian': {
+      const guardian = sys.life.state.guardian[person]!;
+      return sys.life.alive(guardian) && guardian !== person && sys.goTo(person, sys.tileOf(guardian));
+    }
     default:
       return true;
   }
@@ -138,12 +144,15 @@ function meeting(sys: IndividualsSystem, person: number, hours: number, gift: bo
 function startJob(sys: IndividualsSystem, person: number, action: CompiledAction, kind: JobKind): boolean {
   const { people, production, params } = sys;
   const lookingForFood = kind === 'harvest' && action.items.some((item) => production.catalog.food[item]! > 0);
+  // A child looks only around itself and does not go off exploring.
+  const child = sys.life.isChild(person);
   const fallback = lookingForFood ? sys.nearestMemory(person, 'food') : -1;
-  const tile = production.startJob(person, { kind, recipes: action.recipes, items: action.items, fallback, perception: params.body.perceptionTiles });
+  const perception = child ? sys.life.params.childhood.searchTiles : params.body.perceptionTiles;
+  const tile = production.startJob(person, { kind, recipes: action.recipes, items: action.items, fallback, perception });
   if (tile < 0) {
     // Nothing edible in sight or in memory: go and look further away (no job yet). Having to
     // search far is what tells that the land around the camp is exhausted.
-    if (!lookingForFood || !sys.explore(person)) return false;
+    if (!lookingForFood || child || !sys.explore(person)) return false;
     production.endJob(person);
     sys.searchedFar(person, people.target[person]!);
     return true;
@@ -199,10 +208,46 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
       return meeting(sys, person, hours, false);
     case 'give':
       return meeting(sys, person, hours, true);
+    case 'carried':
+      return beCarried(sys, person, hours);
+    case 'follow_guardian':
+      return sys.arrived(person, hours, () => true);
+    case 'play':
+      people.working[person] = 1;
+      sys.life.play(person, hours);
+      return false;
     default:
       people.working[person] = 1;
       return false;
   }
+}
+
+/**
+ * A small child in arms goes where its carrier goes, naps, and is fed: at the breast if its mother
+ * (or nurse) has milk, otherwise from what the carrier holds or from the camp's stock; it drinks
+ * when its carrier drinks. Over when nobody carries it any more.
+ */
+function beCarried(sys: IndividualsSystem, person: number, hours: number): boolean {
+  const { people, production, life, params } = sys;
+  const carrier = life.carrier(person);
+  if (carrier < 0) return true;
+  people.x[person] = people.x[carrier]!;
+  people.y[person] = people.y[carrier]!;
+  people.working[person] = 1;
+  people.fatigue[person] = Math.max(0, people.fatigue[person]! - params.needs.restPerHour * hours);
+  people.thirst[person] = Math.min(people.thirst[person]!, people.thirst[carrier]!);
+  if (people.hunger[person]! < life.params.infancy.feedAboveHunger || life.nurse(person) >= 0) return false;
+  const wanted = Math.min(params.body.eatUnitsPerHour * hours, people.hunger[person]! / params.body.hungerPerFoodUnit);
+  let eaten = 0;
+  if (production.carriedFood(carrier) > 0) eaten = production.giveFood(carrier, person, wanted) > 0 ? production.eat(person, wanted, false) : 0;
+  else {
+    const camp = people.camp[person]!;
+    const stock = production.stockTile(camp);
+    const near = Math.max(Math.abs(people.x[person]! - (stock % sys.size)), Math.abs(people.y[person]! - Math.floor(stock / sys.size))) <= params.tribe.campRadius;
+    if (near && production.stockFood(camp) > 0) eaten = production.eat(person, wanted, true);
+  }
+  people.hunger[person] = Math.max(0, people.hunger[person]! - eaten * params.body.hungerPerFoodUnit);
+  return false;
 }
 
 /** On the job's tile: one step of work by the production system, then where to go next. */

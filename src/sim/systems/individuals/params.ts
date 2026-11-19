@@ -1,6 +1,7 @@
 import { choice, DataFileError, identifier, text, validateData, variable, type Schema } from '../../core/data-validation';
 import { CONVERSATIONS, type ConversationKind } from './social/params';
 import { SOCIAL_INPUTS } from './social/inputs';
+import { LIFE_INPUTS } from './life/inputs';
 
 /** Inputs an action's score can depend on (all normalized to 0..1). */
 export const INPUTS = [
@@ -25,11 +26,12 @@ export const INPUTS = [
   'craftNeed',
   'always',
   ...SOCIAL_INPUTS,
+  ...LIFE_INPUTS,
 ] as const;
 export type Input = (typeof INPUTS)[number];
 
 /** Built-in behaviours; each data action names one of them (work behaviours run recipes of data/recipes.json). */
-export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give'] as const;
+export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play'] as const;
 export type Behavior = (typeof BEHAVIORS)[number];
 
 export interface Consideration {
@@ -87,6 +89,7 @@ export interface HumanParams {
   thinkEveryMinutes: number;
   needs: {
     hungerPerHour: number;
+    sleepHungerFactor: number;
     thirstPerHour: number;
     fatiguePerHour: number;
     restPerHour: number;
@@ -102,7 +105,6 @@ export interface HumanParams {
   body: {
     walkTilesPerHour: number;
     fleeSpeedFactor: number;
-    childSpeedFactor: number;
     perceptionTiles: number;
     exploreTiles: number;
     carryCapacity: number;
@@ -122,7 +124,7 @@ export interface HumanParams {
   terrain: { forestCost: number; shrubCost: number; riverCost: number; slopeCostPer100m: number; maxPathNodes: number; heuristicWeight: number };
   decision: { randomness: number; keepCurrentBonus: number; keepWorkBonus: number; depositAtCamp: number };
   actions: ActionDef[];
-  deathTexts: { hunger: string; thirst: string; cold: string; predator: string };
+  deathTexts: { hunger: string; thirst: string; cold: string; predator: string; oldAge: string; disease: string; childbirth: string };
   settlementText: string;
   campMove: {
     forageFarTiles: number;
@@ -155,7 +157,7 @@ const namedList = (what: string): Schema => ({
     fields: { id: identifier('Identifiant', `Nom technique (${what}).`), name: text('Nom', `Nom affiché (${what}).`, 'newWorld') },
   },
 });
-const DEATH_HELP = 'Phrase du journal. Remplacements : {nom}, {e} (« e » pour une femme), {lieu}, {un_animal}.';
+const DEATH_HELP = 'Phrase du journal. Remplacements : {nom}, {e} (« e » pour une femme), {lieu}, {un_animal}, {age}.';
 
 export const HUMANS_SCHEMA: Schema = {
   kind: 'object',
@@ -219,7 +221,8 @@ export const HUMANS_SCHEMA: Schema = {
     needs: {
       kind: 'object',
       fields: {
-        hungerPerHour: v('number', 0, 20, 'Faim', 'Points de faim gagnés par heure (100 = affamé).', 'points/heure'),
+        hungerPerHour: v('number', 0, 20, 'Faim', 'Points de faim gagnés par heure par un adulte éveillé (100 = affamé).', 'points/heure'),
+        sleepHungerFactor: v('number', 0, 1, 'Faim pendant le sommeil', 'Un corps endormi brûle moins : la faim monte à cette part de sa vitesse d’éveil.', 'fraction'),
         thirstPerHour: v('number', 0, 30, 'Soif', 'Points de soif gagnés par heure (100 = assoiffé).', 'points/heure'),
         fatiguePerHour: v('number', 0, 20, 'Fatigue', 'Points de fatigue gagnés par heure d’éveil.', 'points/heure'),
         restPerHour: v('number', 0, 50, 'Récupération', 'Points de fatigue perdus par heure de sommeil.', 'points/heure'),
@@ -238,7 +241,6 @@ export const HUMANS_SCHEMA: Schema = {
       fields: {
         walkTilesPerHour: v('number', 0.5, 20, 'Vitesse de marche', 'Tuiles parcourues par heure sur terrain plat, par beau temps.', 'tuiles/heure'),
         fleeSpeedFactor: v('number', 1, 3, 'Course', 'Facteur de vitesse quand on fuit.', 'facteur'),
-        childSpeedFactor: v('number', 0.1, 1, 'Vitesse des enfants', 'Facteur de vitesse des enfants.', 'facteur'),
         perceptionTiles: v('integer', 2, 40, 'Perception', 'Distance à laquelle on repère eau, plantes et prédateurs.', 'tuiles'),
         exploreTiles: v('integer', 2, 100, 'Exploration', 'Distance à laquelle on part chercher quand rien n’est en vue ni en mémoire.', 'tuiles'),
         carryCapacity: v('number', 1, 200, 'Charge portée', 'Encombrement total qu’une personne peut porter (une poignée de baies = 1, une carcasse = 6).', 'charge'),
@@ -335,6 +337,9 @@ export const HUMANS_SCHEMA: Schema = {
         thirst: text('Mort de soif', DEATH_HELP),
         cold: text('Mort de froid', DEATH_HELP),
         predator: text('Tué(e) par un prédateur', DEATH_HELP),
+        oldAge: text('Mort de vieillesse', DEATH_HELP),
+        disease: text('Mort de maladie', `${DEATH_HELP} Aussi : {maladie}, {aggravation} (« , affaibli par la faim »).`),
+        childbirth: text('Morte en couches', DEATH_HELP),
       },
     },
     settlementText: text('Installation de la tribu', 'Phrase du journal au début du monde. Remplacements : {personnes}, {lieu}, {batiments}.', 'newWorld'),

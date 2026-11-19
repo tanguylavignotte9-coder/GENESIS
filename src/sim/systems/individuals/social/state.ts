@@ -15,7 +15,7 @@ export const AMBITION_SLOTS = 3;
  * the least important entry gives way.
  */
 export class SocialState {
-  readonly count: number;
+  count: number;
   readonly relationSlots: number;
   readonly memorySlots: number;
   readonly newsSlots: number;

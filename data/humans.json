@@ -135,6 +135,7 @@
   "thinkEveryMinutes": 60,
   "needs": {
     "hungerPerHour": 2.6,
+    "sleepHungerFactor": 0.6,
     "thirstPerHour": 4,
     "fatiguePerHour": 4,
     "restPerHour": 12,
@@ -142,7 +143,7 @@
     "coldPerDegreeHour": 0.5,
     "warmingPerHour": 20,
     "dangerDecayPerHour": 50,
-    "starvationDamagePerHour": 0.25,
+    "starvationDamagePerHour": 0.1,
     "thirstDamagePerHour": 3,
     "coldDamagePerHour": 2,
     "regenPerHour": 1
@@ -150,7 +151,6 @@
   "body": {
     "walkTilesPerHour": 4,
     "fleeSpeedFactor": 1.5,
-    "childSpeedFactor": 0.7,
     "perceptionTiles": 10,
     "exploreTiles": 20,
     "carryCapacity": 24,
@@ -192,6 +192,7 @@
     {
       "id": "drink",
       "behavior": "drink",
+      "minAge": 1,
       "name": "Boire",
       "label": "Va boire",
       "weight": 1.2,
@@ -204,6 +205,7 @@
     {
       "id": "eat",
       "behavior": "eat",
+      "minAge": 1,
       "name": "Manger",
       "label": "Mange",
       "weight": 1.1,
@@ -217,6 +219,7 @@
     {
       "id": "gather",
       "behavior": "harvest",
+      "minAge": 4,
       "recipes": ["harvest_field", "gather"],
       "items": ["berries", "roots", "wild_cereals", "grain"],
       "name": "Cueillir",
@@ -282,6 +285,7 @@
     {
       "id": "collect_wood",
       "behavior": "harvest",
+      "minAge": 6,
       "recipes": ["collect_branches"],
       "items": ["branches"],
       "name": "Ramasser du bois",
@@ -300,6 +304,7 @@
     {
       "id": "deposit",
       "behavior": "deposit",
+      "minAge": 3,
       "name": "Déposer au camp",
       "label": "Rapporte au camp",
       "weight": 0.85,
@@ -314,6 +319,7 @@
     {
       "id": "tend_fire",
       "behavior": "tend_fire",
+      "minAge": 8,
       "recipes": ["light_fire"],
       "name": "Entretenir le feu",
       "label": "Entretient le feu",
@@ -370,6 +376,7 @@
     {
       "id": "warm_up",
       "behavior": "warm_up",
+      "minAge": 1,
       "name": "Se réchauffer",
       "label": "Se réchauffe au feu",
       "weight": 1,
@@ -396,6 +403,7 @@
     {
       "id": "return_camp",
       "behavior": "return_camp",
+      "minAge": 2,
       "name": "Rentrer au camp",
       "label": "Rentre au camp",
       "weight": 0.7,
@@ -411,6 +419,7 @@
     {
       "id": "flee",
       "behavior": "flee",
+      "minAge": 2,
       "name": "Fuir",
       "label": "Fuit un prédateur",
       "weight": 1.6,
@@ -425,6 +434,7 @@
     {
       "id": "stay_with_group",
       "behavior": "stay_with_group",
+      "minAge": 2,
       "name": "Rester près du groupe",
       "label": "Rejoint le groupe",
       "weight": 0.55,
@@ -439,6 +449,7 @@
     {
       "id": "chat",
       "behavior": "converse",
+      "minAge": 3,
       "conversation": "chat",
       "name": "Bavarder",
       "label": "Bavarde",
@@ -457,6 +468,7 @@
     {
       "id": "reconcile",
       "behavior": "converse",
+      "minAge": 6,
       "conversation": "chat",
       "name": "Se réconcilier",
       "label": "Cherche à se réconcilier",
@@ -476,6 +488,7 @@
     {
       "id": "confide",
       "behavior": "converse",
+      "minAge": 4,
       "conversation": "confide",
       "name": "Se confier",
       "label": "Se confie",
@@ -529,6 +542,7 @@
     {
       "id": "argue",
       "behavior": "converse",
+      "minAge": 5,
       "conversation": "argue",
       "name": "Se disputer",
       "label": "Se dispute",
@@ -561,6 +575,7 @@
     {
       "id": "mourn",
       "behavior": "rest",
+      "minAge": 3,
       "name": "Pleurer",
       "label": "Pleure ses morts",
       "weight": 0.6,
@@ -569,6 +584,78 @@
         { "input": "sadness", "curve": "logistic", "a": 0.6, "b": 10 }
       ],
       "traits": {}
+    },
+    {
+      "id": "carried",
+      "behavior": "carried",
+      "name": "Être porté",
+      "label": "Est porté dans les bras",
+      "weight": 3,
+      "reason": "infant",
+      "considerations": [
+        { "input": "infant", "curve": "linear", "a": 1, "b": 0 }
+      ],
+      "traits": {}
+    },
+    {
+      "id": "follow_guardian",
+      "behavior": "follow_guardian",
+      "minAge": 2,
+      "name": "Suivre ses parents",
+      "label": "Suit son parent",
+      "weight": 0.75,
+      "reason": "guardianAway",
+      "considerations": [
+        { "input": "child", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "guardianAway", "curve": "logistic", "a": 0.45, "b": 10 },
+        { "input": "young", "curve": "linear", "a": 0.6, "b": 0.4 },
+        { "input": "hunger", "curve": "linear", "a": -0.7, "b": 1 }
+      ],
+      "traits": { "prudence": 0.2 }
+    },
+    {
+      "id": "child_return",
+      "behavior": "return_camp",
+      "minAge": 2,
+      "name": "Rester près du camp",
+      "label": "Revient près du camp",
+      "weight": 0.85,
+      "reason": "awayFromCamp",
+      "considerations": [
+        { "input": "child", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "awayFromCamp", "curve": "logistic", "a": 0.35, "b": 12 }
+      ],
+      "traits": { "prudence": 0.3, "curiosity": -0.2 }
+    },
+    {
+      "id": "play",
+      "behavior": "play",
+      "minAge": 2,
+      "name": "Jouer",
+      "label": "Joue",
+      "weight": 0.6,
+      "reason": "playmates",
+      "considerations": [
+        { "input": "young", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "hunger", "curve": "linear", "a": -0.8, "b": 1 },
+        { "input": "fatigue", "curve": "linear", "a": -0.8, "b": 1 },
+        { "input": "playmates", "curve": "linear", "a": 0.6, "b": 0.4 }
+      ],
+      "traits": { "sociability": 0.4, "curiosity": 0.2 }
+    },
+    {
+      "id": "be_sick",
+      "behavior": "rest",
+      "name": "Garder le lit",
+      "label": "Malade, se repose",
+      "weight": 0.95,
+      "reason": "sick",
+      "considerations": [
+        { "input": "sick", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "danger", "curve": "linear", "a": -1, "b": 1 }
+      ],
+      "traits": { "diligence": -0.3 }
     },
     {
       "id": "rest",
@@ -587,7 +674,10 @@
     "hunger": "{nom} est mort{e} de faim dans {lieu}.",
     "thirst": "{nom} est mort{e} de soif dans {lieu}.",
     "cold": "{nom} est mort{e} de froid dans {lieu}.",
-    "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}."
+    "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}.",
+    "oldAge": "{nom} s’éteint de vieillesse à {age} ans, dans {lieu}.",
+    "disease": "{nom} meurt de {maladie} à {age} ans{aggravation}, dans {lieu}.",
+    "childbirth": "{nom} meurt en couches à {age} ans, dans {lieu}."
   },
   "settlementText": "Une tribu de {personnes} personnes s'installe dans {lieu} : {batiments}.",
   "campMove": {

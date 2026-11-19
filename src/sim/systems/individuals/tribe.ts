@@ -53,7 +53,7 @@ function composeTribe(size: number, sys: IndividualsSystem, rng: Rng): Member[] 
 }
 
 /** Creates the starting tribes: camps at credible sites, families, names, traits and knowledge. */
-export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[]; families: number[][][] } {
+export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[]; families: number[][][]; names: NameGenerator } {
   const { params } = sys;
   const sites = chooseSites(sys.world, sys.flora, sys.fauna, sys.terrain, params, sys.edibleResources, params.tribe.count, rng);
   const people = new People(sites.length * params.tribe.size, params.traits.length, params.skills.length, params.memory.waterSlots, params.memory.foodSlots);
@@ -70,6 +70,7 @@ export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People
     const groups = new Map<number, number[]>();
     for (const member of members) {
       const p = next++;
+      people.alive[p] = 1;
       people.names[p] = names.next();
       people.female[p] = member.female ? 1 : 0;
       people.ageYears[p] = member.age;
@@ -89,7 +90,7 @@ export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People
       groups.set(member.family, group);
     }
     families.push([...groups.values()]);
-    sys.campRanges.push({ first, last: next });
+    sys.campPeople.push(Array.from({ length: next - first }, (_, k) => first + k));
   });
-  return { people, camps, families };
+  return { people, camps, families, names };
 }

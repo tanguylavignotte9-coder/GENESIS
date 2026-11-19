@@ -1,0 +1,205 @@
+{
+  "stages": {
+    "adultAge": 14,
+    "carriedUntilAge": 2,
+    "weaningAge": 3,
+    "playUntilAge": 12,
+    "elderAge": 50
+  },
+  "fertility": {
+    "conceptionPerYear": 1,
+    "femaleAges": [15, 20, 32, 46],
+    "maleAges": [15, 18, 50, 75],
+    "nursingFactor": 0.25,
+    "togetherTiles": 6,
+    "hungerFull": 70,
+    "hungerNone": 92,
+    "minHealth": 40,
+    "nourishmentDays": 5,
+    "desire": {
+      "minAffection": 10,
+      "fullAffection": 55,
+      "sociabilityEffect": 0.3,
+      "youngChildAge": 6,
+      "perYoungChild": 0.9,
+      "famineFear": 0.2
+    }
+  },
+  "pregnancy": {
+    "days": 30,
+    "hungerPerHour": 0.5,
+    "vigorFactor": 0.85,
+    "miscarriagePerDay": 0.002,
+    "miscarriageHungerFactor": 8,
+    "miscarriageSickFactor": 4
+  },
+  "birth": {
+    "femaleChance": 0.49,
+    "motherDeath": 0.012,
+    "stillbirth": 0.04,
+    "youngMotherAge": 17,
+    "oldMotherAge": 38,
+    "ageRiskFactor": 2,
+    "weakMotherHealth": 50,
+    "weakRiskFactor": 2.5,
+    "hungryMotherHunger": 80,
+    "hungerRiskFactor": 2,
+    "newbornHealth": 70
+  },
+  "heredity": {
+    "parentShare": 0.5,
+    "variation": 0.12
+  },
+  "infancy": {
+    "milkHungerPerHour": 0.8,
+    "milkFailsHunger": 90,
+    "feedAboveHunger": 40,
+    "nurseTiles": 3
+  },
+  "childhood": {
+    "followTiles": 4,
+    "observeTiles": 4,
+    "observeMinAge": 3,
+    "observeShare": 0.25,
+    "searchTiles": 10,
+    "shapingFactor": 3,
+    "extraDrift": 0.15,
+    "play": {
+      "joyPerHour": 6,
+      "lonelinessReliefPerHour": 30,
+      "affectionPerHour": 1.5,
+      "playmateTiles": 3
+    }
+  },
+  "aging": {
+    "childVigor": 0.55,
+    "declineFromAge": 40,
+    "declinePerYear": 0.015,
+    "minVigor": 0.35,
+    "enduranceEffect": 0.8,
+    "workEffect": 0.8,
+    "childAppetite": 0.3,
+    "elderAppetite": 0.5,
+    "respectPerYear": 3,
+    "respectSkillShare": 0.5
+  },
+  "oldAge": {
+    "fromAge": 40,
+    "referenceAge": 60,
+    "deathPerYearAtReference": 0.03,
+    "doublingYears": 8,
+    "frailtyEffect": 1
+  },
+  "diseases": [
+    {
+      "id": "fever",
+      "name": "fièvre",
+      "contagious": true,
+      "onsetPerYear": 0.03,
+      "coldOnsetEffect": 2,
+      "hungerOnsetEffect": 1,
+      "transmitPerHour": 0.0008,
+      "contagionTiles": 2,
+      "durationDays": [3, 8],
+      "damagePerHour": 0.12,
+      "hungerEffect": 1,
+      "coldEffect": 1,
+      "immunityYears": 4,
+      "vigorWhileSick": 0.5
+    },
+    {
+      "id": "flux",
+      "name": "dysenterie",
+      "contagious": true,
+      "onsetPerYear": 0.04,
+      "coldOnsetEffect": 0,
+      "hungerOnsetEffect": 2,
+      "transmitPerHour": 0.0006,
+      "contagionTiles": 1,
+      "durationDays": [2, 6],
+      "damagePerHour": 0.2,
+      "hungerEffect": 1.2,
+      "coldEffect": 0.5,
+      "immunityYears": 2,
+      "vigorWhileSick": 0.6
+    },
+    {
+      "id": "chest",
+      "name": "mal de poitrine",
+      "contagious": false,
+      "onsetPerYear": 0.015,
+      "coldOnsetEffect": 5,
+      "hungerOnsetEffect": 1,
+      "transmitPerHour": 0,
+      "contagionTiles": 0,
+      "durationDays": [5, 12],
+      "damagePerHour": 0.15,
+      "hungerEffect": 1,
+      "coldEffect": 2,
+      "immunityYears": 1,
+      "vigorWhileSick": 0.5
+    }
+  ],
+  "frailty": {
+    "hungerFrom": 60,
+    "coldFrom": 30
+  },
+  "ageVulnerability": [
+    [0, 5],
+    [0.5, 3.5],
+    [1, 2.5],
+    [3, 1.6],
+    [6, 1],
+    [12, 0.7],
+    [20, 0.75],
+    [45, 1],
+    [60, 1.6],
+    [75, 2.5]
+  ],
+  "epidemic": {
+    "minCases": 4
+  },
+  "famine": {
+    "minDeaths": 2,
+    "windowDays": 15
+  },
+  "orphans": {
+    "minGuardianAge": 16,
+    "maxGuardianAge": 65,
+    "kinBonus": 0.6,
+    "bondWeight": 1,
+    "generosityEffect": 0.5,
+    "burdenPerChild": 0.15,
+    "minWillingness": 0.35
+  },
+  "census": {
+    "everyDays": 10
+  },
+  "texts": {
+    "birth": "{mere} met au monde {enfant}, {nom} (père : {pere}).",
+    "stillbirth": "{mere} met au monde un enfant mort-né (père : {pere}).",
+    "boy": "un garçon",
+    "girl": "une fille",
+    "fatherDead": "{pere}, mort avant la naissance",
+    "epidemicStart": "Une épidémie de {maladie} frappe la tribu dans {lieu} : {malades} malades en même temps{aggravation}.",
+    "epidemicEnd": "L’épidémie de {maladie} est passée : {malades} malades, {morts} mort(s).",
+    "famine": "La famine frappe la tribu dans {lieu} : {morts} morts de faim en {jours} jours.",
+    "adoption": "{tuteur}, {lien}, recueille {enfant}, orphelin{e} depuis la mort de {parent}.",
+    "inheritance": "{heritier} hérite des affaires de {mort} : {objets}.",
+    "inheritanceShared": "{heritier} se partagent les affaires de {mort} : {objets}.",
+    "weakenedByHunger": ", affaibli{e} par la faim",
+    "weakenedByCold": ", affaibli{e} par le froid",
+    "ties": {
+      "grandmother": "sa grand-mère",
+      "grandfather": "son grand-père",
+      "aunt": "sa tante",
+      "uncle": "son oncle",
+      "sister": "sa sœur aînée",
+      "brother": "son frère aîné",
+      "father": "son père",
+      "mother": "sa mère",
+      "closeTo": "un proche de {parent}",
+      "closeToFemale": "une proche de {parent}"
+    }
+  }
+}

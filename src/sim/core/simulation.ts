@@ -92,6 +92,7 @@ export class Simulation {
       this.fauna,
       data.humans,
       data.social,
+      data.life,
       data.time,
       data.knowledge,
       this.production,
@@ -114,6 +115,7 @@ export class Simulation {
     this.production.refreshParams(bodyFacts(this.data));
     this.humans.refreshParams();
     this.humans.social.refreshParams(this.data.social);
+    this.humans.life.refreshParams(this.data.life);
   }
 
   /** Hour of the day, 0..24 (fractional). */

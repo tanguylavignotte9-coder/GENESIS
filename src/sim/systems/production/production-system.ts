@@ -1,3 +1,4 @@
+import { grownTo } from '../../core/columns';
 import type { Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
 import type { KnowledgeCatalog } from '../../core/knowledge';
@@ -150,6 +151,44 @@ export class ProductionSystem {
     this.carried = Array.from({ length: view.count }, () => new Inventory());
     this.jobs = new Array<Job | null>(view.count).fill(null);
     this.bedOf = new Int32Array(view.count).fill(-1);
+  }
+
+  /** A newborn: an empty inventory, no job, no bed yet. */
+  addPerson(): void {
+    this.carried.push(new Inventory());
+    this.jobs.push(null);
+    if (this.bedOf.length < this.carried.length) this.bedOf = grownTo(this.bedOf, Math.max(this.carried.length, this.bedOf.length * 2), -1);
+    this.bedOf[this.carried.length - 1] = -1;
+  }
+
+  /** A small child sleeps in the shelter of the adult who cares for it, if there is room. */
+  shareBed(child: number, adult: number): void {
+    const home = this.buildings[this.bedOf[adult]!];
+    if (this.bedOf[child]! >= 0 && this.buildings[this.bedOf[child]!] === home) return;
+    const old = this.buildings[this.bedOf[child]!];
+    if (!home || home.state !== BuildState.Done || home.residents.length >= this.typeOf(home).def.sleeps) return;
+    if (old) old.residents = old.residents.filter((resident) => resident !== child);
+    home.residents.push(child);
+    this.bedOf[child] = home.id;
+  }
+
+  /**
+   * Inheritance: what the dead carried goes to the heirs (shared out pile by pile), or to the camp's
+   * stock when there is no heir. Returns the names of the objects (not food) that changed hands.
+   */
+  bequeath(dead: number, heirs: readonly number[], camp: number): string[] {
+    const inventory = this.carried[dead]!;
+    const names: string[] = [];
+    let turn = 0;
+    for (const pile of [...inventory.piles]) {
+      const item = this.catalog.items[pile.item]!;
+      const heir = heirs.length > 0 ? heirs[turn++ % heirs.length]! : -1;
+      if (heir >= 0) this.carried[heir]!.put(pile.item, pile.qty, pile.quality, heir);
+      else if (this.camps[camp]) this.storeInCamp(camp, pile.item, pile.qty, pile.quality);
+      if (this.catalog.food[pile.item]! <= 0 && !names.includes(item.name.toLowerCase())) names.push(item.name.toLowerCase());
+    }
+    inventory.piles.length = 0;
+    return names;
   }
 
   // ----- camps -----------------------------------------------------------------------------

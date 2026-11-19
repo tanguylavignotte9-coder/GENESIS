@@ -125,7 +125,8 @@
         "intensity": 35,
         "halfLifeDays": 30,
         "traits": {
-          "generosity": 0.01
+          "generosity": 0.01,
+          "sociability": 0.01
         },
         "text": "a été nourri{e} par {autre}"
       },
@@ -134,7 +135,9 @@
         "emotion": "joy",
         "intensity": 30,
         "halfLifeDays": 25,
-        "traits": {},
+        "traits": {
+          "sociability": 0.02
+        },
         "text": "a été consolé{e} par {autre}"
       },
       "quarrel": {
@@ -190,6 +193,42 @@
         "halfLifeDays": 15,
         "traits": {},
         "text": "a vu {autre} courtiser l’être aimé"
+      },
+      "childBorn": {
+        "name": "Naissance",
+        "emotion": "joy",
+        "intensity": 60,
+        "halfLifeDays": 60,
+        "traits": {
+          "generosity": 0.01
+        },
+        "text": "a eu un enfant, {autre}"
+      },
+      "lostBaby": {
+        "name": "Enfant perdu",
+        "emotion": "sadness",
+        "intensity": 60,
+        "halfLifeDays": 40,
+        "traits": {},
+        "text": "a perdu un enfant avant sa naissance"
+      },
+      "adopted": {
+        "name": "Recueilli",
+        "emotion": "joy",
+        "intensity": 40,
+        "halfLifeDays": 200,
+        "traits": {
+          "generosity": 0.02
+        },
+        "text": "a été recueilli{e} par {autre}"
+      },
+      "lostOne": {
+        "name": "Souvenir d’un disparu",
+        "emotion": "sadness",
+        "intensity": 30,
+        "halfLifeDays": 600,
+        "traits": {},
+        "text": "se souvient de {autre}"
       }
     }
   },
@@ -449,6 +488,18 @@
     "tribe": {
       "text": "vie dans la même tribu",
       "dated": false
+    },
+    "adopted": {
+      "text": "{autre} a recueilli {nom}",
+      "dated": true
+    },
+    "elder": {
+      "text": "la sagesse de l’âge",
+      "dated": false
+    },
+    "played": {
+      "text": "jeux d’enfants",
+      "dated": false
     }
   },
   "kinNames": {
@@ -473,7 +524,10 @@
       " de faim",
       " de soif",
       " de froid",
-      ", tué{e} par un fauve"
+      ", tué{e} par un fauve",
+      " de vieillesse",
+      " de maladie",
+      " en couches"
     ],
     "unknownCause": " (on ne sait pas comment)",
     "couple": "{a} et {b} forment un couple",

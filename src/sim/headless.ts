@@ -7,6 +7,9 @@ import { ANOMALY_START } from './systems/world/anomalies';
 import { CAMP_MOVED } from './systems/individuals/camp-move';
 import { BUILDING_DONE, FIRST_ITEM } from './systems/production/events';
 import { COUPLE_FORMED, FALLING_OUT, GREAT_FRIENDSHIP, MOURNING, SEPARATION } from './systems/individuals/social/milestones';
+import { EPIDEMIC_START } from './systems/individuals/life/disease';
+import { FAMINE } from './systems/individuals/life/life-cycle';
+import { ADOPTION } from './systems/individuals/life/orphans';
 
 /** Social events listed in the summary. */
 const SOCIAL_EVENTS = [COUPLE_FORMED, GREAT_FRIENDSHIP, FALLING_OUT, SEPARATION, MOURNING];
@@ -45,7 +48,28 @@ export interface HeadlessReport {
   plants: { name: string; count: number }[];
   /** Notable fauna events (migrations, disappearances, collapses), by type. */
   faunaEvents: { migrations: number; extinctions: number; collapses: number; examples: string[] };
-  humans: { start: number; alive: number; deaths: { cause: string; count: number }[] };
+  humans: {
+    start: number;
+    alive: number;
+    /** Most people alive at once (at the censuses). */
+    peak: number;
+    births: number;
+    stillbirths: number;
+    deaths: { cause: string; count: number }[];
+    /** Share of the children born who died before 1 year, and before the adult age. */
+    infantMortality: number;
+    childMortality: number;
+    /** Mean age at death of those who reached adulthood. */
+    adultLifespan: number;
+    oldest: number;
+    epidemics: number;
+    famines: number;
+    adoptions: number;
+    /** Every 10 years: year, people alive, ms per game day over the decade. */
+    timeline: { year: number; alive: number; msPerDay: number }[];
+    /** Epidemics, famines and orphans taken in, dated. */
+    lifeEvents: string[];
+  };
   /** Work and production over the period: the camps' common stocks at the end, buildings finished, firsts, moves. */
   production: {
     stock: { name: string; qty: number }[];
@@ -63,12 +87,21 @@ export interface HeadlessReport {
 }
 
 /** Generates a world then runs the simulation without any display for `years` game years. */
-export function runHeadless(seed: number, years: number, data: GameData, now: () => number = () => 0): HeadlessReport {
+export function runHeadless(seed: number, years: number, data: GameData, now: () => number = () => 0, options: { stopWhenExtinct?: boolean } = {}): HeadlessReport {
   const simulation = new Simulation(seed, data);
   const startCounts = simulation.fauna.countBySpecies();
+  const startTick = simulation.clock.tick;
   const ticks = years * ticksPerYear(data.time);
   const startedAt = now();
-  simulation.step(ticks);
+  const timeline: HeadlessReport['humans']['timeline'] = [];
+  const yearDays = data.time.daysPerSeason * data.time.seasons.length;
+  for (let year = 0; year < years; year += TIMELINE_YEARS) {
+    const span = Math.min(TIMELINE_YEARS, years - year);
+    const at = now();
+    simulation.step(span * ticksPerYear(data.time));
+    timeline.push({ year: year + span, alive: simulation.humans.people.living, msPerDay: (now() - at) / (span * yearDays) });
+    if (simulation.humans.people.living === 0 && options.stopWhenExtinct) break;
+  }
   const elapsed = now() - startedAt;
 
   const randomFingerprint: number[] = [];
@@ -89,9 +122,9 @@ export function runHeadless(seed: number, years: number, data: GameData, now: ()
     animals: summarizeAnimals(simulation, startCounts),
     plants: simulation.flora.countBySpecies().map((count, k) => ({ name: data.flora.species[k]?.name ?? '?', count })),
     faunaEvents: summarizeFaunaEvents(simulation),
-    humans: summarizeHumans(simulation),
+    humans: summarizeHumans(simulation, timeline),
     production: summarizeProduction(simulation),
-    msPerDay: ticks > 0 ? elapsed / (ticks / data.time.ticksPerDay) : 0,
+    msPerDay: ticks > 0 ? elapsed / ((simulation.clock.tick - startTick) / data.time.ticksPerDay) : 0,
     randomFingerprint,
   };
 }
@@ -105,16 +138,55 @@ function summarizeAnimals(simulation: Simulation, startCounts: number[]): Popula
   });
 }
 
-const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'prédateur'];
+const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'prédateur', 'vieillesse', 'maladie', 'en couches'];
+/** Years between two points of the timeline. */
+const TIMELINE_YEARS = 10;
+const LIFE_EVENTS = [EPIDEMIC_START, FAMINE, ADOPTION];
 
-function summarizeHumans(simulation: Simulation): HeadlessReport['humans'] {
-  const { people } = simulation.humans;
+function summarizeHumans(simulation: Simulation, timeline: HeadlessReport['humans']['timeline']): HeadlessReport['humans'] {
+  const { people, life } = simulation.humans;
   const counts = DEATH_CAUSES.map(() => 0);
-  for (let p = 0; p < people.count; p++) if (people.alive[p] === 0) counts[people.deathCause[p]!]!++;
+  const adultAge = life.params.stages.adultAge;
+  let born = 0;
+  let deadBabies = 0;
+  let deadChildren = 0;
+  let adultDeaths = 0;
+  let adultYears = 0;
+  let oldest = 0;
+  for (let p = 0; p < people.count; p++) {
+    oldest = Math.max(oldest, people.ageYears[p]!);
+    if (p >= simulation.humans.startingCount) born++;
+    if (people.alive[p] === 1) continue;
+    counts[people.deathCause[p]!]!++;
+    const age = people.ageYears[p]!;
+    if (age >= adultAge) {
+      adultDeaths++;
+      adultYears += age;
+    } else if (p >= simulation.humans.startingCount) {
+      deadChildren++;
+      if (age < 1) deadBabies++;
+    }
+  }
+  const time = simulation.data.time;
   return {
-    start: people.count,
+    start: simulation.humans.startingCount,
     alive: people.living,
+    peak: Math.max(simulation.humans.startingCount, ...life.census.map((sample) => sample.humans)),
+    births: life.births,
+    stillbirths: life.stillbirths,
     deaths: DEATH_CAUSES.flatMap((cause, k) => (k > 0 && counts[k]! > 0 ? [{ cause, count: counts[k]! }] : [])),
+    infantMortality: born > 0 ? deadBabies / born : 0,
+    childMortality: born > 0 ? deadChildren / born : 0,
+    adultLifespan: adultDeaths > 0 ? adultYears / adultDeaths : 0,
+    oldest,
+    epidemics: life.epidemicCount + life.epidemics.size,
+    famines: life.famineCount,
+    adoptions: life.adoptions,
+    timeline,
+    lifeEvents: simulation.journal
+      .all()
+      .filter((event) => LIFE_EVENTS.includes(event.type))
+      .map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
   };
 }
 

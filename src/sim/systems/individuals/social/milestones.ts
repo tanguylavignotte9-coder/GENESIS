@@ -173,4 +173,6 @@ export function learnDeath(life: SocialLife, person: number, fact: Fact, from: n
     });
   }
   remember(life, person, 'grief', dead, scale, event);
+  // Long after the grief, those who knew the dead keep their memory.
+  remember(life, person, 'lostOne', dead, scale, event);
 }

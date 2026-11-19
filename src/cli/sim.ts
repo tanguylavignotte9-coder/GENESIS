@@ -60,7 +60,7 @@ const MAX_LISTED_ANOMALIES = 30;
 
 function printRun(seed: number, years: number, data: GameData): void {
   const startedAt = performance.now();
-  const report = runHeadless(seed, years, data, () => performance.now());
+  const report = runHeadless(seed, years, data, () => performance.now(), { stopWhenExtinct: true });
   const duration = seconds(startedAt);
   const { anomalies } = report;
   const totalAnimals = report.animals.reduce((sum, line) => sum + line.end, 0);
@@ -72,8 +72,18 @@ function printRun(seed: number, years: number, data: GameData): void {
   console.log(`  Monde                 : ${report.worldSize} × ${report.worldSize} tuiles, ${report.riverCount} rivières, ${report.lakeCount} lacs`);
   console.log(`  Durée simulée         : ${fr.format(report.years)} an(s) = ${fr.format(report.ticks)} tics`);
   console.log(`  Date finale           : ${report.finalDate}`);
-  const deaths = report.humans.deaths.map((death) => `${fr.format(death.count)} (${death.cause})`).join(', ');
-  console.log(`  Humains               : ${fr.format(report.humans.start)} au départ, ${fr.format(report.humans.alive)} en vie${deaths ? ` · morts : ${deaths}` : ''}`);
+  const h = report.humans;
+  const deaths = h.deaths.map((death) => `${fr.format(death.count)} (${death.cause})`).join(', ');
+  console.log(`  Humains               : ${fr.format(h.start)} au départ, ${fr.format(h.alive)} en vie (au plus ${fr.format(h.peak)})${h.alive === 0 ? ' · TRIBU ÉTEINTE' : ''}`);
+  console.log(`  Naissances            : ${fr.format(h.births)} (+ ${fr.format(h.stillbirths)} mort-nés) · mortalité avant 1 an ${pct.format(h.infantMortality * PERCENT)} %, avant l'âge adulte ${pct.format(h.childMortality * PERCENT)} %`);
+  console.log(`  Morts                 : ${deaths || 'aucune'}`);
+  console.log(`  Âge moyen au décès    : ${fr1.format(h.adultLifespan)} ans (adultes) · doyen : ${fr1.format(h.oldest)} ans`);
+  console.log(`  Épidémies, famines    : ${fr.format(h.epidemics)} épidémie(s), ${fr.format(h.famines)} famine(s), ${fr.format(h.adoptions)} orphelin(s) recueilli(s)`);
+  console.log(`  Population (tous les 10 ans) : ${h.timeline.map((point) => `an ${point.year} : ${point.alive}`).join(' · ')}`);
+  console.log(`  Calcul par jour (tous les 10 ans) : ${h.timeline.map((point) => `${point.msPerDay.toFixed(0)} ms`).join(' · ')}`);
+  const lifeShown = h.lifeEvents.length <= MAX_LISTED_ANOMALIES ? h.lifeEvents : [...h.lifeEvents.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...h.lifeEvents.slice(-MAX_LISTED_ANOMALIES / 2)];
+  console.log(`  Cycle de vie (journal) : ${fr.format(h.lifeEvents.length)} événement(s) (épidémies, famines, orphelins recueillis)`);
+  for (const line of lifeShown) console.log(`    ${line}`);
   const work = report.production;
   const stock = work.stock.map((line) => `${line.name} ${fr1.format(line.qty)}`).join(', ');
   console.log(`  Stock du camp (fin)   : ${stock || 'vide'}`);
@@ -106,7 +116,7 @@ function printRun(seed: number, years: number, data: GameData): void {
   }
   console.log(`  Empreinte aléatoire   : ${report.randomFingerprint.join(' ')}`);
   console.log(`  Durée de calcul       : ${duration.toFixed(2)} s (génération du monde comprise)`);
-  console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms (${fr.format(report.humans.start)} humains au départ, ${fr.format(totalAnimals)} animaux, ${fr.format(totalPlants)} plantes)`);
+  console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms (${fr.format(report.humans.start)} humains au départ, ${fr.format(report.humans.alive)} à la fin, ${fr.format(totalAnimals)} animaux, ${fr.format(totalPlants)} plantes)`);
 }
 
 function printLoadTest(seed: number, data: GameData): void {

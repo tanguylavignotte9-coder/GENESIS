@@ -245,3 +245,26 @@ Toutes les valeurs sont expliquées dans l'Atelier des variables (système « Hu
 | `sharing` | Faim qui pousse les autres à donner, ce qu'on garde pour soi, part donnée, gratitude |
 | `ambitions` | 1 à 3 ambitions : se faire des amis, trouver un compagnon, exceller dans son métier, regagner l'estime de quelqu'un |
 | `texts`, `reasons`, `kinNames`, `newsTexts` | Phrases du journal et de la fiche personnage |
+
+## `life.json` — le cycle de vie (étape 8)
+
+Toutes les valeurs sont expliquées dans l'Atelier des variables (système « Humains », fichier `life.json`).
+Aucune règle ne limite ni ne soutient la population : naissances et morts viennent de chaque individu.
+
+| Clé | Rôle |
+| --- | --- |
+| `stages` | Âges de la vie : fin de l'enfance (14 ans), bébé porté, sevrage, âge du jeu, vieillesse |
+| `fertility` | Fécondité d'un couple : âges des deux partenaires, allaitement qui espace les naissances, faim des derniers jours (la famine empêche de concevoir), santé ; envie d'enfant (affection mutuelle, sociabilité, petits enfants déjà là, peur de la faim) |
+| `pregnancy` | Durée (30 jours = 9 mois du calendrier compressé), faim en plus, fatigue, fausses couches (plus fréquentes chez une mère affamée ou malade) |
+| `birth` | Risques de l'accouchement pour la mère et l'enfant, plus grands pour une mère très jeune, âgée, affaiblie ou affamée ; santé du nouveau-né |
+| `heredity` | Part des traits de caractère venue des parents, variation |
+| `infancy` | Allaitement (ce qu'il coûte à la mère, lait tari par la faim), bébé non allaité nourri par son porteur ou au stock |
+| `childhood` | L'enfant suit son parent, reste près du camp, cherche près de lui, apprend en regardant les adultes travailler, joue ; l'enfance marque davantage la personnalité |
+| `aging` | Forces du corps selon l'âge (vitesse, endurance, travail physique), respect qui grandit pour les anciens |
+| `oldAge` | Mort de vieillesse : chance qui double tous les quelques ans (loi de Gompertz), plus forte chez un corps affaibli |
+| `diseases` | Maladies : apparition (froid et faim la favorisent), contagion par la proximité, durée, gravité (aggravée par la faim et le froid), immunité, faiblesse du malade |
+| `frailty`, `ageVulnerability` | Faim et froid qui affaiblissent face aux maladies ; fragilité des tout-petits et des vieillards |
+| `epidemic`, `famine` | Quand le journal parle d'épidémie (malades en même temps) ou de famine (morts de faim rapprochées) : un récit, jamais un événement déclenché |
+| `orphans` | Qui recueille un orphelin : famille d'abord, puis proches du défunt, selon l'affection, la générosité et les enfants déjà à charge ; personne si nul n'en a envie |
+| `census` | Fréquence des points de la courbe de population |
+| `texts` | Phrases du journal (naissances, épidémies, famines, orphelins, héritages) |

@@ -24,13 +24,20 @@ import { Pathfinder } from './pathfinding';
 import { Terrain } from './terrain';
 import { SocialLife } from './social/social-life';
 import type { SocialParams } from './social/params';
+import { LifeCycle } from './life/life-cycle';
+import type { LifeParams } from './life/params';
+import { diseaseDeathInfo } from './life/disease';
+import { inheritTraits } from './life/birth';
+import type { NameGenerator } from './names';
+import { SOCIAL_INPUTS } from './social/inputs';
 import type { TimeParams } from '../../core/time-params';
 
 export const SETTLEMENT = 'humans.settlement';
 export const HUMAN_DEATH = 'humans.death';
 const FULL = 100;
 const MINUTES_PER_HOUR = 60;
-const CHILD_AGE = 14;
+/** What the journal says of each death cause (index = DeathCause). */
+const DEATH_TEXT_KEYS = ['hunger', 'hunger', 'thirst', 'cold', 'predator', 'oldAge', 'disease', 'childbirth'] as const;
 const EXPLORE_ATTEMPTS = 4;
 /** Cell size of the grid that lets the others find people quickly (technical, not gameplay). */
 const GRID_CELL_TILES = 16;
@@ -53,6 +60,11 @@ export class IndividualsSystem {
   readonly grid: SpatialGrid;
   /** Relations, emotions, memories, conversations, news and ambitions (step 7). */
   readonly social: SocialLife;
+  /** Birth, childhood, ageing, diseases, orphans and inheritance (step 8). */
+  readonly life: LifeCycle;
+  private readonly names: NameGenerator;
+  /** People of the starting tribes (the others were born in the world). */
+  readonly startingCount: number;
   private readonly pathfinder: Pathfinder;
   private predatorCodes: Uint8Array;
   private readonly inputs = new Float64Array(INPUTS.length);
@@ -71,6 +83,7 @@ export class IndividualsSystem {
     readonly fauna: FaunaSystem,
     readonly params: HumanParams,
     socialParams: SocialParams,
+    lifeParams: LifeParams,
     time: TimeParams,
     readonly knowledge: KnowledgeCatalog,
     readonly production: ProductionSystem,
@@ -89,6 +102,8 @@ export class IndividualsSystem {
     this.scores = new Float64Array(this.actions.length);
     const created = createTribes(this, rng);
     this.people = created.people;
+    this.startingCount = created.people.count;
+    this.names = created.names;
     this.camps.push(...created.camps);
     for (const camp of this.camps) camp.computeWayHome(this.terrain);
     production.attachPeople(this.workerView());
@@ -96,6 +111,7 @@ export class IndividualsSystem {
     for (let p = 0; p < this.people.count; p++) this.people.nextThink[p] = p % this.thinkSteps;
     this.grid = new SpatialGrid(world.size, GRID_CELL_TILES);
     this.rebuildGrid();
+    this.life = new LifeCycle(this, lifeParams, time, rng, journal, this.names);
     this.social = new SocialLife(this, socialParams, time, rng, journal);
     interactions.register(
       'human',
@@ -155,8 +171,11 @@ export class IndividualsSystem {
   /** What production may read about people (never write). */
   private workerView(): WorkerView {
     const { people } = this;
+    const life = (): LifeCycle => this.life;
     return {
-      count: people.count,
+      get count() {
+        return people.count;
+      },
       alive: (p) => people.alive[p] === 1,
       camp: (p) => people.camp[p]!,
       x: (p) => people.x[p]!,
@@ -164,26 +183,35 @@ export class IndividualsSystem {
       knowledge: (p) => people.knowledge[p]!,
       skill: (p, s) => people.skill(p, s),
       ageYears: (p) => people.ageYears[p]!,
+      vigor: (p) => {
+        const share = life().params.aging.workEffect;
+        return 1 - share + share * life().vigor(p);
+      },
       name: (p) => people.names[p]!,
       female: (p) => people.female[p] === 1,
       family: (p) => {
         const family: number[] = [];
         if (people.spouse[p]! >= 0) family.push(people.spouse[p]!);
         for (const parent of [people.mother[p]!, people.father[p]!]) if (parent >= 0) family.push(parent);
-        const { first, last } = this.campMembers(people.camp[p]!);
-        for (let q = first; q < last; q++) if (people.mother[q] === p || people.father[q] === p) family.push(q);
+        for (const q of this.campMembers(people.camp[p]!)) if (people.mother[q] === p || people.father[q] === p) family.push(q);
         return family;
       },
     };
   }
 
-  /** Practice makes a skill grow (fast at first, slower near mastery) and counts toward the trade. */
-  practise(person: number, skill: number, hours: number): void {
+  /**
+   * Practice makes a skill grow (fast at first, slower near mastery) and counts toward the trade;
+   * a child watching (`practice` false) learns without it counting as practice.
+   */
+  practise(person: number, skill: number, hours: number, practice = true): void {
     const { people } = this;
     const at = person * people.skillCount + skill;
     const level = people.skills[at]!;
     people.skills[at] = Math.min(1, level + this.params.skillLearning.learnPerHour * hours * (1 - level));
+    if (!practice) return;
     people.practice[at] = people.practice[at]! + hours;
+    this.life.state.lastSkill[person] = skill;
+    this.life.state.lastSkillStep[person] = this.step;
   }
 
   /** Food found on a tile: remembered, and how far from the camp one has to go counts for moving. */
@@ -221,6 +249,7 @@ export class IndividualsSystem {
     if (absoluteDay !== this.absoluteDay) {
       this.absoluteDay = absoluteDay;
       this.social.newDay(absoluteDay);
+      this.life.newDay(absoluteDay, tick);
       this.forgetOldPlaces();
       for (const camp of this.camps) considerMoving(this, camp, absoluteDay, tick);
     }
@@ -230,12 +259,13 @@ export class IndividualsSystem {
       if (people.alive[p] === 0) continue;
       const cause = liveHours(this, p, hours);
       if (cause !== DeathCause.None) {
-        this.die(p, cause, journal, tick, null);
+        this.die(p, cause, tick);
         continue;
       }
       if ((this.step + p) % this.params.stepsPerHour === 0) {
         this.perceive(p);
         this.social.liveHour(p, this.isSleeping(p));
+        this.life.liveHour(p);
       }
       if (this.step >= people.nextThink[p]!) this.think(p);
       if (performAction(this, p, this.actions[people.action[p]!]!, hours)) people.nextThink[p] = this.step + 1;
@@ -320,6 +350,7 @@ export class IndividualsSystem {
     input[k++] = needs.craft;
     input[k++] = 1;
     this.social.fillInputs(person, input, k);
+    this.life.fillInputs(person, input, k + SOCIAL_INPUTS.length);
   }
 
   /** Every hour: predators in sight (danger) and whether the person is isolated. */
@@ -370,38 +401,90 @@ export class IndividualsSystem {
     }
     outcome.killed = true;
     outcome.remains = params.danger.corpseMeat;
-    outcome.eventId = this.die(person, DeathCause.Predator, journal, attack.tick, attack);
+    outcome.eventId = this.die(person, DeathCause.Predator, attack.tick, { attack });
     this.grid.remove(person, this.grid.cellOf(x, y));
     return outcome;
   }
 
-  private die(person: number, cause: number, journal: Journal, tick: number, attack: Attack | null): number {
+  /**
+   * A death, told in the journal with its causes (the hard year, the epidemic, the birth, the loss
+   * of a guardian…); then the others learn it, objects are inherited and orphans wait for a home.
+   */
+  die(person: number, cause: number, tick: number, info: { attack?: Attack; causes?: number[]; vars?: Record<string, string> } = {}): number {
     const { people } = this;
-    people.alive[person] = 0;
-    people.deathCause[person] = cause;
-    this.production.forgetPerson(person);
     const tile = this.tileOf(person);
     const x = people.x[person]!;
     const y = people.y[person]!;
     const place = describeLocation(this.world.landmasses, this.world.landmassNames, x, y, this.size);
-    const texts = this.params.deathTexts;
-    const template = cause === DeathCause.Hunger ? texts.hunger : cause === DeathCause.Thirst ? texts.thirst : cause === DeathCause.Cold ? texts.cold : texts.predator;
-    const animal = attack?.attackerName ?? '';
+    const template = this.params.deathTexts[DEATH_TEXT_KEYS[cause] ?? 'hunger'];
+    const animal = info.attack?.attackerName ?? '';
+    const causes = [...(info.causes ?? [])];
+    const vars: Record<string, string> = { age: String(Math.floor(people.ageYears[person]!)), ...info.vars };
+    const needs = cause === DeathCause.Hunger || cause === DeathCause.Thirst || cause === DeathCause.Cold;
     // A death by hunger, thirst or cold inside a hardship region is caused by that hardship.
-    const anomaly = this.climate.anomalies[this.climate.anomalyIndex[tile]! - 1];
-    const hardship = anomaly && this.climate.params.anomalies.types[anomaly.type]?.hardshipName !== undefined;
-    const event = journal.publish({
+    const hardship = this.life.hardshipAt(tile);
+    if (needs && hardship >= 0) causes.push(hardship);
+    // A child left without anyone to care for it dies of that loss as much as of hunger.
+    if (needs) causes.push(...this.life.orphanCauses(person));
+    if (cause === DeathCause.Disease) {
+      const disease = diseaseDeathInfo(this.life, person);
+      causes.push(...disease.causes);
+      Object.assign(vars, disease.vars);
+    }
+    people.alive[person] = 0;
+    people.deathCause[person] = cause;
+    this.production.forgetPerson(person);
+    const members = this.campPeople[people.camp[person]!];
+    if (members) {
+      const at = members.indexOf(person);
+      if (at >= 0) members.splice(at, 1);
+    }
+    const event = this.journal.publish({
       tick,
       type: HUMAN_DEATH,
-      text: fillTemplate(template, { nom: people.names[person]!, e: people.female[person] ? 'e' : '', lieu: place, un_animal: `un ${animal}` }),
+      text: fillTemplate(template, { nom: people.names[person]!, e: people.female[person] ? 'e' : '', lieu: place, un_animal: `un ${animal}`, ...vars }),
       place: { x, y, label: place },
-      actors: attack ? [{ kind: 'human', id: person }, attack.attacker] : [{ kind: 'human', id: person }],
-      causes: hardship && cause !== DeathCause.Predator ? [anomaly.startEventId] : [],
+      actors: info.attack ? [{ kind: 'human', id: person }, info.attack.attacker] : [{ kind: 'human', id: person }],
+      causes: [...new Set(causes)].filter((id) => id >= 0 && this.journal.get(id) !== undefined),
       details: { cause, person },
     });
     if (cause === DeathCause.Hunger) this.camps[people.camp[person]!]!.hungerDeaths.push({ day: this.absoluteDay, event });
     this.social.onDeath(person, cause, event);
+    this.life.onDeath(person, cause, event);
     return event;
+  }
+
+  /**
+   * A baby is born to `mother` (and `father`): a new person at the end of the arrays, next to its
+   * mother, with traits from both parents, the knowledge of the camp, and a name of its own.
+   */
+  bear(mother: number, father: number, female: boolean): number {
+    const { people } = this;
+    const child = people.add();
+    this.social.grow();
+    this.life.state.ensure(people.capacity);
+    this.production.addPerson();
+    const camp = people.camp[mother]!;
+    people.names[child] = this.names.next();
+    people.female[child] = female ? 1 : 0;
+    people.ageYears[child] = 0;
+    people.mother[child] = mother;
+    people.father[child] = father;
+    people.camp[child] = camp;
+    // What the tribe knows is known from childhood (teaching comes with the ideas, step 10).
+    people.knowledge[child] = people.knowledge[mother]! | (father >= 0 ? people.knowledge[father]! : 0);
+    inheritTraits(this.life, child, mother, father);
+    people.health[child] = this.life.params.birth.newbornHealth;
+    people.x[child] = people.x[mother]!;
+    people.y[child] = people.y[mother]!;
+    people.nextThink[child] = this.step;
+    const state = this.life.state;
+    state.birthDay[child] = this.absoluteDay;
+    state.guardian[child] = mother;
+    this.campPeople[camp]!.push(child);
+    this.production.shareBed(child, mother);
+    this.grid.insert(child, this.grid.cellOf(people.x[child]!, people.y[child]!));
+    return child;
   }
 
   private publishSettlements(journal: Journal, tick: number): void {
@@ -532,7 +615,7 @@ export class IndividualsSystem {
     const { people, params } = this;
     const tile = this.tileOf(person);
     let factor = this.terrain.speedOn(tile) * this.weather.typeAt(tile).movementFactor;
-    if (people.ageYears[person]! < CHILD_AGE) factor *= params.body.childSpeedFactor;
+    factor *= this.life.vigor(person);
     if (this.behavior(person) === 'flee') factor *= params.body.fleeSpeedFactor;
     return factor;
   }
@@ -604,9 +687,8 @@ export class IndividualsSystem {
     const y = people.y[person]!;
     let best = -1;
     let bestDistance = Infinity;
-    const { first, last } = this.campMembers(camp);
-    for (let other = first; other < last; other++) {
-      if (other === person || people.alive[other] === 0) continue;
+    for (const other of this.campMembers(camp)) {
+      if (other === person) continue;
       const d = Math.max(Math.abs(people.x[other]! - x), Math.abs(people.y[other]! - y));
       if (d < bestDistance) {
         bestDistance = d;
@@ -616,10 +698,11 @@ export class IndividualsSystem {
     return best;
   }
 
-  /** Tribe members are stored contiguously: [first, last) for a camp. */
-  campMembers(camp: number): { first: number; last: number } {
-    return this.campRanges[camp] ?? { first: 0, last: 0 };
+  /** Living members of a camp (in the order they joined it). */
+  campMembers(camp: number): readonly number[] {
+    return this.campPeople[camp] ?? [];
   }
 
-  readonly campRanges: { first: number; last: number }[] = [];
+  /** Living members of each camp. */
+  readonly campPeople: number[][] = [];
 }

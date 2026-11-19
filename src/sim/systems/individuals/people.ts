@@ -1,14 +1,22 @@
+import { appendColumns } from '../../core/columns';
+
 /**
  * Every human, as parallel typed arrays (structure of arrays). People are never removed:
- * the dead keep their slot (alive = 0) so that family links stay valid.
+ * the dead keep their slot (alive = 0) so that family links stay valid. Births add a slot at the
+ * end (the arrays grow by doubling: `count` slots are in use, the others wait).
  */
 export const NEEDS = ['hunger', 'thirst', 'fatigue', 'cold', 'danger'] as const;
 export type NeedId = (typeof NEEDS)[number];
 
-export const DeathCause = { None: 0, Hunger: 1, Thirst: 2, Cold: 3, Predator: 4 } as const;
+export const DeathCause = { None: 0, Hunger: 1, Thirst: 2, Cold: 3, Predator: 4, OldAge: 5, Disease: 6, Childbirth: 7 } as const;
+/** Number of death causes (None included): texts indexed by cause have this length. */
+export const DEATH_CAUSE_COUNT = 8;
+/** Room made at least when the arrays grow (technical). */
+const MIN_GROWTH = 16;
 
 export class People {
-  readonly count: number;
+  /** Slots in use (living and dead); the arrays may be longer. */
+  count: number;
   readonly names: string[];
   readonly alive: Uint8Array;
   readonly female: Uint8Array;
@@ -74,7 +82,7 @@ export class People {
     this.waterSlots = waterSlots;
     this.foodSlots = foodSlots;
     this.names = new Array<string>(count).fill('');
-    this.alive = new Uint8Array(count).fill(1);
+    this.alive = new Uint8Array(count);
     this.female = new Uint8Array(count);
     this.ageYears = new Float32Array(count);
     this.mother = new Int32Array(count).fill(-1);
@@ -114,6 +122,22 @@ export class People {
     this.pathIndex = new Int32Array(count);
   }
 
+  /** Room for the arrays (slots in use or waiting). */
+  get capacity(): number {
+    return this.alive.length;
+  }
+
+  /** A new person at the end (all values at their defaults, alive). Returns their index. */
+  add(): number {
+    if (this.count >= this.capacity) {
+      const extra = Math.max(MIN_GROWTH, this.capacity);
+      appendColumns(this, new People(extra, this.traitCount, this.skillCount, this.waterSlots, this.foodSlots));
+    }
+    const person = this.count++;
+    this.alive[person] = 1;
+    return person;
+  }
+
   trait(person: number, trait: number): number {
     return this.traits[person * this.traitCount + trait]!;
   }
@@ -138,7 +162,7 @@ export class People {
 
   get living(): number {
     let n = 0;
-    for (const a of this.alive) n += a;
+    for (let p = 0; p < this.count; p++) n += this.alive[p]!;
     return n;
   }
 }

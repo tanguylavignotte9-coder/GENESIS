@@ -59,13 +59,15 @@ export function remember(life: SocialLife, person: number, kind: MemoryKind, oth
 /** Great events shape the personality a little (design: "personnalité évolutive"). */
 function shapePersonality(life: SocialLife, person: number, effects: Record<string, number>, scale: number): void {
   const people = life.people;
-  const drift = life.params.memories.maxTraitDrift;
+  // A child is shaped more by what it lives through (famine, grief, affection), and further.
+  const childhood = life.shaping(person);
+  const drift = life.params.memories.maxTraitDrift + childhood.extraDrift;
   for (const [id, change] of Object.entries(effects)) {
     const t = life.traitIndex(id);
     if (t < 0) continue;
     const at = person * people.traitCount + t;
     const born = life.state.birthTraits[at]!;
-    const next = people.traits[at]! + change * scale;
+    const next = people.traits[at]! + change * scale * childhood.factor;
     people.traits[at] = Math.max(0, Math.min(1, Math.max(born - drift, Math.min(born + drift, next))));
   }
 }

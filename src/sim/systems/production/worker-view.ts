@@ -14,6 +14,8 @@ export interface WorkerView {
   /** Skill level 0..1 (index in the humans' skill list). */
   skill(person: number, skill: number): number;
   ageYears(person: number): number;
+  /** Strength of the body (1 = an adult in their prime): physical work goes slower when it is low. */
+  vigor(person: number): number;
   name(person: number): string;
   female(person: number): boolean;
   /** Spouse, parents and children (living or not). */

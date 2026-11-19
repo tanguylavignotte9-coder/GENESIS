@@ -8,6 +8,131 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Étape 7.5 · Déplacement naturel, écosystème — 19 nov. 2026
+
+**Fait (déplacement naturel, `src/sim/core/motion.ts`) :**
+- Humains et animaux ont une **position libre** (décimale), une **vitesse** (tuiles/heure) et une **allure**
+  (immobile, marche, course). Les colonnes entières `x`/`y` restent : elles donnent la tuile sous les pieds.
+- **Pilotage** commun : accélération et freinage (on s'arrête pile sur sa place), virages progressifs (le
+  changement de vitesse par pas est limité), évitement doux des voisins (grille de voisinage, tampon sans
+  fonction de rappel), jamais d'entrée dans l'eau (on glisse le long du bord). **Aucune trigonométrie** :
+  directions dans une table de 16 vecteurs écrits en dur, seulement + − × ÷ et `Math.sqrt` (déterministe
+  partout). Test : même graine = mêmes positions au dernier chiffre.
+- **Chemins** des humains : A* sur la grille puis tracé en **lignes droites** quand la vue est dégagée et le
+  terrain pas plus dur (`smoothPath`, `Terrain.clearLine`) ; ailleurs les coins sont arrondis (on vise le point
+  suivant dès `cornerTiles`). Le chemin du retour au camp regarde 4 tuiles devant.
+- **Vitesse** : terrain (forêt, broussailles, gué), marais, neige, pente, météo, force selon l'âge, fatigue,
+  charge portée ; **course** pour fuir ou chasser (fatigue × 2,5).
+- **Placement au repos** : chacun prend la **première place libre** d'un lieu (16 places en couronne autour du
+  milieu de la tuile, puis 16 plus près) ; autour du feu, **un cercle** (puis un second rang). L'évitement
+  s'efface près de sa propre place. Plus d'empilement (mesuré : 0 dormeur à moins de 0,15 tuile d'un autre).
+- **Groupes** : un couple qui va dans le même sens marche **côte à côte** ; un enfant **suit** son parent un
+  peu en retrait et de côté, et s'arrête à côté de lui ; chaque bête d'un **troupeau** a sa place autour du
+  meneur et la rejoint quand elle s'en écarte ; une **meute** approche sa proie de plusieurs côtés puis freine
+  dessus ; la meute mange autour de la carcasse.
+- **Vraies distances** au lieu de « même case » / « case voisine » : conversations (`talkTiles`), dons,
+  contagion, témoins, corps retrouvés, apprentissage en regardant, prédateurs (vigilance, isolement, attaque),
+  chasse (portées 1,4 et 3,5 tuiles), chaleur du feu, gibier qui fuit. Restent en tuiles (logique de terrain) :
+  territoire du camp, sources de matériaux, emplacements des bâtiments, territoire des animaux.
+- Un chasseur humain qui **voit** son gibier lui court droit dessus (sans recalculer de chemin).
+- **Affichage** : instantanés avec position décimale, vitesse et allure, envoyés **seulement quand un pas a eu
+  lieu** ; le dessin suit une **courbe de Hermite** entre deux pas (départ avec la vitesse affichée, arrivée
+  avec la nouvelle : trajectoires arrondies, pas d'à-coup). Humains de **face, de dos ou de profil** (miroir à
+  gauche) selon la direction, marche et **course** (foulées plus rapides et plus amples) ; animaux tournés du
+  côté où ils vont, course animée. Aux vitesses élevées, placement direct (inchangé).
+- `npm run sim -- --ecosystem` : faune et flore seules, recensement tous les 10 ans, causes de mort.
+
+**Fait (écosystème, corrections au niveau des individus) :**
+- Mesure de départ (sans humains, 200 ans, graines 42 et 7) : **carotte, igname, ortie, roseau, blé et lin
+  sauvages à 0 dès 20 à 50 ans**, myrtillier à 0 vers 150 ans. Cause principale : les herbes ne se
+  renouvelaient pas (trop peu de graines pour une plante qui vit 1 à 3 ans), puis les ligneux prenaient
+  chaque tuile libérée. Aurochs ×0,1 à 0,4, sangliers ×4,5, chèvres ×5, ours ×5.
+- Flore : graines des herbes réalistes (25 à 50 par an) ; une herbe morte de vieillesse **ressème à ses pieds**
+  (60 %) ; jeunes arbres et arbustes **étouffés par l'herbe haute** (prairies ouvertes) ; herbes qui lèvent mal
+  **sous un couvert fermé**, sauf les plantes de sous-bois (`shadeTolerance` : ortie, myrtille, igname) ; une
+  pousse lève mal **au milieu de sa propre espèce** (parasites propres à l'espèce, effet Janzen-Connell) ;
+  **broutage** des jeunes ligneux ; ronce et myrtille mieux dispersées (oiseaux).
+- Faune : **intervalle entre portées** (ourse 2 ans, lionne 1,5 an, lapine 8 jours…) ; **maladies animales**
+  (`sickness` : rares, contagieuses entre bêtes proches de la même espèce, immunité ensuite ; elles circulent
+  d'autant plus que la population est dense) ; territoire plus exigeant pour sangliers (8) et chèvres (10) ;
+  un animal affamé cherche à manger **à pleine allure** ; une louve ou une lionne bien nourrie élève ses petits
+  sans exiger 150 proies autour (60 et 50).
+
+**Fait (petite correction) :** les affaires d'un mort loin du camp **restent au sol** (baluchon sur la carte),
+la nourriture y pourrit ; qui passe à moins de 3 tuiles ramasse ce qu'il peut porter ; journal « X retrouve les
+affaires de Y là où il est tombé : … » avec la mort pour cause (`production.ground`, `heritage.ts`).
+
+**Défauts trouvés et corrigés en mesurant :**
+- Dormeurs qui n'arrivaient jamais à leur couche (l'évitement des voisins les repoussait) : l'évitement s'efface
+  près de sa propre place. Places « par numéro » trop serrées (dormeurs à moins de 0,15 tuile) : attribution de
+  la première place libre.
+- Calcul 2,6 fois plus lent au début : fonctions créées à chaque appel dans les boucles chaudes (grille parcourue
+  sans rappel), évitement des animaux recalculé seulement quand ils réfléchissent (1 pas sur 4). Ramené à +30 %.
+- Chasse humaine : le chasseur marchait jusqu'à la case du gibier, freinait, recalculait un chemin (0 prise
+  contre 15 avec l'ancien code sur le même scénario) → il court droit sur le gibier qu'il voit (9 prises).
+- Poursuites des fauves aussi efficaces qu'avant (0,60 cerf par essai contre 0,53), mais un fauve affamé
+  « se promenait » à 60 % de sa vitesse : un animal affamé cherche à manger à pleine allure.
+- **Tribus mortes de soif** (graines 3 et 5, en moins de 10 ans) : le point d'eau mémorisé était la tuile du
+  feu, et toute personne allant au feu s'asseyait en cercle à 1,2 tuile, sans pouvoir boire. Le cercle ne sert
+  plus qu'à se chauffer, dormir dehors, rentrer ou se réfugier ; arrivé sans eau, on oublie ce souvenir.
+
+**Décisions et écarts (à valider) :**
+- Le pilotage est dans `core/` (comme la grille de voisinage) : un seul code pour humains et animaux.
+- Les animaux gardent un pas par heure de jeu (24 par jour) : leur mouvement est lissé à l'écran par la courbe
+  de Hermite. L'évitement entre animaux est rafraîchi une fois tous les 4 pas (coût).
+- Les rayons exprimés auparavant « en cases » (carré) deviennent des distances réelles (disque) : portées de
+  chasse humaine et rayons de chasse des fauves agrandis pour couvrir la même surface. Territoires des animaux,
+  sources de matériaux et bâtiments restent comptés en tuiles (logique de terrain).
+- Les bébés portés suivent exactement leur porteur (pas d'évitement entre eux).
+- `walkTilesPerHour` remplace `moveChance` des animaux (même valeur, en tuiles par heure) : un preset qui
+  contient `moveChance` affiche « variable inconnue ignorée ».
+- Les maladies animales n'ont pas de récit au journal (seulement la cause « maladie » dans les statistiques).
+- Le test de rendu n'a été lancé que sous écran virtuel (rendu logiciel) : chiffres très pessimistes.
+
+**Dette technique :**
+- Pas d'animation sur place (s'asseoir, gestes de travail) → après la v1 (prévu par le design).
+- Sentiers qui se creusent → après la v1.
+- Les animaux ne contournent pas un obstacle par un chemin (ils glissent le long de l'eau) : suffisant pour
+  l'instant, à reprendre si des troupeaux se bloquent derrière des lacs.
+- **Prédateurs fragiles** (voir « Mesures ») → à reprendre avec le système de conflit / territoire (étape 11)
+  ou une étape d'équilibrage dédiée.
+
+**Dettes résolues :** les objets des morts loin du camp ne sont plus perdus (étape 8) ; défauts d'écosystème
+identifiés à l'étape 8 (herbes éliminées par les arbres, faune qui gonfle).
+
+**Mesures (serveurs de Claude Code) :**
+- **Écosystème seul, 200 ans** (graines 42, 7, 3 ; `npm run sim -- --ecosystem`) :
+  - Flore : **toutes les espèces vivent encore après 200 ans** ; les arbres progressent puis plafonnent vers
+    150 ans (bouleau ~49 000) ; herbes : carotte 14 000, pissenlit 43 000, blé 11 000, lin 12 000, igname 5 000,
+    ortie 3 200, roseau 3 800 (graine 42) ; déclin lent des herbes les premières décennies puis stabilisation
+    (succession naturelle vers la forêt là où le climat le permet, prairies qui restent ouvertes).
+  - Herbivores : tous présents, entre ×0,1 et ×3 de leur effectif de départ selon le monde et l'espèce, avec des
+    fluctuations (chèvres en recul durable sur la graine 42 : ×0,1 à ×0,4 ; aurochs ×1 à ×3). Plus d'explosion
+    continue (sangliers ×0,6 à ×2,3 au lieu de ×5 à ×8 ; ours ×1 à ×2,7 au lieu de ×4).
+  - Causes de mort des herbivores : vieillesse 15-70 %, faim 9-53 %, prédateurs 3-42 %, maladie 7-17 %.
+  - **Prédateurs : défaut restant.** Loups éteints dans les 3 mondes (vers l'an 120, 160 et 200), lions dans 1
+    sur 3 (an 120) ; ours toujours présents. Ils meurent surtout de faim (45-70 %). Essai de portées réalistes
+    (louve 3 à 6 petits) : pire (pullulation, épuisement du gibier puis effondrement en 80-110 ans), retiré.
+- **Tribu, 10 graines × 100 ans** (et non 200, pour tenir le budget de 45 min ; `npm run sim`) :
+  8 survivent (55, 63, 77, 84, 86, 95, 106, 107 habitants ; pics de 78 à 119 vers l'an 70-90, puis plateau),
+  2 s'éteignent : graine 6 vers l'an 45 et graine 3 vers l'an 85, toutes deux dans le froid nord-ouest
+  (faim chronique, épidémies « affaiblis par la faim », famines, morts de froid, camp jamais déplacé).
+  Causes de décès (1 513 morts sur les 10) : maladie 51 %, faim 24 %, vieillesse 15 %, soif 6 %, en couches 2 %,
+  froid 2 %, prédateurs 0,2 %. Mortalité avant 1 an 3 à 12 % (toujours un peu basse), avant l'âge adulte 24 à 50 %.
+  À l'étape 8 (200 ans) : pics puis déclin au 2e siècle faute de racines et céréales ; ici plus de déclin.
+- **Calcul** (`tsx`, sans mise en route, sans autre calcul en parallèle) : tribu de 30 → **94 ms** par jour de jeu
+  (65 avant l'étape, +45 % : surtout le déplacement des animaux) ; **1 000 humains → 599 ms** (505 avant, +19 %),
+  sous les 960 ms d'un jour en x500. Pendant la validation (4 calculs en parallèle) : 131 à 182 ms par jour pour
+  des tribus de 60 à 110 personnes.
+- **Test de rendu** du banc d'essai, sous écran virtuel **sans carte graphique** (rendu logiciel) : carte
+  entière 60 images/s (1 % les plus lentes : 59 en x1, 51 en x25) ; camp zoomé 21 / 18 images/s (x1 / x25) ;
+  grande forêt zoomée 20 / 17. Ancien code dans les mêmes conditions : 60 ; 22 / 19 ; 21 / 19 (même ordre).
+  Les vrais chiffres viendront du PC de Tanguy.
+- Tests rapides : 414 en ~50 s. **Tests longs : 10/10 en 21,6 min** (dont l'équilibre sur 100 ans qui vérifie
+  aussi la variété des plantes).
+
+---
+
 ## Étape 8 · Cycle de vie — 19 nov. 2026
 
 **Fait (`src/sim/systems/individuals/life/`, `data/life.json`) :**

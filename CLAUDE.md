@@ -145,6 +145,9 @@ ton compte rendu ce que Tanguy doit vérifier en le lançant.
 ## Git : commits directs sur `main`
 
 - **Aucune pull request, aucune branche** : tu commites et pousses directement sur `main`.
+  Ne pousse jamais d'autre branche sur GitHub. Si ton outil travaille sur une branche locale,
+  fusionne-la dans `main`, pousse `main` seulement, et supprime la branche distante si elle a été
+  poussée par erreur.
   (Une branche `beta` sera créée plus tard par Tanguy ; d'ici là, tout va sur `main`.)
 - Commits petits et cohérents, messages en **français**, clairs pour quelqu'un qui ne code pas
   (ex. : « Génération du relief et des biomes »).

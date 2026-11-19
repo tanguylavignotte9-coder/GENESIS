@@ -157,7 +157,8 @@
     [75, 2.5]
   ],
   "epidemic": {
-    "minCases": 4
+    "minCases": 4,
+    "minShare": 0.1
   },
   "famine": {
     "minDeaths": 2,

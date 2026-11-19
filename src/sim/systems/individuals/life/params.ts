@@ -76,7 +76,7 @@ export interface LifeParams {
   diseases: DiseaseDef[];
   frailty: { hungerFrom: number; coldFrom: number };
   ageVulnerability: [number, number][];
-  epidemic: { minCases: number };
+  epidemic: { minCases: number; minShare: number };
   famine: { minDeaths: number; windowDays: number };
   orphans: { minGuardianAge: number; maxGuardianAge: number; kinBonus: number; bondWeight: number; generosityEffect: number; burdenPerChild: number; minWillingness: number };
   census: { everyDays: number };
@@ -286,6 +286,7 @@ export const LIFE_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         minCases: int(2, 100, 'Épidémie', 'Nombre de malades en même temps d’une même maladie dans une tribu pour que le journal parle d’épidémie.', 'malades'),
+        minShare: num(0, 1, 'Part de malades', 'Il faut aussi au moins cette part de la tribu malade en même temps pour parler d’épidémie (une grande tribu a toujours quelques malades).', 'fraction'),
       },
     },
     famine: {

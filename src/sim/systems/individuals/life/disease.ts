@@ -129,7 +129,8 @@ function noteCase(life: LifeCycle, person: number, disease: number): void {
     return;
   }
   const sick = cases(life, camp, disease);
-  if (sick.length < life.params.epidemic.minCases) return;
+  const { minCases, minShare } = life.params.epidemic;
+  if (sick.length < Math.max(minCases, Math.ceil(minShare * life.sys.campMembers(camp).length))) return;
   const x = life.people.x[person]!;
   const y = life.people.y[person]!;
   const hardship = life.hardshipAt(life.sys.tileOf(person));

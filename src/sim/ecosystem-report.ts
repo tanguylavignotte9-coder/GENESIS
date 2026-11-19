@@ -1,6 +1,7 @@
 import type { GameData } from './core/game-data';
 import { Simulation } from './core/simulation';
 import { daysPerYear } from './core/time-params';
+import { DEATH_CAUSE_NAMES } from './systems/fauna/fauna-system';
 
 /** One census of the ecosystem alone: animals and plants per species. */
 export interface EcosystemSample {
@@ -14,6 +15,9 @@ export interface EcosystemReport {
   animalNames: string[];
   plantNames: string[];
   samples: EcosystemSample[];
+  /** Deaths of each species over the run, by cause (names in `causeNames`). */
+  deaths: number[][];
+  causeNames: readonly string[];
   msPerDay: number;
 }
 
@@ -37,6 +41,8 @@ export function runEcosystem(seed: number, years: number, everyYears: number, da
     animalNames: data.fauna.species.map((species) => species.name),
     plantNames: data.flora.species.map((species) => species.name),
     samples,
+    deaths: simulation.fauna.deaths.map((causes) => [...causes]),
+    causeNames: DEATH_CAUSE_NAMES,
     msPerDay: (now() - startedAt) / Math.max(1, years * yearDays),
   };
 }

@@ -284,7 +284,7 @@ function travel(fauna: FaunaSystem, slot: number, species: AnimalSpecies, state:
     if (state === State.Flee) {
       running = true;
       speed = store.fleesHuman[slot] === 1 ? species.fleeSprintTiles : species.walkTilesPerHour * movement.panicRunFactor;
-    } else if (state === State.Wander) speed *= movement.wanderSpeedShare;
+    } else if (state === State.Wander && store.hunger[slot]! <= params.needs.seekFoodAbove) speed *= movement.wanderSpeedShare; // a hungry animal roams in search of food
     else if (state === State.Follow && away > movement.herdSlackTiles * 2) speed *= movement.panicRunFactor;
     moveTo(fauna, slot, tx, ty, speed, true, running);
     return;
@@ -361,7 +361,9 @@ export function chase(fauna: FaunaSystem, slot: number, species: AnimalSpecies, 
     tx += DIRECTIONS_X[k]! * movement.encircleTiles;
     ty += DIRECTIONS_Y[k]! * movement.encircleTiles;
   }
-  moveTo(fauna, slot, tx, ty, species.sprintTiles, false, true);
+  // Close to the prey, the hunter brakes so as to stay on it instead of running past.
+  const close = d <= movement.encircleTiles + movement.catchTiles;
+  moveTo(fauna, slot, tx, ty, species.sprintTiles, close, true);
   return distance(store.px[slot]!, store.py[slot]!, px, py) <= movement.catchTiles;
 }
 

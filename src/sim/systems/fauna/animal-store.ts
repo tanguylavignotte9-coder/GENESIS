@@ -36,6 +36,8 @@ export const FLEES_HUMAN_STATE = 10;
 
 export const Sex = { Female: 0, Male: 1 } as const;
 const INITIAL_CAPACITY = 1024;
+/** "Never gave birth" (technical: far in the past). */
+const NEVER = -1000000;
 
 export class AnimalStore {
   capacity = 0;
@@ -82,6 +84,11 @@ export class AnimalStore {
   fleesHuman = new Uint8Array(0);
   /** Days of pregnancy left, 0 = not pregnant. */
   pregnancy = new Int16Array(0);
+  /** Day of the last litter (a mother raising her young does not conceive again at once). */
+  lastBirthDay = new Int32Array(0);
+  /** Days of illness left (0 = healthy), then days of immunity left. */
+  sickDays = new Uint8Array(0);
+  immuneDays = new Int16Array(0);
   /** Spatial grid cell the animal is registered in. */
   cell = new Int32Array(0);
 
@@ -104,6 +111,9 @@ export class AnimalStore {
     this.fleesHuman[slot] = 0;
     this.wariness[slot] = 1;
     this.pregnancy[slot] = 0;
+    this.lastBirthDay[slot] = NEVER;
+    this.sickDays[slot] = 0;
+    this.immuneDays[slot] = 0;
     this.state[slot] = State.Rest;
     this.vx[slot] = 0;
     this.vy[slot] = 0;
@@ -154,6 +164,9 @@ export class AnimalStore {
     this.wariness = copy(this.wariness, (n) => new Float32Array(n));
     this.fleesHuman = copy(this.fleesHuman, (n) => new Uint8Array(n));
     this.pregnancy = copy(this.pregnancy, (n) => new Int16Array(n));
+    this.lastBirthDay = copy(this.lastBirthDay, (n) => new Int32Array(n));
+    this.sickDays = copy(this.sickDays, (n) => new Uint8Array(n));
+    this.immuneDays = copy(this.immuneDays, (n) => new Int16Array(n));
     this.cell = copy(this.cell, (n) => new Int32Array(n));
     this.capacity = capacity;
   }

@@ -99,11 +99,13 @@ describe('people walk freely, off the grid', () => {
     const target = tileAway(simulation, 20);
     humans.goTo(mother, target);
     let maxGap = 0;
-    for (let k = 0; k < 60; k++) {
-      humans.walk(mother, HOURS);
+    let walking = true;
+    for (let k = 0; k < 200 && walking; k++) {
+      walking = humans.walk(mother, HOURS) === 'moving';
       humans.follow(child, mother, HOURS);
       maxGap = Math.max(maxGap, people.distance(mother, child));
     }
+    expect(walking).toBe(false);
     expect(maxGap).toBeLessThan(data.humans.movement.followNearTiles);
     let done = false;
     for (let k = 0; k < 40 && !done; k++) done = humans.follow(child, mother, HOURS);

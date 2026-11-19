@@ -143,6 +143,13 @@ function printEcosystem(seed: number, years: number, data: GameData): void {
   const header = report.samples.map((s) => `an ${s.year}`.padStart(8)).join('');
   console.log(`  Animaux${' '.repeat(12)}${header}`);
   report.animalNames.forEach((name, k) => console.log(`    ${name.padEnd(17)}${report.samples.map((s) => fr.format(s.animals[k]!).padStart(8)).join('')}`));
+  console.log('  Causes de mort des animaux sur la période :');
+  report.animalNames.forEach((name, k) => {
+    const deaths = report.deaths[k]!;
+    const total = deaths.reduce((a, b) => a + b, 0);
+    const parts = report.causeNames.flatMap((cause, c) => (deaths[c]! > 0 ? [`${cause} ${Math.round((deaths[c]! / total) * PERCENT)} %`] : []));
+    console.log(`    ${name.padEnd(17)}${fr.format(total).padStart(8)} morts : ${parts.join(', ')}`);
+  });
   console.log(`  Plantes${' '.repeat(12)}${header}`);
   report.plantNames.forEach((name, k) => console.log(`    ${name.padEnd(17)}${report.samples.map((s) => fr.format(s.plants[k]!).padStart(8)).join('')}`));
   console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms · durée totale ${seconds(startedAt).toFixed(0)} s`);

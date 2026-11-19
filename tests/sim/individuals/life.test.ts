@@ -28,6 +28,14 @@ function couple(simulation: Simulation): { woman: number; man: number } {
     const man = people.spouse[p]!;
     if (people.female[p] === 1 && man >= 0 && people.ageYears[p]! >= 20 && people.ageYears[p]! <= 32 && people.ageYears[man]! <= 45) return { woman: p, man };
   }
+  // None in this world: the youngest couple is made young (the scenario needs one).
+  for (let p = 0; p < people.count; p++) {
+    const man = people.spouse[p]!;
+    if (people.female[p] !== 1 || man < 0 || people.ageYears[p]! > 45) continue;
+    people.ageYears[p] = 26;
+    people.ageYears[man] = 30;
+    return { woman: p, man };
+  }
   throw new Error('no young couple');
 }
 
@@ -336,11 +344,14 @@ describe('orphans and inheritance', () => {
     social.state.affection[social.state.slotOf(friend, father)] = 90;
     learn(social, friend, [...social.news.facts.values()].find((fact) => fact.kind === 'death' && fact.subject === father)!, 0, -1);
     simulation.step(dayTicks);
+    // One of the children of the dead (here or a brother or sister) is taken in, by someone alive.
     const adoption = simulation.journal.all().find((event) => event.type === ADOPTION);
     expect(adoption).toBeDefined();
     expect(adoption!.causes).toContain(death);
-    expect(life.state.guardian[child]).toBeGreaterThanOrEqual(0);
-    expect(people.alive[life.state.guardian[child]!]).toBe(1);
+    const adopted = Number(adoption!.details['child']);
+    expect(people.father[adopted]).toBe(father);
+    expect(life.state.guardian[adopted]).toBeGreaterThanOrEqual(0);
+    expect(people.alive[life.state.guardian[adopted]!]).toBe(1);
   });
 
   it('nobody takes in an orphan they do not care about', () => {

@@ -31,6 +31,8 @@ export interface AnimalSpecies {
   litter: [number, number];
   /** Chance per day, for a fertile female during the mating season. */
   conceptionChance: number;
+  /** A mother does not conceive again for this many days after giving birth (she raises her young). */
+  birthIntervalDays: number;
   /** Territory: a female does not breed if more than `crowdingMax` animals of her species live within `crowdingRadius` tiles. */
   crowdingRadius: number;
   crowdingMax: number;
@@ -101,6 +103,8 @@ export interface FaunaParams {
     /** A female finds a mate if an adult male of her species is within this distance. */
     mateRadius: number;
   };
+  /** Animal diseases: rare outbreaks, contagion between close animals of a species, immunity. */
+  sickness: { outbreakPerDay: number; contagionTiles: number; transmitPerDay: number; sickDays: number; damagePerDay: number; immuneDays: number };
   /** Natural movement (core/motion): acceleration, running, herds, packs, avoidance. */
   movement: {
     accelTilesPerHour2: number;
@@ -167,6 +171,7 @@ const SPECIES_SCHEMA: Schema = {
     gestationDays: int(1, 400, 'Gestation', 'Durée de la gestation.', 'jours'),
     litter: pair(num(1, 20, 'Portée [min, max]', 'Nombre de petits par mise bas.', 'petits')),
     conceptionChance: share('Chance de conception', 'Chance par jour, pour une femelle fertile pendant la saison des amours.'),
+    birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas : elle élève ses petits.', 'jours'),
     crowdingRadius: int(1, 64, 'Rayon du territoire', 'Une femelle ne met pas bas si trop d’animaux de son espèce vivent dans ce rayon.', 'tuiles'),
     crowdingMax: int(1, 10000, 'Voisins tolérés', 'Nombre maximal d’animaux de l’espèce dans le territoire pour qu’une femelle se reproduise.', 'animaux'),
     preyCheckRadius: int(0, 64, 'Rayon du gibier', 'Chasseurs : rayon où la femelle compte le gibier avant d’élever des petits.', 'tuiles'),
@@ -239,12 +244,23 @@ export const ANIMALS_SCHEMA: Schema = {
         mateRadius: int(1, 200, 'Recherche d’un partenaire', 'Une femelle trouve un mâle adulte de son espèce dans ce rayon.', 'tuiles'),
       },
     },
+    sickness: {
+      kind: 'object',
+      fields: {
+        outbreakPerDay: num(0, 0.1, 'Maladie spontanée', 'Chance par jour qu’un animal sain tombe malade de lui-même (parasites, mauvaise eau).', 'chance/jour'),
+        contagionTiles: num(0, 10, 'Contagion', 'Un animal malade peut contaminer les animaux de son espèce à moins de cette distance.', 'tuiles'),
+        transmitPerDay: share('Transmission', 'Chance par jour qu’un animal malade contamine chacun de ses voisins de la même espèce.'),
+        sickDays: int(1, 100, 'Durée de la maladie', 'Jours pendant lesquels un animal reste malade (il ne se reproduit pas).', 'jours'),
+        damagePerDay: num(0, 100, 'Gravité', 'Santé perdue par jour par un animal malade (il en meurt si sa santé tombe à zéro).', 'points/jour'),
+        immuneDays: int(0, 2000, 'Immunité', 'Après la guérison, l’animal ne retombe pas malade pendant ce nombre de jours.', 'jours'),
+      },
+    },
     movement: {
       kind: 'object',
       fields: {
         accelTilesPerHour2: num(0.5, 100, 'Accélération', 'Changement de vitesse possible en une heure : démarrer, freiner, tourner (plus faible = virages plus larges).', 'tuiles/heure²'),
         panicRunFactor: num(1, 4, 'Course de panique', 'Une proie qui fuit un prédateur court à sa vitesse de marche multipliée par ce facteur.', 'facteur'),
-        wanderSpeedShare: share('Allure de promenade', 'Un animal qui se promène marche à cette part de sa vitesse.'),
+        wanderSpeedShare: share('Allure de promenade', 'Un animal rassasié qui se promène marche à cette part de sa vitesse (affamé, il cherche à manger à pleine allure).'),
         arriveTiles: num(0.05, 2, 'Arrivée', 'Distance à laquelle l’animal est arrivé là où il allait.', 'tuiles'),
         personalSpaceTiles: num(0, 3, 'Espace personnel', 'Distance en dessous de laquelle deux animaux s’écartent doucement l’un de l’autre.', 'tuiles'),
         avoidTilesPerHour: num(0, 10, 'Évitement', 'Force avec laquelle deux animaux trop proches s’écartent.', 'tuiles/heure'),

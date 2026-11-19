@@ -43,6 +43,8 @@ export interface PlantSpecies {
   seedsPerYear: number;
   seedRadius: number;
   germinationChance: number;
+  /** 0..1: how well its seedlings bear the shade of a closed canopy (1 = not at all bothered). */
+  shadeTolerance?: number;
   produce?: Produce;
   /** What the plant gives when it is cut down (at full size). */
   materials?: ResourceAmount[];
@@ -61,6 +63,22 @@ export interface FloraParams {
   initialCoverByBiome: Record<string, number>;
   /** Share of the grass capacity left under a plant of each kind (trees shade the ground). */
   shadeByKind: Record<PlantKind, number>;
+  /**
+   * Where a seedling takes root: in thick grass, young woody plants are choked (and burnt, grazed);
+   * under a closed canopy, light-hungry plants do not come up.
+   */
+  establishment: {
+    grassCompetitionByKind: Record<PlantKind, number>;
+    canopyShadeByKind: Record<PlantKind, number>;
+    /** Size (share of the adult size) from which a tree shades its neighbours. */
+    canopyGrowth: number;
+    /** Share of seedlings lost when all 8 neighbours are plants of their own species (pests and diseases of the species). */
+    sameSpeciesCrowding: number;
+    /** Chance that a herb dying of old age leaves a seedling of its own in its place (seeds fallen at its feet). */
+    herbReseedChance: number;
+  };
+  /** Grazing animals bite off the young shoots of trees and shrubs on the tiles they graze. */
+  browsing: { maxGrowth: number; damagePerGrassUnit: number };
   grass: {
     maxAmount: number;
     growthPerDay: number;
@@ -112,6 +130,37 @@ export const PLANTS_SCHEMA: Schema = {
         herb: share('Herbe sous une plante basse', 'Part de l’herbe qui pousse encore sous une plante herbacée.'),
       },
     },
+    establishment: {
+      kind: 'object',
+      fields: {
+        grassCompetitionByKind: {
+          kind: 'object',
+          fields: {
+            tree: share('Jeune arbre dans l’herbe', 'Part des graines d’arbre qui échouent sur une tuile couverte d’herbe haute (l’herbe étouffe la pousse) ; moins s’il y a moins d’herbe.'),
+            shrub: share('Jeune arbuste dans l’herbe', 'Part des graines d’arbuste qui échouent sur une tuile couverte d’herbe haute.'),
+            herb: share('Plante basse dans l’herbe', 'Part des graines de plante basse qui échouent sur une tuile couverte d’herbe haute.'),
+          },
+        },
+        canopyShadeByKind: {
+          kind: 'object',
+          fields: {
+            tree: share('Jeune arbre à l’ombre', 'Part des graines d’arbre qui échouent quand les 8 tuiles voisines portent de grands arbres (sous-bois sombre).'),
+            shrub: share('Arbuste à l’ombre', 'Part des graines d’arbuste qui échouent sous un couvert d’arbres fermé.'),
+            herb: share('Plante basse à l’ombre', 'Part des graines de plante basse qui échouent sous un couvert d’arbres fermé (elles ont besoin de lumière).'),
+          },
+        },
+        herbReseedChance: share('Ressemis sur place', 'Chance qu’une plante basse qui meurt de vieillesse laisse une jeune pousse de son espèce à sa place (ses graines tombées à ses pieds), si le climat lui convient.'),
+        sameSpeciesCrowding: share('Voisins de la même espèce', 'Part des graines qui échouent quand les 8 tuiles voisines portent déjà des plantes de leur espèce : parasites et maladies propres à une espèce s’accumulent là où elle est dense, ce qui laisse de la place aux autres.'),
+        canopyGrowth: share('Arbre qui fait de l’ombre', 'Taille (part de la taille adulte) à partir de laquelle un arbre ombrage les tuiles voisines.'),
+      },
+    },
+    browsing: {
+      kind: 'object',
+      fields: {
+        maxGrowth: share('Pousses broutées', 'Les herbivores qui broutent une tuile abîment l’arbre ou l’arbuste qui y pousse tant qu’il est plus petit que cette part de sa taille adulte.'),
+        damagePerGrassUnit: num(0, 1, 'Dégâts du broutage', 'Santé perdue par la jeune pousse pour chaque unité d’herbe broutée sur sa tuile.', 'fraction/unité'),
+      },
+    },
     grass: {
       kind: 'object',
       fields: {
@@ -145,6 +194,7 @@ export const PLANTS_SCHEMA: Schema = {
           seedsPerYear: num(0, 100, 'Graines par an', 'Graines lancées par an par une plante adulte en bonne santé.', 'graines/an'),
           seedRadius: int(1, 32, 'Portée des graines', 'Distance maximale à laquelle tombent les graines.', 'tuiles'),
           germinationChance: share('Germination', 'Chance qu’une graine tombée sur une tuile libre germe (dans un climat idéal).'),
+          shadeTolerance: share('Tolérance à l’ombre', 'Plantes de sous-bois : part de la gêne due à l’ombre des grands arbres qu’elles ne subissent pas (0 = gênée comme les autres de son port).'),
           produce: {
             kind: 'object',
             fields: {
@@ -156,7 +206,7 @@ export const PLANTS_SCHEMA: Schema = {
           },
           materials: AMOUNTS,
         },
-        optional: ['produce', 'materials', 'accentColor'],
+        optional: ['produce', 'materials', 'accentColor', 'shadeTolerance'],
       },
     },
   },

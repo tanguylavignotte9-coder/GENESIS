@@ -332,9 +332,9 @@ export const PRODUCTION_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         searchTiles: int(2, 60, 'Repérage du gibier', 'Distance à laquelle un chasseur repère une proie.', 'tuiles'),
-        strikeTiles: int(1, 5, 'Portée de la lance', 'Distance à laquelle on peut frapper une proie à la lance.', 'tuiles'),
+        strikeTiles: num(0.5, 5, 'Portée de la lance', 'Distance à laquelle on peut frapper une proie à la lance.', 'tuiles'),
         rangedTools: idList('Arme de jet', 'Outils qui permettent de tirer de loin.'),
-        rangedStrikeTiles: int(1, 15, 'Portée de l’arc', 'Distance de tir avec une arme de jet.', 'tuiles'),
+        rangedStrikeTiles: num(0.5, 15, 'Portée de l’arc', 'Distance de tir avec une arme de jet.', 'tuiles'),
         successChance: num(0, 1, 'Réussite d’un coup', 'Chance qu’un débutant tue sa proie à chaque tentative (une par heure de traque à portée).', 'probabilité'),
         skillBonus: num(0, 1, 'Effet de l’expérience', 'Chance de réussite ajoutée par une compétence de chasse parfaite.', 'probabilité'),
         meatPerCarcass: num(1, 100, 'Taille d’une carcasse', 'Viande d’animal par unité de carcasse rapportée (un cerf de 30 donne 3 carcasses).', 'unités'),

@@ -98,6 +98,8 @@ qui pousse et se fait brouter.
 | `seedlingHealth`, `seedlingGrowth` | Santé et taille d'une plante qui vient de germer |
 | `initialCoverByBiome` | Part des tuiles de chaque biome couvertes au départ |
 | `shadeByKind` | Part de l'herbe qui pousse encore sous un arbre, un arbuste ou une herbe |
+| `establishment.*` | Où une graine prend racine (étape 7.5) : `grassCompetitionByKind`, part des graines étouffées par une herbe haute (les jeunes arbres s'installent mal dans une prairie) ; `canopyShadeByKind`, part perdue sous un couvert d'arbres fermé (les herbes ont besoin de lumière) ; `canopyGrowth`, taille à partir de laquelle un arbre fait de l'ombre |
+| `browsing.*` | Broutage (étape 7.5) : un herbivore qui broute une tuile abîme le jeune arbre ou arbuste qui y pousse tant qu'il est plus petit que `maxGrowth` de sa taille adulte (`damagePerGrassUnit` de santé par unité d'herbe broutée) |
 | `grass.*` | Herbe : quantité maximale, pousse par jour, température minimale, humidité idéale, couverture par biome |
 | `species` | Les espèces (voir ci-dessous) |
 
@@ -114,7 +116,7 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 
 | Clé | Rôle |
 | --- | --- |
-| `stepsPerDay` | Nombre de fois par jour où chaque animal agit (et se déplace d'au plus une case) |
+| `stepsPerDay` | Nombre de fois par jour où chaque animal agit et se déplace (24 = une fois par heure) |
 | `thinkEverySteps` | Un animal réfléchit (choisit quoi faire) une fois tous les N pas, chacun à son rythme |
 | `gridCellTiles` | Taille des cases de la grille qui sert à trouver les voisins (technique) |
 | `needs.*` | Seuils de faim et de soif, dégâts de la faim, de la soif, du froid et de la vieillesse |
@@ -124,6 +126,8 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 | `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
 | `humanPrey.*` | Prédateurs et humains : espèces qui peuvent attaquer une personne seule, faim minimale, distance en dessous de laquelle une personne n'est pas « seule », chance d'attaque par pas, blessure |
 | `events.*` | Seuils et phrases du journal (migrations, disparitions, effondrements) |
+| `sickness.*` | Maladies des animaux (étape 7.5) : chance par jour de tomber malade de soi-même, distance et chance de contagion entre animaux de la même espèce, durée, gravité (santé perdue par jour), durée de l'immunité après guérison |
+| `movement.*` | Déplacement naturel (étape 7.5) : accélération (virages plus ou moins larges), course de panique, allure de promenade, distance d'arrivée, espace personnel et évitement, espacement et souplesse des troupeaux, encerclement d'une proie par la meute, distance de contact pour la terrasser |
 
 Pour chaque espèce : `diet` (herbe, viande, poisson ou une récolte de plante, avec une préférence),
 `prey` (espèces chassées), `habitat` (densité de départ par biome), `populationPer1000Tiles`,
@@ -133,7 +137,9 @@ territoire (`crowdingRadius`, `crowdingMax` : une femelle ne met pas bas si trop
 l'entourent), pour les chasseurs `preyCheckRadius` / `breedingMinPrey` (assez de gibier autour pour élever
 des petits), faim et soif par jour, nourriture nécessaire, température minimale, vitesse, rayons de fuite et
 de chasse, `migratory` / `migrationTiles`, `domesticable` (pour l'élevage plus tard) et `carcass`
-(ce que l'animal fournit à sa mort).
+(ce que l'animal fournit à sa mort). Vitesses en tuiles par heure : `walkTilesPerHour` (marche),
+`fleeSprintTiles` (fuite devant un humain), `sprintTiles` (poursuite d'un chasseur).
+`birthIntervalDays` : une mère ne conçoit pas de nouveau tant qu'elle élève ses petits.
 
 ## Métadonnées des variables (Atelier des variables)
 
@@ -167,7 +173,8 @@ par les humains et leur vitesse de marche.
 | `skills`, `skillLearning` | Compétences (cueillette, artisanat, chasse…), le métier affiché pour chacune, vitesse d'apprentissage par la pratique |
 | `stepsPerHour`, `thinkEveryMinutes` | Rythme d'action et de réflexion de chaque personne |
 | `needs` | Vitesse de la faim (moins vite en dormant), de la soif, de la fatigue, du froid ; dégâts et guérison (un jeûne tue en plusieurs semaines) |
-| `body` | Vitesse de marche, perception, charge qu'on peut porter (`carryCapacity`), vitesse des repas |
+| `body` | Vitesse de marche, course (fuir, chasser), perception, charge qu'on peut porter (`carryCapacity`), vitesse des repas |
+| `movement` | Déplacement naturel (étape 7.5) : accélération et virages, arrivée, lignes droites des chemins, espace personnel et évitement, place de chacun sur un lieu et cercle autour du feu, ralentissements (marais, neige, pente, fatigue, charge), essoufflement de la course, marche côte à côte d'un couple, enfant qui suit son parent, distance de conversation, chemin bloqué |
 | `camp` | Chaleur maximale d'un abri ou d'un feu, territoire connu autour du camp (le feu et les huttes sont des bâtiments : `buildings.json`) |
 | `memory` | Nombre de points d'eau et de coins de cueillette retenus, durée avant l'oubli |
 | `danger` | Animaux redoutés, vigilance, isolement, peur en groupe, viande laissée par un corps (les attaques elles-mêmes se règlent dans `animals.json` → `humanPrey`) |
@@ -229,7 +236,8 @@ Bâtiments de départ, conservation des aliments (température de référence, e
 collectif), qualité des produits (compétence, outils, hasard), travail (rapidité des experts, recherche de
 matériaux, goût pour la nourriture qui se garde, emplacement des constructions), chasse (repérage, portée de la
 lance et de l'arc, réussite, taille d'une carcasse, patience), champs (croissance, rendement), sources de terrain
-(où trouver pierres, silex, argile, eau) et phrases du journal.
+(où trouver pierres, silex, argile, eau) et phrases du journal. `ground.findTiles` : les affaires d'une personne
+morte loin du camp restent au sol ; qui passe à cette distance les ramasse (étape 7.5).
 
 ## `social.json` — la vie sociale (étape 7)
 

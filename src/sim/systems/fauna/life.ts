@@ -17,12 +17,13 @@ export function liveOneDay(fauna: FaunaSystem, slot: number): void {
     return;
   }
 
-  const damages = [0, 0, 0, 0];
+  const damages = [0, 0, 0, 0, 0, 0, 0];
   if (store.hunger[slot]! >= FULL) damages[DeathCause.Starvation] = needs.starvationDamagePerDay;
   if (store.thirst[slot]! >= FULL) damages[DeathCause.Thirst] = needs.thirstDamagePerDay;
   const temperature = fauna.climate.temperatureAt(store.y[slot]! * fauna.size + store.x[slot]!);
   if (temperature < species.minCelsius) damages[DeathCause.Cold] = (species.minCelsius - temperature) * needs.coldDamagePerDegreeDay;
   if (age > needs.oldAgeShare * maxAgeDays) damages[DeathCause.Age] = needs.oldAgeDamagePerDay;
+  if (store.sickDays[slot]! > 0) damages[DeathCause.Disease] = fauna.params.sickness.damagePerDay;
   const total = damages.reduce((sum, value) => sum + value, 0);
   if (total > 0) {
     store.health[slot] = store.health[slot]! - total;
@@ -42,10 +43,12 @@ export function liveOneDay(fauna: FaunaSystem, slot: number): void {
   if (canConceive(fauna, slot) && fauna.rng.nextFloat() < species.conceptionChance) store.pregnancy[slot] = species.gestationDays;
 }
 
-function canConceive(fauna: FaunaSystem, slot: number): boolean {
+export function canConceive(fauna: FaunaSystem, slot: number): boolean {
   const { store, params } = fauna;
   const species = fauna.speciesOf(slot);
   if (store.sex[slot] !== Sex.Female || store.ageDays[slot]! < species.adultAgeYears * fauna.daysPerYear) return false;
+  // A mother still raising her last young, or a sick animal, does not conceive.
+  if (fauna.day - store.lastBirthDay[slot]! < species.birthIntervalDays || store.sickDays[slot]! > 0) return false;
   if (store.health[slot]! < params.behavior.breedingMinHealth || store.hunger[slot]! > params.behavior.breedingMaxHunger) return false;
   const northern = store.y[slot]! < fauna.size / 2;
   const day = localDayOfYear(fauna.climate.dayOfYear, northern, fauna.daysPerYear);
@@ -105,6 +108,7 @@ function giveBirth(fauna: FaunaSystem, mother: number): void {
   const { store } = fauna;
   const species = fauna.speciesOf(mother);
   const young = fauna.rng.nextIntInclusive(species.litter[0], species.litter[1]);
+  store.lastBirthDay[mother] = fauna.day;
   for (let k = 0; k < young; k++) {
     const child = fauna.spawn(store.species[mother]!, store.px[mother]!, store.py[mother]!, store.group[mother]!, 0);
     store.hunger[child] = 0;

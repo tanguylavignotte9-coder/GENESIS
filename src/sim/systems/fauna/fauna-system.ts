@@ -18,6 +18,7 @@ import { pathToFreshWater } from './fresh-water';
 import { maintainGroups } from './group-life';
 import { GroupStore } from './groups';
 import { liveOneDay } from './life';
+import { spreadSickness } from './sickness';
 import type { AnimalSpecies, FaunaParams } from './params';
 import { SpatialGrid } from '../../core/spatial-grid';
 import { personalSpot } from '../../core/motion';
@@ -27,8 +28,8 @@ const HOURS_PER_DAY = 24;
 const SPAWN_SPREAD = 0.4;
 const SPOT = { x: 0, y: 0 };
 
-export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4, Hunted: 5 } as const;
-export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs', 'chasseurs'] as const;
+export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4, Hunted: 5, Disease: 6 } as const;
+export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs', 'chasseurs', 'maladie'] as const;
 const PERCENT = 100;
 
 /**
@@ -58,6 +59,8 @@ export class FaunaSystem {
   /** Last year each migration (species:landmass:direction) was reported in the journal. */
   readonly migrationReports = new Map<string, number>();
   step = 0;
+  /** Absolute day of the last daily update. */
+  day = 0;
   /** Game hours between two steps of an animal. */
   readonly hoursPerStep: number;
   /** Ground an animal may walk on (no sea, no lake). */
@@ -166,7 +169,9 @@ export class FaunaSystem {
   /** Daily life: needs and health, ageing, births and deaths, herds, fish regrowth, census. */
   runDay(absoluteDay: number, dayOfYear: number, journal: Journal, tick: number): void {
     this.fish.dailyUpdate(absoluteDay);
+    this.day = absoluteDay;
     this.carrion.rot(this.params.carrion.rotPerDay, this.params.carrion.minimumMeat);
+    spreadSickness(this);
     for (let slot = 0; slot < this.store.slots; slot++) {
       if (this.store.alive[slot] === 1) liveOneDay(this, slot);
     }

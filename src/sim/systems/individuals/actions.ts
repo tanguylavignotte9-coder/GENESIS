@@ -173,6 +173,11 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
   const { people, params, production } = sys;
   const body = params.body;
   const behavior = action.def.behavior;
+  if (behavior === 'harvest' && production.isHunting(person)) {
+    // Game in sight: the hunter runs straight at it (no path to plan) and strikes when in reach.
+    const prey = production.preyPosition(person);
+    if (prey && people.distanceTo(person, prey.x, prey.y) <= params.movement.followNearTiles) return work(sys, person, hours, prey);
+  }
   if (JOBS[behavior]) return sys.arrived(person, hours, () => work(sys, person, hours));
   switch (behavior) {
     case 'drink':
@@ -259,8 +264,11 @@ function beCarried(sys: IndividualsSystem, person: number, hours: number): boole
   return false;
 }
 
-/** On the job's tile: one step of work by the production system, then where to go next. */
-function work(sys: IndividualsSystem, person: number, hours: number): boolean {
+/**
+ * On the job's tile: one step of work by the production system, then where to go next. A hunter
+ * chasing game in sight (`chase`: where it is) runs at it instead of planning a way.
+ */
+function work(sys: IndividualsSystem, person: number, hours: number, chase: { x: number; y: number } | null = null): boolean {
   const { people, production } = sys;
   people.working[person] = 1;
   const result = production.workAt(person, hours);
@@ -271,6 +279,13 @@ function work(sys: IndividualsSystem, person: number, hours: number): boolean {
     case 'working':
       return false;
     case 'move':
+      if (chase) {
+        people.working[person] = 0;
+        people.paths[person] = null;
+        people.settled[person] = 0;
+        sys.moveStep(person, chase.x, chase.y, false, hours);
+        return false;
+      }
       if (sys.goToWork(person, result.tile)) return false;
       production.endJob(person);
       return true;

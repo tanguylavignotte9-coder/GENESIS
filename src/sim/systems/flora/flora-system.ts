@@ -10,6 +10,9 @@ import type { FloraParams, PlantSpecies } from './params';
 const OLD_AGE_SPREAD = 0.2;
 /** A plant must be at least this healthy (0..1) to spread seeds. */
 const MIN_HEALTH_TO_SEED = 0.3;
+const KIND_TREE = 1;
+const KIND_SHRUB = 2;
+const NEIGHBOURS = 8;
 
 /**
  * Wild plants: one individual per land tile at most, plus a grass cover per tile.
@@ -21,6 +24,12 @@ export class FloraSystem {
   private readonly grassCoverOfBiome: Float32Array;
   private readonly initialCoverOfBiome: Float32Array;
   private shadeOfSpecies: Float32Array;
+  /** Per species: share of seedlings choked by thick grass, and lost under a closed canopy. */
+  private grassCompetitionOf: Float32Array;
+  private canopyShadeOf: Float32Array;
+  /** 1 for tree species, 2 for shrubs (young woody plants can be browsed). */
+  private kindOf: Uint8Array;
+  private readonly around = { canopy: 0, same: 0 };
 
   constructor(
     private readonly world: World,
@@ -35,6 +44,9 @@ export class FloraSystem {
     this.grassCoverOfBiome = Float32Array.from(biomeIds, (id) => params.grass.coverByBiome[id] ?? 0);
     this.initialCoverOfBiome = Float32Array.from(biomeIds, (id) => params.initialCoverByBiome[id] ?? 0);
     this.shadeOfSpecies = new Float32Array(0);
+    this.grassCompetitionOf = new Float32Array(0);
+    this.canopyShadeOf = new Float32Array(0);
+    this.kindOf = new Uint8Array(0);
     this.refreshParams();
     this.populate();
   }
@@ -44,6 +56,9 @@ export class FloraSystem {
     const { params } = this;
     this.grassCoverOfBiome.set(this.world.biomes.biomes.map((biome) => params.grass.coverByBiome[biome.id] ?? 0));
     this.shadeOfSpecies = Float32Array.from(params.species, (species) => params.shadeByKind[species.kind]);
+    this.grassCompetitionOf = Float32Array.from(params.species, (species) => params.establishment.grassCompetitionByKind[species.kind]);
+    this.canopyShadeOf = Float32Array.from(params.species, (species) => params.establishment.canopyShadeByKind[species.kind] * (1 - (species.shadeTolerance ?? 0)));
+    this.kindOf = Uint8Array.from(params.species, (species) => (species.kind === 'tree' ? KIND_TREE : species.kind === 'shrub' ? KIND_SHRUB : 0));
   }
 
   /** A plant can only grow on dry land (rivers are fords, lakes are water). */
@@ -107,12 +122,26 @@ export class FloraSystem {
     return taken;
   }
 
-  /** Grazing: takes up to `amount` of grass not buried under snow; returns what was taken. */
+  /**
+   * Grazing: takes up to `amount` of grass not buried under snow; returns what was taken. A young
+   * tree or shrub on the tile has its shoots bitten off along with the grass.
+   */
   takeGrass(index: number, amount: number): number {
     const reachable = this.state.grass[index]! * (1 - this.climate.snowAt(index));
     const taken = Math.min(amount, Math.floor(reachable));
     this.state.grass[index] = this.state.grass[index]! - taken;
+    const k = this.state.species[index]!;
+    if (taken > 0 && k !== 0 && this.kindOf[k - 1] !== 0) this.browse(index, taken);
     return taken;
+  }
+
+  /** Shoots of a young woody plant bitten off by a grazer: it loses health, and dies if it has none left. */
+  private browse(index: number, grassEaten: number): void {
+    const { browsing } = this.params;
+    if (this.state.growth[index]! > browsing.maxGrowth * BYTE_MAX) return;
+    const health = this.state.health[index]! - Math.round(browsing.damagePerGrassUnit * grassEaten * BYTE_MAX);
+    if (health <= 0) this.state.clear(index);
+    else this.state.health[index] = health;
   }
 
   grassReachable(index: number): number {
@@ -176,7 +205,12 @@ export class FloraSystem {
     const maxAgeDays = species.maxAgeYears * this.daysPerYear;
     const tooOld = age > maxAgeDays && this.rng.nextFloat() < days / (OLD_AGE_SPREAD * maxAgeDays);
     if (health <= 0 || tooOld) {
+      const code = this.state.species[index]! - 1;
       this.state.clear(index);
+      // An old herb has dropped its seeds at its feet: one of them may take its place.
+      if (tooOld && health > MIN_HEALTH_TO_SEED && species.kind === 'herb' && this.rng.nextFloat() < this.params.establishment.herbReseedChance * fitness * this.establishment(code, index)) {
+        this.plant(index, code + 1, 0, this.params.seedlingGrowth, this.params.seedlingHealth);
+      }
       return;
     }
     health = Math.min(1, health);
@@ -203,15 +237,54 @@ export class FloraSystem {
     const x = index % this.size;
     const y = (index - x) / this.size;
     const r = species.seedRadius;
+    const code = this.state.species[index]! - 1;
     for (let s = 0; s < seeds; s++) {
       const tx = x + this.rng.nextIntInclusive(-r, r);
       const ty = y + this.rng.nextIntInclusive(-r, r);
       if (tx < 0 || ty < 0 || tx >= this.size || ty >= this.size) continue;
       const target = ty * this.size + tx;
       if (!this.isPlantable(target) || this.state.species[target] !== 0) continue;
-      if (this.rng.nextFloat() >= species.germinationChance * this.fitness(species, target)) continue;
+      if (this.rng.nextFloat() >= species.germinationChance * this.fitness(species, target) * this.establishment(code, target)) continue;
       this.plant(target, this.state.species[index]!, 0, this.params.seedlingGrowth, this.params.seedlingHealth);
     }
+  }
+
+  /**
+   * Chance that a seedling of species `code` takes root on an empty tile, 0..1: thick grass chokes
+   * young woody plants; a closed canopy of grown trees around keeps light-hungry plants from coming up.
+   */
+  establishment(code: number, index: number): number {
+    const grass = this.state.grass[index]! / this.params.grass.maxAmount;
+    let chance = 1 - this.grassCompetitionOf[code]! * Math.min(1, grass);
+    this.lookAround(index, code);
+    chance *= 1 - this.canopyShadeOf[code]! * this.around.canopy;
+    chance *= 1 - this.params.establishment.sameSpeciesCrowding * this.around.same;
+    return Math.max(0, chance);
+  }
+
+  /** Around a tile: share of the 8 neighbours holding a grown tree, and holding a plant of species `code`. */
+  private lookAround(index: number, code: number): void {
+    const size = this.size;
+    const x = index % size;
+    const y = (index - x) / size;
+    const grown = this.params.establishment.canopyGrowth * BYTE_MAX;
+    let trees = 0;
+    let same = 0;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+        const n = ny * size + nx;
+        const k = this.state.species[n]!;
+        if (k === 0) continue;
+        if (k === code + 1) same++;
+        if (this.kindOf[k - 1] === KIND_TREE && this.state.growth[n]! >= grown) trees++;
+      }
+    }
+    this.around.canopy = trees / NEIGHBOURS;
+    this.around.same = same / NEIGHBOURS;
   }
 
   private plant(index: number, speciesCode: number, ageDays: number, growth: number, health: number): void {

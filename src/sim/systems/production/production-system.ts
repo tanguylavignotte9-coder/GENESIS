@@ -608,6 +608,15 @@ export class ProductionSystem {
     return recipe !== null && recipe !== undefined && recipe.prey.length > 0;
   }
 
+  /** Where the game a hunter is after is now (decimal tiles), or null if none (or it is gone). */
+  preyPosition(person: number): { x: number; y: number } | null {
+    const job = this.jobs[person];
+    if (!job?.recipe || job.recipe.prey.length === 0 || job.prey < 0) return null;
+    const store = this.fauna.store;
+    if (store.alive[job.prey] !== 1 || store.uid[job.prey] !== job.preyUid) return null;
+    return { x: store.px[job.prey]!, y: store.py[job.prey]! };
+  }
+
   /** Drops the person's job (the brain chose something else). */
   endJob(person: number): void {
     const job = this.jobs[person];

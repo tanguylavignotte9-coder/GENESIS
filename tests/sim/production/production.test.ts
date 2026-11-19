@@ -6,7 +6,7 @@ import { BUILDING_DONE, FIRST_ITEM, SITE_STARTED } from '../../../src/sim/system
 import { campOwner, Inventory } from '../../../src/sim/systems/production/inventory';
 import { qualityFor } from '../../../src/sim/systems/production/jobs';
 import { spoil, spoilFactor } from '../../../src/sim/systems/production/spoilage';
-import { CAMP_MOVED } from '../../../src/sim/systems/individuals/camp-move';
+import { CAMP_MOVED, considerMoving } from '../../../src/sim/systems/individuals/camp-move';
 import { dataWithSize } from '../world/helpers';
 
 const SIZE = 320;
@@ -225,14 +225,31 @@ describe('moving the camp', () => {
     const { humans, production } = simulation;
     const people = humans.people;
     const camp = humans.camps[0]!;
-    // Food is only found far away, to the east.
-    const far = camp.center + data.humans.campMove.forageFarTiles + 10;
+    // Food is only found far away (on land with water within reach).
+    const reach = data.humans.campMove.forageFarTiles + 10;
+    const nearWater = (tile: number): boolean => {
+      let at = tile;
+      for (let step = 0; step <= data.humans.campMove.waterMaxTiles && at >= 0; step++) {
+        if (simulation.world.water[at] !== 0) return true;
+        at = simulation.fauna.waterPath[at]!;
+      }
+      return false;
+    };
+    let far = -1;
+    for (let ring = reach; ring < reach + 40 && far < 0; ring++) {
+      for (const offset of [ring, -ring, ring * SIZE, -ring * SIZE]) {
+        const tile = camp.center + offset;
+        if (far < 0 && tile >= 0 && tile < SIZE * SIZE && humans.terrain.walkable(tile) && simulation.world.water[tile] === 0 && nearWater(tile)) far = tile;
+      }
+    }
+    expect(far).toBeGreaterThanOrEqual(0);
     for (let p = 0; p < people.count; p++) {
       people.forageDistance[p] = data.humans.campMove.forageFarTiles * 3;
       people.farFood[p] = far;
     }
     camp.settledDay = -data.humans.campMove.minDaysBetweenMoves;
-    simulation.step(data.time.ticksPerDay + 1);
+    // The adults weigh it up at the start of a day.
+    considerMoving(humans, camp, 1, simulation.clock.tick);
     const move = simulation.journal.all().find((event) => event.type === CAMP_MOVED);
     expect(move).toBeDefined();
     expect(move!.text).toContain('tuiles vers');

@@ -67,9 +67,30 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
   (`camp.besideFireCelsius`).
 - Contagion et gravité des maladies réduites après les premiers essais (une dysenterie tuait 19 personnes sur 30
   la première année) ; fragilité des nouveau-nés relevée (mortalité infantile trop basse pour l'ère 0).
-- Essayé puis retiré : le rationnement au stock (de petites bouchées multipliaient les allers-retours).
+- Pour le bois, on épargne les buissons qui nourrissent et les plantes déjà abîmées (`work.spareFoodPlants`).
+- Les prédateurs étaient la 1re cause d'extinction (24 à 49 morts par monde) : un fauve n'attaque plus un humain
+  seul qu'affamé (`humanPrey.minHunger` 30 → 70, `data/animals.json`).
+- Le journal ne parle d'épidémie que si au moins 10 % de la tribu est malade en même temps (`epidemic.minShare`).
+- Essayé puis retiré : le rationnement au stock (de petites bouchées multipliaient les allers-retours) ;
+  un seuil de départ du camp plus bas (sans effet sur la cause principale, voir plus bas).
 
-RESULTATS_200
+**Constat majeur hors de cette étape (défaut de la flore, étape 3) :** sans aucun humain, en 100 ans de flore
+seule (graine 7, code de l'étape 7), **toutes les herbes disparaissent de la carte** (carotte et igname sauvages,
+blé et lin sauvages, ortie, roseau : 0 ; myrtillier : 41 sur 6 960) au profit des arbres et des tamaris (une
+plante au plus par tuile : les plantes à vie courte ne trouvent plus de place). Or les racines et céréales sont
+la seule nourriture qui se garde et qui reste l'hiver : c'est la cause du déclin des tribus au 2e siècle, mesuré
+aussi avec une tribu minuscule (donc sans effet humain). Tâche proposée séparément. La faune gonfle aussi
+(sangliers ×5 à ×8 en 200 ans, ours ×4), déjà noté à l'étape 3.
+
+**Équilibre sur 200 ans : inachevé (arrêté à la demande de Tanguy, le prochain patch change l'équilibre).**
+Dernier lot complet de 10 graines (avant les deux dernières corrections : bois épargné, fauves affamés) :
+4 tribus sur 8 terminées encore en vie après 200 ans (14 à 22 personnes, après des pics de 62 à 107 vers
+l'an 60-110), 4 éteintes (en 30 à 180 ans : prédateurs surtout, froid et faim dans un monde très froid).
+Causes de décès sur 200 ans (graine 2) : maladie 48 %, faim 27 %, vieillesse 9 %, prédateurs 6 %, soif 6 %,
+en couches 3 %. Mortalité avant 1 an 8 à 13 % (un peu basse pour l'ère 0), avant l'âge adulte 30 à 40 %.
+Âge moyen au décès des adultes 36 à 42 ans, doyens 66 à 76 ans. Après la correction des fauves, essais sur
+70 ans : graine 4 à 68 habitants à 50 ans (au lieu d'un effondrement), graine 1 stable vers 40.
+**Le lot final de 10 graines × 200 ans avec le code actuel n'a pas été fait** ; `npm run test:long` non lancé.
 
 **Décisions et écarts (à valider) :**
 - Le cycle de vie est un sous-dossier du système des individus (comme la vie sociale).
@@ -92,7 +113,11 @@ RESULTATS_200
 
 **Dettes résolues :** les naissances (étape 7).
 
-MESURES
+**Mesures (serveurs de Claude Code, 4 simulations en parallèle, donc chiffres pessimistes) :**
+- Carte entière, faune et flore comprises : 30 humains ≈ 60-90 ms par jour de jeu ; 50 à 80 humains ≈
+  110-180 ms ; tribu de 107 ≈ 170-200 ms. Le cycle de vie lui-même pèse peu (âge, grossesses, maladies : boucles
+  quotidiennes ; contagion et observation seulement pour les malades et les enfants).
+- Tests rapides : 387 en ~30 s. Tests longs : non lancés à cette étape.
 
 ---
 

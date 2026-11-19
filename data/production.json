@@ -4,6 +4,7 @@
     { "building": "hut", "count": 6 }
   ],
   "stock": { "openPileSpoilFactor": 1.4, "minQuantity": 0.05 },
+  "ground": { "findTiles": 3 },
   "spoilage": { "referenceCelsius": 15, "doublingCelsius": 10, "minFactor": 0.15, "maxFactor": 3 },
   "custom": {
     "foodReserveDaysBySeason": [3, 8, 14, 6],

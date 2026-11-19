@@ -189,6 +189,7 @@
     "wetNurse": "{tuteur}, {lien}, prend {enfant} au sein et l’élève : sa mère, {parent}, est morte.",
     "inheritance": "{heritier} hérite des affaires de {mort} : {objets}.",
     "inheritanceShared": "{heritier} se partagent les affaires de {mort} : {objets}.",
+    "belongingsFound": "{trouveur} retrouve les affaires de {mort} là où {il_elle} est tombé{e} : {objets}.",
     "weakenedByHunger": ", affaibli{e} par la faim",
     "weakenedByCold": ", affaibli{e} par le froid",
     "ties": {

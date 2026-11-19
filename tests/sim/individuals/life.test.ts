@@ -6,7 +6,7 @@ import { fertilityAt, oldAgeDeathPerDay, vigorAt, vulnerabilityAt } from '../../
 import { BIRTH, considerConception, desireForChild, fertility } from '../../../src/sim/systems/individuals/life/birth';
 import { diseaseDamagePerHour, EPIDEMIC_END, EPIDEMIC_START, infect, spreadDisease } from '../../../src/sim/systems/individuals/life/disease';
 import { ADOPTION } from '../../../src/sim/systems/individuals/life/orphans';
-import { INHERITANCE } from '../../../src/sim/systems/individuals/life/heritage';
+import { BELONGINGS_FOUND, findBelongings, INHERITANCE } from '../../../src/sim/systems/individuals/life/heritage';
 import { NEVER_DAY } from '../../../src/sim/systems/individuals/life/state';
 import { memoryWeight } from '../../../src/sim/systems/individuals/social/feelings';
 import { learn } from '../../../src/sim/systems/individuals/social/news';
@@ -368,6 +368,37 @@ describe('orphans and inheritance', () => {
     expect(production.hasItem(woman, knife)).toBe(true);
     const inheritance = simulation.journal.all().find((event) => event.type === INHERITANCE)!;
     expect(inheritance.text).toContain(people.names[woman]!);
+  });
+
+  it('far from the camp, the objects of the dead stay on the ground until someone passing by finds them', () => {
+    const simulation = world();
+    const { humans, production } = simulation;
+    const { people } = humans;
+    const { woman, man } = couple(simulation);
+    const knife = production.catalog.itemIndex.get('stone_knife')!;
+    production.carried[man]!.put(knife, 1, 0.5, man);
+    const camp = humans.camps[0]!;
+    let far = -1;
+    for (let d = 25; d < 80 && far < 0; d++) if (humans.terrain.walkable(camp.center + d)) far = camp.center + d;
+    const fx = (far % SIZE) + 0.3;
+    const fy = Math.floor(far / SIZE) + 0.6;
+    people.placeAt(man, fx, fy);
+    const death = humans.die(man, DeathCause.Predator, simulation.clock.tick);
+    // Nobody inherits: the knife lies where he fell.
+    expect(production.hasItem(woman, knife)).toBe(false);
+    expect(production.ground).toHaveLength(1);
+    expect(production.ground[0]!.x).toBeCloseTo(fx);
+    // Someone still far away sees nothing; passing close by, she finds and takes it.
+    people.placeAt(woman, fx + data.production.ground.findTiles + 2, fy);
+    findBelongings(humans.life, woman);
+    expect(production.hasItem(woman, knife)).toBe(false);
+    people.placeAt(woman, fx + 1, fy);
+    findBelongings(humans.life, woman);
+    expect(production.hasItem(woman, knife)).toBe(true);
+    expect(production.ground).toHaveLength(0);
+    const found = simulation.journal.all().find((event) => event.type === BELONGINGS_FOUND)!;
+    expect(found.text).toContain(people.names[man]!);
+    expect(found.causes).toContain(death);
   });
 
   it('the memory of the dead survives in those who knew them', () => {

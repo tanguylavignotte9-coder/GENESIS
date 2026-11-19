@@ -12,6 +12,7 @@ import { Water } from '../world/hydrology';
 import type { World } from '../world/world';
 import { BuildState, newBuilding, type Building } from './buildings';
 import { CampState, type CampNeeds } from './camps';
+import { nearestGroundPile, type GroundPile } from './ground';
 import { Catalog, type BuildingType } from './catalog';
 import { publishBuildingDone } from './events';
 import { campOwner, Inventory, type RemarkableItem } from './inventory';
@@ -75,6 +76,8 @@ function pluralize(name: string): string {
 export class ProductionSystem {
   catalog: Catalog;
   readonly buildings: Building[] = [];
+  /** Belongings of the dead lying on the ground, far from the camps (until found). */
+  readonly ground: GroundPile[] = [];
   readonly camps: CampState[] = [];
   /** What each person carries. */
   carried: Inventory[] = [];
@@ -192,6 +195,45 @@ export class ProductionSystem {
     }
     inventory.piles.length = 0;
     return names;
+  }
+
+  /**
+   * A death far from the camp: what the dead carried stays on the ground where she fell (decimal
+   * tiles), for whoever finds it. Returns false if she carried nothing.
+   */
+  leaveBelongings(dead: number, x: number, y: number, deathEvent: number): boolean {
+    const carried = this.carried[dead]!;
+    if (carried.isEmpty) return false;
+    const items = new Inventory();
+    for (const pile of carried.piles) items.put(pile.item, pile.qty, pile.quality, dead);
+    carried.piles.length = 0;
+    this.ground.push({ x, y, tile: Math.floor(y) * this.size + Math.floor(x), items, dead, deathEvent });
+    return true;
+  }
+
+  /**
+   * Someone passing by belongings on the ground takes what she can carry (tools and goods before
+   * food that may have rotted). Returns the dead person and the names of what was taken, or null.
+   */
+  findBelongings(person: number): { dead: number; deathEvent: number; names: string[] } | null {
+    const at = nearestGroundPile(this.ground, this.people.px(person), this.people.py(person), this.params.ground.findTiles);
+    if (at < 0) return null;
+    const pile = this.ground[at]!;
+    const names: string[] = [];
+    const order = [...pile.items.piles].sort((a, b) => this.catalog.food[a.item]! - this.catalog.food[b.item]!);
+    for (const lying of order) {
+      const bulk = this.catalog.bulk[lying.item]!;
+      const room = this.room(person);
+      const qty = bulk > 0 ? Math.min(lying.qty, room / bulk) : lying.qty;
+      if (qty <= 1e-9) continue;
+      const taken = pile.items.take(lying.item, qty);
+      this.carried[person]!.put(lying.item, taken.qty, taken.quality, person);
+      const name = this.catalog.items[lying.item]!.name.toLowerCase();
+      if (!names.includes(name)) names.push(name);
+    }
+    pile.items.dropCrumbs(this.params.stock.minQuantity);
+    if (pile.items.isEmpty) this.ground.splice(at, 1);
+    return names.length > 0 ? { dead: pile.dead, deathEvent: pile.deathEvent, names } : null;
   }
 
   // ----- camps -----------------------------------------------------------------------------
@@ -612,6 +654,12 @@ export class ProductionSystem {
       const container = sheltered * storeFactor + (1 - sheltered) * params.stock.openPileSpoilFactor;
       const weather = spoilFactor(this.climate.temperatureAt(this.stockTile(camp.id)), spoilage);
       spoil(camp.stock, 1, weather * container, catalog.halfLife, params.stock.minQuantity);
+    }
+    // Food left on the ground rots like an open heap; what is gone leaves nothing behind.
+    for (let k = this.ground.length - 1; k >= 0; k--) {
+      const pile = this.ground[k]!;
+      spoil(pile.items, 1, spoilFactor(this.climate.temperatureAt(pile.tile), spoilage) * params.stock.openPileSpoilFactor, catalog.halfLife, params.stock.minQuantity);
+      if (pile.items.isEmpty) this.ground.splice(k, 1);
     }
     for (const building of this.buildings) {
       if (building.state !== BuildState.Done || building.sown <= 0) continue;

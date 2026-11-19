@@ -100,6 +100,8 @@ export interface TerrainSource {
 export interface ProductionParams {
   startingBuildings: { building: string; count: number }[];
   stock: { openPileSpoilFactor: number; minQuantity: number };
+  /** Belongings left on the ground by the dead far from the camp: how close one must pass to find them. */
+  ground: { findTiles: number };
   spoilage: { referenceCelsius: number; doublingCelsius: number; minFactor: number; maxFactor: number };
   custom: {
     foodReserveDaysBySeason: number[];
@@ -266,6 +268,12 @@ export const PRODUCTION_SCHEMA: Schema = {
       fields: {
         openPileSpoilFactor: num(0.1, 5, 'Tas à l’air libre', 'Vitesse à laquelle se gâte ce qui dépasse la capacité des caches (bêtes, pluie).', 'facteur'),
         minQuantity: num(0, 1, 'Restes', 'Une pile plus petite que ceci disparaît.', 'unités'),
+      },
+    },
+    ground: {
+      kind: 'object',
+      fields: {
+        findTiles: num(0, 20, 'Affaires retrouvées', 'Les affaires d’une personne morte loin du camp restent au sol ; qui passe à cette distance les voit et ramasse ce qu’il peut porter.', 'tuiles'),
       },
     },
     spoilage: {

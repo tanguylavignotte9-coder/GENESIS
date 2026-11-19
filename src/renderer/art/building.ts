@@ -110,6 +110,14 @@ export function drawHeap(): Texture {
   return canvas.toTexture();
 }
 
+/** The belongings of someone who died far from the camp, lying on the ground: a bundle of hide and a tool. */
+export function drawBelongings(): Texture {
+  const canvas = new PixelCanvas(6, 4);
+  for (let y = 1; y < 4; y++) for (let x = 1; x < 5; x++) canvas.set(x, y, GOODS[(x + y) % GOODS.length]!, y === 1 ? 1.15 : 0.9);
+  for (let x = 0; x < 6; x++) canvas.set(x, 3 - Math.floor(x / 3), LOG, 0.7);
+  return canvas.toTexture();
+}
+
 function fire(lit: boolean): Texture {
   const canvas = new PixelCanvas(9, 9);
   for (const [x, y] of [[1, 6], [2, 7], [4, 8], [6, 7], [7, 6], [1, 5], [7, 5]] as const) canvas.set(x, y, STONE, 1);

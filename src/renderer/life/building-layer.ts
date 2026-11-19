@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import type { BuildingsSnapshot, BuildingView, LifeTables } from '../../shared/messages';
-import { buildingTiles, drawBuilding, drawHeap, drawSite, type BuildingLook } from '../art/building';
+import { buildingTiles, drawBelongings, drawBuilding, drawHeap, drawSite, type BuildingLook } from '../art/building';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
 
@@ -13,6 +13,7 @@ const BAR_BACK = 0x202020;
 const BAR_FILL = 0xe0c060;
 const SELECT_COLOR = 0x7fd4ff;
 const HEAP_TILES = 0.7;
+const BELONGINGS_TILES = 0.45;
 /** Heap drawn bigger as goods pile up (bulk per extra tile of size, display only). */
 const HEAP_BULK_PER_TILE = 150;
 const FILL_STEPS = 4;
@@ -26,6 +27,7 @@ export class BuildingLayer {
   private readonly textures = new Map<string, Texture>();
   private readonly site: Texture;
   private readonly heap: Texture;
+  private readonly belongings: Texture;
   private tables: LifeTables | null = null;
   private snapshot: BuildingsSnapshot | null = null;
   /** Building whose panel is open (-1 = none). */
@@ -34,6 +36,7 @@ export class BuildingLayer {
   constructor() {
     this.site = drawSite();
     this.heap = drawHeap();
+    this.belongings = drawBelongings();
     this.container.addChild(this.bars, this.ring);
   }
 
@@ -100,6 +103,15 @@ export class BuildingLayer {
         const tiles = HEAP_TILES * Math.min(2, 1 + heap.bulk / HEAP_BULK_PER_TILE);
         sprite.scale.set(tiles / this.heap.width);
         sprite.position.set(heap.x + 0.95, heap.y + 0.9);
+        sprite.tint = 0xffffff;
+        sprite.visible = true;
+      }
+      for (const lying of snapshot.belongings) {
+        if (lying.x < visible.minX - 1 || lying.x > visible.maxX + 1 || lying.y < visible.minY - 1 || lying.y > visible.maxY + 1) continue;
+        const sprite = this.sprite(used++);
+        sprite.texture = this.belongings;
+        sprite.scale.set(BELONGINGS_TILES / this.belongings.width);
+        sprite.position.set(lying.x, lying.y + 0.15);
         sprite.tint = 0xffffff;
         sprite.visible = true;
       }

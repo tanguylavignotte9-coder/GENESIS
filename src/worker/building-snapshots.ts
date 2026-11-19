@@ -32,7 +32,8 @@ export function snapshotBuildings(simulation: Simulation): BuildingsSnapshot {
     const tile = production.stockTile(camp.id);
     return [{ x: tile % size, y: Math.floor(tile / size), bulk: camp.stock.bulk(production.catalog.bulk) }];
   });
-  return { buildings, heaps };
+  const belongings = production.ground.map((pile) => ({ x: pile.x, y: pile.y }));
+  return { buildings, heaps, belongings };
 }
 
 export function describeBuilding(simulation: Simulation, requestId: number, id: number): BuildingDetails | null {

@@ -224,6 +224,8 @@ export interface BuildingsSnapshot {
   buildings: BuildingView[];
   /** Camps whose stock lies in an open heap (no storage building): its tile and size (bulk). */
   heaps: { x: number; y: number; bulk: number }[];
+  /** Belongings of the dead lying on the ground far from the camps (decimal tiles). */
+  belongings: { x: number; y: number }[];
 }
 
 /** One line of an inventory, for the display. */

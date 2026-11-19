@@ -93,6 +93,7 @@ export interface LifeParams {
     wetNurse: string;
     inheritance: string;
     inheritanceShared: string;
+    belongingsFound: string;
     weakenedByHunger: string;
     weakenedByCold: string;
     ties: {
@@ -329,6 +330,7 @@ export const LIFE_SCHEMA: Schema = {
         wetNurse: text('Nourrice', 'Journal : une femme qui allaite prend le bébé d’une morte. Remplacements : {tuteur}, {enfant}, {lien}, {parent}.'),
         inheritance: text('Héritage', 'Journal, un seul héritier. Remplacements : {heritier}, {mort}, {objets}.'),
         inheritanceShared: text('Héritage partagé', 'Journal, plusieurs héritiers (les enfants). Remplacements : {heritier} (« Ka et Lo »), {mort}, {objets}.'),
+        belongingsFound: text('Affaires retrouvées', 'Journal, quand quelqu’un retrouve au sol les affaires d’une personne morte loin du camp. Remplacements : {trouveur}, {mort}, {il_elle}, {e}, {objets}.'),
         weakenedByHunger: text('Affaibli par la faim', 'Fin de phrase d’une mort de maladie ou d’une épidémie. Remplacement : {e}.'),
         weakenedByCold: text('Affaibli par le froid', 'Fin de phrase d’une mort de maladie ou d’une épidémie. Remplacement : {e}.'),
         ties: {

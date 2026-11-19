@@ -8,7 +8,7 @@ import { DeathCause, type People } from '../people';
 import { appetiteAt, oldAgeDeathPerDay, vigorAt } from './aging';
 import { considerConception, livePregnancy } from './birth';
 import { catchDiseases, diseaseDamagePerHour, endEpidemics, healDiseases, onDiseaseDeath, spreadDisease } from './disease';
-import { bequeath } from './heritage';
+import { bequeath, findBelongings } from './heritage';
 import { lookForGuardians, onGuardianDeath } from './orphans';
 import type { LifeParams } from './params';
 import { LifeState, NEVER_DAY } from './state';
@@ -204,6 +204,7 @@ export class LifeCycle {
     state.nourishment[person] = state.nourishment[person]! + (people.hunger[person]! - state.nourishment[person]!) * memory;
     if (state.disease[person]! >= 0) spreadDisease(this, person);
     if (this.isChild(person) && !this.sys.isSleeping(person)) this.watchAdults(person);
+    else if (!this.sys.isSleeping(person)) findBelongings(this, person);
   }
 
   /**

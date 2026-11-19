@@ -7,11 +7,12 @@ function listNames(names: string[]): string {
 }
 
 export const INHERITANCE = 'life.inheritance';
+export const BELONGINGS_FOUND = 'life.belongingsFound';
 
 /**
  * Who inherits the personal objects of the dead, by the default custom (to be replaced by the
  * property rules of the groups, step 9): the living partner, otherwise the children; with no heir,
- * the camp's common stock. Objects stay with a body that lies far from the camp.
+ * the camp's common stock. Far from the camp, the objects stay on the ground where the body lies.
  */
 export function heirsOf(life: LifeCycle, dead: number): number[] {
   const { people, sys } = life;
@@ -25,7 +26,10 @@ export function heirsOf(life: LifeCycle, dead: number): number[] {
 export function bequeath(life: LifeCycle, dead: number, deathEvent: number): void {
   const { people, sys } = life;
   const camp = sys.camps[people.camp[dead]!];
-  if (!camp || camp.distanceTo(people.x[dead]!, people.y[dead]!) > sys.params.body.perceptionTiles) return;
+  if (!camp || camp.distanceTo(people.x[dead]!, people.y[dead]!) > sys.params.body.perceptionTiles) {
+    sys.production.leaveBelongings(dead, people.px[dead]!, people.py[dead]!, deathEvent);
+    return;
+  }
   const heirs = heirsOf(life, dead);
   const names = sys.production.bequeath(dead, heirs, people.camp[dead]!);
   if (names.length === 0 || heirs.length === 0) return;
@@ -43,5 +47,32 @@ export function bequeath(life: LifeCycle, dead: number, deathEvent: number): voi
     actors: [{ kind: 'human', id: dead }, ...heirs.map((heir) => ({ kind: 'human', id: heir }))],
     causes: life.journal.get(deathEvent) ? [deathEvent] : [],
     details: { dead, heirs: heirs.length },
+  });
+}
+
+/**
+ * Passing by the belongings of someone who died far from the camp, one finds them and takes what
+ * one can carry (told in the journal, caused by the death).
+ */
+export function findBelongings(life: LifeCycle, person: number): void {
+  const { people, sys } = life;
+  if (sys.production.ground.length === 0 || life.carrier(person) >= 0) return;
+  const found = sys.production.findBelongings(person);
+  if (!found) return;
+  const female = people.female[found.dead] === 1;
+  life.journal.publish({
+    tick: life.tick,
+    type: BELONGINGS_FOUND,
+    text: fillTemplate(life.params.texts.belongingsFound, {
+      trouveur: people.names[person]!,
+      mort: people.names[found.dead]!,
+      il_elle: female ? 'elle' : 'il',
+      e: female ? 'e' : '',
+      objets: found.names.join(', '),
+    }),
+    place: life.place(people.x[person]!, people.y[person]!),
+    actors: [{ kind: 'human', id: person }, { kind: 'human', id: found.dead }],
+    causes: life.journal.get(found.deathEvent) ? [found.deathEvent] : [],
+    details: { person, dead: found.dead },
   });
 }

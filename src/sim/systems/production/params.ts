@@ -108,7 +108,7 @@ export interface ProductionParams {
     urgency: { fire: number; shelter: number; openSite: number; storage: number; station: number; perMember: number; craft: number };
   };
   quality: { base: number; skillWeight: number; toolWeight: number; randomness: number };
-  work: { skillSpeedBonus: number; branchHarmToPlant: number; keepingPreference: number; keepingDays: number; searchTiles: number; campTiles: number; buildRingMin: number; buildRingMax: number };
+  work: { skillSpeedBonus: number; branchHarmToPlant: number; spareFoodPlants: number; keepingPreference: number; keepingDays: number; searchTiles: number; campTiles: number; buildRingMin: number; buildRingMax: number };
   hunting: {
     searchTiles: number;
     strikeTiles: number;
@@ -311,6 +311,7 @@ export const PRODUCTION_SCHEMA: Schema = {
       fields: {
         skillSpeedBonus: num(0, 5, 'Rapidité des experts', 'Une compétence parfaite fait travailler (1 + ceci) fois plus vite.', 'facteur'),
         branchHarmToPlant: num(0, 1, 'Dégâts aux arbres', 'Santé perdue par une plante pour chaque branche prise.', 'fraction/branche'),
+        spareFoodPlants: num(0, 20, 'Épargner les buissons nourriciers', 'Pour ramasser du bois, un buisson qui donne à manger attire (1 + ceci) fois moins qu’un arbre ou un buisson sans fruits ; on préfère aussi les plantes encore en bonne santé.', 'facteur'),
         keepingPreference: num(0, 5, 'Goût pour ce qui se garde', 'Quand on cueille pour le camp, une nourriture qui se conserve bien vaut jusqu’à (1 + ceci) fois plus qu’une qui pourrit vite.', 'facteur'),
         keepingDays: num(1, 365, 'Bonne conservation', 'Durée de conservation (demi-vie) à partir de laquelle une nourriture compte comme « se garde bien ».', 'jours'),
         searchTiles: int(5, 100, 'Recherche de matériaux', 'Distance jusqu’à laquelle on cherche pierres, argile ou arbres autour de soi.', 'tuiles'),

@@ -8,6 +8,94 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Étape 8 · Cycle de vie — 19 nov. 2026
+
+**Fait (`src/sim/systems/individuals/life/`, `data/life.json`) :**
+- **Population extensible** : `People`, `SocialState`, `LifeState` et les tableaux de la production grandissent
+  par doublement à chaque naissance (`core/columns.ts` : on ajoute à chaque tableau celui d'un magasin neuf, qui
+  porte les valeurs par défaut). Les membres d'un camp sont une liste de vivants (`campMembers`), plus une plage
+  d'indices contiguë.
+- **Naissances** (`birth.ts`) : chaque jour, une femme qui vit avec son compagnon peut concevoir selon la
+  fécondité des deux (courbes d'âge), sa santé, la faim de ses derniers jours (moyenne glissante, la famine
+  empêche de concevoir), l'allaitement (espace les naissances) et l'envie du couple (affection mutuelle,
+  sociabilité, petits enfants déjà là, souvenir de famine). Grossesse de 30 jours (faim et fatigue en plus,
+  fausses couches plus fréquentes si la mère a faim ou est malade). Accouchement : mort-né ou mort de la mère
+  plus probables pour une mère très jeune, âgée, affaiblie ou affamée. Le bébé hérite de la moyenne des traits
+  des parents (50 %) avec variation, reçoit un nom, les savoirs de ses parents, ses liens familiaux ; le journal
+  cite l'union des parents comme cause.
+- **Petite enfance** : le bébé (moins de 2 ans) est porté (comportement `carried`), allaité jusqu'à 3 ans par sa
+  mère ou une nourrice (coût en faim pour elle, lait tari après des jours de famine), nourri par son porteur ou
+  au stock sinon ; il partage la chaleur de qui le porte.
+- **Enfance** (jusqu'à 14 ans) : un tuteur (la mère, puis l'autre parent, puis qui recueille l'orphelin) ; les
+  parents nourrissent en priorité leurs enfants et ceux qu'ils ont recueillis ; l'enfant suit son parent
+  (`follow_guardian`), revient près du camp, cherche à manger seulement autour de lui et n'explore jamais, joue
+  (`play` : joie, solitude apaisée, amitiés d'enfance), apprend en regardant un adulte travailler (un quart d'heure
+  de pratique par heure, sans compter pour le métier). La personnalité d'un enfant est 3 fois plus marquée par
+  ses souvenirs (famine, deuil, réconfort, gratitude) et peut s'écarter davantage de ses traits de naissance.
+- **Orphelins** (`orphans.ts`) : l'autre parent prend le relais ; sinon, chaque jour, celui qui a appris la mort
+  et a le plus envie de recueillir l'enfant le fait (famille d'abord : grands-parents, oncles et tantes, aînés ;
+  puis affection pour l'enfant et pour le défunt ; générosité ; enfants déjà à charge). Personne si nul n'en a
+  assez envie. Un bébé qui perd sa mère peut être pris au sein par une femme qui allaite.
+- **Vieillissement** (`aging.ts`) : forces selon l'âge (vitesse, endurance, vitesse de travail), appétit selon
+  l'âge (un enfant mange moins), mort de vieillesse (loi de Gompertz, 3 %/an à 60 ans, doublement tous les 8 ans),
+  respect des anciens qui grandit chaque année avec leur savoir-faire.
+- **Maladies** (`disease.ts`) : fièvre, dysenterie, mal de poitrine (données). Apparition favorisée par le froid
+  et la faim, contagion par la proximité, gravité selon l'âge (tout-petits et vieillards), la faim et le froid ;
+  guérison puis immunité ; un malade se repose et ne guérit pas de ses blessures. **Épidémie** : un récit du
+  journal quand assez de malades d'une même maladie en même temps (avec les causes : année difficile, famine),
+  et sa fin avec son bilan. **Famine** : récit quand plusieurs morts de faim se suivent.
+- **Héritage** (`heritage.ts`) : objets au conjoint, sinon partagés entre les enfants, sinon au stock du camp ;
+  rien si le corps est loin du camp. Souvenir durable du défunt (`lostOne`) chez ceux qui l'ont connu.
+- **Lisibilité** : morts de vieillesse, de maladie (« affaibli par la faim »), en couches, causes reliées
+  (épidémie, famine, année difficile, naissance, orphelin) ; naissances, mort-nés, orphelins recueillis, héritages.
+  Fiche : âge et étape, date de naissance, santé, maladie (attrapée auprès de qui), grossesse, allaitement,
+  tuteur, forces, **arbre familial cliquable** (parents ; la personne, son compagnon, frères et sœurs ; enfants).
+  Statistiques : onglet Humains (courbe, pyramide des âges, causes de décès). Panneau Tribu : les vivants.
+- `npm run sim` : naissances, mortalité infantile, âges au décès, épidémies, famines, orphelins, population et
+  temps de calcul tous les 10 ans, événements du cycle de vie ; s'arrête quand la tribu s'éteint.
+- Tests : `tests/sim/individuals/life.test.ts` (23 scénarios), test long `tests/long/life.test.ts`.
+
+**Corrections d'équilibre faites au niveau des individus (défauts trouvés en mesurant) :**
+- Un jeûne tuait en 12 jours : `starvationDamagePerHour` 0,25 → 0,1 (plusieurs semaines, comme un vrai corps).
+- Un corps endormi brûle moins (`sleepHungerFactor` 0,6) ; un enfant mange moins qu'un adulte (`childAppetite`).
+- **Cueillette** : en hiver, plus de 1 000 racines restaient à moins de 25 cases pendant que 60 à 90 % de la
+  tribu était affamée. Deux causes : tous couraient vers le même buisson (chacun voit maintenant où vont les
+  autres : `pickers` dans la production), et chaque bouchée prise sur une plante (humain ou animal) était
+  arrondie à l'unité supérieure (`flora.eaten` passe en centièmes d'unité).
+- Coutume de réserve plus prévoyante avant l'hiver (`foodReserveDaysBySeason` [2,3,6,4] → [3,8,14,6]).
+- On gelait assis contre un feu allumé par grand froid : au coin du feu on ressent au moins 16 °C
+  (`camp.besideFireCelsius`).
+- Contagion et gravité des maladies réduites après les premiers essais (une dysenterie tuait 19 personnes sur 30
+  la première année) ; fragilité des nouveau-nés relevée (mortalité infantile trop basse pour l'ère 0).
+- Essayé puis retiré : le rationnement au stock (de petites bouchées multipliaient les allers-retours).
+
+RESULTATS_200
+
+**Décisions et écarts (à valider) :**
+- Le cycle de vie est un sous-dossier du système des individus (comme la vie sociale).
+- Les enfants reçoivent à la naissance les savoirs de leurs parents (la transmission viendra avec les idées).
+- Pas de jumeaux ; pas de couples de même sexe féconds ; l'attirance ne se transmet pas.
+- La « protection » des enfants passe par leur comportement (suivre son parent, rester près du camp) et par la
+  règle des prédateurs qui n'attaquent pas un groupe ; personne ne s'interpose encore (conflit, étape 11).
+- L'héritage suit une coutume par défaut (conjoint, puis enfants, puis le camp), à remplacer à l'étape 9.
+- Les morts loin du camp gardent leurs objets (personne ne les retrouve encore).
+- Retiré : `body.childSpeedFactor` (la vitesse des enfants vient des forces selon l'âge). Un preset qui le
+  contient affiche « variable inconnue ignorée ».
+- Les maladies font partie du système des individus (la santé est une composante de l'individu dans le design).
+
+**Dette technique :**
+- Pas de mensonge sur la paternité, pas de remariage arrangé, pas de règles de mariage culturelles → idées (10).
+- Transmission des savoirs par l'enseignement → **étape 10** ; héritage selon la propriété du groupe → **étape 9**.
+- Les objets des morts loin du camp sont perdus → plus tard (corps retrouvés).
+- Les prédateurs tuent surtout des gens affaiblis par la faim : riposte et défense des enfants → **étape 11**.
+- Le nom du bébé vient toujours du générateur de syllabes → langues, **étape 10**.
+
+**Dettes résolues :** les naissances (étape 7).
+
+MESURES
+
+---
+
 ## Étape 7 · Vie sociale (et préalables) — 18 nov. 2026
 
 **Fait (préalables) :**

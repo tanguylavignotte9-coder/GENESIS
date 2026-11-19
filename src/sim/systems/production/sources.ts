@@ -154,6 +154,11 @@ export function findSourceFrom(sys: ProductionSystem, x0: number, y0: number, ca
         amount = sys.flora.produceAvailable(tile, resource) * Math.max(0.2, sys.catalog.food[item]!) * keeping(sys, item);
         // A plant someone is already heading for is worth less: better pick another one.
         if (seeOthers) amount /= 1 + (sys.pickers.get(tile) ?? 0);
+      } else if (kind === 'plantBranches') {
+        // One spares the bushes that feed us, and the plants already stripped (so that they recover).
+        const code = sys.flora.state.species[tile]!;
+        if (sys.plantProduce[code - 1]! >= 0 && sys.catalog.food[sys.plantProduce[code - 1]!]! > 0) amount /= 1 + sys.params.work.spareFoodPlants;
+        amount *= sys.flora.state.health[tile]! / 255;
       }
       const score = amount / (1 + Math.max(Math.abs(x - x0), Math.abs(y - y0)));
       if (score > bestScore) {

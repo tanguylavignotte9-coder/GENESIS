@@ -48,7 +48,7 @@ export interface GroupsParams {
   nameTemplates: string[];
   adultAge: number;
   elderAge: number;
-  factors: { smallMembers: number; largeMembers: number; surplusDays: number; settledYears: number; elderShare: number; rivalryShare: number; sufferingDeaths: number };
+  factors: { smallMembers: number; largeMembers: number; surplusDays: number; settledYears: number; elderShare: number; rivalryShare: number; sufferingShare: number };
   regimes: Regime[];
   power: { respectScale: number; prestigeAgeYears: number; forceAgeYears: [number, number]; wealthItems: number; regimeInertia: number; ruleInertia: number };
   property: RuleOption[];
@@ -80,7 +80,7 @@ export interface GroupsParams {
   fusion: { maxMembers: number; sufferingDeaths: number; minOpinion: number; sizeRatio: number; chance: number };
   betrayal: { approvalBelow: number; minAffection: number; chance: number };
   contact: { meetTiles: number; opinionRate: number; scissionOpinion: number; allianceOpinion: number; allianceChance: number };
-  moves: { sufferingEffect: number; migrateDeaths: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number };
+  moves: { sufferingEffect: number; migrateDeathShare: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number };
   texts: Record<(typeof TEXT_KEYS)[number], string>;
   factorTexts: Record<Factor, string>;
   featureTexts: Record<PowerFeature, string>;
@@ -204,7 +204,7 @@ export const GROUPS_SCHEMA: Schema = {
         settledYears: num(1, 100, 'Installé', 'Années sans déplacer le camp pour être « installé » (traditions fortes).', 'ans'),
         elderShare: share('Part d’anciens', 'Part d’anciens à partir de laquelle leur poids est complet.'),
         rivalryShare: share('Rivalités', 'Part des adultes brouillés avec quelqu’un à partir de laquelle les rivalités sont fortes.'),
-        sufferingDeaths: num(1, 100, 'Souffrances', 'Morts de faim, de froid ou de maladie récentes (un an) à partir desquelles la souffrance est complète.', 'morts'),
+        sufferingShare: share('Souffrances', 'Part des membres morts de faim, de soif, de froid ou de maladie en un an à partir de laquelle les temps sont complètement durs.'),
       },
     },
     regimes: { kind: 'array', minLength: 1, items: REGIME_SCHEMA },
@@ -330,7 +330,7 @@ export const GROUPS_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         sufferingEffect: share('Souffrances passées', 'Part dont les souffrances passées (famines, froid, épidémies) rendent plus prompt à partir.'),
-        migrateDeaths: num(1, 100, 'Migration', 'Morts récentes (faim, froid, maladie) à partir desquelles on migre loin plutôt que de se déplacer un peu.', 'morts'),
+        migrateDeathShare: share('Migration', 'Part des membres morts de faim, de soif, de froid ou de maladie en un an à partir de laquelle on migre loin plutôt que de se déplacer un peu.'),
         migrateMinTiles: num(5, 500, 'Distance d’une migration', 'Distance à partir de laquelle un lieu connu compte pleinement comme destination de migration (on préfère partir loin).', 'tuiles'),
         winterCelsius: num(-50, 40, 'Froid qui retient', 'En dessous de cette température au camp, personne ne veut lever le camp : on reste près des huttes et du feu (le froid tue en quelques jours).', '°C'),
         migrateWarmth: share('Chercher la chaleur', 'Poids de la chaleur dans le choix d’une destination de migration après des morts de froid.'),

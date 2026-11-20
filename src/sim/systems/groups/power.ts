@@ -54,8 +54,10 @@ export function groupFactors(sys: GroupsSystem, group: Group): Record<Factor, nu
   values.settled = clamp01((sys.day - tribe.settledDay) / yearDays / f.settledYears);
   values.elders = adults.length > 0 ? clamp01(elders / adults.length / f.elderShare) : 0;
   values.rivalry = adults.length > 0 ? clamp01(rivals / adults.length / f.rivalryShare) : 0;
-  values.scarcity = clamp01(recentSufferings(sys, tribe) / f.sufferingDeaths);
-  values.cold = clamp01(recentSufferings(sys, tribe, DeathCause.Cold) / f.sufferingDeaths);
+  // Hardship is measured against the tribe's size: 4 deaths a year is a disaster for 20, normal for 200.
+  const sufferingScale = f.sufferingShare * Math.max(1, tribe.members.length);
+  values.scarcity = clamp01(recentSufferings(sys, tribe) / sufferingScale);
+  values.cold = clamp01(recentSufferings(sys, tribe, DeathCause.Cold) / sufferingScale);
   values.privateProperty = params.property[tribe.property]?.id === 'private' ? 1 : 0;
   // Territory, religion, trade, writing and war come with later steps (ideas, conflict): 0 for now.
   return values;

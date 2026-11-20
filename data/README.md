@@ -294,7 +294,7 @@ Un seul concept de groupe pour tous les niveaux : 0 la tribu, 1 les clans, 2 les
 | --- | --- |
 | `levels`, `nameTemplates` | Noms des niveaux et noms descriptifs des groupes (« la tribu de {nom} ») |
 | `adultAge`, `elderAge` | Âge à partir duquel on compte dans la vie politique, âge d'un ancien |
-| `factors` | Comment on mesure la situation d'un groupe (petit, nombreux, surplus, installé, anciens, rivalités, temps durs) |
+| `factors` | Comment on mesure la situation d’un groupe (petit, nombreux, surplus, installé, anciens, rivalités, temps durs : part des membres morts en un an) |
 | `regimes` | Les 8 régimes : titre des dirigeants, nombre de dirigeants, façon de décider (consensus, conseil, chef), hérédité, niveaux possibles, poids de chaque atout pour accéder au pouvoir (`weights` : respect, prestige, âge, lignée, force, richesse), situations qui le favorisent (`favors`) et conditions nécessaires (`requires` : religion, écriture, commerce, territoire, guerre… pas encore simulées, donc ces régimes ne peuvent pas apparaître) |
 | `power` | Échelles des atouts des candidats, inertie d'un régime avant une réforme |
 | `property`, `inheritance`, `strategies` | Règles de propriété, d'héritage et stratégies possibles, choisies par les dirigeants selon leur caractère (`traits`) et la situation (`favors`) ; une stratégie multiplie les réserves et envies de la coutume (nourriture, bois, construction, artisanat) |

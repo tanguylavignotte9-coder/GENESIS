@@ -18,7 +18,7 @@
     "settledYears": 12,
     "elderShare": 0.15,
     "rivalryShare": 0.15,
-    "sufferingDeaths": 4
+    "sufferingShare": 0.12
   },
   "regimes": [
     {
@@ -470,7 +470,7 @@
   },
   "moves": {
     "sufferingEffect": 0.4,
-    "migrateDeaths": 4,
+    "migrateDeathShare": 0.15,
     "migrateMinTiles": 40,
     "migrateWarmth": 0.5,
     "winterCelsius": 8

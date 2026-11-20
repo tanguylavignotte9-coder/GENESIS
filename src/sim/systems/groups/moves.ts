@@ -41,7 +41,7 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
   if (sys.day - camp.settledDay < rules.minDaysBetweenMoves) return;
   const people = humans.people;
   const sufferings = recentSufferings(sys, tribe);
-  const hardship = Math.min(1, sufferings / params.factors.sufferingDeaths);
+  const hardship = Math.min(1, sufferings / (params.factors.sufferingShare * Math.max(1, tribe.members.length)));
   const curiosity = humans.params.traits.findIndex((trait) => trait.id === 'curiosity');
   const adults = sys.adults(tribe);
   // In the cold, nobody wants to leave the huts and the fire: the cold kills in days, hunger in weeks.
@@ -52,7 +52,7 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
     const threshold = rules.forageFarTiles * (1 - rules.curiosityEffect * eager) * (1 - params.moves.sufferingEffect * hardship);
     if (people.forageDistance[p]! > threshold && people.farFood[p]! >= 0) proposals.set(p, people.farFood[p]!);
   }
-  const migrate = sufferings >= params.moves.migrateDeaths;
+  const migrate = sufferings >= Math.max(1, params.moves.migrateDeathShare * tribe.members.length);
   if (adults.length < rules.minAdults || (proposals.size === 0 && !migrate)) return;
   if (!decide(sys, tribe, (p) => proposals.has(p) || (migrate && sys.grievance[p]! > 0))) return;
   const destination = migrate ? migrationSite(sys, tribe, [...proposals.values()]) : meetingSite(sys, [...proposals.values()]);

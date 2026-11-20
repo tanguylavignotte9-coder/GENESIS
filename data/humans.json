@@ -611,7 +611,8 @@
       "reason": "needyNear",
       "minAge": 8,
       "considerations": [
-        { "input": "needyNear", "curve": "logistic", "a": 0.3, "b": 8 }
+        { "input": "needyNear", "curve": "logistic", "a": 0.3, "b": 8 },
+        { "input": "thirst", "curve": "linear", "a": -0.7, "b": 1 }
       ],
       "traits": {
         "generosity": 0.8

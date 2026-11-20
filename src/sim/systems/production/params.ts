@@ -105,7 +105,7 @@ export interface ProductionParams {
   spoilage: { referenceCelsius: number; doublingCelsius: number; minFactor: number; maxFactor: number };
   custom: {
     foodReserveDaysBySeason: number[];
-    firewoodReserveHours: number;
+    firewoodReserveHoursBySeason: number[];
     storageFullShare: number;
     urgency: { fire: number; shelter: number; openSite: number; storage: number; station: number; perMember: number; craft: number; worship: number };
   };
@@ -289,7 +289,7 @@ export const PRODUCTION_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         foodReserveDaysBySeason: { kind: 'array', minLength: 1, items: num(0, 60, 'Réserve de nourriture', SPOIL_DAYS_HELP, 'jours') },
-        firewoodReserveHours: num(0, 500, 'Réserve de bois', 'Heures de feu que la coutume veut garder en bois au stock.', 'heures'),
+        firewoodReserveHoursBySeason: { kind: 'array', minLength: 1, items: num(0, 1000, 'Réserve de bois', 'Heures de feu que la coutume veut garder en bois au stock, saison par saison (on fait sa provision de bois avant l’hiver).', 'heures') },
         storageFullShare: num(0.1, 1, 'Stock à l’étroit', 'Part de la capacité des caches au-delà de laquelle on veut un stockage de plus.', 'fraction'),
         urgency: {
           kind: 'object',

@@ -108,6 +108,7 @@ const SECTION_TITLES: Record<string, string> = {
   custom: 'Coutume',
   urgency: 'Urgence des besoins collectifs',
   foodReserveDaysBySeason: 'Réserve de nourriture par saison',
+  firewoodReserveHoursBySeason: 'Réserve de bois par saison',
   quality: 'Qualité',
   work: 'Travail',
   hunting: 'Chasse',

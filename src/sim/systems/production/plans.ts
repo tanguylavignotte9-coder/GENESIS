@@ -29,7 +29,8 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
   if (members.length === 0) return;
 
   const seasons = params.custom.foodReserveDaysBySeason;
-  const season = sys.climate.seasonAt(camp.center);
+  // The season of the camp's hemisphere (spring, summer, autumn, winter): one provides for the winter.
+  const season = sys.climate.seasonIndexAt(camp.center, seasons.length);
   // The tribe's strategy (fixed by its leaders, groups system) scales what custom asks for.
   const policy = camp.policy;
   const reserve = (seasons[season] ?? seasons[0] ?? 0) * members.length * sys.body.dailyFood * policy.food;
@@ -48,7 +49,8 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
   };
   countFuel(camp.stock);
   for (const person of members) countFuel(sys.carried[person]!);
-  const woodReserve = params.custom.firewoodReserveHours * policy.wood;
+  const woodSeasons = params.custom.firewoodReserveHoursBySeason;
+  const woodReserve = (woodSeasons[season] ?? woodSeasons[0] ?? 0) * policy.wood;
   needs.wood = fireKnown && woodReserve > 0 ? clamp01(1 - fuelHours / woodReserve) : 0;
   needs.woodReserve = fireKnown ? woodReserve : 0;
   needs.woodHave = fuelHours;

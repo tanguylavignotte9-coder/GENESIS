@@ -54,6 +54,9 @@ export function checkProductionLinks(files: LinkedFiles): void {
     for (const biome of source.biomes) if (!files.biomeIds.includes(biome)) problems.push(`« terrainSources » : le biome « ${biome} » n'existe pas.`);
   }
   problems.push(...unknownItems(production.hunting.rangedTools, '« hunting.rangedTools »'));
+  if (production.custom.firewoodReserveHoursBySeason.length !== files.seasonCount) {
+    problems.push(`« custom.firewoodReserveHoursBySeason » doit avoir une valeur par saison (${files.seasonCount}, comme dans data/time.json).`);
+  }
   if (production.custom.foodReserveDaysBySeason.length !== files.seasonCount) {
     problems.push(`« custom.foodReserveDaysBySeason » doit avoir une valeur par saison (${files.seasonCount}, comme dans data/time.json).`);
   }

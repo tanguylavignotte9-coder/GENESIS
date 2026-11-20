@@ -122,3 +122,23 @@ describe('abnormal years', () => {
 function year(simulation: Simulation): number {
   return simulation.data.time.ticksPerDay * daysPerYear(simulation.data.time);
 }
+
+describe('season of the hemisphere', () => {
+  it('the north and the south live opposite seasons of the calendar', async () => {
+    const { ClimateState } = await import('../../../src/sim/systems/world/climate-state');
+    const { loadGameData } = await import('../../../src/sim/core/game-data');
+    const { worldFor } = await import('./helpers');
+    const data = loadGameData();
+    const world = worldFor(3, 64);
+    const yearDays = data.time.daysPerSeason * data.time.seasons.length;
+    const climate = new ClimateState(world, data.climate, yearDays);
+    const north = 2 * world.size + 5;
+    const south = (world.size - 3) * world.size + 5;
+    climate.setDay(Math.floor(yearDays * 0.8));
+    expect(climate.seasonIndexAt(north, 4)).toBe(3);
+    expect(climate.seasonIndexAt(south, 4)).toBe(1);
+    climate.setDay(0);
+    expect(climate.seasonIndexAt(north, 4)).toBe(0);
+    expect(climate.seasonIndexAt(south, 4)).toBe(2);
+  });
+});

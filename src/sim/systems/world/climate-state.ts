@@ -128,6 +128,15 @@ export class ClimateState {
     return this.signals[this.rows.northern[(index / this.map.size) | 0]!]!;
   }
 
+  /**
+   * Season of the calendar on the tile's hemisphere (0 = spring … `count` − 1): the dates of the
+   * calendar follow the north, the south lives the opposite season.
+   */
+  seasonIndexAt(index: number, count: number): number {
+    const north = Math.min(count - 1, Math.floor((this.dayOfYear / this.daysPerYear) * count));
+    return this.rows.northern[(index / this.map.size) | 0] === 1 ? north : (north + Math.floor(count / 2)) % count;
+  }
+
   /** Hours of daylight today on the tile's row (longer in summer, extreme near the poles). */
   dayLengthAt(index: number): number {
     const y = (index / this.map.size) | 0;

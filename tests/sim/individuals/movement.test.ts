@@ -123,7 +123,8 @@ describe('people walk freely, off the grid', () => {
     for (let k = 0; k < 40 && !done; k++) done = humans.follow(child, mother, HOURS);
     expect(done).toBe(true);
     expect(people.distance(mother, child)).toBeLessThan(2);
-    expect(people.distance(mother, child)).toBeGreaterThan(0.3);
+    // By her side, never on her (the stacking criterion of step 7.5: closer than 0.15 tile).
+    expect(people.distance(mother, child)).toBeGreaterThan(0.15);
   });
 
   it('is deterministic: same seed, same positions to the last decimal', () => {

@@ -4,6 +4,7 @@ import { eatHere, foodValueAt } from './food';
 import { State as States } from './animal-store';
 import { humanTargetValid, huntHuman, nearestLoneHuman } from './human-prey';
 import { feastOnKill } from './kill';
+import { denTarget } from './territory';
 import type { AnimalSpecies } from './params';
 import type { SpatialGrid } from '../../core/spatial-grid';
 import { advance, DIRECTION_COUNT, DIRECTIONS_X, DIRECTIONS_Y, distance, separation, speedOf, steer, stop, updateGait, type SteerGoal } from '../../core/motion';
@@ -101,6 +102,11 @@ export function think(fauna: FaunaSystem, slot: number): void {
       return;
     }
   }
+  // A pack leader strayed from its territory heads back to its den.
+  if (denTarget(fauna, slot, PUSH)) {
+    setTarget(fauna, slot, State.Wander, PUSH.x, PUSH.y);
+    return;
+  }
   if (fauna.rng.nextFloat() < params.behavior.wanderChance) {
     const r = params.behavior.wanderRadius;
     const alone = leader < 0 || store.alive[leader] !== 1 || leader === slot;
@@ -127,7 +133,10 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   if (species.huntRadius > 0) {
     const n = params.species.length;
     const hunter = store.species[slot]!;
-    const prey = nearestAnimal(fauna, fauna.grid, slot, species.huntRadius, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1);
+    const isPrey = (other: number): boolean => fauna.hunts[hunter * n + store.species[other]!] === 1;
+    // Big game first; small prey only when no big game is in reach.
+    let prey = species.bigPreyMeat > 0 ? nearestAnimal(fauna, fauna.grid, slot, species.huntRadius, (other) => isPrey(other) && fauna.speciesOf(other).meat >= species.bigPreyMeat) : -1;
+    if (prey < 0) prey = nearestAnimal(fauna, fauna.grid, slot, species.huntRadius, isPrey);
     const preyDistance = prey >= 0 ? distance(store.px[slot]!, store.py[slot]!, store.px[prey]!, store.py[prey]!) : Infinity;
     // A person walking alone is a prey like another for a hungry predator: it goes for the nearest.
     const human = nearestLoneHuman(fauna, slot, species.huntRadius);

@@ -36,6 +36,19 @@ export interface AnimalSpecies {
   /** Territory: a female does not breed if more than `crowdingMax` animals of her species live within `crowdingRadius` tiles. */
   crowdingRadius: number;
   crowdingMax: number;
+  /**
+   * Packs that hold a territory of this radius around their den (0 = none). For them, the pack's
+   * territory replaces the crowding rule: a pack yields to a stronger one and only a pack that
+   * holds its land raises young.
+   */
+  territoryTiles: number;
+  /** Territorial species: chance per year that a young adult (not the dominant one) leaves its pack to found its own. */
+  dispersalPerYear: number;
+  /**
+   * Hunters: prey giving at least this much meat is preferred; smaller prey is hunted only when no
+   * such big game is in reach (0 = the nearest prey, whatever its size).
+   */
+  bigPreyMeat: number;
   /** Hunters only: a female breeds only if she sees at least `breedingMinPrey` prey within `preyCheckRadius` tiles. */
   preyCheckRadius: number;
   breedingMinPrey: number;
@@ -174,6 +187,9 @@ const SPECIES_SCHEMA: Schema = {
     birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas : elle élève ses petits.', 'jours'),
     crowdingRadius: int(1, 64, 'Rayon du territoire', 'Une femelle ne met pas bas si trop d’animaux de son espèce vivent dans ce rayon.', 'tuiles'),
     crowdingMax: int(1, 10000, 'Voisins tolérés', 'Nombre maximal d’animaux de l’espèce dans le territoire pour qu’une femelle se reproduise.', 'animaux'),
+    territoryTiles: int(0, 200, 'Territoire de meute', 'Meutes territoriales (0 = non) : rayon défendu autour de la tanière. Une meute cède la place à une plus forte, et seule une meute qui tient son territoire élève des petits (au lieu de la règle des voisins tolérés).', 'tuiles'),
+    bigPreyMeat: num(0, 1000, 'Gros gibier préféré', 'Chasseurs : une proie qui donne au moins cette viande est préférée ; les plus petites ne sont chassées que faute de gros gibier à portée (0 = la plus proche, quelle que soit sa taille).', 'viande'),
+    dispersalPerYear: num(0, 1, 'Dispersion des jeunes', 'Espèces territoriales : chance par an qu’un jeune adulte quitte sa meute pour en fonder une avec un autre solitaire, sur une terre libre.', 'probabilité'),
     preyCheckRadius: int(0, 64, 'Rayon du gibier', 'Chasseurs : rayon où la femelle compte le gibier avant d’élever des petits.', 'tuiles'),
     breedingMinPrey: int(0, 100000, 'Gibier nécessaire', 'Chasseurs : nombre minimal de proies dans ce rayon pour se reproduire (0 = pas de condition).', 'proies'),
     hungerPerDay: num(0, 100, 'Faim', 'Points de faim gagnés par jour (100 = affamé).', 'points/jour'),

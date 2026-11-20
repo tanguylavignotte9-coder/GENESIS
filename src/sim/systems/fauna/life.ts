@@ -1,6 +1,7 @@
 import { localDayOfYear } from '../flora/fitness';
 import { Sex } from './animal-store';
 import { DeathCause, type FaunaSystem } from './fauna-system';
+import { holdsTerritory } from './territory';
 
 const FULL = 100;
 
@@ -55,8 +56,11 @@ export function canConceive(fauna: FaunaSystem, slot: number): boolean {
   if (day < species.breedingDays[0] || day >= species.breedingDays[1]) return false;
   return (
     hasMateNearby(fauna, slot, params.behavior.mateRadius) &&
-    !isCrowded(fauna, slot, species.crowdingRadius, species.crowdingMax) &&
-    enoughPrey(fauna, slot, species.preyCheckRadius, species.breedingMinPrey)
+    // A pack that holds its land raises young when it is well fed (hunger and health above): its
+    // territory replaces the rules of crowding and of prey counted around.
+    (species.territoryTiles > 0
+      ? holdsTerritory(fauna, slot)
+      : !isCrowded(fauna, slot, species.crowdingRadius, species.crowdingMax) && enoughPrey(fauna, slot, species.preyCheckRadius, species.breedingMinPrey))
   );
 }
 

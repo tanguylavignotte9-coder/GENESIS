@@ -3,6 +3,7 @@ import { localDayOfYear } from '../flora/fitness';
 import { Sex } from './animal-store';
 import type { FaunaSystem } from './fauna-system';
 import { publishMigrations, type MigrationStart } from './fauna-events';
+import { holdTerritories } from './territory';
 
 /** Local days of the year when migratory herds leave: toward the equator in autumn, back in spring. */
 const SEASONS_BEFORE_AUTUMN = 2;
@@ -36,7 +37,9 @@ export function maintainGroups(fauna: FaunaSystem, dayOfYear: number, journal: J
       groups.adultMales[group] = groups.adultMales[group]! + 1;
     }
   }
+  disperse(fauna);
   joinLoners(fauna);
+  holdTerritories(fauna);
   publishMigrations(fauna, updateMigrations(fauna, dayOfYear), journal, tick);
 }
 
@@ -60,11 +63,13 @@ function joinLoners(fauna: FaunaSystem): void {
     const group = store.group[slot]!;
     const species = fauna.speciesOf(slot);
     if (groups.size[group] !== 1 || species.groupSize[1] <= 1) continue;
+    // A lone disperser of a territorial species pairs with another loner, never with a pack.
+    const territorial = species.territoryTiles > 0;
     let target = -1;
     fauna.grid.forEachNear(store.x[slot]!, store.y[slot]!, params.behavior.lonerJoinRadius, (other) => {
       if (target >= 0 || other === slot || store.species[other] !== store.species[slot]) return;
       const otherGroup = store.group[other]!;
-      if (otherGroup !== group && groups.size[otherGroup]! < species.maxGroupSize) target = otherGroup;
+      if (otherGroup !== group && groups.size[otherGroup]! < species.maxGroupSize && (!territorial || groups.size[otherGroup] === 1)) target = otherGroup;
     });
     if (target < 0) continue;
     groups.size[group] = 0;
@@ -108,4 +113,26 @@ function updateMigrations(fauna: FaunaSystem, dayOfYear: number): MigrationStart
     starts.push({ group, species: groups.species[group]!, x, y, animals: groups.size[group]!, south: step > 0 });
   }
   return starts;
+}
+
+/**
+ * Territorial species: a young adult of a pack (not its eldest of its sex) may leave to look for a
+ * mate and free land; alone, it settles away from the packs (their territories push it off).
+ */
+function disperse(fauna: FaunaSystem): void {
+  const { store, groups } = fauna;
+  for (let slot = 0; slot < store.slots; slot++) {
+    if (store.alive[slot] === 0) continue;
+    const species = fauna.speciesOf(slot);
+    if (species.dispersalPerYear <= 0) continue;
+    const group = store.group[slot]!;
+    const adultDays = species.adultAgeYears * fauna.daysPerYear;
+    const age = store.ageDays[slot]!;
+    if (groups.size[group]! < 3 || age < adultDays || age > adultDays + fauna.daysPerYear || groups.leader[group] === slot) continue;
+    if (fauna.rng.nextFloat() >= species.dispersalPerYear / fauna.daysPerYear) continue;
+    groups.size[group] = groups.size[group]! - 1;
+    const own = groups.add(store.species[slot]!, slot);
+    store.group[slot] = own;
+    groups.size[own] = 1;
+  }
 }

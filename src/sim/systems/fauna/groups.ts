@@ -13,6 +13,11 @@ export class GroupStore {
   migrationDaysLeft = new Int16Array(INITIAL_CAPACITY);
   /** 1 while the herd is in its winter quarters (it will come back in spring). */
   away = new Uint8Array(INITIAL_CAPACITY);
+  /** Territorial species: the den the pack holds (tile coordinates; -1 = none yet). */
+  denX = new Int16Array(INITIAL_CAPACITY).fill(-1);
+  denY = new Int16Array(INITIAL_CAPACITY).fill(-1);
+  /** 1 when a stronger pack holds the place: the pack yields and does not raise young there. */
+  contested = new Uint8Array(INITIAL_CAPACITY);
 
   add(species: number, leader: number): number {
     if (this.count === this.leader.length) this.grow(this.count * 2);
@@ -23,6 +28,9 @@ export class GroupStore {
     this.adultMales[id] = 0;
     this.migrating[id] = 0;
     this.away[id] = 0;
+    this.denX[id] = -1;
+    this.denY[id] = -1;
+    this.contested[id] = 0;
     return id;
   }
 
@@ -40,5 +48,8 @@ export class GroupStore {
     this.migrateY = resize(this.migrateY, new Int16Array(capacity));
     this.migrationDaysLeft = resize(this.migrationDaysLeft, new Int16Array(capacity));
     this.away = resize(this.away, new Uint8Array(capacity));
+    this.denX = resize(this.denX, new Int16Array(capacity).fill(-1));
+    this.denY = resize(this.denY, new Int16Array(capacity).fill(-1));
+    this.contested = resize(this.contested, new Uint8Array(capacity));
   }
 }

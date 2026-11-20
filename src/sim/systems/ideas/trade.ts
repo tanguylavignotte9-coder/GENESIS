@@ -60,7 +60,7 @@ function pairKey(a: Group, b: Group, what: string): string {
 }
 
 /** Two people of different tribes met: perhaps they barter. */
-function barter(sys: IdeasSystem, a: number, b: number, ta: Group, tb: Group): void {
+export function barter(sys: IdeasSystem, a: number, b: number, ta: Group, tb: Group): void {
   const params = sys.params.trade;
   const rng = sys.rng;
   const opinion = ta.known.get(tb.id)?.opinion ?? 0;

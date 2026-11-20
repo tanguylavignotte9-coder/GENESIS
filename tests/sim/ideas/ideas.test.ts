@@ -6,6 +6,7 @@ import { IDEA_EVENTS } from '../../../src/sim/systems/ideas/texts';
 import { LANGUAGE_SLOTS } from '../../../src/sim/systems/ideas/holdings';
 import { languageSplits, intelligibility } from '../../../src/sim/systems/ideas/language';
 import { cultureSplits } from '../../../src/sim/systems/ideas/culture';
+import { barter } from '../../../src/sim/systems/ideas/trade';
 import { scission } from '../../../src/sim/systems/groups/tribes';
 import { dataWithSize } from '../world/helpers';
 import { describeIdeas, describePersonIdeas } from '../../../src/sim/systems/ideas/describe';
@@ -208,10 +209,8 @@ describe('exchanges', () => {
     ideas.holdings.values[b * ideas.holdings.valueCount + hospitality] = 1;
     production.carried[a]!.put(basket, 3, 0.5, a);
     production.carried[b]!.put(knife, 3, 0.5, b);
-    // They meet: b stands next to a.
-    humans.setPosition(b, humans.people.px[a]! + 1, humans.people.py[a]!);
-    humans.grid.insert(b, humans.grid.cellOf(humans.people.x[b]!, humans.people.y[b]!));
-    ideas.runStep(12);
+    // They meet: several encounters, until they strike a deal (each may hesitate).
+    for (let k = 0; k < 20 && !simulation.journal.all().some((event) => event.type === IDEA_EVENTS.trade); k++) barter(ideas, a, b, big!, small!);
     const trade = simulation.journal.all().find((event) => event.type === IDEA_EVENTS.trade);
     expect(trade).toBeDefined();
     expect(trade!.text).toMatch(/troc/);

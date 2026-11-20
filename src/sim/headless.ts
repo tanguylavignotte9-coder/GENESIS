@@ -87,10 +87,20 @@ export interface HeadlessReport {
 }
 
 /** Generates a world then runs the simulation without any display for `years` game years. */
-export function runHeadless(seed: number, years: number, data: GameData, now: () => number = () => 0, options: { stopWhenExtinct?: boolean } = {}): HeadlessReport {
-  const simulation = new Simulation(seed, data);
+export function runHeadless(
+  seed: number,
+  years: number,
+  data: GameData,
+  now: () => number = () => 0,
+  options: { stopWhenExtinct?: boolean; from?: Simulation | undefined; onDone?: ((simulation: Simulation) => void) | undefined } = {},
+): HeadlessReport {
+  // From a save, the world goes on with its own data and seed.
+  const simulation = options.from ?? new Simulation(seed, data);
+  seed = simulation.seed;
+  data = simulation.data;
   const startCounts = simulation.fauna.countBySpecies();
   const startTick = simulation.clock.tick;
+  const startYear = Math.floor(startTick / ticksPerYear(data.time));
   const ticks = years * ticksPerYear(data.time);
   const startedAt = now();
   const timeline: HeadlessReport['humans']['timeline'] = [];
@@ -99,10 +109,11 @@ export function runHeadless(seed: number, years: number, data: GameData, now: ()
     const span = Math.min(TIMELINE_YEARS, years - year);
     const at = now();
     simulation.step(span * ticksPerYear(data.time));
-    timeline.push({ year: year + span, alive: simulation.humans.people.living, msPerDay: (now() - at) / (span * yearDays) });
+    timeline.push({ year: startYear + year + span, alive: simulation.humans.people.living, msPerDay: (now() - at) / (span * yearDays) });
     if (simulation.humans.people.living === 0 && options.stopWhenExtinct) break;
   }
   const elapsed = now() - startedAt;
+  options.onDone?.(simulation);
 
   const randomFingerprint: number[] = [];
   for (let i = 0; i < FINGERPRINT_DRAWS; i++) randomFingerprint.push(simulation.rng.nextUint32());

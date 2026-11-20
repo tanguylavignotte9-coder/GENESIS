@@ -3,6 +3,28 @@
  * writing presets in presets/, and running the benchmark. Undefined when the display runs elsewhere.
  */
 import type { PresetFile } from '../sim/core/workshop';
+import type { SaveMeta } from '../sim/core/save/save';
+import type { SaveReason } from './messages';
+
+/** A save file as the menu lists it. */
+export interface SaveEntry {
+  /** Path inside sauvegardes/ ("auto-1.genesis", "partage/loups.genesis"). */
+  file: string;
+  meta: (SaveMeta & { label: string; savedAt: string }) | null;
+  /** French reason when the file cannot be read. */
+  problem: string | null;
+  bytes: number;
+}
+
+/** A world to write: the main process picks the file from the reason (automatic slots, closing, a name). */
+export interface SaveRequest {
+  reason: SaveReason;
+  /** Name given by the player (manual saves). */
+  label: string;
+  meta: SaveMeta;
+  body: Uint8Array;
+  autosaveSlots: number;
+}
 
 export interface PresetEntry {
   /** File name in presets/ ("loups-affames.json"). */
@@ -67,6 +89,15 @@ export interface GenesisBridge {
   isAutoBenchmark(): Promise<boolean>;
   /** Closes the game (end of an automatic benchmark). */
   quit(): Promise<void>;
+  listSaves(): Promise<SaveEntry[]>;
+  writeSave(request: SaveRequest): Promise<SaveEntry>;
+  readSave(file: string): Promise<{ meta: SaveEntry['meta']; body: Uint8Array }>;
+  deleteSave(file: string): Promise<void>;
+  /** Copies a save into sauvegardes/partage/ (kept in the repository); returns its new file. */
+  shareSave(file: string): Promise<string>;
+  /** The window is closing: save if wanted, then call quitReady(). */
+  onBeforeQuit(listener: () => void): void;
+  quitReady(): Promise<void>;
 }
 
 declare global {

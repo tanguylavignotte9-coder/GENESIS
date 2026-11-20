@@ -4,8 +4,14 @@
  *   npm run sim -- --seed 42 --world       generate a world and print its statistics
  *   npm run sim -- --seed 42 --load-test   time a game day with 100 … 5 000 humans (several camps)
  *   npm run sim -- --seed 42 --years 200 --ecosystem   plants and animals alone, census every 10 years
+ *   npm run sim -- --seed 42 --years 50 --save an50      run, then save the world (sauvegardes/an50.genesis)
+ *   npm run sim -- --load an50 --years 30                go on from a save (its own seed and variables)
  */
+import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import { readSaveFile, SAVE_EXTENSION, writeSaveFile } from '../main/save-store';
+import { loadWorld, saveWorld } from '../sim/core/save/save';
+import type { Simulation } from '../sim/core/simulation';
 import { parseArgs } from 'node:util';
 import { loadGameData, type GameData } from '../sim/core/game-data';
 import { isValidSeed, Rng } from '../sim/core/rng';
@@ -60,9 +66,32 @@ function printWorld(seed: number, data: GameData): void {
 /** Beyond this many abnormal years, only the first and last ones are listed. */
 const MAX_LISTED_ANOMALIES = 30;
 
-function printRun(seed: number, years: number, data: GameData): void {
+/** "an50" → sauvegardes/an50.genesis; a path with a folder or an extension is kept as it is. */
+function savePath(name: string): string {
+  const withExtension = path.extname(name) === '' ? `${name}${SAVE_EXTENSION}` : name;
+  return path.dirname(name) === '.' ? path.join('sauvegardes', withExtension) : withExtension;
+}
+
+async function loadSave(name: string): Promise<Simulation> {
+  const file = savePath(name);
   const startedAt = performance.now();
-  const report = runHeadless(seed, years, data, () => performance.now(), { stopWhenExtinct: true });
+  const { body } = await readSaveFile(file);
+  const { simulation } = loadWorld(body);
+  console.log(`Sauvegarde chargée : ${file} (${seconds(startedAt).toFixed(1)} s)`);
+  return simulation;
+}
+
+async function writeSave(name: string, simulation: Simulation): Promise<void> {
+  const file = savePath(name);
+  const startedAt = performance.now();
+  const { meta, body } = saveWorld(simulation);
+  await writeSaveFile(file, { ...meta, label: path.basename(file, SAVE_EXTENSION), savedAt: new Date().toISOString() }, body);
+  console.log(`Monde sauvegardé : ${file} (${meta.date}, ${meta.population} humains, ${seconds(startedAt).toFixed(1)} s)`);
+}
+
+function printRun(seed: number, years: number, data: GameData, from?: Simulation, onDone?: (simulation: Simulation) => void): void {
+  const startedAt = performance.now();
+  const report = runHeadless(seed, years, data, () => performance.now(), { stopWhenExtinct: true, from, onDone });
   const duration = seconds(startedAt);
   const { anomalies } = report;
   const totalAnimals = report.animals.reduce((sum, line) => sum + line.end, 0);
@@ -135,9 +164,9 @@ function printLoadTest(seed: number, data: GameData): void {
 /** Years between two censuses of the ecosystem report. */
 const ECOSYSTEM_EVERY_YEARS = 10;
 
-function printEcosystem(seed: number, years: number, data: GameData): void {
+function printEcosystem(seed: number, years: number, data: GameData, from?: Simulation, onDone?: (simulation: Simulation) => void): void {
   const startedAt = performance.now();
-  const report = runEcosystem(seed, years, ECOSYSTEM_EVERY_YEARS, data, () => performance.now());
+  const report = runEcosystem(seed, years, ECOSYSTEM_EVERY_YEARS, data, () => performance.now(), { from, onDone });
   console.log('GENESIS — écosystème seul (faune et flore, sans humains)');
   console.log(`  Graine : ${seed} · ${years} ans · recensement tous les ${ECOSYSTEM_EVERY_YEARS} ans`);
   const header = report.samples.map((s) => `an ${s.year}`.padStart(8)).join('');
@@ -155,22 +184,37 @@ function printEcosystem(seed: number, years: number, data: GameData): void {
   console.log(`  Temps moyen d'un jour : ${report.msPerDay.toFixed(1)} ms · durée totale ${seconds(startedAt).toFixed(0)} s`);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const { values } = parseArgs({
-    options: { seed: { type: 'string' }, years: { type: 'string' }, world: { type: 'boolean' }, 'load-test': { type: 'boolean' }, ecosystem: { type: 'boolean' } },
+    options: {
+      seed: { type: 'string' },
+      years: { type: 'string' },
+      world: { type: 'boolean' },
+      'load-test': { type: 'boolean' },
+      ecosystem: { type: 'boolean' },
+      save: { type: 'string' },
+      load: { type: 'string' },
+    },
   });
   const seed = parseIntegerOption('seed', values.seed, DEFAULT_SEED);
   if (!isValidSeed(seed)) throw new Error(`La graine doit être comprise entre 0 et 4294967295 (reçu : ${seed}).`);
   const data = loadGameData();
   if (values['load-test']) printLoadTest(seed, data);
   else if (values.world) printWorld(seed, data);
-  else if (values.ecosystem) printEcosystem(seed, parseIntegerOption('years', values.years, DEFAULT_YEARS), data);
-  else printRun(seed, parseIntegerOption('years', values.years, DEFAULT_YEARS), data);
+  else {
+    const from = values.load === undefined ? undefined : await loadSave(values.load);
+    let done: Simulation | undefined;
+    const keep = (simulation: Simulation): void => {
+      done = simulation;
+    };
+    const years = parseIntegerOption('years', values.years, DEFAULT_YEARS);
+    if (values.ecosystem) printEcosystem(seed, years, data, from, keep);
+    else printRun(seed, years, data, from, keep);
+    if (values.save !== undefined && done) await writeSave(values.save, done);
+  }
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error: unknown) => {
   console.error(`Erreur : ${error instanceof Error ? error.message : String(error)}`);
   process.exitCode = 1;
-}
+});

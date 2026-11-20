@@ -9,7 +9,8 @@ import { Simulation } from '../sim/core/simulation';
 import { loadGameData } from '../sim/core/game-data';
 import { daysPerYear } from '../sim/core/time-params';
 import { Workshop, type WorkshopResult } from '../sim/core/workshop';
-import type { FromSimMessage, JournalEntry, LifeTables, ToSimMessage } from '../shared/messages';
+import { loadWorld, saveWorld } from '../sim/core/save/save';
+import type { FromSimMessage, JournalEntry, LifeTables, SaveReason, ToSimMessage } from '../shared/messages';
 import { PerfMeter } from './perf-meter';
 import { snapshotWorld } from './world-snapshot';
 import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
@@ -34,7 +35,12 @@ const STEP_BUDGET_MS = 40;
 const TICKS_PER_CHUNK = 50;
 const PERF_INTERVAL_MS = 500;
 
+const MS_PER_MINUTE = 60_000;
+
 const workshop = new Workshop();
+/** Real time of the last save (automatic saves count from there), and whether the world is the render test's. */
+let lastSaveAt = 0;
+let benchmarkWorld = false;
 const perf = new PerfMeter();
 let lastPerfAt = 0;
 let simulation: Simulation | undefined;
@@ -84,15 +90,59 @@ function start(seed: number, benchmark?: { warmupYears: number }): void {
     post({ type: 'error', message: errorMessage(error) });
     return;
   }
-  simulation = created;
   workshop.attach(created);
+  begin(created, performance.now() - generationStart, benchmark !== undefined, null);
+}
+
+/** Replaces the running world by a saved one; if the save cannot be loaded, the world goes on. */
+function load(body: Uint8Array, label: string): void {
+  const startedAt = performance.now();
+  let loaded: ReturnType<typeof loadWorld>;
+  try {
+    loaded = loadWorld(body);
+  } catch (error) {
+    post({ type: 'saveFailed', requestId: -1, message: errorMessage(error) });
+    return;
+  }
+  if (loop !== undefined) clearInterval(loop);
+  loop = undefined;
+  post({ type: 'worldGenerating', seed: loaded.simulation.seed });
+  workshop.restore(loaded.workshop, loaded.simulation);
+  begin(loaded.simulation, performance.now() - startedAt, false, label);
+  publishWorkshop();
+}
+
+/** Saves the running world (never the render test's world). */
+function save(requestId: number, reason: SaveReason): void {
+  const current = simulation;
+  if (!current || benchmarkWorld) {
+    post({ type: 'saveFailed', requestId, message: 'Aucun monde à sauvegarder.' });
+    return;
+  }
+  if (reason === 'quit' && !current.data.time.autosave.onQuit) {
+    post({ type: 'saveFailed', requestId, message: 'Sauvegarde à la fermeture désactivée (Atelier).' });
+    return;
+  }
+  try {
+    const { meta, body } = saveWorld(current, workshop.state());
+    lastSaveAt = performance.now();
+    post({ type: 'saveData', requestId, reason, meta, body, autosaveSlots: current.data.time.autosave.slots }, [body.buffer]);
+  } catch (error) {
+    post({ type: 'saveFailed', requestId, message: errorMessage(error) });
+  }
+}
+
+/** Shows a world (new or loaded) and runs it. */
+function begin(created: Simulation, generationMs: number, benchmark: boolean, loadedFrom: string | null): void {
+  simulation = created;
+  benchmarkWorld = benchmark;
+  lastSaveAt = performance.now();
   perf.reset();
-  const generationMs = performance.now() - generationStart;
   const { snapshot, transfer } = snapshotWorld(created.world);
   post(
     {
       type: 'worldReady',
-      seed,
+      seed: created.seed,
       world: snapshot,
       generationMs,
       speeds: created.data.time.speeds,
@@ -107,7 +157,8 @@ function start(seed: number, benchmark?: { warmupYears: number }): void {
         hoursPerHumanStep: 1 / created.data.humans.stepsPerHour,
         hoursPerAnimalStep: created.fauna.hoursPerStep,
       },
-      benchmark: benchmark !== undefined,
+      benchmark,
+      loadedFrom,
     },
     transfer,
   );
@@ -163,6 +214,8 @@ function runLoop(): void {
     pendingTicks -= wanted;
   }
   perf.add(realMs, computeMs, done);
+  const { everyMinutes } = current.data.time.autosave;
+  if (!paused && everyMinutes > 0 && now - lastSaveAt >= everyMinutes * MS_PER_MINUTE) save(-1, 'auto');
   publishChanges(current);
   if (now - lastPerfAt >= PERF_INTERVAL_MS) {
     lastPerfAt = now;
@@ -319,6 +372,12 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
     case 'workshopSaved':
       workshop.markSaved(message.name);
       publishWorkshop();
+      return;
+    case 'save':
+      save(message.requestId, message.reason);
+      return;
+    case 'load':
+      load(message.body, message.label);
       return;
   }
 };

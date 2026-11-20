@@ -10,6 +10,10 @@ import type { VariableValue } from '../sim/core/variables';
 import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
 import type { SocialDetails } from '../sim/systems/individuals/social/describe';
 import type { LifeFacts } from '../sim/systems/individuals/life/describe';
+import type { SaveMeta } from '../sim/core/save/save';
+
+/** Why a world is saved: by the player, automatically, or when the game closes. */
+export type SaveReason = 'manual' | 'auto' | 'quit';
 
 /** Display -> simulation. */
 export type ToSimMessage =
@@ -35,7 +39,11 @@ export type ToSimMessage =
   | { type: 'workshopLoadPreset'; preset: PresetFile }
   /** Asks for the current values as a preset, to save it under this name. */
   | { type: 'workshopMakePreset'; name: string }
-  | { type: 'workshopSaved'; name: string };
+  | { type: 'workshopSaved'; name: string }
+  /** Asks for the running world as bytes (answered by 'saveData'). */
+  | { type: 'save'; requestId: number; reason: SaveReason }
+  /** Replaces the running world by a saved one (bytes of a save body). */
+  | { type: 'load'; body: Uint8Array; label: string };
 
 /** State of the variables workshop (sent after every change). */
 export interface WorkshopSnapshot {
@@ -344,7 +352,13 @@ export type FromSimMessage =
       motion: MotionInfo;
       /** True for the render test's world. */
       benchmark: boolean;
+      /** Name of the save the world comes from (null: a new world). */
+      loadedFrom: string | null;
     }
+  /** The running world as bytes. Unasked (`requestId` -1) for an automatic save. */
+  | { type: 'saveData'; requestId: number; reason: SaveReason; meta: SaveMeta; body: Uint8Array; autosaveSlots: number }
+  /** A save could not be made or loaded (French); the running world goes on. */
+  | { type: 'saveFailed'; requestId: number; message: string }
   | { type: 'humans'; humans: HumansSnapshot }
   | { type: 'weather'; regions: Uint8Array }
   | { type: 'person'; details: PersonDetails }

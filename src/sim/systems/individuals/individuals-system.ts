@@ -105,7 +105,7 @@ export class IndividualsSystem {
   /** Biome index of marshes (slow going), -1 if none. */
   private readonly marshBiome: number;
   /** Ground a person may walk on. */
-  readonly walkableTile = (tile: number): boolean => this.terrain.walkable(tile);
+  walkableTile!: (tile: number) => boolean;
   step = 0;
   hour = 0;
   private absoluteDay = 0;
@@ -125,7 +125,7 @@ export class IndividualsSystem {
     readonly rng: Rng,
     readonly journal: Journal,
     tick: number,
-    interactions: Interactions,
+    readonly interactions: Interactions,
   ) {
     this.size = world.size;
     this.marshBiome = world.biomes.biomes.findIndex((biome) => biome.id === MARSH_BIOME);
@@ -149,7 +149,24 @@ export class IndividualsSystem {
     this.rebuildGrid();
     this.life = new LifeCycle(this, lifeParams, time, rng, journal, this.names);
     this.social = new SocialLife(this, socialParams, time, rng, journal);
-    interactions.register(
+    this.bindCallbacks();
+    this.publishSettlements(journal, tick);
+  }
+
+  /** Saving: callbacks are rebuilt after loading. */
+  transientKeys(): readonly string[] {
+    return ['walkableTile'];
+  }
+
+  afterLoad(): void {
+    this.bindCallbacks();
+    this.production.reattachPeople(this.workerView());
+  }
+
+  /** Callbacks handed to the movement code and to the interactions (rebuilt after loading a save). */
+  private bindCallbacks(): void {
+    this.walkableTile = (tile: number): boolean => this.terrain.walkable(tile);
+    this.interactions.register(
       'human',
       {
         forEachNear: (x, y, radius, visit) => this.grid.forEachNear(x, y, radius, visit),
@@ -163,7 +180,6 @@ export class IndividualsSystem {
       },
       { sufferAttack: (person, attack, journal) => this.sufferAttack(person, attack, journal) },
     );
-    this.publishSettlements(journal, tick);
   }
 
   /** Recomputes what is derived from the parameters (after a live change in the variables workshop). */

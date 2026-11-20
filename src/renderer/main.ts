@@ -13,6 +13,7 @@ import { PresetsBar } from './hud/workshop/presets-bar';
 import { WorkshopPage } from './hud/workshop/workshop-page';
 import { PersonSheet } from './hud/person-sheet';
 import { TribePanel } from './hud/tribe-panel';
+import { SavesPanel } from './hud/saves-panel';
 import { StatsPanel } from './hud/stats-panel';
 import { TimeControls } from './hud/time-controls';
 import { Tooltip } from './hud/tooltip';
@@ -242,6 +243,18 @@ async function main(): Promise<void> {
       pending.resolve();
     }
   };
+  const saves = new SavesPanel(
+    {
+      panel: element('saves'),
+      toggle: element<HTMLButtonElement>('saves-toggle'),
+      name: element<HTMLInputElement>('save-name'),
+      save: element<HTMLButtonElement>('save-now'),
+      list: element('saves-list'),
+      message: element('saves-message'),
+    },
+    window.genesis,
+    { requestSave: (requestId, reason) => sim.save(requestId, reason), load: (body, label) => sim.load(body, label) },
+  );
   const perfPanel = new PerfPanel(element('perf'));
   const tribe = new TribePanel(element('tribe'), element<HTMLButtonElement>('tribe-toggle'), element('tribe-list'), selectPerson);
   const followBadge = element('follow');
@@ -292,6 +305,7 @@ async function main(): Promise<void> {
         if (workshop.isOpen) sim.workshopGet();
         panel.setWorld({ seed: message.seed, generationMs: message.generationMs, riverCount: world.riverCount, lakeCount: world.lakeCount });
         knownSpeeds = message.speeds;
+        if (message.loadedFrom !== null) saves.onLoaded(message.loadedFrom);
         if (benchmarkWorld && message.benchmark) {
           benchmarkWorld.humans = false;
           benchmarkWorld.fauna = false;
@@ -367,6 +381,12 @@ async function main(): Promise<void> {
         return;
       case 'liveTables':
         applyLiveTables(message.climate, message.life, message.speeds);
+        return;
+      case 'saveData':
+        void saves.onSaveData(message.requestId, message.reason, message.meta, message.body, message.autosaveSlots);
+        return;
+      case 'saveFailed':
+        saves.onSaveFailed(message.requestId, message.message);
         return;
     }
   }

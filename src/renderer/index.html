@@ -17,6 +17,7 @@
       <label for="seed">Graine</label>
       <input id="seed" type="text" inputmode="numeric" placeholder="au hasard" spellcheck="false" />
       <button id="new-world" type="submit">Nouveau monde</button>
+      <button id="saves-toggle" type="button" title="Sauvegardes (F5)">Sauvegardes</button>
       <div id="form-error" class="form-error" hidden></div>
     </form>
 
@@ -87,10 +88,20 @@
 
     <button id="workshop-toggle" class="panel" type="button" title="Atelier des variables (F2)">Atelier</button>
 
+    <section id="saves" class="panel" hidden>
+      <div class="stats-title">Sauvegardes</div>
+      <div class="saves-form">
+        <input id="save-name" type="text" placeholder="Nom de la sauvegarde" spellcheck="false" />
+        <button id="save-now" type="button">Sauvegarder</button>
+      </div>
+      <div id="saves-message" class="workshop-message" hidden></div>
+      <ol id="saves-list"></ol>
+    </section>
+
     <section id="perf" class="panel" hidden></section>
 
     <div id="help" class="panel">
-      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur une personne ou un bâtiment : sa fiche (Maj+clic : le bâtiment sous les gens) · Clic sur un animal : le suivre · F2 : atelier des variables · F3 : performances
+      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur une personne ou un bâtiment : sa fiche (Maj+clic : le bâtiment sous les gens) · Clic sur un animal : le suivre · F2 : atelier des variables · F3 : performances · F5 : sauvegardes
     </div>
 
     <section id="workshop" hidden>

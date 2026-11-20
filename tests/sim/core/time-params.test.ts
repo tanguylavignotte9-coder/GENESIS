@@ -10,6 +10,7 @@ const VALID = {
   daysPerSeason: 10,
   seasons: ['Printemps', 'Été', 'Automne', 'Hiver'],
   speeds: [1, 5, 25, 100, 500],
+  autosave: { everyMinutes: 5, slots: 3, onQuit: true },
 };
 
 describe('time parameters (data/time.json)', () => {

@@ -6,6 +6,7 @@
 import { DataFileError } from './data-validation';
 import { DATA_FILES, defaultRawData, parseGameData, type GameData, type RawGameData } from './game-data';
 import type { Simulation } from './simulation';
+import type { WorkshopState } from './save/save';
 import {
   buildCatalog,
   cloneRaw,
@@ -66,6 +67,20 @@ export class Workshop {
     const data = parseGameData(cloneRaw(this.pending));
     this.running = cloneRaw(this.pending);
     return data;
+  }
+
+  /** What a save keeps of the workshop: the values the world runs with and the active preset. */
+  state(): WorkshopState {
+    return { raw: this.running ? cloneRaw(this.running) : null, presetName: this.presetName, modified: this.modified };
+  }
+
+  /** After loading a save: its values become those of the running world and of the next one. */
+  restore(state: WorkshopState, simulation: Simulation): void {
+    this.pending = cloneRaw(state.raw ?? this.defaults);
+    this.running = cloneRaw(this.pending);
+    this.presetName = state.presetName;
+    this.modified = state.modified;
+    this.simulation = simulation;
   }
 
   /** The world that live changes apply to (created from dataForNewWorld()). */

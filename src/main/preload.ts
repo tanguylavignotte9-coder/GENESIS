@@ -7,6 +7,7 @@ import type { Channel } from './channels';
 
 const invoke = (channel: Channel, ...args: unknown[]): Promise<unknown> => ipcRenderer.invoke(channel, ...args);
 const BENCHMARK_LINE: Channel = 'benchmark:line';
+const BEFORE_QUIT: Channel = 'app:beforeQuit';
 
 contextBridge.exposeInMainWorld('genesis', {
   listPresets: () => invoke('presets:list'),
@@ -21,4 +22,13 @@ contextBridge.exposeInMainWorld('genesis', {
   onBenchmarkLine: (listener: (line: string) => void) => {
     ipcRenderer.on(BENCHMARK_LINE, (_event, line: string) => listener(line));
   },
+  listSaves: () => invoke('saves:list'),
+  writeSave: (request: unknown) => invoke('saves:write', request),
+  readSave: (file: string) => invoke('saves:read', file),
+  deleteSave: (file: string) => invoke('saves:delete', file),
+  shareSave: (file: string) => invoke('saves:share', file),
+  onBeforeQuit: (listener: () => void) => {
+    ipcRenderer.on(BEFORE_QUIT, () => listener());
+  },
+  quitReady: () => invoke('app:quitReady'),
 });

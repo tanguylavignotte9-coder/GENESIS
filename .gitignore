@@ -5,3 +5,7 @@ out/
 *.log
 presets/.actif
 rapports/.test-de-rendu.json
+# Saves stay on the player's computer, except sauvegardes/partage/ (worlds handed over to Claude Code).
+/sauvegardes/*
+!/sauvegardes/partage/
+*.genesis.tmp

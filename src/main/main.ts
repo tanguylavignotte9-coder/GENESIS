@@ -4,6 +4,12 @@ import path from 'node:path';
 import { runBenchmark } from './benchmark-runner';
 import type { Channel } from './channels';
 import { PresetStore } from './presets';
+import { SAVE_EXTENSION, saveSlug, SaveStore, type WorldMeta } from './save-store';
+
+/** If the display does not answer when the window closes (frozen), it closes anyway after this delay. */
+const QUIT_SAVE_TIMEOUT_MS = 20_000;
+/** Set once the display saved (or gave up): the window may then close. */
+let readyToQuit = false;
 
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 800;
@@ -25,6 +31,17 @@ function createWindow(): void {
     },
   });
   void window.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  window.on('close', (event) => {
+    if (readyToQuit || !window) return;
+    // The display saves the world first (if the player wants it), then says it is ready.
+    event.preventDefault();
+    const before: Channel = 'app:beforeQuit';
+    window.webContents.send(before);
+    setTimeout(() => {
+      readyToQuit = true;
+      window?.close();
+    }, QUIT_SAVE_TIMEOUT_MS);
+  });
   window.on('closed', () => (window = null));
 }
 
@@ -46,7 +63,35 @@ function registerHandlers(): void {
   handle('benchmark:run', (render) => runBenchmark(appDir, render ?? null, (text) => window?.webContents.send(line, text)));
   // Launched by Benchmark-GENESIS.bat ("electron . --benchmark"): the display runs the whole benchmark.
   handle('benchmark:auto', () => process.argv.includes('--benchmark'));
-  handle('app:quit', () => app.quit());
+  handle('app:quit', () => {
+    readyToQuit = true;
+    app.quit();
+  });
+  handle('app:quitReady', () => {
+    readyToQuit = true;
+    window?.close();
+  });
+  const saves = new SaveStore(path.join(appDir, 'sauvegardes'));
+  handle('saves:list', () => saves.list());
+  handle('saves:read', (file) => saves.read(String(file)));
+  handle('saves:delete', (file) => saves.remove(String(file)));
+  handle('saves:share', (file) => saves.share(String(file)));
+  handle('saves:write', async (request) => {
+    const { reason, label, meta, body, autosaveSlots } = request as { reason: string; label: string; meta: WorldMeta; body: Uint8Array; autosaveSlots: number };
+    let file: string;
+    let name: string;
+    if (reason === 'auto') {
+      file = await saves.nextAutoFile(autosaveSlots);
+      name = `Automatique ${file.replace(/\D/g, '')}`;
+    } else if (reason === 'quit') {
+      file = `fermeture${SAVE_EXTENSION}`;
+      name = 'À la fermeture';
+    } else {
+      name = label.trim() || meta.date;
+      file = `${saveSlug(name)}${SAVE_EXTENSION}`;
+    }
+    return saves.write(file, { ...meta, label: name, savedAt: new Date().toISOString() }, body);
+  });
 }
 
 void app.whenReady().then(() => {

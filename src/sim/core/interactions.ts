@@ -61,15 +61,32 @@ export interface InteractionParty {
 }
 
 export class Interactions {
-  private readonly views = new Map<BodyKind, BodyView>();
-  private readonly parties = new Map<BodyKind, InteractionParty>();
+  private views = new Map<BodyKind, BodyView>();
+  private parties = new Map<BodyKind, InteractionParty>();
 
   constructor(private readonly journal: Journal) {}
 
+  /** Saving: the registered callbacks are not saved; each system registers again after loading. */
+  transientKeys(): readonly string[] {
+    return ['views', 'parties'];
+  }
+
+  afterLoad(): void {
+    this.prepare();
+  }
+
   /** A system declares the beings it owns: how to see them, and how they react. */
   register(kind: BodyKind, view: BodyView, party: InteractionParty): void {
+    this.prepare();
     this.views.set(kind, view);
     this.parties.set(kind, party);
+  }
+
+  /** After loading, the systems may register before or after this object is restored. */
+  private prepare(): void {
+    // The fields are undefined between the restoring of a save and afterLoad().
+    if ((this.views as Map<BodyKind, BodyView> | undefined) === undefined) this.views = new Map();
+    if ((this.parties as Map<BodyKind, InteractionParty> | undefined) === undefined) this.parties = new Map();
   }
 
   /** The beings of a kind, as the world shows them (null if nobody of that kind exists). */

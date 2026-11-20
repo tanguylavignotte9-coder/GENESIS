@@ -1,4 +1,4 @@
-import { int, num, text, validateData, type Schema } from './data-validation';
+import { flag, int, num, text, validateData, type Schema } from './data-validation';
 
 /** Time settings, read from data/time.json. */
 export interface TimeParams {
@@ -11,6 +11,8 @@ export interface TimeParams {
   seasons: string[];
   /** Speed multipliers offered to the player (pause is separate). */
   speeds: number[];
+  /** Automatic saves of the game (read by the game, not by the simulation). */
+  autosave: { everyMinutes: number; slots: number; onQuit: boolean };
 }
 
 export const TIME_SCHEMA: Schema = {
@@ -29,6 +31,14 @@ export const TIME_SCHEMA: Schema = {
       minLength: 1,
       maxLength: 9,
       items: num(0.01, 5000, 'Vitesse proposée', 'Multiplicateurs de vitesse des boutons (touches 1 à 9) ; la pause est à part.', 'facteur'),
+    },
+    autosave: {
+      kind: 'object',
+      fields: {
+        everyMinutes: num(0, 240, 'Sauvegarde automatique : intervalle', 'Temps réel entre deux sauvegardes automatiques du monde en cours (0 = jamais). Elles tournent sur quelques emplacements « auto ».', 'minutes'),
+        slots: int(1, 20, 'Sauvegarde automatique : emplacements', 'Nombre d’emplacements « auto » utilisés à tour de rôle (la plus ancienne est remplacée).', 'emplacements'),
+        onQuit: flag('Sauvegarder à la fermeture', 'Sauvegarde le monde en cours dans l’emplacement « fermeture » quand on ferme le jeu.'),
+      },
     },
   },
 };

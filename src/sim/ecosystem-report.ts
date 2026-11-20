@@ -25,10 +25,20 @@ export interface EcosystemReport {
  * Plants and animals alone (no humans), for `years` years, with a census every `everyYears`:
  * to check that the ecosystem stays varied by itself.
  */
-export function runEcosystem(seed: number, years: number, everyYears: number, data: GameData, now: () => number = () => 0): EcosystemReport {
-  const simulation = new Simulation(seed, data);
+export function runEcosystem(
+  seed: number,
+  years: number,
+  everyYears: number,
+  data: GameData,
+  now: () => number = () => 0,
+  options: { from?: Simulation | undefined; onDone?: ((simulation: Simulation) => void) | undefined } = {},
+): EcosystemReport {
+  const simulation = options.from ?? new Simulation(seed, data);
+  seed = simulation.seed;
+  data = simulation.data;
   const yearDays = daysPerYear(data.time);
-  const sample = (year: number): EcosystemSample => ({ year, animals: simulation.fauna.countBySpecies(), plants: simulation.flora.countBySpecies() });
+  const firstYear = Math.floor(simulation.date.absoluteDay / yearDays);
+  const sample = (year: number): EcosystemSample => ({ year: firstYear + year, animals: simulation.fauna.countBySpecies(), plants: simulation.flora.countBySpecies() });
   const samples = [sample(0)];
   const startedAt = now();
   for (let year = 0; year < years; year += everyYears) {
@@ -36,6 +46,7 @@ export function runEcosystem(seed: number, years: number, everyYears: number, da
     simulation.runEcosystemOnly(span * yearDays);
     samples.push(sample(year + span));
   }
+  options.onDone?.(simulation);
   return {
     seed,
     animalNames: data.fauna.species.map((species) => species.name),

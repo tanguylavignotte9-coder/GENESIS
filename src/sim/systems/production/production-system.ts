@@ -151,6 +151,16 @@ export class ProductionSystem {
     return this.biomeCodes.get(id) ?? -1;
   }
 
+  /** Saving: the view of the people is made of callbacks, given again by the humans after loading. */
+  transientKeys(): readonly string[] {
+    return ['people'];
+  }
+
+  /** After loading a save: the same people, seen through fresh callbacks. */
+  reattachPeople(view: WorkerView): void {
+    this.people = view;
+  }
+
   /** The people whose objects, beds and jobs this system keeps. */
   attachPeople(view: WorkerView): void {
     this.people = view;

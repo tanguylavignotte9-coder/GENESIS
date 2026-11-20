@@ -1,7 +1,7 @@
 import SimWorker from '../worker/sim.worker?worker';
 import type { VariableValue } from '../sim/core/variables';
 import type { PresetFile } from '../sim/core/workshop';
-import type { FromSimMessage, ToSimMessage } from '../shared/messages';
+import type { FromSimMessage, SaveReason, ToSimMessage } from '../shared/messages';
 
 /** Talks to the simulation worker with typed messages. */
 export class SimClient {
@@ -62,6 +62,15 @@ export class SimClient {
 
   workshopSaved(name: string): void {
     this.send({ type: 'workshopSaved', name });
+  }
+
+  save(requestId: number, reason: SaveReason): void {
+    this.send({ type: 'save', requestId, reason });
+  }
+
+  /** The bytes are handed over to the worker (not copied). */
+  load(body: Uint8Array, label: string): void {
+    this.worker.postMessage({ type: 'load', body, label } satisfies ToSimMessage, [body.buffer]);
   }
 
   private send(message: ToSimMessage): void {

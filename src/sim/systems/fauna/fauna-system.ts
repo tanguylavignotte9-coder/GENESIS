@@ -64,7 +64,7 @@ export class FaunaSystem {
   /** Game hours between two steps of an animal. */
   readonly hoursPerStep: number;
   /** Ground an animal may walk on (no sea, no lake). */
-  readonly walkableTile = (tile: number): boolean => this.world.ocean[tile] === 0 && this.world.water[tile] !== Water.Lake;
+  walkableTile!: (tile: number) => boolean;
   /** Tick of the current step (for the interactions it starts). */
   tick = 0;
   /** canHuntHumans[species] = 1 for the species that may attack a lone human. */
@@ -107,7 +107,22 @@ export class FaunaSystem {
     this.refreshParams();
     this.census = new Census(this);
     this.spawnAll();
-    interactions.register(
+    this.bindCallbacks();
+  }
+
+  /** Saving: callbacks are rebuilt after loading. */
+  transientKeys(): readonly string[] {
+    return ['walkableTile'];
+  }
+
+  afterLoad(): void {
+    this.bindCallbacks();
+  }
+
+  /** Callbacks handed to the movement code and to the interactions (rebuilt after loading a save). */
+  private bindCallbacks(): void {
+    this.walkableTile = (tile: number): boolean => this.world.ocean[tile] === 0 && this.world.water[tile] !== Water.Lake;
+    this.interactions.register(
       'animal',
       {
         forEachNear: (x, y, radius, visit) => this.grid.forEachNear(x, y, radius, visit),

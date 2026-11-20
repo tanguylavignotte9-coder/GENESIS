@@ -332,7 +332,7 @@ export const GROUPS_SCHEMA: Schema = {
         sufferingEffect: share('Souffrances passées', 'Part dont les souffrances passées (famines, froid, épidémies) rendent plus prompt à partir.'),
         migrateDeaths: num(1, 100, 'Migration', 'Morts récentes (faim, froid, maladie) à partir desquelles on migre loin plutôt que de se déplacer un peu.', 'morts'),
         migrateMinTiles: num(5, 500, 'Distance d’une migration', 'Distance à partir de laquelle un lieu connu compte pleinement comme destination de migration (on préfère partir loin).', 'tuiles'),
-        winterCelsius: num(-50, 40, 'Froid qui retient', 'En dessous de cette température au camp, seul qui a faim veut lever le camp (on ne part pas en plein hiver sans y être forcé).', '°C'),
+        winterCelsius: num(-50, 40, 'Froid qui retient', 'En dessous de cette température au camp, personne ne veut lever le camp : on reste près des huttes et du feu (le froid tue en quelques jours).', '°C'),
         migrateWarmth: share('Chercher la chaleur', 'Poids de la chaleur dans le choix d’une destination de migration après des morts de froid.'),
       },
     },

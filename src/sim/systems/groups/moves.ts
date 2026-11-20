@@ -44,11 +44,10 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
   const hardship = Math.min(1, sufferings / params.factors.sufferingDeaths);
   const curiosity = humans.params.traits.findIndex((trait) => trait.id === 'curiosity');
   const adults = sys.adults(tribe);
+  // In the cold, nobody wants to leave the huts and the fire: the cold kills in days, hunger in weeks.
+  if (humans.climate.temperatureAt(camp.center) < params.moves.winterCelsius) return;
   const proposals = new Map<number, number>();
-  const wintry = humans.climate.temperatureAt(camp.center) < params.moves.winterCelsius;
   for (const p of adults) {
-    // In the cold, one does not break camp for a longer walk to food, only when hunger drives.
-    if (wintry && people.hunger[p]! < params.opinion.hungerFloor) continue;
     const eager = curiosity >= 0 ? 2 * people.trait(p, curiosity) - 1 : 0;
     const threshold = rules.forageFarTiles * (1 - rules.curiosityEffect * eager) * (1 - params.moves.sufferingEffect * hardship);
     if (people.forageDistance[p]! > threshold && people.farFood[p]! >= 0) proposals.set(p, people.farFood[p]!);

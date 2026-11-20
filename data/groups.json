@@ -473,7 +473,7 @@
     "migrateDeaths": 4,
     "migrateMinTiles": 40,
     "migrateWarmth": 0.5,
-    "winterCelsius": 2
+    "winterCelsius": 8
   },
   "texts": {
     "founded": "{groupe} se forme : {raison}.",

@@ -13,6 +13,10 @@ export const DeathCause = { None: 0, Hunger: 1, Thirst: 2, Cold: 3, Predator: 4,
 export const DEATH_CAUSE_COUNT = 8;
 /** Kinds of harm counted per person (hunger, thirst, cold, disease), see `People.harm`. */
 export const HARM_KINDS = 4;
+/** Decisions kept per person for the visual brain (the last ones, with why the activity changed). */
+export const DECISION_HISTORY = 20;
+/** Why an activity changed (index kept in `People.histWhy`). */
+export const ChangeWhy = { Ended: 0, Outscored: 1, Danger: 2 } as const;
 /** Room made at least when the arrays grow (technical). */
 const MIN_GROWTH = 16;
 
@@ -78,6 +82,18 @@ export class People {
   /** The 3 best actions at the last decision, and their scores. */
   readonly topActions: Int16Array;
   readonly topScores: Float32Array;
+  /** 1 when the current action just ended (the next decision starts afresh). */
+  readonly ended: Uint8Array;
+  /**
+   * The last DECISION_HISTORY changes of activity (ring per person, `histHead` = next slot): new
+   * action, previous one, game tick, why (ChangeWhy) and the value of the new action's reason.
+   */
+  readonly histAction: Int16Array;
+  readonly histFrom: Int16Array;
+  readonly histTick: Int32Array;
+  readonly histWhy: Uint8Array;
+  readonly histValue: Float32Array;
+  readonly histHead: Uint8Array;
   /** Animal slot of the predator seen nearby (-1 = none), refreshed every hour. */
   readonly threat: Int32Array;
   readonly isolated: Uint8Array;
@@ -144,6 +160,13 @@ export class People {
     this.reasonValue = new Float32Array(count);
     this.topActions = new Int16Array(count * 3).fill(-1);
     this.topScores = new Float32Array(count * 3);
+    this.ended = new Uint8Array(count);
+    this.histAction = new Int16Array(count * DECISION_HISTORY).fill(-1);
+    this.histFrom = new Int16Array(count * DECISION_HISTORY).fill(-1);
+    this.histTick = new Int32Array(count * DECISION_HISTORY);
+    this.histWhy = new Uint8Array(count * DECISION_HISTORY);
+    this.histValue = new Float32Array(count * DECISION_HISTORY);
+    this.histHead = new Uint8Array(count);
     this.threat = new Int32Array(count).fill(-1);
     this.isolated = new Uint8Array(count);
     this.deathCause = new Uint8Array(count);
@@ -154,6 +177,17 @@ export class People {
     this.foodMemoryDay = new Int32Array(count * foodSlots);
     this.paths = new Array<Int32Array | null>(count).fill(null);
     this.pathIndex = new Int32Array(count);
+  }
+
+  /** Records a change of activity in the person's history. */
+  recordChange(person: number, action: number, from: number, tick: number, why: number, value: number): void {
+    const at = person * DECISION_HISTORY + this.histHead[person]!;
+    this.histAction[at] = action;
+    this.histFrom[at] = from;
+    this.histTick[at] = tick;
+    this.histWhy[at] = why;
+    this.histValue[at] = value;
+    this.histHead[person] = (this.histHead[person]! + 1) % DECISION_HISTORY;
   }
 
   /** Room for the arrays (slots in use or waiting). */

@@ -2,6 +2,7 @@ import type { Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
 import type { Rng } from '../../core/rng';
 import type { ClimateState } from '../world/climate-state';
+import { AnimalWatch, noteAnimalState, traceAnimal } from './brain-trace';
 import { Water } from '../world/hydrology';
 import type { World } from '../world/world';
 import type { FloraSystem } from '../flora/flora-system';
@@ -39,6 +40,8 @@ const PERCENT = 100;
  */
 export class FaunaSystem {
   readonly store = new AnimalStore();
+  /** Visual brain: the animal the spectator watches (never saved). */
+  watch = new AnimalWatch();
   readonly groups = new GroupStore();
   readonly grid: SpatialGrid;
   /** Same grid, holding only hunters: prey look for danger here (few animals, fast). */
@@ -112,10 +115,11 @@ export class FaunaSystem {
 
   /** Saving: callbacks are rebuilt after loading. */
   transientKeys(): readonly string[] {
-    return ['walkableTile'];
+    return ['walkableTile', 'watch'];
   }
 
   afterLoad(): void {
+    this.watch = new AnimalWatch();
     this.bindCallbacks();
   }
 
@@ -175,8 +179,12 @@ export class FaunaSystem {
       const code = species[slot]!;
       hunger[slot] = Math.min(PERCENT, hunger[slot]! + this.hungerPerStep[code]!);
       thirst[slot] = Math.min(PERCENT, thirst[slot]! + this.thirstPerStep[code]!);
-      if ((uid[slot]! + phase) % every === 0) think(this, slot);
+      if ((uid[slot]! + phase) % every === 0) {
+        think(this, slot);
+        if (uid[slot] === this.watch.uid) traceAnimal(this, slot);
+      }
       act(this, slot);
+      if (uid[slot] === this.watch.uid) noteAnimalState(this, slot);
     }
     this.step++;
   }

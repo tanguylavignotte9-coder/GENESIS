@@ -9,6 +9,7 @@ import { bestRegime, candidateFeatures, groupFactors, powerScore, regimeFit } fr
 import { DUTIES, LEVEL_COUNT } from './params';
 import { factorReason, genderVars, GROUP_EVENTS, nameOf, publishGroupEvent } from './texts';
 import { successionCrisis } from './succession';
+import { deciders, explainOption, recordDecision } from './decisions';
 import { scission, tribeRelations } from './tribes';
 
 /**
@@ -54,9 +55,25 @@ function groupPolitics(sys: GroupsSystem, group: Group): void {
 function reform(sys: GroupsSystem, group: Group, factors: ReturnType<typeof groupFactors>, causes: readonly number[]): boolean {
   const { params } = sys;
   const best = bestRegime(sys, group, factors);
-  if (best === group.regime) return false;
   const gain = regimeFit(params.regimes[best]!, group.level, factors) - regimeFit(params.regimes[group.regime]!, group.level, factors);
-  if (gain < params.power.regimeInertia && Number.isFinite(gain)) return false;
+  const changes = best !== group.regime && (gain >= params.power.regimeInertia || !Number.isFinite(gain));
+  recordDecision(group, {
+    day: sys.day,
+    title: 'Régime',
+    chosen: changes ? best : group.regime,
+    options: params.regimes.map((regime) => {
+      const fit = regimeFit(regime, group.level, factors);
+      const reasons = Object.entries(regime.favors).flatMap(([factor, weight]) => {
+        const part = (weight ?? 0) * (factors[factor as keyof typeof factors] ?? 0);
+        return Math.abs(part) >= 0.01 ? [`${params.factorTexts[factor as keyof typeof params.factorTexts] ?? factor} → ${part >= 0 ? '+' : '−'}${Math.abs(part).toFixed(2).replace('.', ',')}`] : [];
+      });
+      if (!Number.isFinite(fit)) reasons.unshift('impossible : une condition manque (religion, écriture, commerce, territoire ou guerre)');
+      return { name: regime.name, score: Number.isFinite(fit) ? fit : 0, reasons };
+    }),
+    decidedBy: deciders(sys, group),
+    note: best !== group.regime && !changes ? `« ${params.regimes[best]!.name} » conviendrait un peu mieux, mais pas assez pour bouleverser le régime en place` : '',
+  });
+  if (!changes) return false;
   const before = params.regimes[group.regime]!;
   const after = params.regimes[best]!;
   const leader = group.leaders[0] ?? -1;
@@ -82,23 +99,32 @@ function leadTribe(sys: GroupsSystem, tribe: Group, factors: ReturnType<typeof g
   if (leader >= 0) {
     const vars = (rule: string, reason: string): Record<string, string> => ({ nom: nameOf(sys, leader), groupe: tribe.name, regle: rule, strategie: rule, raison: reason });
     // A rule changes only if another one is clearly better (the custom in force has its weight).
-    const keep = (options: Parameters<typeof bestOption>[1], current: number): number => {
+    const keep = (options: readonly { name: string; traits: Record<string, number>; favors?: Partial<Record<string, number>> }[], current: number, title: string): number => {
       const best = bestOption(sys, options, leader, factors);
-      return optionScore(sys, options[best]!, leader, factors) - optionScore(sys, options[current]!, leader, factors) >= params.power.ruleInertia ? best : current;
+      const chosen = optionScore(sys, options[best]!, leader, factors) - optionScore(sys, options[current]!, leader, factors) >= params.power.ruleInertia ? best : current;
+      recordDecision(tribe, {
+        day: sys.day,
+        title,
+        chosen,
+        options: options.map((option) => explainOption(sys, option, leader, factors)),
+        decidedBy: deciders(sys, tribe),
+        note: chosen !== best ? `« ${options[best]!.name} » l’emporte de peu : la règle en place a son poids (il faut un écart de ${params.power.ruleInertia})` : '',
+      });
+      return chosen;
     };
-    const strategy = keep(params.strategies, tribe.strategy);
+    const strategy = keep(params.strategies, tribe.strategy, 'Stratégie');
     if (strategy !== tribe.strategy) {
       tribe.strategy = strategy;
       const chosen = params.strategies[strategy]!;
       publishGroupEvent(sys, GROUP_EVENTS.strategy, params.texts.strategyChanged, vars(chosen.name.toLowerCase(), factorReason(params, chosen.favors, factors)), tribe, [leader], [tribe.leaderEvent]);
     }
-    const property = keep(params.property, tribe.property);
+    const property = keep(params.property, tribe.property, 'Propriété');
     if (property !== tribe.property) {
       tribe.property = property;
       const chosen = params.property[property]!;
       publishGroupEvent(sys, GROUP_EVENTS.rule, params.texts.ruleChanged, vars(chosen.name.toLowerCase(), factorReason(params, chosen.favors ?? {}, factors)), tribe, [leader], [tribe.leaderEvent]);
     }
-    const inheritance = keep(params.inheritance, tribe.inheritance);
+    const inheritance = keep(params.inheritance, tribe.inheritance, 'Héritage');
     if (inheritance !== tribe.inheritance) {
       tribe.inheritance = inheritance;
       const chosen = params.inheritance[inheritance]!;

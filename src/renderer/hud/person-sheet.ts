@@ -91,7 +91,8 @@ function ideaNodes(details: PersonDetails): HTMLElement[] {
   }
   nodes.push(el('div', 'sheet-section', 'Langues'), el('div', 'sheet-text', ideas.languages.map((line) => `${line.name} (${line.fluency} %)`).join(', ') || 'aucune'));
   nodes.push(el('div', 'sheet-section', 'Croyances'));
-  nodes.push(ideas.religion ? bar(ideas.religion, ideas.piety, 'good') : el('div', 'sheet-text muted', 'Aucune religion'));
+  nodes.push(ideas.religion ? bar(ideas.religion, ideas.piety, 'good') : el('div', 'sheet-text', 'Sans religion'));
+  if (ideas.faithNote) nodes.push(el('div', 'sheet-text muted', ideas.faithNote.charAt(0).toUpperCase() + ideas.faithNote.slice(1)));
   if (ideas.token) nodes.push(el('div', 'sheet-text muted', `Accepte en paiement : ${ideas.token.toLowerCase()} (confiance ${ideas.tokenTrust} %)`));
   return nodes;
 }

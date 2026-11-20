@@ -19,6 +19,9 @@ import { inspect, snapshotFauna, snapshotFlora } from './life-snapshots';
 import { describePerson, snapshotHumanStats, snapshotHumans, snapshotRoster } from './human-snapshots';
 import { describeBuilding, snapshotBuildings } from './building-snapshots';
 import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
+import { describeBrain } from '../sim/systems/individuals/brain-describe';
+import { describeAnimalBrain } from '../sim/systems/fauna/brain-trace';
+import { describeGovernance } from '../sim/systems/groups/governance';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -137,6 +140,8 @@ function save(requestId: number, reason: SaveReason): void {
 /** Shows a world (new or loaded) and runs it. */
 function begin(created: Simulation, generationMs: number, benchmark: boolean, loadedFrom: string | null): void {
   simulation = created;
+  // A new world: nobody's brain is watched any more (indices mean other beings).
+  watched = { kind: 'none', id: -1 };
   benchmarkWorld = benchmark;
   lastSaveAt = performance.now();
   perf.reset();
@@ -251,8 +256,34 @@ function publishWorkshop(result: WorkshopResult = { ok: true, messages: [] }): v
   post({ type: 'liveTables', climate: current.data.climate, life: lifeTables(current), speeds: current.data.time.speeds });
 }
 
+/** Visual brain: the spectator's watched being (applied to each new or loaded world). */
+let watched: { kind: 'human' | 'animal' | 'none'; id: number } = { kind: 'none', id: -1 };
+let lastBrainAt = 0;
+const BRAIN_INTERVAL_MS = 250;
+
+function applyWatch(current: Simulation): void {
+  current.humans.watch.person = watched.kind === 'human' ? watched.id : -1;
+  current.humans.watch.trace = null;
+  current.fauna.watch.watch(watched.kind === 'animal' ? watched.id : -1);
+}
+
+/** While a brain is watched, its last decision a few times per second. */
+function publishBrain(current: Simulation, now: number): void {
+  if (watched.kind === 'none' || now - lastBrainAt < BRAIN_INTERVAL_MS) return;
+  lastBrainAt = now;
+  const time = current.data.time;
+  const when = (tick: number): string => `${formatDate(dateAtTick(tick, time), time)} · ${Math.floor(((tick % time.ticksPerDay) / time.ticksPerDay) * 24)} h`;
+  if (watched.kind === 'human') {
+    const humans = current.humans;
+    if (watched.id < 0 || watched.id >= humans.people.count) return;
+    const camp = humans.camps[humans.people.camp[watched.id]!];
+    const season = camp ? (time.seasons[humans.climate.seasonIndexAt(camp.center, time.seasons.length)] ?? '') : '';
+    post({ type: 'brain', brain: describeBrain(humans, watched.id, time, season.toLowerCase()) });
+  } else post({ type: 'brain', brain: describeAnimalBrain(current.fauna, watched.id, when) });
+}
+
 /** Sends what changed since the last loop: climate (once per day), new events, date. */
-function publishChanges(current: Simulation): void {
+function publishChanges(current: Simulation, now = performance.now()): void {
   const climate = current.climate;
   if (climate.anomalies !== sentAnomalies) {
     // A new year began: the abnormal years changed (the array is replaced each year).
@@ -316,6 +347,7 @@ function publishChanges(current: Simulation): void {
     sentEvents = current.journal.size;
     post({ type: 'journal', entries });
   }
+  publishBrain(current, now);
   post({
     type: 'status',
     seed: current.seed,
@@ -347,6 +379,19 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
       if (details) post({ type: 'person', details });
       return;
     }
+    case 'watchBrain':
+      watched = { kind: message.kind, id: message.id };
+      if (simulation) applyWatch(simulation);
+      lastBrainAt = 0;
+      return;
+    case 'inspectGovernance':
+      if (simulation) {
+        const governance = describeGovernance(simulation.groups, message.tribe);
+        const time = simulation.data.time;
+        if (governance) for (const decision of governance.decisions) decision.date = formatDate(dateAtTick(decision.day * time.ticksPerDay, time), time);
+        post({ type: 'governance', governance });
+      }
+      return;
     case 'inspectBuilding': {
       const details = simulation ? describeBuilding(simulation, message.requestId, message.building) : null;
       if (details) post({ type: 'building', details });

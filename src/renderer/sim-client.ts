@@ -32,6 +32,15 @@ export class SimClient {
     this.send({ type: 'inspectPerson', requestId, person });
   }
 
+  /** Visual brain: watch a person or an animal ('none' to stop). */
+  watchBrain(kind: 'human' | 'animal' | 'none', id: number): void {
+    this.send({ type: 'watchBrain', kind, id });
+  }
+
+  inspectGovernance(tribe: number): void {
+    this.send({ type: 'inspectGovernance', tribe });
+  }
+
   inspectBuilding(requestId: number, building: number): void {
     this.send({ type: 'inspectBuilding', requestId, building });
   }

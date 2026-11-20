@@ -54,6 +54,9 @@ export class IdeasSystem implements IdeaView {
   private hungerToday = new Map<number, number>();
   /** First trades and interpreters already told, by pair of tribes ("a:b"). */
   readonly toldPairs = new Set<string>();
+  /** How badly each tribe takes unbelief, and shares of its faithful (recomputed every day). */
+  readonly pressureToday = new Map<number, number>();
+  readonly shareToday = new Map<number, number>();
   journalRead = 0;
   lastHumanStep = 0;
   lastEncounter = -1;

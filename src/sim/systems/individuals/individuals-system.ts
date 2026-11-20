@@ -15,12 +15,13 @@ import type { WorkerView } from '../production/worker-view';
 import { performAction, startAction } from './actions';
 import { liveHours } from './body';
 import { compileActions, rankActions, scoreAction, TOP_ACTIONS, type CompiledAction } from './brain';
+import { BrainWatch, traceDecision } from './brain-trace';
 import { Camp } from './camp';
 import { moveCamp } from './camp-move';
 import type { GroupView } from './group-view';
 import type { IdeaView } from './idea-view';
 import { createTribes } from './tribe';
-import { DeathCause, People } from './people';
+import { ChangeWhy, DeathCause, People } from './people';
 import { INPUTS, type Behavior, type HumanParams } from './params';
 import { Pathfinder, smoothPath } from './pathfinding';
 import { advance, distance, personalSpot, ringSpot, separation, speedOf, steer, stop, updateGait, type SteerGoal } from '../../core/motion';
@@ -92,6 +93,10 @@ export class IndividualsSystem {
   private predatorCodes: Uint8Array;
   private readonly inputs = new Float64Array(INPUTS.length);
   private readonly scores: Float64Array;
+  /** Random draw of each action at the last decision (read only by the visual brain). */
+  private noise: Float64Array;
+  /** Visual brain: who the spectator watches, and the detail of their last decision (not saved). */
+  watch = new BrainWatch();
   private readonly order: number[] = [];
   private thinkSteps: number;
   private readonly spot = { x: 0, y: 0 };
@@ -140,6 +145,7 @@ export class IndividualsSystem {
     this.thinkSteps = 1;
     this.refreshParams();
     this.scores = new Float64Array(this.actions.length);
+    this.noise = new Float64Array(this.actions.length);
     const created = createTribes(this, rng);
     this.people = created.people;
     this.startingCount = created.people.count;
@@ -158,10 +164,11 @@ export class IndividualsSystem {
 
   /** Saving: callbacks are rebuilt after loading. */
   transientKeys(): readonly string[] {
-    return ['walkableTile'];
+    return ['walkableTile', 'watch'];
   }
 
   afterLoad(): void {
+    this.watch = new BrainWatch();
     this.bindCallbacks();
     this.production.reattachPeople(this.workerView());
   }
@@ -324,7 +331,10 @@ export class IndividualsSystem {
         this.life.liveHour(p);
       }
       if (this.step >= people.nextThink[p]!) this.think(p);
-      if (performAction(this, p, this.actions[people.action[p]!]!, hours)) people.nextThink[p] = this.step + 1;
+      if (performAction(this, p, this.actions[people.action[p]!]!, hours)) {
+        people.nextThink[p] = this.step + 1;
+        people.ended[p] = 1;
+      }
       this.stopIdle(p);
     }
     this.rebuildGrid();
@@ -339,6 +349,7 @@ export class IndividualsSystem {
     const traitOffset = person * people.traitCount;
     const age = people.ageYears[person]!;
     const wantedSkill = this.social.skillAmbition(person);
+    if (this.noise.length !== this.actions.length) this.noise = new Float64Array(this.actions.length);
     for (let k = 0; k < this.actions.length; k++) {
       const action = this.actions[k]!;
       if ((action.requiredBit !== 0 && (this.ideas.knowledge(person) & action.requiredBit) === 0) || age < action.minAge) {
@@ -348,7 +359,9 @@ export class IndividualsSystem {
       // Personality, then culture (bravery for the hunt, sharing for the gift…).
       let score = scoreAction(action, this.inputs, people.traits, traitOffset) * this.ideas.actionFactor(person, k);
       if (wantedSkill >= 0 && action.skills.includes(wantedSkill)) score *= 1 + this.social.params.ambitions.skillBonus;
-      score *= 1 + params.decision.randomness * (this.rng.nextFloat() * 2 - 1);
+      const noise = this.rng.nextFloat();
+      this.noise[k] = noise;
+      score *= 1 + params.decision.randomness * (noise * 2 - 1);
       if (k === current) {
         score *= 1 + params.decision.keepCurrentBonus;
         if (this.production.jobs[person]) score *= 1 + params.decision.keepWorkBonus;
@@ -361,15 +374,27 @@ export class IndividualsSystem {
       people.topScores[person * TOP_ACTIONS + t] = this.scores[this.order[t] ?? 0] ?? 0;
     }
     people.nextThink[person] = this.step + this.thinkSteps;
+    const watched = this.watch.person === person;
+    const working = this.production.jobs[person] !== undefined && this.production.jobs[person] !== null;
+    const failed: number[] = [];
+    let chosen = current;
     for (const k of this.order) {
       if (this.scores[k]! <= 0) break;
-      if (k === current && people.target[person]! >= 0) return; // keep going, no need to recompute the way
+      if (k === current && people.target[person]! >= 0) break; // keep going, no need to recompute the way
       if (startAction(this, person, this.actions[k]!)) {
         people.action[person] = k;
         people.reasonValue[person] = this.inputs[this.actions[k]!.reasonInput]!;
-        return;
+        chosen = k;
+        break;
       }
+      if (watched) failed.push(k);
     }
+    if (chosen !== current) {
+      const why = people.ended[person] === 1 ? ChangeWhy.Ended : this.actions[chosen]!.def.behavior === 'flee' ? ChangeWhy.Danger : ChangeWhy.Outscored;
+      people.recordChange(person, chosen, current, this.social.tick, why, people.reasonValue[person]!);
+    }
+    people.ended[person] = 0;
+    if (watched) this.watch.trace = traceDecision(this, person, { inputs: this.inputs, noise: this.noise, scores: this.scores, wantedSkill, current, working, chosen, failed });
   }
 
   private computeInputs(person: number): void {

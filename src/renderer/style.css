@@ -1113,3 +1113,164 @@ body:has(#stats:not([hidden])) #journal {
   color: var(--hud-muted);
   text-decoration: line-through;
 }
+
+/* ----- Visual brain and governance (step 10.5) ----- */
+#animal {
+  top: 120px;
+  left: 12px;
+  width: 280px;
+  background: rgba(16, 20, 28, 0.96);
+  user-select: text;
+}
+
+#brain,
+#governance {
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: 800px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: rgba(12, 15, 22, 0.97);
+  user-select: text;
+}
+
+#governance {
+  width: 640px;
+}
+
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: sticky;
+  top: -8px;
+  padding: 4px 0;
+  background: rgba(12, 15, 22, 0.97);
+}
+
+.brain-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.brain-group {
+  fill: var(--hud-muted);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+.brain-label {
+  fill: var(--hud-text);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.brain-node {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+.brain-node-fill {
+  fill: rgba(79, 143, 224, 0.35);
+  pointer-events: none;
+}
+
+.brain-option {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.brain-option.chosen {
+  stroke: #ffd36b;
+  stroke-width: 2;
+}
+
+.brain-option.failed {
+  stroke-dasharray: 4 3;
+}
+
+.brain-option-fill {
+  fill: rgba(255, 211, 107, 0.25);
+  pointer-events: none;
+}
+
+.brain-link {
+  fill: none;
+  opacity: 0.75;
+}
+
+.brain-link.push {
+  stroke: #5fcf6a;
+}
+
+.brain-link.hold {
+  stroke: #e0605a;
+}
+
+.brain-link.dim {
+  opacity: 0.08;
+}
+
+.brain-why summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.brain-why.chosen summary {
+  color: #ffd36b;
+}
+
+.brain-history {
+  margin: 2px 0 0;
+  padding-left: 22px;
+  font-size: 12px;
+}
+
+.group-governance {
+  margin: 4px 0;
+}
+
+.gov-clans,
+.gov-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.gov-clan {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #fff;
+}
+
+.gov-member {
+  padding: 2px 6px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gov-member.selected {
+  outline: 2px solid #ffd36b;
+}
+
+.gov-decision summary {
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.gov-option {
+  margin: 4px 0 4px 12px;
+}
+
+.gov-option.chosen {
+  color: #ffd36b;
+}

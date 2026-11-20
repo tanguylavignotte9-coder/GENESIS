@@ -18,6 +18,8 @@ export const IDEA_EVENTS = {
   trade: 'ideas.trade',
   misunderstanding: 'ideas.misunderstanding',
   interpreter: 'ideas.interpreter',
+  faithLost: 'ideas.faithLost',
+  conversion: 'ideas.conversion',
 } as const;
 
 /** Where a person is (their camp). */

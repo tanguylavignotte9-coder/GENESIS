@@ -38,6 +38,8 @@ export class PersonIdeas {
   readonly religion: Int32Array;
   readonly piety: Float32Array;
   readonly beliefs: Float32Array;
+  /** 1 once the person lost a faith (an unbeliever who once believed). */
+  readonly lostFaith: Uint8Array;
   /** Item index the person accepts as a good of exchange (-1 none), and how much 0..1. */
   readonly token: Int32Array;
   readonly tokenTrust: Float32Array;
@@ -64,6 +66,7 @@ export class PersonIdeas {
     this.religion = new Int32Array(count).fill(-1);
     this.piety = new Float32Array(count);
     this.beliefs = new Float32Array(count * beliefCount);
+    this.lostFaith = new Uint8Array(count);
     this.token = new Int32Array(count).fill(-1);
     this.tokenTrust = new Float32Array(count);
     this.ready = new Uint8Array(count);

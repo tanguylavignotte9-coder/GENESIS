@@ -31,6 +31,9 @@ import { NightLayer } from './map/night-layer';
 import { Camera } from './map/camera';
 import { MapView } from './map/map-view';
 import { SimClient } from './sim-client';
+import { BrainPanel } from './hud/brain-panel';
+import { GovernancePanel } from './hud/governance-panel';
+import { AnimalSheet } from './hud/animal-sheet';
 import { VIEW } from './view-settings';
 import './style.css';
 
@@ -146,6 +149,13 @@ async function main(): Promise<void> {
     },
     (person) => selectPerson(person),
   );
+  const brainPanel = new BrainPanel(element('brain'), element('brain-title'), element('brain-body'), element<HTMLButtonElement>('brain-close'), (kind, id) => sim.watchBrain(kind, id));
+  element<HTMLButtonElement>('person-brain').addEventListener('click', (event) => {
+    (event.currentTarget as HTMLButtonElement).blur();
+    if (sheet.person >= 0) brainPanel.open('human', sheet.person);
+  });
+  const animalSheet = new AnimalSheet(element('animal'), element('animal-body'), element<HTMLButtonElement>('animal-close'), element<HTMLButtonElement>('animal-brain'), (uid) => brainPanel.open('animal', uid));
+  let lastAnimalRequest = 0;
   const buildingPanel = new BuildingPanel(element('building'), element('building-body'), element<HTMLButtonElement>('building-close'), () => (buildings.selected = -1));
   let buildingRequest = 0;
   let lastBuildingRequest = 0;
@@ -259,10 +269,26 @@ async function main(): Promise<void> {
     window.genesis,
     { requestSave: (requestId, reason) => sim.save(requestId, reason), load: (body, label) => sim.load(body, label) },
   );
-  const groupsPanel = new GroupsPanel(element('groups'), element<HTMLButtonElement>('groups-toggle'), element('groups-body'), (person) => selectPerson(person), (x, y) => {
-    camera.stopFollowing();
-    camera.focusOn(x, y);
-  });
+  const governancePanel = new GovernancePanel(
+    element('governance'),
+    element('governance-title'),
+    element('governance-body'),
+    element<HTMLButtonElement>('governance-close'),
+    (tribe) => sim.inspectGovernance(tribe),
+    (person) => selectPerson(person),
+    (day) => `jour ${day}`,
+  );
+  const groupsPanel = new GroupsPanel(
+    element('groups'),
+    element<HTMLButtonElement>('groups-toggle'),
+    element('groups-body'),
+    (person) => selectPerson(person),
+    (x, y) => {
+      camera.stopFollowing();
+      camera.focusOn(x, y);
+    },
+    (tribe) => governancePanel.open(tribe),
+  );
   window.addEventListener('keydown', (event) => {
     if (event.code !== 'KeyG' || event.target instanceof HTMLInputElement) return;
     element<HTMLButtonElement>('groups-toggle').click();
@@ -358,6 +384,12 @@ async function main(): Promise<void> {
       case 'person':
         if (roster && life) sheet.render(message.details, roster, life);
         return;
+      case 'brain':
+        brainPanel.receive(message.brain);
+        return;
+      case 'governance':
+        governancePanel.receive(message.governance);
+        return;
       case 'buildings':
         buildings.setBuildings(message.buildings);
         return;
@@ -383,7 +415,9 @@ async function main(): Promise<void> {
         tribe.setRoster(roster);
         return;
       case 'inspection':
-        hover.receive(message.inspection);
+        if (animalSheet.owns(message.inspection.requestId)) {
+          if (life) animalSheet.render(message.inspection.animal, life, daysPerYear);
+        } else hover.receive(message.inspection);
         return;
       case 'journal':
         journal.add(message.entries);
@@ -457,7 +491,11 @@ async function main(): Promise<void> {
       buildings.selected = target.building;
       buildingPanel.open(target.building);
       lastBuildingRequest = 0;
-    } else if (target && target.animalUid >= 0) follow(target.animalUid);
+    } else if (target && target.animalUid >= 0) {
+      follow(target.animalUid);
+      animalSheet.open(target.animalUid);
+      lastAnimalRequest = 0;
+    }
     else camera.stopFollowing();
   });
   let shiftHeld = false;
@@ -500,7 +538,12 @@ async function main(): Promise<void> {
     tribe.update(people.snapshot, now);
     tribes.update(camera.pixelsPerTile);
     groupsPanel.update(now);
+    governancePanel.update(now);
     ideasPanel.update(now);
+    if (animalSheet.isOpen && now - lastAnimalRequest > VIEW.inspectEveryMs) {
+      lastAnimalRequest = now;
+      sim.inspect(animalSheet.nextRequest(), 0, animalSheet.uid);
+    }
     if (sheet.isOpen && now - lastPersonRequest > VIEW.inspectEveryMs) {
       lastPersonRequest = now;
       sim.inspectPerson(++personRequest, sheet.person);

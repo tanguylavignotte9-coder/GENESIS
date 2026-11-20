@@ -7,6 +7,7 @@ import { LANGUAGE_SLOTS } from '../../../src/sim/systems/ideas/holdings';
 import { languageSplits, intelligibility } from '../../../src/sim/systems/ideas/language';
 import { cultureSplits } from '../../../src/sim/systems/ideas/culture';
 import { barter } from '../../../src/sim/systems/ideas/trade';
+import { religionTalk } from '../../../src/sim/systems/ideas/religion';
 import { scission } from '../../../src/sim/systems/groups/tribes';
 import { dataWithSize } from '../world/helpers';
 import { describeIdeas, describePersonIdeas } from '../../../src/sim/systems/ideas/describe';
@@ -182,6 +183,91 @@ describe('religions', () => {
     expect(birth!.causes.length).toBeGreaterThan(0);
     const religion = simulation.ideas.ideas.find((idea) => idea.family === Family.Religion)!;
     expect(religion.founder).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('believing or not (the choice of each person)', () => {
+  /** Everyone of the tribe believes in a new faith; `doubter` has a critical, curious, unspiritual mind. */
+  function faithful(seed: number, change?: (data: GameData) => void): { simulation: Simulation; doubter: number; religion: number } {
+    const simulation = world(seed, change);
+    const { humans, ideas } = simulation;
+    const people = humans.people;
+    day(simulation, 1);
+    const trait = (id: string): number => humans.params.traits.findIndex((t) => t.id === id);
+    const religion = ideas.addIdea(Family.Religion, 'Essai', -1, 0, -1, -1).id;
+    ideas.ideas[religion]!.mean = [0.8, 0.2, 0.2];
+    for (let p = 0; p < people.count; p++) {
+      ideas.holdings.religion[p] = religion;
+      ideas.holdings.piety[p] = 0.6;
+      people.traits[p * people.traitCount + trait('independence')] = 0.4;
+      people.traits[p * people.traitCount + trait('spirituality')] = 0.7;
+    }
+    const doubter = [...Array(people.count).keys()].find((p) => people.ageYears[p]! >= 20 && !simulation.groups.tribes()[0]!.leaders.includes(p))!;
+    people.traits[doubter * people.traitCount + trait('independence')] = 1;
+    people.traits[doubter * people.traitCount + trait('curiosity')] = 1;
+    people.traits[doubter * people.traitCount + trait('spirituality')] = 0;
+    return { simulation, doubter, religion };
+  }
+
+  it('a critical mind among believers loses faith in the end, and the journal says why', () => {
+    const { simulation, doubter } = faithful(23);
+    const h = simulation.ideas.holdings;
+    day(simulation, 110);
+    expect(h.religion[doubter]).toBe(-1);
+    expect(h.lostFaith[doubter]).toBe(1);
+    const lost = simulation.journal.all().find((event) => event.type === IDEA_EVENTS.faithLost && event.actors.some((actor) => actor.id === doubter));
+    expect(lost).toBeDefined();
+    expect(lost!.text).toMatch(/ne croit plus aux esprits/);
+    expect(describePersonIdeas(simulation.ideas, doubter)!.faithNote).toMatch(/perdu la foi/);
+    // The others, who do not doubt, keep their faith.
+    const others = [...Array(simulation.humans.people.count).keys()].filter((p) => p !== doubter && simulation.humans.people.alive[p] === 1);
+    expect(others.filter((p) => h.religion[p]! >= 0).length).toBeGreaterThan(others.length * 0.8);
+  });
+
+  it('where unbelief is frowned upon, the believers around hold a doubter in the faith much longer', () => {
+    const tolerant = faithful(23, (data) => {
+      data.ideas.religion.pressurePerYear = 0;
+    });
+    const pressing = faithful(23, (data) => {
+      data.ideas.religion.pressurePerYear = 5;
+    });
+    day(tolerant.simulation, 30);
+    day(pressing.simulation, 30);
+    expect(tolerant.simulation.ideas.holdings.piety[tolerant.doubter]).toBeLessThan(pressing.simulation.ideas.holdings.piety[pressing.doubter]!);
+  });
+
+  it('a doubter is hard to win over, and someone who believes clings to their faith', () => {
+    const simulation = world(29);
+    const { ideas, humans } = simulation;
+    day(simulation, 1);
+    const people = humans.people;
+    const trait = (id: string): number => humans.params.traits.findIndex((t) => t.id === id);
+    const religion = ideas.addIdea(Family.Religion, 'Essai', -1, 0, -1, -1).id;
+    const other = ideas.addIdea(Family.Religion, 'Autre', -1, 0, -1, -1).id;
+    const [speaker, open, doubter, believer] = [0, 1, 2, 3];
+    ideas.holdings.religion[speaker] = religion;
+    ideas.holdings.piety[speaker] = 1;
+    for (const p of [open, doubter, believer]) people.traits[p * people.traitCount + trait('spirituality')] = 0.9;
+    people.traits[doubter * people.traitCount + trait('spirituality')] = 0;
+    people.traits[doubter * people.traitCount + trait('independence')] = 1;
+    ideas.holdings.religion[believer] = other;
+    ideas.holdings.piety[believer] = 0.3;
+    const wins = { open: 0, doubter: 0, believer: 0 };
+    const tries = 400;
+    for (let k = 0; k < tries; k++) {
+      for (const [name, p] of [
+        ['open', open],
+        ['doubter', doubter],
+        ['believer', believer],
+      ] as const) {
+        ideas.holdings.religion[p] = p === believer ? other : -1;
+        ideas.holdings.piety[p] = p === believer ? 0.3 : 0;
+        religionTalk(ideas, speaker, p);
+        if (ideas.holdings.religion[p] === religion) wins[name]++;
+      }
+    }
+    expect(wins.open).toBeGreaterThan(wins.believer * 2);
+    expect(wins.open).toBeGreaterThan(wins.doubter * 2);
   });
 });
 

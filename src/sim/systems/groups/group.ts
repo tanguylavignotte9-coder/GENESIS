@@ -1,3 +1,5 @@
+import type { DecisionRecord } from './decisions';
+
 /**
  * A group: people who live or act together. One concept for every level (pillar 5): level 0 the
  * tribe, level 1 the clans inside it, level 2 the families (households). Every group carries the
@@ -40,6 +42,8 @@ export class Group {
   readonly known = new Map<number, { opinion: number; since: number; allied: boolean }>();
   /** Day the tribe settled its camp where it is (founding or last move). */
   settledDay = 0;
+  /** The latest collective decisions of the leaders, with the options weighed (visual governance). */
+  readonly decisions: DecisionRecord[] = [];
 
   constructor(
     readonly id: number,

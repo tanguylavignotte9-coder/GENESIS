@@ -101,6 +101,8 @@ export interface HeadlessReport {
     cultures: { ever: number; alive: number };
     languages: { ever: number; alive: number };
     religions: { ever: number; alive: number };
+    /** Adults alive at the end without religion, once at least one religion exists in their tribe's world, and those who lost a faith. */
+    unbelievers: { adults: number; without: number; lostFaith: number; faithLost: number; conversions: number };
     currencies: string[];
     places: number;
     events: string[];
@@ -276,9 +278,34 @@ function summarizeIdeas(simulation: Simulation): HeadlessReport['ideas'] {
     cultures: family(Family.Culture),
     languages: family(Family.Language),
     religions: family(Family.Religion),
+    unbelievers: countUnbelievers(simulation, events),
     currencies: ideas.ideas.filter((idea) => idea.family === Family.Currency).map((idea) => idea.name),
     places: ideas.toponyms.names.size,
     events: events.map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+  };
+}
+
+/** Adults without religion at the end (only counted when a religion exists in the world), faith lost and conversions told. */
+function countUnbelievers(simulation: Simulation, events: readonly { type: string }[]): HeadlessReport['ideas']['unbelievers'] {
+  const { ideas, humans } = simulation;
+  const people = humans.people;
+  const h = ideas.holdings;
+  const anyFaith = ideas.ideas.some((idea) => idea.family === Family.Religion && idea.holders > 0);
+  let adults = 0;
+  let without = 0;
+  let lostFaith = 0;
+  for (let p = 0; p < people.count && p < h.count; p++) {
+    if (people.alive[p] === 0 || humans.life.isChild(p)) continue;
+    adults++;
+    if (h.religion[p]! < 0) without++;
+    if (h.religion[p]! < 0 && h.lostFaith[p] === 1) lostFaith++;
+  }
+  return {
+    adults,
+    without: anyFaith ? without : 0,
+    lostFaith,
+    faithLost: events.filter((event) => event.type === IDEA_EVENTS.faithLost).length,
+    conversions: events.filter((event) => event.type === IDEA_EVENTS.conversion).length,
   };
 }
 

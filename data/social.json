@@ -547,6 +547,10 @@
     "faith": {
       "text": "une même foi",
       "dated": false
+    },
+    "impiety": {
+      "text": "{nom} se méfie de {autre}, qui ne partage pas sa foi",
+      "dated": false
     }
   },
   "kinNames": {

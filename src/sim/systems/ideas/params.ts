@@ -78,6 +78,19 @@ export interface IdeasParams {
     clergyMembers: number;
     worshipMembers: number;
     faithAffection: number;
+    doubtIndependence: number;
+    doubtCuriosity: number;
+    doubtPerYear: number;
+    pressurePerYear: number;
+    pressureHierarchy: number;
+    pressureHospitality: number;
+    theocracyPressure: number;
+    conformityConversion: number;
+    mistrustPerTalk: number;
+    griefFaithBoost: number;
+    switchResistance: number;
+    griefDoubtChance: number;
+    catastropheDoubtChance: number;
   };
   trade: {
     encountersPerDay: number;
@@ -122,6 +135,10 @@ const TEXT_KEYS = [
   'firstTrade',
   'misunderstanding',
   'interpreter',
+  'faithLost',
+  'faithFound',
+  'conversion',
+  'embraced',
 ] as const;
 
 const share = (label: string, help: string, apply: 'live' | 'newWorld' = 'live'): Schema => num(0, 1, label, help, 'fraction', apply);
@@ -230,6 +247,19 @@ export const IDEAS_SCHEMA: Schema = {
         clergyMembers: int(2, 500, 'Clergé', 'Fidèles qu’il faut dans une tribu pour qu’un chaman ou un prêtre apparaisse.', 'personnes'),
         worshipMembers: int(2, 500, 'Lieu de culte', 'Fidèles qu’il faut dans un camp pour vouloir un sanctuaire ou une tombe.', 'personnes'),
         faithAffection: num(0, 50, 'Liens de la foi', 'Affection gagnée entre deux fidèles d’une même religion qui se parlent.', 'points'),
+        doubtIndependence: num(0, 3, 'Doute (esprit critique)', 'Poids de l’esprit critique dans le doute : plus il est fort, moins on se laisse gagner par une foi et plus vite on la perd.', 'poids'),
+        doubtCuriosity: num(0, 3, 'Doute (curiosité)', 'Poids de la curiosité dans le doute envers le sacré.', 'poids'),
+        doubtPerYear: num(0, 5, 'Perte de foi par le doute', 'Ferveur perdue en un an par une personne qui doute pleinement (moins si elle doute peu).', 'par an'),
+        pressurePerYear: num(0, 5, 'Soutien de l’entourage', 'Ferveur retrouvée en un an quand toute la tribu partage sa foi et que la société tolère mal l’incroyance.', 'par an'),
+        pressureHierarchy: share('Pression des sociétés hiérarchiques', 'Part de la pression religieuse qui vient d’une culture où l’on obéit au chef.'),
+        pressureHospitality: share('Tolérance des sociétés ouvertes', 'Part de la pression religieuse qu’enlève une culture hospitalière.'),
+        theocracyPressure: num(1, 5, 'Pression d’une théocratie', 'Multiplie la pression religieuse dans une tribu gouvernée par ses prêtres.', 'facteur'),
+        conformityConversion: num(0, 10, 'Conversion par conformisme', 'Combien la pression de l’entourage aide une conversion (0 : aucune aide).', 'facteur'),
+        mistrustPerTalk: num(0, 20, 'Méfiance envers l’incroyant', 'Confiance perdue par un fervent qui parle à un incroyant, selon la pression de sa société.', 'points'),
+        switchResistance: share('Attachement à sa foi', 'Part des chances de conversion qu’enlève l’attachement à la foi que l’on a déjà (changer de religion est plus rare que d’en adopter une).'),
+        griefFaithBoost: share('Réconfort de la foi', 'Ferveur gagnée par un fidèle sans doutes qui perd un proche.'),
+        griefDoubtChance: share('Deuil qui éloigne', 'Chance qu’un deuil fasse perdre la foi à un fidèle qui doute pleinement (moins s’il doute peu).'),
+        catastropheDoubtChance: share('Catastrophe qui éloigne', 'Chance par jour de catastrophe qu’un fidèle qui doute pleinement perde la foi.'),
       },
     },
     trade: {

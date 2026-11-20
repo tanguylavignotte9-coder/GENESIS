@@ -48,6 +48,101 @@ function spiritual(sys: IdeasSystem, person: number): number {
   return Math.max(0, (s - 0.4) / 0.6) ** 2;
 }
 
+/**
+ * How much a person doubts the sacred (0 … 1): a critical mind and curiosity against spirituality.
+ * Someone who doubts is harder to win over and loses faith more easily.
+ */
+export function doubt(sys: IdeasSystem, person: number): number {
+  const social = sys.humans.social;
+  const params = sys.params.religion;
+  const raw =
+    params.doubtIndependence * (social.trait(person, 'independence') - 0.5) +
+    params.doubtCuriosity * (social.trait(person, 'curiosity') - 0.5) +
+    (0.5 - social.trait(person, 'spirituality'));
+  return clamp01(raw);
+}
+
+/**
+ * How badly a tribe takes unbelief (0 tolerant … more): a culture where one obeys the chief presses,
+ * a hospitable culture tolerates; a tribe ruled by its priests presses much harder. Cached per day.
+ */
+export function faithPressure(sys: IdeasSystem, person: number): number {
+  const tribe = sys.groups?.tribeOf(person) ?? null;
+  if (!tribe) return 0;
+  const cached = sys.pressureToday.get(tribe.id);
+  if (cached !== undefined) return cached;
+  const params = sys.params.religion;
+  const base = clamp01(0.5 + params.pressureHierarchy * (sys.groupValue(tribe, 'hierarchy') - 0.5) - params.pressureHospitality * (sys.groupValue(tribe, 'hospitality') - 0.5));
+  const theocracy = sys.groups!.params.regimes[tribe.regime]?.id === 'theocracy';
+  const pressure = base * (theocracy ? params.theocracyPressure : 1);
+  sys.pressureToday.set(tribe.id, pressure);
+  return pressure;
+}
+
+/** Share of the adults of the person's tribe who share a faith (any faith of `religion`, -1 = the most common). */
+function faithShare(sys: IdeasSystem, person: number, religion: number): number {
+  const tribe = sys.groups?.tribeOf(person) ?? null;
+  if (!tribe) return 0;
+  const key = tribe.id * 100003 + religion + 1;
+  const cached = sys.shareToday.get(key);
+  if (cached !== undefined) return cached;
+  const h = sys.holdings;
+  let adults = 0;
+  let same = 0;
+  const counts = new Map<number, number>();
+  for (const p of tribe.members) {
+    if (p >= h.count || sys.humans.life.isChild(p)) continue;
+    adults++;
+    const faith = h.religion[p]!;
+    if (faith < 0) continue;
+    if (religion >= 0) {
+      if (faith === religion) same++;
+    } else counts.set(faith, (counts.get(faith) ?? 0) + 1);
+  }
+  if (religion < 0) for (const count of counts.values()) same = Math.max(same, count);
+  const share = adults > 0 ? same / adults : 0;
+  sys.shareToday.set(key, share);
+  return share;
+}
+
+/** "il" or "elle". */
+function pronoun(sys: IdeasSystem, person: number): string {
+  return sys.humans.people.female[person] === 1 ? 'elle' : 'il';
+}
+
+/** What one believes in, as "croire …" needs it: "aux esprits", "à la lune", "au soleil". */
+function mainBelief(sys: IdeasSystem, idea: Idea): string {
+  const mean = idea.mean;
+  const main = mean.length > 0 ? mean.indexOf(Math.max(...mean)) : 0;
+  const name = sys.params.religion.beliefs[main]?.name ?? sys.params.religion.beliefs[0]!.name;
+  if (name.startsWith('les ')) return `aux ${name.slice(4)}`;
+  if (name.startsWith('le ')) return `au ${name.slice(3)}`;
+  if (name.startsWith('la ') || name.startsWith('l’')) return `à ${name}`;
+  return `en ${name}`;
+}
+
+/** Is this person someone whose faith the journal tells (a leader, a shaman or priest)? */
+function notable(sys: IdeasSystem, person: number): boolean {
+  const tribe = sys.groups?.tribeOf(person) ?? null;
+  if (tribe?.leaders.includes(person)) return true;
+  for (const idea of sys.ideas) if (idea.clergy.size > 0 && [...idea.clergy.values()].includes(person)) return true;
+  return false;
+}
+
+/**
+ * The person no longer believes: told in the journal when it has a reason worth telling (grief,
+ * catastrophe, doubt) or when a leader or a shaman loses faith.
+ */
+export function loseFaith(sys: IdeasSystem, person: number, reason: string, causes: readonly number[], tell: boolean): void {
+  const h = sys.holdings;
+  const idea = sys.ideas[h.religion[person]!];
+  h.religion[person] = -1;
+  h.piety[person] = 0;
+  h.lostFaith[person] = 1;
+  if (!idea || sys.humans.life.isChild(person) || !(tell || notable(sys, person))) return;
+  publishIdeaEvent(sys, IDEA_EVENTS.faithLost, sys.params.texts.faithLost, { nom: sys.humans.people.names[person]!, croyance: mainBelief(sys, idea), raison: reason, religion: religionLabel(idea), il: pronoun(sys, person) }, person, causes, { religion: idea.id });
+}
+
 function beliefIndex(sys: IdeasSystem, id: string): number {
   return sys.params.religion.beliefs.findIndex((belief) => belief.id === id);
 }
@@ -95,9 +190,13 @@ export function readSorrows(sys: IdeasSystem, events: readonly JournalEvent[]): 
         if (p === dead || p >= h.count || h.ready[p] === 0 || humans.life.isChild(p)) continue;
         const close = humans.social.kinOf(p, dead) !== 0 || affection(sys, p, dead) >= humans.social.params.relations.friendAffection;
         if (!close) continue;
-        // The faithful find comfort in their faith; others may turn to the dead.
-        if (h.religion[p]! >= 0) h.piety[p] = Math.min(1, h.piety[p]! + 0.05);
-        else if (sys.rng.nextFloat() < params.griefChance * spiritual(sys, p)) found(sys, p, beliefIndex(sys, ANCESTORS), `après la mort de ${people.names[dead]!}`, [event.id]);
+        // The faithful find comfort in their faith, unless grief makes a doubter turn away from it;
+        // others may turn to the dead.
+        if (h.religion[p]! >= 0) {
+          const doubting = doubt(sys, p);
+          if (sys.rng.nextFloat() < params.griefDoubtChance * doubting) loseFaith(sys, p, `la mort de ${people.names[dead]!} l’a éloigné${people.female[p] === 1 ? 'e' : ''} du sacré`, [event.id], true);
+          else h.piety[p] = Math.min(1, h.piety[p]! + params.griefFaithBoost * (1 - doubting));
+        } else if (sys.rng.nextFloat() < params.griefChance * spiritual(sys, p)) found(sys, p, beliefIndex(sys, ANCESTORS), `après la mort de ${people.names[dead]!}`, [event.id]);
       }
       continue;
     }
@@ -105,7 +204,12 @@ export function readSorrows(sys: IdeasSystem, events: readonly JournalEvent[]): 
     if (!catastrophe) continue;
     for (const camp of catastrophe.camps) {
       for (const p of humans.campMembers(camp)) {
-        if (p >= h.count || h.ready[p] === 0 || humans.life.isChild(p) || h.religion[p]! >= 0) continue;
+        if (p >= h.count || h.ready[p] === 0 || humans.life.isChild(p)) continue;
+        if (h.religion[p]! >= 0) {
+          // The gods did not protect them: a doubter may stop believing.
+          if (sys.rng.nextFloat() < params.catastropheDoubtChance * doubt(sys, p)) loseFaith(sys, p, `${catastrophe.reason}, rien ne l’a protégé${people.female[p] === 1 ? 'e' : ''}`, [event.id], true);
+          continue;
+        }
         if (sys.rng.nextFloat() < params.catastropheChance * spiritual(sys, p)) found(sys, p, beliefIndex(sys, catastrophe.belief), catastrophe.reason, [event.id]);
       }
     }
@@ -140,10 +244,15 @@ export function inheritReligion(sys: IdeasSystem, child: number, parents: readon
   inheritVector(religionFamily(sys), child, [parent], sys.rng);
 }
 
-/** Two people talked: the fervent may win the other over; two faithful grow fonder of each other. */
+/**
+ * Two people talked: the fervent may win the other over (less a doubter, more where unbelief is
+ * frowned upon); two faithful grow fonder of each other; a fervent believer in an intolerant society
+ * comes to distrust an unbeliever.
+ */
 export function religionTalk(sys: IdeasSystem, a: number, b: number): void {
   const h = sys.holdings;
   const params = sys.params.religion;
+  const people = sys.humans.people;
   for (const [speaker, listener] of [
     [a, b],
     [b, a],
@@ -151,27 +260,63 @@ export function religionTalk(sys: IdeasSystem, a: number, b: number): void {
     const faith = h.religion[speaker]!;
     if (faith < 0) continue;
     if (h.religion[listener] === faith) {
-      h.piety[listener] = Math.min(1, h.piety[listener]! + 0.01);
+      // Sharing one's faith strengthens it, unless one doubts.
+      h.piety[listener] = Math.min(1, h.piety[listener]! + 0.01 * (1 - doubt(sys, listener)));
       if (speaker < listener) feel(sys.humans.social, listener, speaker, { affection: params.faithAffection, trust: params.faithAffection / 2, respect: 0 }, 'faith');
       continue;
     }
-    const resistance = h.religion[listener]! >= 0 ? h.piety[listener]! : 0;
-    const chance = params.spreadPerTalk * h.piety[speaker]! * (0.3 + spiritual(sys, listener)) * (1 - resistance);
+    const pressure = faithPressure(sys, listener);
+    if (h.religion[listener]! < 0 && h.piety[speaker]! > 0.5 && params.mistrustPerTalk > 0 && !sys.humans.life.isChild(listener) && pressure > 0) {
+      feel(sys.humans.social, speaker, listener, { affection: 0, trust: -params.mistrustPerTalk * pressure, respect: 0 }, 'impiety');
+    }
+    // One clings to the faith one has: changing faith is rarer than embracing one.
+    const resistance = h.religion[listener]! >= 0 ? 1 - (1 - h.piety[listener]!) * (1 - params.switchResistance) : 0;
+    const conformity = 1 + params.conformityConversion * pressure * faithShare(sys, listener, faith);
+    const chance = params.spreadPerTalk * h.piety[speaker]! * (0.3 + spiritual(sys, listener)) * (1 - resistance) * (1 - doubt(sys, listener)) * conformity;
     if (sys.rng.nextFloat() >= chance) continue;
+    const before = h.religion[listener]!;
     h.religion[listener] = faith;
     h.piety[listener] = CONVERT_PIETY;
     const dims = h.beliefCount;
     for (let d = 0; d < dims; d++) h.beliefs[listener * dims + d] = h.beliefs[speaker * dims + d]!;
+    if (!sys.humans.life.isChild(listener)) tellConversion(sys, listener, speaker, before);
   }
 }
 
-/** Every day: beliefs drift, fervour cools where nobody shares it, a prophet may arise. */
+/** Conversions worth telling: from one faith to another, a return to faith, a leader who starts to believe. */
+function tellConversion(sys: IdeasSystem, person: number, by: number, before: number): void {
+  const h = sys.holdings;
+  const people = sys.humans.people;
+  const idea = sys.ideas[h.religion[person]!]!;
+  const reason = `convaincu${people.female[person] === 1 ? 'e' : ''} par ${people.names[by]!}`;
+  const old = sys.ideas[before];
+  if (old) {
+    publishIdeaEvent(sys, IDEA_EVENTS.conversion, sys.params.texts.conversion, { nom: people.names[person]!, ancienne: religionLabel(old), religion: religionLabel(idea), raison: reason }, person, [], { religion: idea.id, from: old.id }, [by]);
+    return;
+  }
+  if (h.lostFaith[person] === 1) {
+    h.lostFaith[person] = 0;
+    publishIdeaEvent(sys, IDEA_EVENTS.conversion, sys.params.texts.faithFound, { nom: people.names[person]!, religion: religionLabel(idea), raison: reason }, person, [], { religion: idea.id }, [by]);
+    return;
+  }
+  const tribe = sys.groups?.tribeOf(person) ?? null;
+  if (!tribe || !tribe.leaders.includes(person) || !sys.groups) return;
+  const title = sys.groups.params.regimes[tribe.regime]?.title ?? 'chef';
+  publishIdeaEvent(sys, IDEA_EVENTS.conversion, sys.params.texts.embraced, { nom: people.names[person]!, titre: title, tribu: tribe.name, croyance: mainBelief(sys, idea), religion: religionLabel(idea), raison: reason }, person, [], { religion: idea.id }, [by]);
+}
+
+/**
+ * Every day: beliefs drift; fervour cools where nobody shares it; doubt wears it away unless the
+ * believers around hold one in the faith (more where unbelief is frowned upon); a prophet may arise.
+ */
 export function religionDay(sys: IdeasSystem): void {
   const h = sys.holdings;
   const people = sys.humans.people;
   const params = sys.params.religion;
   const family = religionFamily(sys);
   const cool = params.pietyDecayPerYear / sys.yearDays;
+  sys.pressureToday.clear();
+  sys.shareToday.clear();
   for (let p = 0; p < people.count; p++) {
     if (people.alive[p] === 0 || h.ready[p] === 0) continue;
     const faith = h.religion[p]!;
@@ -179,7 +324,18 @@ export function religionDay(sys: IdeasSystem): void {
       wander(family, p, sys.yearDays, sys.rng);
       const shared = (sys.talkedToday.get(p) ?? []).some((other) => h.religion[other] === faith);
       if (!shared) h.piety[p] = h.piety[p]! * (1 - cool);
-      if (h.piety[p]! < MIN_PIETY) h.religion[p] = -1;
+      const doubting = doubt(sys, p);
+      let doubtLoss = 0;
+      if (doubting > 0 && !sys.humans.life.isChild(p)) {
+        // The believers around hold one in the faith, never beyond it.
+        const held = params.pressurePerYear * faithPressure(sys, p) * faithShare(sys, p, faith);
+        doubtLoss = Math.max(0, params.doubtPerYear * doubting - held) / sys.yearDays;
+        h.piety[p] = Math.max(0, h.piety[p]! - doubtLoss);
+      }
+      if (h.piety[p]! < MIN_PIETY) {
+        if (doubtLoss > 0) loseFaith(sys, p, `le doute l’a emporté`, [], true);
+        else loseFaith(sys, p, `plus personne autour ${pronoun(sys, p) === 'elle' ? 'd’elle' : 'de lui'} ne partage sa foi`, [], false);
+      }
     }
     if (sys.humans.life.isChild(p)) continue;
     const social = sys.humans.social;

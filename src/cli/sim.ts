@@ -135,7 +135,7 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   const politics = g.events.length <= MAX_LISTED_ANOMALIES ? g.events : [...g.events.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...g.events.slice(-MAX_LISTED_ANOMALIES / 2)];
   for (const line of politics) console.log(`    ${line}`);
   const i = report.ideas;
-  console.log(`  Idées                 : ${i.discoveries} découverte(s), ${i.lost} savoir(s) perdu(s) ; cultures ${i.cultures.alive}/${i.cultures.ever}, langues ${i.languages.alive}/${i.languages.ever}, religions ${i.religions.alive}/${i.religions.ever} (vivantes/apparues) ; biens d’échange : ${i.currencies.join(', ') || 'aucun'} ; ${i.places} lieu(x) nommé(s)`);
+  console.log(`  Idées                 : ${i.discoveries} découverte(s), ${i.lost} savoir(s) perdu(s) ; cultures ${i.cultures.alive}/${i.cultures.ever}, langues ${i.languages.alive}/${i.languages.ever}, religions ${i.religions.alive}/${i.religions.ever} (vivantes/apparues) ; sans religion ${i.unbelievers.without}/${i.unbelievers.adults} adultes (dont ${i.unbelievers.lostFaith} ont perdu la foi ; ${i.unbelievers.faithLost} pertes de foi et ${i.unbelievers.conversions} conversions racontées) ; biens d’échange : ${i.currencies.join(', ') || 'aucun'} ; ${i.places} lieu(x) nommé(s)`);
   console.log(`  Savoirs portés (fin)  : ${i.knowledgeKnown.join(', ') || 'aucun'}`);
   const ideaLines = i.events.length <= MAX_LISTED_ANOMALIES * 2 ? i.events : [...i.events.slice(0, MAX_LISTED_ANOMALIES), '…', ...i.events.slice(-MAX_LISTED_ANOMALIES)];
   for (const line of ideaLines) console.log(`    ${line}`);

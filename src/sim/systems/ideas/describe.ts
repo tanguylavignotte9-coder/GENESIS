@@ -1,7 +1,7 @@
 import type { IdeasSystem } from './ideas-system';
 import { LANGUAGE_SLOTS } from './holdings';
 import { Family, type Idea } from './idea';
-import { religionLabel } from './religion';
+import { doubt, religionLabel } from './religion';
 
 /** An idea as the Ideas panel shows it: who carries it, which tribes, where it comes from. */
 export interface IdeaFacts {
@@ -43,6 +43,8 @@ export interface PersonIdeasFacts {
   languages: { name: string; fluency: number }[];
   religion: string;
   piety: number;
+  /** Why someone is without religion, or how much one doubts ("a perdu la foi", "doute du sacré"). */
+  faithNote: string;
   token: string;
   tokenTrust: number;
 }
@@ -174,7 +176,20 @@ export function describePersonIdeas(sys: IdeasSystem, person: number): PersonIde
     languages,
     religion: religion ? ideaLabel(sys, religion) : '',
     piety: Math.round(h.piety[person]! * PERCENT),
+    faithNote: faithNote(sys, person),
     token: token >= 0 ? sys.humans.production.catalog.items[token]!.name : '',
     tokenTrust: Math.round(h.tokenTrust[person]! * PERCENT),
   };
+}
+
+/** What the sheet says of someone's faith beside the religion: a lost faith, a doubting mind. */
+function faithNote(sys: IdeasSystem, person: number): string {
+  const h = sys.holdings;
+  const doubting = doubt(sys, person);
+  const female = sys.humans.people.female[person] === 1;
+  const notes: string[] = [];
+  if (h.religion[person]! < 0) notes.push(h.lostFaith[person] === 1 ? 'a perdu la foi' : `n’a jamais été gagné${female ? 'e' : ''} par une foi`);
+  if (doubting >= 0.5) notes.push('doute profondément du sacré');
+  else if (doubting >= 0.2) notes.push('doute un peu du sacré');
+  return notes.join(', ');
 }

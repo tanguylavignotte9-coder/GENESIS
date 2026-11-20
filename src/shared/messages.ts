@@ -9,6 +9,8 @@ import type { ActiveAnomaly } from '../sim/systems/world/climate-state';
 import type { VariableValue } from '../sim/core/variables';
 import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
 import type { SocialDetails } from '../sim/systems/individuals/social/describe';
+import type { BrainFacts } from '../sim/core/brain-facts';
+import type { GovernanceFacts } from '../sim/systems/groups/governance';
 import type { LifeFacts } from '../sim/systems/individuals/life/describe';
 import type { SaveMeta } from '../sim/core/save/save';
 import type { GroupsFacts, MembershipFacts } from '../sim/systems/groups/describe';
@@ -34,6 +36,10 @@ export type ToSimMessage =
   | { type: 'inspect'; requestId: number; tile: number; animalUid: number }
   /** Asks for the character sheet of a person. */
   | { type: 'inspectPerson'; requestId: number; person: number }
+  /** Visual brain: watch a person (index) or an animal (uid), or nobody ('none'). */
+  | { type: 'watchBrain'; kind: 'human' | 'animal' | 'none'; id: number }
+  /** Visual governance of a tribe (group id). */
+  | { type: 'inspectGovernance'; tribe: number }
   /** Asks for the details of a building (function, state, stock…). */
   | { type: 'inspectBuilding'; requestId: number; building: number }
   /** Variables workshop: get the variables, change one, reset, presets. */
@@ -375,6 +381,9 @@ export type FromSimMessage =
   | { type: 'ideas'; ideas: IdeasFacts }
   | { type: 'weather'; regions: Uint8Array }
   | { type: 'person'; details: PersonDetails }
+  /** Visual brain of the watched person or animal (sent while it is watched). */
+  | { type: 'brain'; brain: BrainFacts }
+  | { type: 'governance'; governance: GovernanceFacts | null }
   /** The people changed (births, ages, couples): identity and family links again. */
   | { type: 'roster'; roster: Roster }
   | { type: 'humanStats'; stats: HumanStats }

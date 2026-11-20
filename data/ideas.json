@@ -74,7 +74,20 @@
     "pietyDecayPerYear": 0.15,
     "clergyMembers": 8,
     "worshipMembers": 10,
-    "faithAffection": 2
+    "faithAffection": 2,
+    "doubtIndependence": 0.8,
+    "doubtCuriosity": 0.3,
+    "doubtPerYear": 0.5,
+    "pressurePerYear": 0.4,
+    "pressureHierarchy": 0.6,
+    "pressureHospitality": 0.6,
+    "theocracyPressure": 2,
+    "conformityConversion": 2,
+    "mistrustPerTalk": 1.5,
+    "griefFaithBoost": 0.05,
+    "switchResistance": 0.8,
+    "griefDoubtChance": 0.25,
+    "catastropheDoubtChance": 0.02
   },
   "trade": {
     "encountersPerDay": 3,
@@ -105,7 +118,11 @@
     "currency": "{tribu} a désormais un bien d’échange, accepté en paiement de tout : {objet} ({part} des adultes l’acceptent).",
     "firstTrade": "{a} ({tribu_a}) et {b} ({tribu_b}) font un premier troc : {objet_a} contre {objet_b}.",
     "misunderstanding": "Un troc tourne mal entre {a} ({tribu_a}) et {b} ({tribu_b}) : ils ne se comprennent pas.",
-    "interpreter": "{nom} sert d’interprète entre {tribu_a} et {tribu_b}."
+    "interpreter": "{nom} sert d’interprète entre {tribu_a} et {tribu_b}.",
+    "faithLost": "{nom} ne croit plus {croyance} ({raison}) et quitte {religion}.",
+    "faithFound": "{nom} retrouve la foi et rejoint {religion} ({raison}).",
+    "conversion": "{nom} abandonne {ancienne} pour {religion} ({raison}).",
+    "embraced": "{nom}, {titre} de {tribu}, se met à croire {croyance} et rejoint {religion} ({raison})."
   },
   "needTexts": {
     "hunger": "la faim pressait",

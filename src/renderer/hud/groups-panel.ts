@@ -40,6 +40,7 @@ export class GroupsPanel {
     private readonly body: HTMLElement,
     private readonly onPerson: (person: number) => void,
     private readonly onPlace: (x: number, y: number) => void,
+    private readonly onGovernance: (tribe: number) => void = () => undefined,
   ) {
     toggle.addEventListener('click', () => {
       toggle.blur();
@@ -98,6 +99,10 @@ export class GroupsPanel {
       box.append(gauge('Légitimité', group.legitimacy, 'good'), gauge('Mécontentement', group.discontent, 'bad'));
     }
     if (group.level === 0) {
+      const governance = el('button', 'group-governance', 'Afficher la gouvernance');
+      governance.type = 'button';
+      governance.addEventListener('click', () => this.onGovernance(group.id));
+      box.append(governance);
       box.append(el('div', 'sheet-text muted', `Propriété : ${group.property} · Héritage : ${group.inheritance.toLowerCase()} · Stratégie : ${group.strategy.toLowerCase()}`));
       if (group.known.length > 0) {
         const known = group.known.map((other) => `${other.name} (${other.allied ? 'alliée, ' : ''}opinion ${Math.round(other.opinion)})`).join(', ');

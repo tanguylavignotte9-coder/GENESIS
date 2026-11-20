@@ -5,6 +5,7 @@ import type { GroupsSystem } from './groups-system';
 import { capitalize } from './membership';
 import { recentSufferings } from './power';
 import { scission } from './tribes';
+import { deciders, recordDecision } from './decisions';
 import { listNames, nameOf } from './texts';
 import { fillTemplate } from '../../core/text';
 import { describeLocation } from '../world/places';
@@ -56,7 +57,29 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
   }
   const migrate = sufferings >= Math.max(1, params.moves.migrateDeathShare * tribe.members.length);
   if (adults.length < rules.minAdults || (proposals.size === 0 && !migrate)) return;
-  if (!decide(sys, tribe, (p) => proposals.has(p) || (migrate && sys.grievance[p]! > 0))) return;
+  const wants = (p: number): boolean => proposals.has(p) || (migrate && sys.grievance[p]! > 0);
+  const go = decide(sys, tribe, wants);
+  const willing = adults.filter(wants).length;
+  recordDecision(tribe, {
+    day: sys.day,
+    title: 'Déplacement du camp',
+    chosen: go ? 1 : 0,
+    options: [
+      { name: 'Rester', score: adults.length - willing, reasons: [`${adults.length - willing} adulte(s) ne veulent pas partir`] },
+      {
+        name: migrate ? 'Migrer au loin' : 'Déplacer le camp',
+        score: willing,
+        reasons: [
+          `${proposals.size} adulte(s) doivent aller toujours plus loin pour trouver à manger`,
+          ...(migrate ? [`${sufferings} mort(s) de faim, de froid ou de maladie cette année`] : []),
+          `il faut ${Math.round(humans.params.campMove.consensusShare * 100)} % des adultes pour une décision commune`,
+        ],
+      },
+    ],
+    decidedBy: deciders(sys, tribe),
+    note: '',
+  });
+  if (!go) return;
   const destination = migrate ? migrationSite(sys, tribe, [...proposals.values()]) : meetingSite(sys, [...proposals.values()]);
   const site = destination < 0 ? -1 : nearWater(humans, destination, rules.waterMaxTiles);
   if (site < 0) return;

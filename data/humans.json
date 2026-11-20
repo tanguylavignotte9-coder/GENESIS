@@ -219,7 +219,7 @@
       "minAge": 1,
       "name": "Boire",
       "label": "Va boire",
-      "weight": 1.2,
+      "weight": 1.5,
       "reason": "thirst",
       "considerations": [
         { "input": "thirst", "curve": "logistic", "a": 0.45, "b": 10 }

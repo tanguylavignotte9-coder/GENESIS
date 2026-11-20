@@ -49,7 +49,7 @@
       "workHours": 80, "want": "none", "wantPerMember": 0, "sleeps": 0, "warmthCelsius": 0, "warmthTiles": 0, "fuelMaxHours": 0, "storage": 0, "spoilFactor": 1, "requiresReligion": false,
       "description": "Défense, enclos durable (un périmètre)." },
     { "id": "megalithic_tomb", "name": "Tombe mégalithique", "feminine": true, "function": "monument", "knowledge": ["stone_building"], "materials": [{ "items": ["stone_block"], "qty": 20 }],
-      "workHours": 100, "want": "none", "wantPerMember": 0, "sleeps": 0, "warmthCelsius": 0, "warmthTiles": 0, "fuelMaxHours": 0, "storage": 0, "spoilFactor": 1, "requiresReligion": false,
+      "workHours": 100, "want": "none", "wantPerMember": 0, "sleeps": 0, "warmthCelsius": 0, "warmthTiles": 0, "fuelMaxHours": 0, "storage": 0, "spoilFactor": 1, "requiresReligion": true,
       "description": "Monument funéraire, prestige (une lignée)." },
     { "id": "sanctuary", "name": "Sanctuaire", "feminine": false, "function": "worship", "knowledge": [], "materials": [{ "items": ["branches", "mud_brick", "stone_block"], "qty": 20 }],
       "workHours": 30, "want": "none", "wantPerMember": 0, "sleeps": 0, "warmthCelsius": 0, "warmthTiles": 0, "fuelMaxHours": 0, "storage": 0, "spoilFactor": 1, "requiresReligion": true,

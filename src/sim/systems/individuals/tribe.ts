@@ -1,9 +1,7 @@
 import { ringSpot } from '../../core/motion';
 import type { Rng } from '../../core/rng';
-import { startingKnowledge } from '../../core/knowledge';
 import { Camp } from './camp';
 import type { IndividualsSystem } from './individuals-system';
-import { NameGenerator } from './names';
 import { People } from './people';
 import { chooseSites } from './settlement';
 
@@ -53,15 +51,13 @@ function composeTribe(size: number, sys: IndividualsSystem, rng: Rng): Member[] 
   return members;
 }
 
-/** Creates the starting tribes: camps at credible sites, families, names, traits and knowledge. */
+/** Creates the starting tribes: camps at credible sites, families, names (in each tribe's language) and traits. */
 const SPOT = { x: 0, y: 0 };
 
-export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[]; families: number[][][]; names: NameGenerator } {
+export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People; camps: Camp[]; families: number[][][] } {
   const { params } = sys;
   const sites = chooseSites(sys.world, sys.flora, sys.fauna, sys.terrain, params, sys.edibleResources, params.tribe.count, rng);
   const people = new People(sites.length * params.tribe.size, params.traits.length, params.skills.length, params.memory.waterSlots, params.memory.foodSlots);
-  const names = new NameGenerator(params.names, rng);
-  const knowledgeBits = startingKnowledge(sys.knowledge);
   const camps: Camp[] = [];
   const families: number[][][] = [];
   let next = 0;
@@ -74,14 +70,13 @@ export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People
     for (const member of members) {
       const p = next++;
       people.alive[p] = 1;
-      people.names[p] = names.next();
+      people.names[p] = sys.ideas.startingName(campId, member.female);
       people.female[p] = member.female ? 1 : 0;
       people.ageYears[p] = member.age;
       people.mother[p] = member.mother >= 0 ? first + member.mother : -1;
       people.father[p] = member.father >= 0 ? first + member.father : -1;
       people.spouse[p] = member.spouse >= 0 ? first + member.spouse : -1;
       people.camp[p] = campId;
-      people.knowledge[p] = knowledgeBits;
       for (let t = 0; t < params.traits.length; t++) people.traits[p * params.traits.length + t] = (rng.nextFloat() + rng.nextFloat()) / 2;
       people.hunger[p] = rng.nextFloat() * INITIAL_NEED_MAX;
       people.thirst[p] = rng.nextFloat() * INITIAL_NEED_MAX;
@@ -104,5 +99,5 @@ export function createTribes(sys: IndividualsSystem, rng: Rng): { people: People
     families.push([...groups.values()]);
     sys.campPeople.push(Array.from({ length: next - first }, (_, k) => first + k));
   });
-  return { people, camps, families, names };
+  return { people, camps, families };
 }

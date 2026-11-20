@@ -317,6 +317,12 @@ function chooseBuild(sys: ProductionSystem, camp: CampState, knowledge: number, 
       return { plan: { site: -1, type: station.index, reason: 'station', recipe: craft.recipe }, urgency: urgency.station };
     }
   }
+  // The faithful of a religion want a place of worship (a sanctuary, or a tomb for their ancestors).
+  const worship = sys.faith?.worshipWanted(camp.id) ?? null;
+  const shrine = worship ? sys.catalog.buildings.find((type) => type.def.id === worship) : undefined;
+  if (shrine && !buildings.some((b) => b.type === shrine.index) && satisfies(knowledge, shrine.knowledgeMask) && shrine.materials.every((need) => obtainable(sys, camp, knowledge, need))) {
+    return fresh(shrine, 'worship', urgency.worship);
+  }
   for (const type of sys.catalog.buildings) {
     if (type.def.want !== 'perMember' || !satisfies(knowledge, type.knowledgeMask)) continue;
     const count = buildings.filter((b) => b.type === type.index).length;

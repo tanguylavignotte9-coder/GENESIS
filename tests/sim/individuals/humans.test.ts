@@ -46,7 +46,7 @@ describe('the starting tribe', () => {
   });
 
   it('knows only gathering, fire and huts', () => {
-    const known = data.knowledge.knowledge.filter((_, k) => (people.knowledge[0]! & (1 << k)) !== 0).map((item) => item.id);
+    const known = data.knowledge.knowledge.filter((_, k) => (simulation.ideas.knowledge(0) & (1 << k)) !== 0).map((item) => item.id);
     expect(known.sort()).toEqual(['fire', 'gathering', 'huts']);
   });
 });

@@ -24,7 +24,7 @@ export interface CampNeeds {
   knowledge: number;
 }
 
-export type WantReason = 'fire' | 'shelter' | 'storage' | 'station' | 'perMember';
+export type WantReason = 'fire' | 'shelter' | 'storage' | 'station' | 'perMember' | 'worship';
 
 export interface BuildPlan {
   /** Existing site to work on (-1: start a new one of `type`). */

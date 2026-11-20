@@ -10,7 +10,7 @@
     "foodReserveDaysBySeason": [3, 8, 14, 6],
     "firewoodReserveHours": 36,
     "storageFullShare": 0.8,
-    "urgency": { "fire": 1, "shelter": 0.9, "openSite": 0.6, "storage": 0.45, "station": 0.5, "perMember": 0.35, "craft": 0.6 }
+    "urgency": { "fire": 1, "shelter": 0.9, "openSite": 0.6, "storage": 0.45, "station": 0.5, "perMember": 0.35, "craft": 0.6, "worship": 0.4 }
   },
   "quality": { "base": 0.3, "skillWeight": 0.5, "toolWeight": 0.2, "randomness": 0.1 },
   "work": { "skillSpeedBonus": 0.8, "branchHarmToPlant": 0.03, "spareFoodPlants": 4, "keepingPreference": 1, "keepingDays": 30, "searchTiles": 30, "campTiles": 6, "buildRingMin": 2, "buildRingMax": 7 },
@@ -30,6 +30,7 @@
     { "item": "flint", "river": true, "lakeShore": false, "biomes": ["mountain"], "minElevation": 600 },
     { "item": "clay", "river": true, "lakeShore": true, "biomes": ["marsh"], "minElevation": 99999 },
     { "item": "water", "river": true, "lakeShore": true, "biomes": [], "minElevation": 99999 },
+    { "item": "shells", "river": false, "lakeShore": false, "biomes": ["beach"], "minElevation": 99999 },
     { "item": "stone_block", "river": false, "lakeShore": false, "biomes": ["mountain"], "minElevation": 900 }
   ],
   "texts": {
@@ -41,7 +42,8 @@
       "storage": "les provisions ne sont pas à l’abri des bêtes",
       "fire": "il n’y a pas de feu au camp",
       "station": "il en faut un pour « {recette} »",
-      "perMember": "la coutume en veut un pour {n} personnes"
+      "perMember": "la coutume en veut un pour {n} personnes",
+      "worship": "les fidèles veulent un lieu pour leur culte"
     }
   }
 }

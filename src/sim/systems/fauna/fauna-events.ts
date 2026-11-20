@@ -54,7 +54,7 @@ export function publishMigrations(fauna: FaunaSystem, starts: readonly Migration
         de_lieu: ofPlace(landmassName),
         direction: bucket.south ? 'sud' : 'nord',
       }),
-      place: { x, y, label: describeLocation(fauna.world.landmasses, fauna.world.landmassNames, x, y, fauna.size) },
+      place: { x, y, label: describeLocation(fauna.world, x, y) },
       actors: [],
       causes: [],
       details: { species: species.id, animals: bucket.animals },

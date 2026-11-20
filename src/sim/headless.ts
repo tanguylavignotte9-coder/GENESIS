@@ -11,6 +11,8 @@ import { EPIDEMIC_START } from './systems/individuals/life/disease';
 import { FAMINE } from './systems/individuals/life/life-cycle';
 import { ADOPTION } from './systems/individuals/life/orphans';
 import { GROUP_EVENTS } from './systems/groups/texts';
+import { IDEA_EVENTS } from './systems/ideas/texts';
+import { Family } from './systems/ideas/idea';
 
 /** Social events listed in the summary. */
 const SOCIAL_EVENTS = [COUPLE_FORMED, GREAT_FRIENDSHIP, FALLING_OUT, SEPARATION, MOURNING];
@@ -91,6 +93,18 @@ export interface HeadlessReport {
     counts: Record<keyof typeof GROUP_EVENTS, number>;
     events: string[];
   };
+  /** Ideas: how many of each family were born and are still carried, and the dated stories. */
+  ideas: {
+    discoveries: number;
+    lost: number;
+    knowledgeKnown: string[];
+    cultures: { ever: number; alive: number };
+    languages: { ever: number; alive: number };
+    religions: { ever: number; alive: number };
+    currencies: string[];
+    places: number;
+    events: string[];
+  };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -147,6 +161,7 @@ export function runHeadless(
     humans: summarizeHumans(simulation, timeline),
     production: summarizeProduction(simulation),
     groups: summarizeGroups(simulation),
+    ideas: summarizeIdeas(simulation),
     msPerDay: ticks > 0 ? elapsed / ((simulation.clock.tick - startTick) / data.time.ticksPerDay) : 0,
     randomFingerprint,
   };
@@ -214,7 +229,7 @@ function summarizeHumans(simulation: Simulation, timeline: HeadlessReport['human
 }
 
 /** Political events listed in the summary (the many leader designations of bands are not). */
-const POLITICAL_EVENTS: readonly string[] = [GROUP_EVENTS.founded, GROUP_EVENTS.regime, GROUP_EVENTS.overthrown, GROUP_EVENTS.contested, GROUP_EVENTS.scission, GROUP_EVENTS.fusion, GROUP_EVENTS.alliance, GROUP_EVENTS.betrayal, GROUP_EVENTS.contact, GROUP_EVENTS.move, GROUP_EVENTS.dissolved, GROUP_EVENTS.rule, GROUP_EVENTS.strategy, CAMP_MOVED];
+const POLITICAL_EVENTS: readonly string[] = [GROUP_EVENTS.founded, GROUP_EVENTS.regime, GROUP_EVENTS.overthrown, GROUP_EVENTS.contested, GROUP_EVENTS.succession, GROUP_EVENTS.religion, GROUP_EVENTS.scission, GROUP_EVENTS.fusion, GROUP_EVENTS.alliance, GROUP_EVENTS.betrayal, GROUP_EVENTS.contact, GROUP_EVENTS.move, GROUP_EVENTS.dissolved, GROUP_EVENTS.rule, GROUP_EVENTS.strategy, CAMP_MOVED];
 
 function summarizeGroups(simulation: Simulation): HeadlessReport['groups'] {
   const { groups, journal } = simulation;
@@ -238,6 +253,32 @@ function summarizeGroups(simulation: Simulation): HeadlessReport['groups'] {
     regimes: groups.params.regimes.flatMap((regime) => (seen.has(regime.id) ? [{ name: regime.name, groups: seen.get(regime.id)!.size }] : [])),
     counts,
     events: events.filter((event) => POLITICAL_EVENTS.includes(event.type)).map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+  };
+}
+
+/** Idea events listed in the summary (all of them: discoveries, losses, births of cultures, languages, religions…). */
+function summarizeIdeas(simulation: Simulation): HeadlessReport['ideas'] {
+  const { ideas, journal } = simulation;
+  const time = simulation.data.time;
+  const events = journal.all().filter((event) => event.type.startsWith('ideas.'));
+  const family = (f: number): { ever: number; alive: number } => ({
+    ever: ideas.ideas.filter((idea) => idea.family === f).length,
+    alive: ideas.ideas.filter((idea) => idea.family === f && idea.alive && idea.holders > 0).length,
+  });
+  const known = simulation.data.knowledge.knowledge.filter((_, k) => {
+    for (let p = 0; p < simulation.humans.people.count; p++) if (simulation.humans.people.alive[p] === 1 && ideas.holdings.knows(p, k)) return true;
+    return false;
+  });
+  return {
+    discoveries: events.filter((event) => event.type === IDEA_EVENTS.discovery).length,
+    lost: events.filter((event) => event.type === IDEA_EVENTS.lost).length,
+    knowledgeKnown: known.map((item) => item.name),
+    cultures: family(Family.Culture),
+    languages: family(Family.Language),
+    religions: family(Family.Religion),
+    currencies: ideas.ideas.filter((idea) => idea.family === Family.Currency).map((idea) => idea.name),
+    places: ideas.toponyms.names.size,
+    events: events.map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
   };
 }
 

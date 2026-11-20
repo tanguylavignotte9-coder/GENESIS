@@ -29,7 +29,7 @@ describe('groups at the start', () => {
     expect(tribe.members).toHaveLength(simulation.humans.people.count);
     expect(['band', 'elders', 'chiefdom']).toContain(simulation.data.groups.regimes[tribe.regime]!.id);
     expect(tribe.leaders.length).toBeGreaterThan(0);
-    expect(tribe.name).toMatch(/^la tribu de /);
+    expect(tribe.name).toMatch(/^la tribu des [A-Z]/);
     const families = groups.groups.filter((group) => group.level === 2 && group.alive);
     expect(families.length).toBeGreaterThan(3);
     // Nobody belongs to two households; everyone has a tribe and a household; no clan yet.
@@ -106,7 +106,7 @@ describe('group life', () => {
       expect(groups.groupOf(person, 1)).toBe(clan);
     }
     const event = simulation.journal.all().find((e) => e.type === GROUP_EVENTS.scission)!;
-    expect(event.text).toMatch(/quitte la tribu de/);
+    expect(event.text).toMatch(/quitte la tribu des/);
     expect(event.causes).toContain(tribe.leaderEvent);
     expect(created.known.has(tribe.id) && tribe.known.has(created.id)).toBe(true);
     // The world goes on: people walk to the new camp, the groups stay consistent.
@@ -164,11 +164,12 @@ describe('tribes together', () => {
     const [big, small] = groups.tribes();
     for (let k = 0; k < 4; k++) small!.sufferings.push({ day: groups.day, cause: 1, event: -1 });
     small!.known.get(big!.id)!.opinion = 50;
+    big!.known.get(small!.id)!.opinion = 0;
     const movers = [...small!.members];
     tribeRelations(groups, small!);
     expect(small!.alive).toBe(false);
     const fusion = simulation.journal.all().find((event) => event.type === GROUP_EVENTS.fusion)!;
-    expect(fusion.text).toMatch(/rejoint la tribu de/);
+    expect(fusion.text).toMatch(/rejoint la tribu des/);
     for (const person of movers) {
       expect(humans.people.camp[person]).toBe(big!.camp);
       expect(groups.groupOf(person, 0)).toBe(big);
@@ -188,5 +189,55 @@ describe('determinism', () => {
       return JSON.stringify([groups.groups.map((g) => [g.level, g.name, g.regime, g.leaders, Math.round(g.legitimacy * 100)]), journal.all().filter((e) => e.type.startsWith('groups.')).map((e) => e.text)]);
     };
     expect(run()).toBe(run());
+  });
+});
+
+describe('succession and blame', () => {
+  it('when a chief dies and a rival claimant has a real following, the succession is disputed', async () => {
+    const { successionCrisis } = await import('../../../src/sim/systems/groups/succession');
+    const { rankCandidates } = await import('../../../src/sim/systems/groups/power');
+    const { feel } = await import('../../../src/sim/systems/individuals/social/relations');
+    const simulation = world(31);
+    const { groups, humans } = simulation;
+    day(simulation, 1);
+    const tribe = groups.tribes()[0]!;
+    tribe.regime = groups.params.regimes.findIndex((regime) => regime.id === 'chiefdom');
+    const chief = rankCandidates(groups, tribe)[0]!.person;
+    tribe.leaders = [chief];
+    tribe.formerLeaders.push(chief);
+    humans.die(chief, 5, simulation.clock.tick);
+    day(simulation, 1);
+    tribe.leaders = [];
+    const claimants = rankCandidates(groups, tribe).map((candidate) => candidate.person);
+    const [heir, rival] = claimants;
+    const ambition = humans.params.traits.findIndex((trait) => trait.id === 'ambition');
+    humans.people.traits[rival! * humans.people.traitCount + ambition] = 1;
+    // Most adults love the rival and distrust the heir.
+    for (const person of groups.adults(tribe)) {
+      if (claimants.slice(0, 3).includes(person)) continue;
+      feel(humans.social, person, rival!, { affection: 80, trust: 80, respect: 0 }, 'chat');
+      for (const other of claimants.slice(0, 3)) if (other !== rival) feel(humans.social, person, other, { affection: -60, trust: -60, respect: 0 }, 'quarrel');
+    }
+    expect(successionCrisis(groups, tribe)).toBe(true);
+    const event = simulation.journal.all().find((e) => e.type === GROUP_EVENTS.succession)!;
+    expect(event).toBeDefined();
+    expect(tribe.leaders).toEqual([rival]);
+  });
+
+  it('deaths of hunger under a chief’s authority cost the chief the trust of the bereaved', async () => {
+    const simulation = world(37);
+    const { groups, humans } = simulation;
+    day(simulation, 1);
+    const tribe = groups.tribes()[0]!;
+    const leader = tribe.leaders[0]!;
+    const victim = tribe.members.find((p) => p !== leader && humans.people.spouse[p]! >= 0 && humans.people.spouse[p] !== leader && !tribe.leaders.includes(humans.people.spouse[p]!))!;
+    const widow = humans.people.spouse[victim]!;
+    const state = humans.social.state;
+    const trustBefore = state.slotOf(widow, leader) >= 0 ? state.trust[state.slotOf(widow, leader)]! : 0;
+    humans.die(victim, 1, simulation.clock.tick);
+    day(simulation, 1);
+    const slot = state.slotOf(widow, leader);
+    expect(slot).toBeGreaterThanOrEqual(0);
+    expect(state.trust[slot]!).toBeLessThan(trustBefore);
   });
 });

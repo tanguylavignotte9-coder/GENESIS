@@ -1,5 +1,5 @@
 import { Gait } from '../../core/motion';
-import { DeathCause } from './people';
+import { DeathCause, HARM_KINDS } from './people';
 import type { IndividualsSystem } from './individuals-system';
 
 const FULL = 100;
@@ -50,19 +50,45 @@ export function liveHours(sys: IndividualsSystem, person: number, hours: number)
   people.cold[person] = Math.max(0, Math.min(FULL, cold));
   people.danger[person] = Math.max(0, people.danger[person]! - needs.dangerDecayPerHour * hours);
 
-  // Damage from each critical need; the worst one is the cause if the person dies.
+  // Damage from each critical need. The cause of a death is the need that wore the body down most
+  // since it was last whole: a starving body that also goes without water one last day dies of
+  // hunger, aggravated by thirst, not of thirst alone.
   const starving = people.hunger[person]! >= FULL ? needs.starvationDamagePerHour : 0;
   const parched = people.thirst[person]! >= FULL ? needs.thirstDamagePerHour : 0;
   const freezing = people.cold[person]! >= FULL ? needs.coldDamagePerHour : 0;
   const sick = life.diseaseDamage(person);
   const damage = (starving + parched + freezing + sick) * hours;
-  let cause: number = DeathCause.Hunger;
-  const worst = Math.max(starving, parched, freezing, sick);
-  if (sick === worst && sick > 0) cause = DeathCause.Disease;
-  else if (parched > starving && parched >= freezing) cause = DeathCause.Thirst;
-  else if (freezing > starving && freezing > parched) cause = DeathCause.Cold;
-  if (damage > 0) people.health[person] = people.health[person]! - damage;
-  // A sick body does not mend until the disease is gone.
-  else if (life.state.disease[person]! < 0) people.health[person] = Math.min(FULL, people.health[person]! + needs.regenPerHour * hours);
-  return people.health[person]! <= 0 ? cause : DeathCause.None;
+  const harm = people.harm;
+  const at = person * HARM_KINDS;
+  if (damage > 0) {
+    people.health[person] = people.health[person]! - damage;
+    harm[at] = harm[at]! + starving * hours;
+    harm[at + 1] = harm[at + 1]! + parched * hours;
+    harm[at + 2] = harm[at + 2]! + freezing * hours;
+    harm[at + 3] = harm[at + 3]! + sick * hours;
+  } else if (life.state.disease[person]! < 0) {
+    // A sick body does not mend until the disease is gone; as it mends, old harms fade with it.
+    people.health[person] = Math.min(FULL, people.health[person]! + needs.regenPerHour * hours);
+    healHarm(harm, at, FULL - people.health[person]!);
+  }
+  if (people.health[person]! > 0) return DeathCause.None;
+  return worstHarm(harm, at);
+}
+
+const HARM_CAUSES = [DeathCause.Hunger, DeathCause.Thirst, DeathCause.Cold, DeathCause.Disease] as const;
+
+/** The harms shrink in proportion once the body mends (they never exceed the health lost). */
+function healHarm(harm: Float32Array, at: number, deficit: number): void {
+  let total = 0;
+  for (let k = 0; k < HARM_KINDS; k++) total += harm[at + k]!;
+  if (total <= deficit || total <= 0) return;
+  const keep = deficit / total;
+  for (let k = 0; k < HARM_KINDS; k++) harm[at + k] = harm[at + k]! * keep;
+}
+
+/** The cause that did the most harm (hunger when none, as before). */
+function worstHarm(harm: Float32Array, at: number): number {
+  let best = 0;
+  for (let k = 1; k < HARM_KINDS; k++) if (harm[at + k]! > harm[at + best]!) best = k;
+  return HARM_CAUSES[best]!;
 }

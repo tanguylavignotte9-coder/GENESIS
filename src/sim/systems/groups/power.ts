@@ -2,6 +2,7 @@ import { DeathCause } from '../individuals/people';
 import type { Group } from './group';
 import type { GroupsSystem } from './groups-system';
 import { FACTORS, POWER_FEATURES, type Factor, type PowerFeature, type Regime } from './params';
+import { Family } from '../ideas/idea';
 
 const FULL = 100;
 
@@ -59,7 +60,20 @@ export function groupFactors(sys: GroupsSystem, group: Group): Record<Factor, nu
   values.scarcity = clamp01(recentSufferings(sys, tribe) / sufferingScale);
   values.cold = clamp01(recentSufferings(sys, tribe, DeathCause.Cold) / sufferingScale);
   values.privateProperty = params.property[tribe.property]?.id === 'private' ? 1 : 0;
-  // Territory, religion, trade, writing and war come with later steps (ideas, conflict): 0 for now.
+  // What the members' culture and faith favour (ideas system); territory, writing and war come later.
+  const ideas = sys.ideas;
+  if (ideas) {
+    values.hierarchy = ideas.groupValue(tribe, 'hierarchy');
+    values.equality = 1 - values.hierarchy;
+    values.eldersCustom = ideas.groupValue(tribe, 'elders');
+    values.sharing = ideas.groupValue(tribe, 'sharing');
+    if (tribe.religion >= 0) {
+      const faith = ideas.dominant(tribe, Family.Religion, params.adultAge);
+      const clergy = ideas.ideas[tribe.religion]?.clergy.has(tribe.id) ?? false;
+      values.religion = faith.idea === tribe.religion ? clamp01(faith.share * (clergy ? 1 : 0.5)) : 0;
+    }
+    values.trade = tribe.currency >= 0 ? 1 : 0;
+  }
   return values;
 }
 
@@ -113,6 +127,7 @@ export function candidateFeatures(sys: GroupsSystem, group: Group, person: numbe
     lineage,
     force: clamp01(force * (people.health[person]! / FULL)),
     wealth: clamp01(owned / power.wealthItems),
+    piety: sys.ideas ? sys.ideas.piety(person) : 0,
   };
 }
 

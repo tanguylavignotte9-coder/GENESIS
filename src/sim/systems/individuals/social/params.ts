@@ -30,7 +30,7 @@ export const CONVERSATIONS = ['chat', 'confide', 'console', 'seduce', 'argue'] a
 export type ConversationKind = (typeof CONVERSATIONS)[number];
 
 /** Why a relation is what it is (the main reasons are kept with it). */
-export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played', 'contested', 'rallied'] as const;
+export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played', 'contested', 'rallied', 'blamed', 'taught', 'traded', 'faith'] as const;
 export type ReasonId = (typeof REASONS)[number];
 
 export const NEWS_KINDS = ['death', 'couple', 'food', 'danger'] as const;

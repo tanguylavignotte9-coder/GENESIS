@@ -1,8 +1,9 @@
-import { DataFileError, flag, identifier, int, text, validateData, type Schema } from './data-validation';
+import { choice, DataFileError, flag, identifier, int, num, text, validateData, type Schema } from './data-validation';
+import { ENVIRONMENTS, NEEDS, type EnvironmentId, type NeedId } from '../systems/ideas/params';
 
 /**
- * Knowledge (data/knowledge.json). For now a simple list: who knows what is a bit field per person.
- * The ideas system (step 10) will make knowledge appear, spread and be forgotten.
+ * Knowledge (data/knowledge.json): the practical ideas of the ideas system. Who knows what is a bit
+ * field per person (kept by the ideas system); each entry says how it can be discovered.
  */
 export interface KnowledgeDef {
   id: string;
@@ -13,6 +14,10 @@ export interface KnowledgeDef {
   requires: string[];
   /** Known by the starting tribe. */
   startsKnown: boolean;
+  /** "la poterie": the name with its article, for the journal. */
+  the: string;
+  /** What leads someone to discover it: a need, what the surroundings must offer, the skill of the domain. */
+  discovery: { need: NeedId; environment: EnvironmentId[]; skill: string; chance: number };
 }
 
 export interface KnowledgeCatalog {
@@ -35,8 +40,18 @@ export const KNOWLEDGE_SCHEMA: Schema = {
         fields: {
           id: identifier('Identifiant', 'Nom technique du savoir (utilisé par les recettes, les bâtiments et les actions).'),
           name: text('Nom', 'Nom affiché du savoir.', 'newWorld'),
+          the: text('Nom avec article', 'Nom du savoir avec son article, pour le journal (« la poterie »).'),
           era: int(0, 8, 'Ère', 'Ère de repère du savoir (0 = paléolithique, 1 = néolithique…) : sert à l’affichage, ne bloque rien.', 'ère'),
-          requires: { kind: 'array', items: text('Savoir prérequis', 'Savoir qu’il faut connaître avant de pouvoir découvrir celui-ci (utilisé à partir du système d’idées).', 'live', ID_PATTERN) },
+          requires: { kind: 'array', items: text('Savoir prérequis', 'Savoirs qu’il faut tous connaître avant de pouvoir découvrir celui-ci.', 'live', ID_PATTERN) },
+          discovery: {
+            kind: 'object',
+            fields: {
+              need: choice(NEEDS, 'Besoin', 'Ce qui pousse à trouver ce savoir (faim, froid, hiver à passer, gibier rare…), mesuré pour chaque personne.'),
+              environment: { kind: 'array', items: choice(ENVIRONMENTS, 'Milieu nécessaire', 'Ce que les alentours du camp doivent offrir (silex, argile, gibier, eau…). Tous sont nécessaires.') },
+              skill: text('Domaine', 'Compétence dont la pratique aide à faire cette découverte (data/humans.json → skills).', 'live', ID_PATTERN),
+              chance: num(0, 10, 'Facilité de la découverte', 'Facteur sur la chance de découverte de ce savoir (1 : ordinaire ; plus petit : plus rare).', 'facteur'),
+            },
+          },
           startsKnown: flag(
             'Connu au départ',
             'La tribu de départ connaît ce savoir. Permet de tester une tribu qui sait déjà chasser, pêcher ou faire de la poterie.',
@@ -50,13 +65,14 @@ export const KNOWLEDGE_SCHEMA: Schema = {
 
 const FILE = 'data/knowledge.json';
 
-export function parseKnowledge(raw: unknown): KnowledgeCatalog {
+export function parseKnowledge(raw: unknown, skillIds: readonly string[] = []): KnowledgeCatalog {
   const catalog = validateData<KnowledgeCatalog>(FILE, raw, KNOWLEDGE_SCHEMA);
   const ids = catalog.knowledge.map((item) => item.id);
   const problems: string[] = [];
   if (new Set(ids).size !== ids.length) problems.push('deux savoirs ont le même « id ».');
   for (const item of catalog.knowledge) {
     for (const id of item.requires) if (!ids.includes(id)) problems.push(`savoir « ${item.id} » : le prérequis « ${id} » n'existe pas.`);
+    if (skillIds.length > 0 && !skillIds.includes(item.discovery.skill)) problems.push(`savoir « ${item.id} » : la compétence « ${item.discovery.skill} » n'existe pas (data/humans.json).`);
   }
   if (problems.length > 0) throw new DataFileError(FILE, problems);
   return catalog;

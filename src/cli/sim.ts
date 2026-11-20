@@ -131,9 +131,14 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   const c = g.counts;
   console.log(`  Groupes               : ${fr.format(g.tribesAlive)} tribu(s) en vie (${fr.format(g.tribesEver)} au total), ${fr.format(g.clansEver)} clan(s) formé(s)`);
   console.log(`  Régimes apparus       : ${g.regimes.map((regime) => `${regime.name} (${regime.groups})`).join(', ') || 'aucun'}`);
-  console.log(`  Vie politique         : ${c.leader} désignation(s), ${c.regime} changement(s) de régime, ${c.contested} contestation(s), ${c.overthrown} renversement(s), ${c.scission} scission(s), ${c.fusion} fusion(s), ${c.alliance} alliance(s), ${c.betrayal} départ(s) vers une autre tribu, ${c.contact} rencontre(s), ${c.move} déplacement(s), ${c.rule} règle(s), ${c.strategy} stratégie(s)`);
+  console.log(`  Vie politique         : ${c.leader} désignation(s), ${c.regime} changement(s) de régime, ${c.contested} contestation(s), ${c.overthrown} renversement(s), ${c.succession} crise(s) de succession, ${c.scission} scission(s), ${c.fusion} fusion(s), ${c.alliance} alliance(s), ${c.betrayal} départ(s) vers une autre tribu, ${c.contact} rencontre(s), ${c.move} déplacement(s), ${c.rule} règle(s), ${c.strategy} stratégie(s)`);
   const politics = g.events.length <= MAX_LISTED_ANOMALIES ? g.events : [...g.events.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...g.events.slice(-MAX_LISTED_ANOMALIES / 2)];
   for (const line of politics) console.log(`    ${line}`);
+  const i = report.ideas;
+  console.log(`  Idées                 : ${i.discoveries} découverte(s), ${i.lost} savoir(s) perdu(s) ; cultures ${i.cultures.alive}/${i.cultures.ever}, langues ${i.languages.alive}/${i.languages.ever}, religions ${i.religions.alive}/${i.religions.ever} (vivantes/apparues) ; biens d’échange : ${i.currencies.join(', ') || 'aucun'} ; ${i.places} lieu(x) nommé(s)`);
+  console.log(`  Savoirs portés (fin)  : ${i.knowledgeKnown.join(', ') || 'aucun'}`);
+  const ideaLines = i.events.length <= MAX_LISTED_ANOMALIES * 2 ? i.events : [...i.events.slice(0, MAX_LISTED_ANOMALIES), '…', ...i.events.slice(-MAX_LISTED_ANOMALIES)];
+  for (const line of ideaLines) console.log(`    ${line}`);
   console.log(`  Animaux               : ${fr.format(totalAnimals)} (début → fin, minimum–maximum observés)`);
   for (const line of report.animals) {
     console.log(`    ${line.name.padEnd(18)} ${fr.format(line.start).padStart(6)} → ${fr.format(line.end).padStart(6)}   (${fr.format(line.min)}–${fr.format(line.max)})`);

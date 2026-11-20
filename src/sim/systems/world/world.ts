@@ -10,6 +10,7 @@ import { labelLandmasses, type LandmassMap } from './landmasses';
 import { computeOceanMask, distanceToOcean } from './ocean';
 import type { WorldgenParams } from './params';
 import { nameLandmasses } from './places';
+import { Toponyms } from '../../core/toponyms';
 
 /**
  * The generated map. Every field is a compact typed array of size × size tiles,
@@ -37,6 +38,8 @@ export interface World {
   landmasses: LandmassMap;
   /** Descriptive name of each landmass (same order as landmasses.list). */
   landmassNames: string[];
+  /** Names peoples gave to places (filled by the ideas system as tribes settle). */
+  toponyms: Toponyms;
 }
 
 export function generateWorld(params: WorldgenParams, biomes: BiomeTable, rng: Rng): World {
@@ -80,6 +83,7 @@ export function generateWorld(params: WorldgenParams, biomes: BiomeTable, rng: R
     lakeCount,
     landmasses,
     landmassNames: nameLandmasses(landmasses, size),
+    toponyms: new Toponyms(),
   };
 }
 

@@ -1,3 +1,4 @@
+import { terrainGives } from './sources';
 import { distance } from '../../core/motion';
 import { grownTo } from '../../core/columns';
 import type { Interactions } from '../../core/interactions';
@@ -19,7 +20,7 @@ import { campOwner, Inventory, type RemarkableItem } from './inventory';
 import { depositable, leaveUnfinished, releaseClaim, releasePick, releaseExpected, Stage, startJob, workAt, type Job, type JobSpec, type WorkResult } from './jobs';
 import { listNames, withIndefinite } from './events';
 import type { BuildingCatalog, ItemCatalog, ProductionParams, RecipeBook } from './params';
-import { computeNeeds } from './plans';
+import { campHolds, computeNeeds } from './plans';
 import { spoil, spoilFactor } from './spoilage';
 import type { WorkerView } from './worker-view';
 
@@ -90,6 +91,13 @@ export class ProductionSystem {
   /** Remarkable objects (none yet: the structure is ready). */
   readonly remarkable: RemarkableItem[] = [];
   people!: WorkerView;
+  /** What the faithful of a camp want to build for their faith (ideas system), if attached. */
+  faith: { worshipWanted(camp: number): string | null } | null = null;
+
+  /** The ideas system tells which places of worship the faithful want. */
+  attachFaith(faith: { worshipWanted(camp: number): string | null }): void {
+    this.faith = faith;
+  }
   tick = 0;
   hour = 0;
   private biomeCodes: Map<string, number>;
@@ -637,6 +645,43 @@ export class ProductionSystem {
       if (this.catalog.items[pile.item]!.category === 'tool' && this.carried[person]!.count(pile.item) >= 2 - 1e-9) return pile.item;
     }
     return -1;
+  }
+
+  /**
+   * Barter (ideas system): how many of `item` a person could hand over — what she carries, and what
+   * her camp holds beyond what the custom wants for its members.
+   */
+  spareFor(person: number, item: number): number {
+    const camp = this.camps[this.people.camp(person)];
+    const carried = this.carried[person]!.count(item);
+    if (!camp) return carried;
+    const want = Math.round(this.catalog.items[item]!.wantPerMember * camp.needs.members.length);
+    return carried + Math.max(0, campHolds(this, camp, item) - carried - want);
+  }
+
+  /** Does the camp of the person lack this item (the custom wants more than it holds)? */
+  lacks(person: number, item: number): boolean {
+    const camp = this.camps[this.people.camp(person)];
+    if (!camp) return false;
+    const want = Math.round(this.catalog.items[item]!.wantPerMember * camp.needs.members.length);
+    return want > 0 && campHolds(this, camp, item) < want;
+  }
+
+  /** One unit handed over in a barter: from what the giver carries (else her camp's stock) into the receiver's camp stock. */
+  handOver(from: number, to: number, item: number): boolean {
+    let taken = this.carried[from]!.take(item, 1);
+    if (taken.qty <= 0) taken = this.camps[this.people.camp(from)]?.stock.take(item, 1) ?? taken;
+    if (taken.qty <= 0) return false;
+    const camp = this.people.camp(to);
+    this.camps[camp]?.stock.put(item, taken.qty, taken.quality, campOwner(camp));
+    return true;
+  }
+
+  /** Does the terrain of this tile give this item (stone, flint, clay, shells…)? */
+  terrainOffers(tile: number, item: number): boolean {
+    const sources = this.params.terrainSources;
+    for (let k = 0; k < sources.length; k++) if (this.terrainItems[k] === item && terrainGives(this, tile, sources[k]!)) return true;
+    return false;
   }
 
   hasItem(person: number, item: number): boolean {

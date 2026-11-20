@@ -20,7 +20,7 @@ export { SaveError } from './graph';
  * Version of the save format. Change it whenever the simulation's state changes shape (new field,
  * new class, new data variable): older saves are then refused with a clear message.
  */
-export const SAVE_FORMAT_VERSION = 2;
+export const SAVE_FORMAT_VERSION = 3;
 
 const VERSION_BYTES = 4;
 

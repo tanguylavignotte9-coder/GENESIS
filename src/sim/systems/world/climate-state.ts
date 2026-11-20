@@ -103,6 +103,18 @@ export class ClimateState {
     return anomaly ? (this.params.anomalies.types[anomaly.type]?.name ?? null) : null;
   }
 
+  /** Id of the abnormal year covering the tile, if any ("drought"). */
+  anomalyIdAt(index: number): string | null {
+    const anomaly = this.anomalies[this.anomalyIndex[index]! - 1];
+    return anomaly ? (this.params.anomalies.types[anomaly.type]?.id ?? null) : null;
+  }
+
+  /** °C in the depth of an ordinary winter on the tile (the seasons only). */
+  coldestAt(index: number): number {
+    const y = (index / this.map.size) | 0;
+    return this.map.temperature[index]! - Math.abs(this.rows.temperatureAmplitude[y]!);
+  }
+
   /** Replaces the abnormal years (used by the display, which receives them from the simulation). */
   setAnomalies(anomalies: ActiveAnomaly[], anomalyIndex: Uint8Array, anomalyWeight: Float32Array): void {
     this.anomalies = anomalies;

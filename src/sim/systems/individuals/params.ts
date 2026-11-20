@@ -81,7 +81,6 @@ export interface HumanParams {
     campSpacingTiles: number;
   };
   site: { candidates: number; minCelsius: number; maxCelsius: number; waterMaxTiles: number; foodRadius: number; minFoodPlants: number };
-  names: { syllables: string[]; minSyllables: number; maxSyllables: number };
   traits: { id: string; name: string }[];
   skills: { id: string; name: string; profession: string; professionFemale: string }[];
   skillLearning: { learnPerHour: number; professionMinHours: number };
@@ -209,14 +208,6 @@ export const HUMANS_SCHEMA: Schema = {
         waterMaxTiles: v('integer', 1, 30, 'Distance de l’eau', 'Distance maximale entre le camp et l’eau douce.', 'tuiles', 'newWorld'),
         foodRadius: v('integer', 2, 40, 'Rayon de cueillette', 'Rayon dans lequel on compte les plantes nourricières autour du site.', 'tuiles', 'newWorld'),
         minFoodPlants: v('integer', 0, 500, 'Plantes nourricières', 'Nombre minimal de plantes nourricières autour du site.', 'plantes', 'newWorld'),
-      },
-    },
-    names: {
-      kind: 'object',
-      fields: {
-        syllables: { kind: 'array', minLength: 4, items: text('Syllabe', 'Syllabes assemblées au hasard pour former les noms provisoires (en attendant les langues).', 'newWorld') },
-        minSyllables: v('integer', 1, 5, 'Syllabes minimum', 'Nombre minimal de syllabes d’un nom.', 'syllabes', 'newWorld'),
-        maxSyllables: v('integer', 1, 6, 'Syllabes maximum', 'Nombre maximal de syllabes d’un nom.', 'syllabes', 'newWorld'),
       },
     },
     traits: namedList('trait de caractère'),
@@ -424,7 +415,6 @@ export function parseHumanParams(raw: unknown, animalIds: readonly string[]): Hu
     for (const id of action.skills ?? []) if (!skills.has(id)) problems.push(`action « ${action.id} » : la compétence « ${id} » n'existe pas.`);
     if (action.behavior === 'converse' && !action.conversation) problems.push(`action « ${action.id} » : une conversation doit préciser « conversation ».`);
   }
-  if (params.names.minSyllables > params.names.maxSyllables) problems.push('« names.minSyllables » doit être inférieur ou égal à « names.maxSyllables ».');
   if (params.site.minCelsius > params.site.maxCelsius) problems.push('« site.minCelsius » doit être inférieur ou égal à « site.maxCelsius ».');
   if (new Set(params.actions.map((action) => action.id)).size !== params.actions.length) problems.push('deux actions ont le même « id ».');
   if (new Set(params.skills.map((skill) => skill.id)).size !== params.skills.length) problems.push('deux compétences ont le même « id ».');

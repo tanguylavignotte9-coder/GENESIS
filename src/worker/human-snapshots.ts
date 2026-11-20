@@ -1,3 +1,4 @@
+import { describePersonIdeas } from '../sim/systems/ideas/describe';
 import type { Simulation } from '../sim/core/simulation';
 import { feltTemperature } from '../sim/systems/individuals/body';
 import { INPUTS } from '../sim/systems/individuals/params';
@@ -59,7 +60,7 @@ export function describePerson(simulation: Simulation, requestId: number, person
     const action = people.topActions[person * TOP + t]!;
     if (action >= 0) top.push({ action, score: people.topScores[person * TOP + t]! });
   }
-  const knowledge = simulation.data.knowledge.knowledge.flatMap((_, k) => ((people.knowledge[person]! & (1 << k)) !== 0 ? [k] : []));
+  const knowledge = simulation.data.knowledge.knowledge.flatMap((_, k) => ((simulation.ideas.knowledge(person) & (1 << k)) !== 0 ? [k] : []));
   const production = simulation.production;
   const job = production.jobs[person];
   const skills = params.skills.map((_, s) => people.skill(person, s));
@@ -104,6 +105,7 @@ export function describePerson(simulation: Simulation, requestId: number, person
     social: describeSocial(humans.social, person),
     life: describeLife(humans.life, person),
     groups: describeMembership(simulation.groups, person),
+    ideas: describePersonIdeas(simulation.ideas, person),
   };
 }
 

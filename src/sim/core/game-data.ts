@@ -1,5 +1,6 @@
 import animalsJson from '../../../data/animals.json';
 import groupsJson from '../../../data/groups.json';
+import ideasJson from '../../../data/ideas.json';
 import biomesJson from '../../../data/biomes.json';
 import buildingsJson from '../../../data/buildings.json';
 import climateJson from '../../../data/climate.json';
@@ -21,6 +22,7 @@ import { checkHumanLinks, HUMANS_SCHEMA, parseHumanParams, type HumanParams } fr
 import { parseSocialParams, SOCIAL_SCHEMA, type SocialParams } from '../systems/individuals/social/params';
 import { LIFE_SCHEMA, parseLifeParams, type LifeParams } from '../systems/individuals/life/params';
 import { checkGroupLinks, GROUPS_SCHEMA, parseGroupsParams, type GroupsParams } from '../systems/groups/params';
+import { checkIdeaLinks, IDEAS_SCHEMA, parseIdeasParams, type IdeasParams } from '../systems/ideas/params';
 import { checkProductionLinks } from '../systems/production/links';
 import {
   BUILDINGS_SCHEMA,
@@ -59,6 +61,7 @@ export interface GameData {
   social: SocialParams;
   life: LifeParams;
   groups: GroupsParams;
+  ideas: IdeasParams;
   knowledge: KnowledgeCatalog;
   items: ItemCatalog;
   recipes: RecipeBook;
@@ -92,7 +95,8 @@ export const DATA_FILES: readonly DataFileInfo[] = [
   { file: 'social.json', key: 'social', system: 'Humains', schema: SOCIAL_SCHEMA },
   { file: 'life.json', key: 'life', system: 'Humains', schema: LIFE_SCHEMA },
   { file: 'groups.json', key: 'groups', system: 'Groupes', schema: GROUPS_SCHEMA },
-  { file: 'knowledge.json', key: 'knowledge', system: 'Production', schema: KNOWLEDGE_SCHEMA },
+  { file: 'ideas.json', key: 'ideas', system: 'Idées', schema: IDEAS_SCHEMA },
+  { file: 'knowledge.json', key: 'knowledge', system: 'Idées', schema: KNOWLEDGE_SCHEMA },
   { file: 'items.json', key: 'items', system: 'Production', schema: ITEMS_SCHEMA },
   { file: 'recipes.json', key: 'recipes', system: 'Production', schema: RECIPES_SCHEMA },
   { file: 'buildings.json', key: 'buildings', system: 'Production', schema: BUILDINGS_SCHEMA },
@@ -117,6 +121,7 @@ export function defaultRawData(): RawGameData {
     social: socialJson,
     life: lifeJson,
     groups: groupsJson,
+    ideas: ideasJson,
     knowledge: knowledgeJson,
     items: itemsJson,
     recipes: recipesJson,
@@ -146,7 +151,8 @@ export function parseGameData(raw: RawGameData): GameData {
     groups,
     humans.traits.map((trait) => trait.id),
   );
-  const knowledge = parseKnowledge(raw.knowledge);
+  const knowledge = parseKnowledge(raw.knowledge, humans.skills.map((skill) => skill.id));
+  const ideas = parseIdeasParams(raw.ideas);
   const items = parseItems(raw.items);
   const recipes = parseRecipes(raw.recipes);
   const buildings = parseBuildings(raw.buildings);
@@ -163,6 +169,12 @@ export function parseGameData(raw: RawGameData): GameData {
     biomeIds: biomes.biomes.map((biome) => biome.id),
     seasonCount: time.seasons.length,
   });
+  checkIdeaLinks(
+    ideas,
+    humans.actions.map((action) => action.id),
+    items.items.map((item) => item.id),
+    humans.traits.map((trait) => trait.id),
+  );
   checkHumanLinks(
     humans,
     knowledge.knowledge.map((item) => item.id),
@@ -182,6 +194,7 @@ export function parseGameData(raw: RawGameData): GameData {
     social,
     life,
     groups,
+    ideas,
     knowledge,
     items,
     recipes,

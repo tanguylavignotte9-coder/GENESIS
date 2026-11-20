@@ -47,6 +47,8 @@ export class SocialLife {
   private seenAt: Int32Array;
   day = 0;
   tick = 0;
+  /** Today's conversations, as pairs (speaker, listener): what the ideas system reads (teaching, influence). */
+  readonly talkLog: number[] = [];
 
   constructor(
     private readonly sys: IndividualsSystem,
@@ -224,6 +226,8 @@ export class SocialLife {
   /** Every day: relations wear, memories fade, old news is forgotten, ambitions are reconsidered. */
   newDay(day: number): void {
     this.day = day;
+    // Yesterday's conversations were read by the ideas system at the turn of the day.
+    this.talkLog.length = 0;
     wearRelations(this);
     fadeMemories(this);
     forgetNews(this);

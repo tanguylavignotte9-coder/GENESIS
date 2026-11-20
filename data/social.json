@@ -531,6 +531,22 @@
     "rallied": {
       "text": "{nom} a suivi {autre} pour prendre le pouvoir",
       "dated": true
+    },
+    "blamed": {
+      "text": "{nom} reproche à {autre} des morts survenues sous son autorité",
+      "dated": true
+    },
+    "taught": {
+      "text": "{autre} a appris un savoir à {nom}",
+      "dated": true
+    },
+    "traded": {
+      "text": "échanges entre {nom} et {autre}",
+      "dated": false
+    },
+    "faith": {
+      "text": "une même foi",
+      "dated": false
     }
   },
   "kinNames": {

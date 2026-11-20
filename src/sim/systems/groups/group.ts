@@ -19,8 +19,9 @@ export class Group {
   property = 0;
   inheritance = 0;
   strategy = 0;
-  /** Ideas the group adopted (step 10): culture, religion, currency (-1 = none). */
+  /** Ideas the group adopted (step 10): culture, language, religion, currency (idea ids, -1 = none). */
   culture = -1;
+  language = -1;
   religion = -1;
   currency = -1;
   /** Tribes only: their camp (index of the camp of the individuals and production systems). */

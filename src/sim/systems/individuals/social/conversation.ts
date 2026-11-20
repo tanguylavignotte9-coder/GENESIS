@@ -22,6 +22,7 @@ export function talk(life: SocialLife, speaker: number, listener: number, kind: 
   const params = life.params.conversation;
   const def = params.kinds[kind];
   const s = life.state;
+  if (kind !== 'argue') life.talkLog.push(speaker, listener);
   for (const p of [speaker, listener]) {
     s.loneliness[p] = Math.max(0, s.loneliness[p]! - def.lonelinessRelief);
     if (def.joy > 0) stir(life, p, 'joy', def.joy);

@@ -12,7 +12,6 @@ import { bequeath, findBelongings } from './heritage';
 import { lookForGuardians, onGuardianDeath } from './orphans';
 import type { LifeParams } from './params';
 import { LifeState, NEVER_DAY } from './state';
-import type { NameGenerator } from '../names';
 export { LIFE_INPUTS } from './inputs';
 
 export const FAMINE = 'life.famine';
@@ -64,7 +63,6 @@ export class LifeCycle {
     readonly time: TimeParams,
     readonly rng: Rng,
     readonly journal: Journal,
-    readonly names: NameGenerator,
   ) {
     this.people = sys.people;
     this.yearDays = daysPerYear(time);
@@ -157,7 +155,7 @@ export class LifeCycle {
 
   place(x: number, y: number): { x: number; y: number; label: string } {
     const world = this.sys.world;
-    return { x, y, label: describeLocation(world.landmasses, world.landmassNames, x, y, this.sys.size) };
+    return { x, y, label: describeLocation(world, x, y) };
   }
 
   /** Journal event of the regional hardship (drought, harsh winter) at a tile, if any. */

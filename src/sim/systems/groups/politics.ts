@@ -8,6 +8,7 @@ import { approvalTarget } from './opinion';
 import { bestRegime, candidateFeatures, groupFactors, powerScore, regimeFit } from './power';
 import { DUTIES, LEVEL_COUNT } from './params';
 import { factorReason, genderVars, GROUP_EVENTS, nameOf, publishGroupEvent } from './texts';
+import { successionCrisis } from './succession';
 import { scission, tribeRelations } from './tribes';
 
 /**
@@ -32,7 +33,10 @@ function groupPolitics(sys: GroupsSystem, group: Group): void {
   const { params } = sys;
   const yearDays = sys.humans.life.yearDays;
   const regime = params.regimes[group.regime]!;
-  if (group.leaders.length === 0) designateLeaders(sys, group, [group.leaderEvent], true);
+  if (group.leaders.length === 0) {
+    // The leader is dead: a disputed succession when another claimant has a real following.
+    if (!successionCrisis(sys, group)) designateLeaders(sys, group, [group.leaderEvent], true);
+  }
   else if (!regime.hereditary && sys.day - group.leadersSince >= params.politics.reviewYears * yearDays) designateLeaders(sys, group, [group.leaderEvent], true);
   if (!group.alive) return;
   const factors = groupFactors(sys, group);
@@ -128,9 +132,12 @@ function handOutDuties(sys: GroupsSystem, tribe: Group): void {
   const urgency = [needs.food, needs.wood, needs.build, needs.craft];
   const total = urgency.reduce((sum, value) => sum + value, 0);
   const skillIds = sys.humans.params.skills.map((skill) => skill.id);
+  // A selfish leader spares his own family the chores.
+  const leader = tribe.leaders[0]!;
+  const favoured = sys.humans.social.trait(leader, 'generosity') < params.duties.favoritism ? adults.filter((p) => p === leader || sys.humans.social.kinOf(leader, p) !== 0) : [];
   if (total > 0) {
-    const quotas = urgency.map((value) => Math.round((value / total) * adults.length));
-    const free = new Set(adults);
+    const quotas = urgency.map((value) => Math.round((value / total) * (adults.length - favoured.length)));
+    const free = new Set(adults.filter((p) => !favoured.includes(p)));
     DUTIES.forEach((duty, d) => {
       const skills = DUTY_SKILLS[duty].map((id) => skillIds.indexOf(id)).filter((k) => k >= 0);
       const level = (person: number): number => skills.reduce((best, k) => Math.max(best, people.practice[person * people.skillCount + k]! >= params.duties.minSkillHours ? people.skill(person, k) : 0), 0);
@@ -140,6 +147,12 @@ function handOutDuties(sys: GroupsSystem, tribe: Group): void {
         free.delete(person);
       }
     });
+  }
+  if (favoured.length > 1) {
+    // Those who toil while the leader's family is spared resent it.
+    for (const person of adults) {
+      if (sys.duty[person]! >= 0 && !favoured.includes(person)) sys.grievance[person] = Math.min(100, sys.grievance[person]! + params.duties.unfairGrievance);
+    }
   }
   const o = params.obedience;
   for (const person of adults) {
@@ -160,7 +173,10 @@ function challenge(sys: GroupsSystem, group: Group): void {
   const { params, rng } = sys;
   const p = params.politics;
   if (group.leaders.length === 0) return;
-  if (group.discontent - group.legitimacy < p.gap && group.legitimacy >= p.minLegitimacy) return;
+  if (group.discontent - group.legitimacy < p.gap && group.legitimacy >= p.minLegitimacy) {
+    rivalChallenge(sys, group);
+    return;
+  }
   const regime = params.regimes[group.regime]!;
   let challenger = -1;
   let best = -Infinity;
@@ -202,7 +218,33 @@ function loyaltySplits(sys: GroupsSystem, tribe: Group): void {
   }
 }
 
-function contest(sys: GroupsSystem, group: Group, challenger: number, reason: string): void {
+/**
+ * Without any crisis, an ambitious member who feels much more able than the chief (an ageing or
+ * weakened chief, a rising hunter…) may defy them: the tribe follows whom it prefers.
+ */
+function rivalChallenge(sys: GroupsSystem, group: Group): void {
+  const { params, rng } = sys;
+  const p = params.politics;
+  const regime = params.regimes[group.regime]!;
+  const chief = group.leaders[0]!;
+  const chiefScore = powerScore(regime, candidateFeatures(sys, group, chief));
+  let rival = -1;
+  let best = chiefScore + p.rivalMargin;
+  for (const person of sys.adults(group)) {
+    if (sys.isLeader(person, group)) continue;
+    const ambition = sys.humans.social.trait(person, 'ambition');
+    if (ambition < p.ambitionTrait) continue;
+    const score = powerScore(regime, candidateFeatures(sys, group, person));
+    if (score > best) {
+      best = score;
+      rival = person;
+    }
+  }
+  if (rival < 0 || rng.nextFloat() >= p.rivalChance * sys.humans.social.trait(rival, 'ambition')) return;
+  contest(sys, group, rival, params.causeTexts.rival.replace('{nom}', nameOf(sys, rival)).replace('{chef}', nameOf(sys, chief)));
+}
+
+export function contest(sys: GroupsSystem, group: Group, challenger: number, reason: string): void {
   const { params } = sys;
   const adults = sys.adults(group).filter((person) => person !== challenger && !sys.isLeader(person, group));
   const supporters = adults.filter((person) => approvalTarget(sys, group, person, [challenger]) > sys.approval[person * LEVEL_COUNT + group.level]!);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { labelLandmasses } from '../../../src/sim/systems/world/landmasses';
-import { describeLocation, directionOf, nameLandmasses, ofPlace } from '../../../src/sim/systems/world/places';
+import { describeGeography, directionOf, nameLandmasses, ofPlace } from '../../../src/sim/systems/world/places';
 
 describe('place names', () => {
   it('finds compass directions (y grows toward the south)', () => {
@@ -32,10 +32,10 @@ describe('place names', () => {
     expect(names[0]).toBe('le grand continent');
     expect(names[1]).toBe("le continent de l'est");
     expect(names[2]).toBe('une île du nord-est');
-    expect(describeLocation(map, names, 10, 35, size)).toBe('le sud du grand continent');
-    expect(describeLocation(map, names, 10, 20, size)).toBe('le centre du grand continent');
-    expect(describeLocation(map, names, 35, 20, size)).toBe("l'est du continent de l'est");
-    expect(describeLocation(map, names, 38, 2, size)).toBe('une île du nord-est');
-    expect(describeLocation(map, names, 21, 20, size)).toBe('la haute mer');
+    expect(describeGeography(map, names, 10, 35, size)).toBe('le sud du grand continent');
+    expect(describeGeography(map, names, 10, 20, size)).toBe('le centre du grand continent');
+    expect(describeGeography(map, names, 35, 20, size)).toBe("l'est du continent de l'est");
+    expect(describeGeography(map, names, 38, 2, size)).toBe('une île du nord-est');
+    expect(describeGeography(map, names, 21, 20, size)).toBe('la haute mer');
   });
 });

@@ -2,6 +2,7 @@ import { FaunaSystem } from '../systems/fauna/fauna-system';
 import { FloraSystem } from '../systems/flora/flora-system';
 import { IndividualsSystem } from '../systems/individuals/individuals-system';
 import { GroupsSystem } from '../systems/groups/groups-system';
+import { IdeasSystem } from '../systems/ideas/ideas-system';
 import { ProductionSystem, type BodyFacts } from '../systems/production/production-system';
 import { WeatherState } from '../systems/world/weather';
 import { startAnomalyYear } from '../systems/world/anomalies';
@@ -50,6 +51,8 @@ export class Simulation {
   readonly production: ProductionSystem;
   readonly humans: IndividualsSystem;
   readonly groups: GroupsSystem;
+  /** Knowledge, cultures, languages, religions and goods of exchange (step 10). */
+  readonly ideas: IdeasSystem;
   /** Ticks between two steps of the animals, and of the humans. */
   readonly ticksPerStep: number;
   readonly ticksPerHumanStep: number;
@@ -86,6 +89,7 @@ export class Simulation {
       this.journal,
     );
     this.production.ticksPerHour = data.time.ticksPerDay / HOURS_PER_DAY;
+    this.ideas = new IdeasSystem(data.ideas, data.knowledge, this.rng, this.journal, this.world.toponyms, daysPerYear(data.time));
     this.humans = new IndividualsSystem(
       this.world,
       this.climate,
@@ -102,8 +106,12 @@ export class Simulation {
       this.journal,
       this.clock.tick,
       this.interactions,
+      this.ideas,
     );
-    this.groups = new GroupsSystem(this.humans, data.groups, this.rng, this.journal, this.date.absoluteDay, this.clock.tick);
+    this.ideas.attach(this.humans);
+    this.production.attachFaith(this.ideas);
+    this.groups = new GroupsSystem(this.humans, data.groups, this.rng, this.journal, this.date.absoluteDay, this.clock.tick, this.ideas);
+    this.ideas.attachGroups(this.groups);
   }
 
   /**
@@ -120,6 +128,7 @@ export class Simulation {
     this.humans.social.refreshParams(this.data.social);
     this.humans.life.refreshParams(this.data.life);
     this.groups.refreshParams(this.data.groups);
+    this.ideas.refreshParams(this.data.ideas);
   }
 
   /** Hour of the day, 0..24 (fractional). */
@@ -153,6 +162,7 @@ export class Simulation {
       if (now % this.ticksPerHumanStep === 0) {
         this.production.runStep(1 / this.data.humans.stepsPerHour, now);
         this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
+        this.ideas.runStep(this.hour);
       }
     }
   }
@@ -195,5 +205,7 @@ export class Simulation {
     if (this.production) this.production.dailyUpdate();
     // The groups decide after the plants and animals lived their day (absent during the warm-up).
     if (this.groups) this.groups.dailyUpdate(date.absoluteDay, tick);
+    // The ideas live their day after the groups (they read who belongs where).
+    if (this.ideas && this.groups) this.ideas.dailyUpdate(date.absoluteDay, tick);
   }
 }

@@ -11,6 +11,8 @@ export type NeedId = (typeof NEEDS)[number];
 export const DeathCause = { None: 0, Hunger: 1, Thirst: 2, Cold: 3, Predator: 4, OldAge: 5, Disease: 6, Childbirth: 7 } as const;
 /** Number of death causes (None included): texts indexed by cause have this length. */
 export const DEATH_CAUSE_COUNT = 8;
+/** Kinds of harm counted per person (hunger, thirst, cold, disease), see `People.harm`. */
+export const HARM_KINDS = 4;
 /** Room made at least when the arrays grow (technical). */
 const MIN_GROWTH = 16;
 
@@ -28,8 +30,6 @@ export class People {
   /** traitCount values per person, 0..1. */
   readonly traits: Float32Array;
   readonly traitCount: number;
-  /** Bit k set = knows knowledge k. */
-  readonly knowledge: Uint32Array;
   /** skillCount values per person: level 0..1, and hours of practice (the most practised is the trade). */
   readonly skills: Float32Array;
   readonly practice: Float32Array;
@@ -82,6 +82,11 @@ export class People {
   readonly threat: Int32Array;
   readonly isolated: Uint8Array;
   readonly deathCause: Uint8Array;
+  /**
+   * Health lost to each need since the body was last whole (HARM_KINDS per person: hunger, thirst,
+   * cold, disease): the cause of a death is what wore the body down most, not the last blow.
+   */
+  readonly harm: Float32Array;
   /** Remembered places: tile and day last seen (waterSlots and foodSlots per person). */
   readonly waterMemory: Int32Array;
   readonly waterMemoryDay: Int32Array;
@@ -108,7 +113,6 @@ export class People {
     this.spouse = new Int32Array(count).fill(-1);
     this.camp = new Int32Array(count);
     this.traits = new Float32Array(count * traitCount);
-    this.knowledge = new Uint32Array(count);
     this.skills = new Float32Array(count * skillCount);
     this.practice = new Float32Array(count * skillCount);
     this.forageDistance = new Float32Array(count);
@@ -143,6 +147,7 @@ export class People {
     this.threat = new Int32Array(count).fill(-1);
     this.isolated = new Uint8Array(count);
     this.deathCause = new Uint8Array(count);
+    this.harm = new Float32Array(count * HARM_KINDS);
     this.waterMemory = new Int32Array(count * waterSlots).fill(-1);
     this.waterMemoryDay = new Int32Array(count * waterSlots);
     this.foodMemory = new Int32Array(count * foodSlots).fill(-1);

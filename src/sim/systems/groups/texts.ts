@@ -21,6 +21,8 @@ export const GROUP_EVENTS = {
   contact: 'groups.contact',
   move: 'groups.move',
   dissolved: 'groups.dissolved',
+  succession: 'groups.succession',
+  religion: 'groups.religion',
 } as const;
 
 /** A group's name from its template: "la tribu de Ka", "la tribu d’Irnue" (elision before a vowel). */
@@ -51,7 +53,7 @@ export function placeOf(sys: GroupsSystem, group: Group): EventPlace | null {
   if (!tribe || tribe.camp < 0) return null;
   const camp = sys.humans.camps[tribe.camp];
   if (!camp) return null;
-  return { x: camp.centerX, y: camp.centerY, label: describeLocation(sys.humans.world.landmasses, sys.humans.world.landmassNames, camp.centerX, camp.centerY, sys.humans.size) };
+  return { x: camp.centerX, y: camp.centerY, label: describeLocation(sys.humans.world, camp.centerX, camp.centerY) };
 }
 
 /** "le groupe est petit et les anciens sont nombreux": the two situations that weigh most. */

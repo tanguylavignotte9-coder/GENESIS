@@ -32,7 +32,7 @@ export function listNames(names: readonly string[]): string {
 function placeOf(sys: ProductionSystem, tile: number): { x: number; y: number; label: string } {
   const x = tile % sys.size;
   const y = Math.floor(tile / sys.size);
-  return { x, y, label: describeLocation(sys.world.landmasses, sys.world.landmassNames, x, y, sys.size) };
+  return { x, y, label: describeLocation(sys.world, x, y) };
 }
 
 /** Someone opens a site: who, what, and why (the collective need it answers). */

@@ -1,27 +1,403 @@
 {
   "knowledge": [
-    { "id": "gathering", "name": "Cueillette", "era": 0, "requires": [], "startsKnown": true },
-    { "id": "fire", "name": "Maîtrise du feu", "era": 0, "requires": [], "startsKnown": true },
-    { "id": "huts", "name": "Huttes", "era": 0, "requires": [], "startsKnown": true },
-    { "id": "stone_knapping", "name": "Taille de la pierre", "era": 0, "requires": [], "startsKnown": false },
-    { "id": "hunting", "name": "Chasse", "era": 0, "requires": ["stone_knapping"], "startsKnown": false },
-    { "id": "cooking", "name": "Cuisson", "era": 0, "requires": ["fire"], "startsKnown": false },
-    { "id": "hide_working", "name": "Travail des peaux", "era": 0, "requires": ["hunting"], "startsKnown": false },
-    { "id": "basketry", "name": "Vannerie", "era": 0, "requires": ["gathering"], "startsKnown": false },
-    { "id": "fishing", "name": "Pêche", "era": 0, "requires": ["stone_knapping", "basketry"], "startsKnown": false },
-    { "id": "preservation", "name": "Conservation", "era": 0, "requires": ["cooking"], "startsKnown": false },
-    { "id": "archery", "name": "Arc", "era": 0, "requires": ["hunting"], "startsKnown": false },
-    { "id": "canoe", "name": "Pirogue", "era": 0, "requires": ["stone_knapping", "fire"], "startsKnown": false },
-    { "id": "polished_stone", "name": "Pierre polie", "era": 1, "requires": ["stone_knapping"], "startsKnown": false },
-    { "id": "agriculture", "name": "Agriculture", "era": 1, "requires": ["gathering", "polished_stone"], "startsKnown": false },
-    { "id": "animal_husbandry", "name": "Élevage", "era": 1, "requires": ["hunting"], "startsKnown": false },
-    { "id": "pottery", "name": "Poterie", "era": 1, "requires": ["fire"], "startsKnown": false },
-    { "id": "milling", "name": "Mouture", "era": 1, "requires": ["agriculture"], "startsKnown": false },
-    { "id": "fermentation", "name": "Fermentation", "era": 1, "requires": ["agriculture", "pottery"], "startsKnown": false },
-    { "id": "weaving", "name": "Tissage", "era": 1, "requires": ["basketry"], "startsKnown": false },
-    { "id": "mud_brick", "name": "Terre crue", "era": 1, "requires": ["huts"], "startsKnown": false },
-    { "id": "stone_building", "name": "Construction en pierre", "era": 1, "requires": ["huts", "polished_stone"], "startsKnown": false },
-    { "id": "irrigation", "name": "Irrigation", "era": 1, "requires": ["agriculture"], "startsKnown": false },
-    { "id": "counting", "name": "Comptage", "era": 1, "requires": ["agriculture"], "startsKnown": false }
+    {
+      "id": "gathering",
+      "name": "Cueillette",
+      "the": "la cueillette",
+      "era": 0,
+      "requires": [],
+      "startsKnown": true,
+      "discovery": {
+        "need": "hunger",
+        "environment": [],
+        "skill": "gathering",
+        "chance": 1
+      }
+    },
+    {
+      "id": "fire",
+      "name": "Maîtrise du feu",
+      "the": "la maîtrise du feu",
+      "era": 0,
+      "requires": [],
+      "startsKnown": true,
+      "discovery": {
+        "need": "cold",
+        "environment": [],
+        "skill": "survival",
+        "chance": 1
+      }
+    },
+    {
+      "id": "huts",
+      "name": "Huttes",
+      "the": "l’art des huttes",
+      "era": 0,
+      "requires": [],
+      "startsKnown": true,
+      "discovery": {
+        "need": "cold",
+        "environment": [],
+        "skill": "construction",
+        "chance": 1
+      }
+    },
+    {
+      "id": "stone_knapping",
+      "name": "Taille de la pierre",
+      "the": "la taille de la pierre",
+      "era": 0,
+      "requires": [],
+      "startsKnown": false,
+      "discovery": {
+        "need": "tools",
+        "environment": [
+          "flint"
+        ],
+        "skill": "crafting",
+        "chance": 1
+      }
+    },
+    {
+      "id": "hunting",
+      "name": "Chasse",
+      "the": "la chasse",
+      "era": 0,
+      "requires": [
+        "stone_knapping"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "meat",
+        "environment": [
+          "game"
+        ],
+        "skill": "survival",
+        "chance": 1
+      }
+    },
+    {
+      "id": "cooking",
+      "name": "Cuisson",
+      "the": "la cuisson",
+      "era": 0,
+      "requires": [
+        "fire"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "sickness",
+        "environment": [],
+        "skill": "survival",
+        "chance": 0.8
+      }
+    },
+    {
+      "id": "hide_working",
+      "name": "Travail des peaux",
+      "the": "le travail des peaux",
+      "era": 0,
+      "requires": [
+        "hunting"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "cold",
+        "environment": [
+          "hides"
+        ],
+        "skill": "butchery",
+        "chance": 1
+      }
+    },
+    {
+      "id": "basketry",
+      "name": "Vannerie",
+      "the": "la vannerie",
+      "era": 0,
+      "requires": [
+        "gathering"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "carry",
+        "environment": [
+          "fibers"
+        ],
+        "skill": "gathering",
+        "chance": 0.8
+      }
+    },
+    {
+      "id": "fishing",
+      "name": "Pêche",
+      "the": "la pêche",
+      "era": 0,
+      "requires": [
+        "stone_knapping",
+        "basketry"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "hunger",
+        "environment": [
+          "water"
+        ],
+        "skill": "survival",
+        "chance": 0.8
+      }
+    },
+    {
+      "id": "preservation",
+      "name": "Conservation",
+      "the": "la conservation des aliments",
+      "era": 0,
+      "requires": [
+        "cooking"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "winter",
+        "environment": [],
+        "skill": "cooking",
+        "chance": 0.8
+      }
+    },
+    {
+      "id": "archery",
+      "name": "Arc",
+      "the": "l’arc",
+      "era": 0,
+      "requires": [
+        "hunting"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "game_scarce",
+        "environment": [
+          "game",
+          "sinew"
+        ],
+        "skill": "hunting",
+        "chance": 0.6
+      }
+    },
+    {
+      "id": "canoe",
+      "name": "Pirogue",
+      "the": "la pirogue",
+      "era": 0,
+      "requires": [
+        "stone_knapping",
+        "fire"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "crossing",
+        "environment": [
+          "big_trees",
+          "water"
+        ],
+        "skill": "construction",
+        "chance": 0.4
+      }
+    },
+    {
+      "id": "polished_stone",
+      "name": "Pierre polie",
+      "the": "la pierre polie",
+      "era": 1,
+      "requires": [
+        "stone_knapping"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "tools",
+        "environment": [
+          "stone"
+        ],
+        "skill": "crafting",
+        "chance": 0.5
+      }
+    },
+    {
+      "id": "agriculture",
+      "name": "Agriculture",
+      "the": "l’agriculture",
+      "era": 1,
+      "requires": [
+        "gathering",
+        "polished_stone"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "famine",
+        "environment": [
+          "wild_cereals"
+        ],
+        "skill": "gathering",
+        "chance": 0.25
+      }
+    },
+    {
+      "id": "animal_husbandry",
+      "name": "Élevage",
+      "the": "l’élevage",
+      "era": 1,
+      "requires": [
+        "hunting"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "game_scarce",
+        "environment": [
+          "domesticable"
+        ],
+        "skill": "hunting",
+        "chance": 0.2
+      }
+    },
+    {
+      "id": "pottery",
+      "name": "Poterie",
+      "the": "la poterie",
+      "era": 1,
+      "requires": [
+        "fire"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "winter",
+        "environment": [
+          "clay"
+        ],
+        "skill": "crafting",
+        "chance": 0.4
+      }
+    },
+    {
+      "id": "milling",
+      "name": "Mouture",
+      "the": "la mouture",
+      "era": 1,
+      "requires": [
+        "agriculture"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "hunger",
+        "environment": [
+          "stone"
+        ],
+        "skill": "cooking",
+        "chance": 0.8
+      }
+    },
+    {
+      "id": "fermentation",
+      "name": "Fermentation",
+      "the": "la fermentation",
+      "era": 1,
+      "requires": [
+        "agriculture",
+        "pottery"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "comfort",
+        "environment": [],
+        "skill": "cooking",
+        "chance": 0.5
+      }
+    },
+    {
+      "id": "weaving",
+      "name": "Tissage",
+      "the": "le tissage",
+      "era": 1,
+      "requires": [
+        "basketry"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "cold",
+        "environment": [
+          "flax"
+        ],
+        "skill": "crafting",
+        "chance": 0.4
+      }
+    },
+    {
+      "id": "mud_brick",
+      "name": "Terre crue",
+      "the": "la terre crue",
+      "era": 1,
+      "requires": [
+        "huts"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "shelter",
+        "environment": [
+          "clay"
+        ],
+        "skill": "construction",
+        "chance": 0.4
+      }
+    },
+    {
+      "id": "stone_building",
+      "name": "Construction en pierre",
+      "the": "la construction en pierre",
+      "era": 1,
+      "requires": [
+        "huts",
+        "polished_stone"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "prestige",
+        "environment": [
+          "stone"
+        ],
+        "skill": "construction",
+        "chance": 0.4
+      }
+    },
+    {
+      "id": "irrigation",
+      "name": "Irrigation",
+      "the": "l’irrigation",
+      "era": 1,
+      "requires": [
+        "agriculture"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "drought",
+        "environment": [
+          "river"
+        ],
+        "skill": "farming",
+        "chance": 0.6
+      }
+    },
+    {
+      "id": "counting",
+      "name": "Comptage",
+      "the": "le comptage",
+      "era": 1,
+      "requires": [
+        "agriculture"
+      ],
+      "startsKnown": false,
+      "discovery": {
+        "need": "accounting",
+        "environment": [],
+        "skill": "farming",
+        "chance": 0.5
+      }
+    }
   ]
 }

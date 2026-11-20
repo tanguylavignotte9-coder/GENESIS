@@ -85,7 +85,7 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
     groupe: tribe.name,
     distance: String(Math.round(Math.sqrt(dx * dx + dy * dy))),
     direction: direction(dx, dy),
-    lieu: describeLocation(humans.world.landmasses, humans.world.landmassNames, x, y, humans.size),
+    lieu: describeLocation(humans.world, x, y),
     raison: reason,
   });
   humans.moveCampTo(tribe.camp, site, sys.tick, capitalize(text), causes, tribe.leaders);

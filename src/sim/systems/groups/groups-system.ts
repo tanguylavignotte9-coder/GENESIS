@@ -13,6 +13,8 @@ import { meetOtherTribes } from './tribes';
 import { considerMove } from './moves';
 import { stillWantsPower } from './ambitions';
 import { groupName } from './texts';
+import type { IdeasSystem } from '../ideas/ideas-system';
+import { adoptIdeas } from './adoption';
 
 /**
  * Groups, power and rules (step 9). Every person belongs to one tribe (level 0), at most one clan
@@ -47,6 +49,8 @@ export class GroupsSystem implements GroupView {
     readonly journal: Journal,
     day: number,
     tick: number,
+    /** The ideas system (step 10): names of peoples, cultures, faiths and languages of the members. */
+    readonly ideas: IdeasSystem | null = null,
   ) {
     this.day = day;
     this.tick = tick;
@@ -88,6 +92,7 @@ export class GroupsSystem implements GroupView {
     meetOtherTribes(this);
     for (const tribe of this.tribes()) considerMove(this, tribe);
     if (day % this.params.clans.everyDays === 0) formClans(this);
+    adoptIdeas(this);
     runPolitics(this);
   }
 
@@ -152,7 +157,8 @@ export class GroupsSystem implements GroupView {
 
   /** A new group of `level` inside `parent`, named after its founder. */
   addGroup(level: number, parent: number, founder: number, regime: number, foundedEvent: number): Group {
-    const name = groupName(this.params.nameTemplates[level]!, this.people.names[founder] ?? '?');
+    // A tribe takes a people's name in its founder's language; clans and families their founder's name.
+    const name = groupName(this.params.nameTemplates[level]!, level === 0 && this.ideas ? this.ideas.tribeNameOf(founder) : (this.people.names[founder] ?? '?'));
     const group = new Group(this.groups.length, level, parent, name, founder, this.day, foundedEvent, regime);
     group.settledDay = this.day;
     this.groups.push(group);

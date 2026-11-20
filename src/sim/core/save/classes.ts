@@ -13,11 +13,13 @@ import { FloraState } from '../../systems/flora/flora-state';
 import { FloraSystem } from '../../systems/flora/flora-system';
 import { Group } from '../../systems/groups/group';
 import { GroupsSystem } from '../../systems/groups/groups-system';
+import { Idea } from '../../systems/ideas/idea';
+import { IdeasSystem } from '../../systems/ideas/ideas-system';
+import { PersonIdeas } from '../../systems/ideas/holdings';
 import { Camp } from '../../systems/individuals/camp';
 import { IndividualsSystem } from '../../systems/individuals/individuals-system';
 import { LifeCycle } from '../../systems/individuals/life/life-cycle';
 import { LifeState } from '../../systems/individuals/life/state';
-import { NameGenerator } from '../../systems/individuals/names';
 import { Pathfinder } from '../../systems/individuals/pathfinding';
 import { People } from '../../systems/individuals/people';
 import { NewsBoard } from '../../systems/individuals/social/news';
@@ -37,6 +39,7 @@ import { Journal } from '../journal';
 import { Rng } from '../rng';
 import { Simulation } from '../simulation';
 import { SpatialGrid } from '../spatial-grid';
+import { Toponyms } from '../toponyms';
 import type { ClassRegistry } from './graph';
 
 export const SAVED_CLASSES: ClassRegistry = {
@@ -66,7 +69,6 @@ export const SAVED_CLASSES: ClassRegistry = {
   Camp,
   Terrain,
   Pathfinder,
-  NameGenerator,
   LifeCycle,
   LifeState,
   SocialLife,
@@ -74,4 +76,8 @@ export const SAVED_CLASSES: ClassRegistry = {
   NewsBoard,
   GroupsSystem,
   Group,
+  IdeasSystem,
+  Idea,
+  PersonIdeas,
+  Toponyms,
 };

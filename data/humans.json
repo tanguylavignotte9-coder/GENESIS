@@ -18,11 +18,6 @@
     "foodRadius": 10,
     "minFoodPlants": 40
   },
-  "names": {
-    "syllables": ["ka", "lo", "mi", "ra", "tu", "na", "e", "o", "an", "ir", "sa", "ko", "li", "da", "me", "nu", "ta", "re", "ul", "va", "ya", "bo", "ki", "su"],
-    "minSyllables": 2,
-    "maxSyllables": 3
-  },
   "traits": [
     {
       "id": "prudence",
@@ -51,6 +46,10 @@
     {
       "id": "ambition",
       "name": "Ambition"
+    },
+    {
+      "id": "spirituality",
+      "name": "Spiritualité"
     }
   ],
   "skills": [
@@ -678,7 +677,9 @@
       "reason": "sick",
       "considerations": [
         { "input": "sick", "curve": "linear", "a": 1, "b": 0 },
-        { "input": "danger", "curve": "linear", "a": -1, "b": 1 }
+        { "input": "danger", "curve": "linear", "a": -1, "b": 1 },
+        { "input": "thirst", "curve": "linear", "a": -0.8, "b": 1 },
+        { "input": "hunger", "curve": "linear", "a": -0.5, "b": 1 }
       ],
       "traits": { "diligence": -0.3 }
     },

@@ -18,6 +18,7 @@ import { compileActions, rankActions, scoreAction, TOP_ACTIONS, type CompiledAct
 import { Camp } from './camp';
 import { moveCamp } from './camp-move';
 import type { GroupView } from './group-view';
+import type { IdeaView } from './idea-view';
 import { createTribes } from './tribe';
 import { DeathCause, People } from './people';
 import { INPUTS, type Behavior, type HumanParams } from './params';
@@ -30,7 +31,6 @@ import { LifeCycle } from './life/life-cycle';
 import type { LifeParams } from './life/params';
 import { diseaseDeathInfo, weakenedInfo } from './life/disease';
 import { inheritTraits } from './life/birth';
-import type { NameGenerator } from './names';
 import { SOCIAL_INPUTS } from './social/inputs';
 import type { TimeParams } from '../../core/time-params';
 
@@ -86,7 +86,6 @@ export class IndividualsSystem {
   readonly social: SocialLife;
   /** Birth, childhood, ageing, diseases, orphans and inheritance (step 8). */
   readonly life: LifeCycle;
-  private readonly names: NameGenerator;
   /** People of the starting tribes (the others were born in the world). */
   readonly startingCount: number;
   private readonly pathfinder: Pathfinder;
@@ -129,6 +128,8 @@ export class IndividualsSystem {
     readonly journal: Journal,
     tick: number,
     readonly interactions: Interactions,
+    /** The ideas system (step 10): knowledge, culture, names. */
+    readonly ideas: IdeaView,
   ) {
     this.size = world.size;
     this.marshBiome = world.biomes.biomes.findIndex((biome) => biome.id === MARSH_BIOME);
@@ -142,7 +143,6 @@ export class IndividualsSystem {
     const created = createTribes(this, rng);
     this.people = created.people;
     this.startingCount = created.people.count;
-    this.names = created.names;
     this.camps.push(...created.camps);
     for (const camp of this.camps) camp.computeWayHome(this.terrain);
     production.attachPeople(this.workerView());
@@ -150,7 +150,7 @@ export class IndividualsSystem {
     for (let p = 0; p < this.people.count; p++) this.people.nextThink[p] = p % this.thinkSteps;
     this.grid = new SpatialGrid(world.size, GRID_CELL_TILES);
     this.rebuildGrid();
-    this.life = new LifeCycle(this, lifeParams, time, rng, journal, this.names);
+    this.life = new LifeCycle(this, lifeParams, time, rng, journal);
     this.social = new SocialLife(this, socialParams, time, rng, journal);
     this.bindCallbacks();
     this.publishSettlements(journal, tick);
@@ -237,7 +237,7 @@ export class IndividualsSystem {
       y: (p) => people.y[p]!,
       px: (p) => people.px[p]!,
       py: (p) => people.py[p]!,
-      knowledge: (p) => people.knowledge[p]!,
+      knowledge: (p) => this.ideas.knowledge(p),
       skill: (p, s) => people.skill(p, s),
       ageYears: (p) => people.ageYears[p]!,
       vigor: (p) => {
@@ -341,11 +341,12 @@ export class IndividualsSystem {
     const wantedSkill = this.social.skillAmbition(person);
     for (let k = 0; k < this.actions.length; k++) {
       const action = this.actions[k]!;
-      if ((action.requiredBit !== 0 && (people.knowledge[person]! & action.requiredBit) === 0) || age < action.minAge) {
+      if ((action.requiredBit !== 0 && (this.ideas.knowledge(person) & action.requiredBit) === 0) || age < action.minAge) {
         this.scores[k] = 0;
         continue;
       }
-      let score = scoreAction(action, this.inputs, people.traits, traitOffset);
+      // Personality, then culture (bravery for the hunt, sharing for the gift…).
+      let score = scoreAction(action, this.inputs, people.traits, traitOffset) * this.ideas.actionFactor(person, k);
       if (wantedSkill >= 0 && action.skills.includes(wantedSkill)) score *= 1 + this.social.params.ambitions.skillBonus;
       score *= 1 + params.decision.randomness * (this.rng.nextFloat() * 2 - 1);
       if (k === current) {
@@ -474,7 +475,7 @@ export class IndividualsSystem {
     const tile = this.tileOf(person);
     const x = people.x[person]!;
     const y = people.y[person]!;
-    const place = describeLocation(this.world.landmasses, this.world.landmassNames, x, y, this.size);
+    const place = describeLocation(this.world, x, y);
     const template = this.params.deathTexts[DEATH_TEXT_KEYS[cause] ?? 'hunger'];
     const animal = info.attack?.attackerName ?? '';
     const causes = [...(info.causes ?? [])];
@@ -520,7 +521,7 @@ export class IndividualsSystem {
 
   /**
    * A baby is born to `mother` (and `father`): a new person at the end of the arrays, next to its
-   * mother, with traits from both parents, the knowledge of the camp, and a name of its own.
+   * mother, with traits from both parents and a name in its mother's language.
    */
   bear(mother: number, father: number, female: boolean): number {
     const { people } = this;
@@ -529,14 +530,13 @@ export class IndividualsSystem {
     this.life.state.ensure(people.capacity);
     this.production.addPerson();
     const camp = people.camp[mother]!;
-    people.names[child] = this.names.next();
+    people.names[child] = this.ideas.childName(mother, female);
     people.female[child] = female ? 1 : 0;
     people.ageYears[child] = 0;
     people.mother[child] = mother;
     people.father[child] = father;
     people.camp[child] = camp;
-    // What the tribe knows is known from childhood (teaching comes with the ideas, step 10).
-    people.knowledge[child] = people.knowledge[mother]! | (father >= 0 ? people.knowledge[father]! : 0);
+    // Knowledge is not inborn: it is taught and watched (ideas system).
     inheritTraits(this.life, child, mother, father);
     people.health[child] = this.life.params.birth.newbornHealth;
     this.setPosition(child, people.px[mother]!, people.py[mother]!);
@@ -554,7 +554,7 @@ export class IndividualsSystem {
     for (const camp of this.camps) {
       let members = 0;
       for (let p = 0; p < this.people.count; p++) if (this.people.camp[p] === camp.id) members++;
-      const place = describeLocation(this.world.landmasses, this.world.landmassNames, camp.centerX, camp.centerY, this.size);
+      const place = describeLocation(this.world, camp.centerX, camp.centerY);
       camp.settledDay = 0;
       journal.publish({
         tick,

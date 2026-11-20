@@ -74,6 +74,28 @@ export function reasonText(label: string, reason: string, value: number): string
   return words.percent ? `${label} — ${words.label} ${fr.format(value * PERCENT)} %` : `${label} — ${words.label}`;
 }
 
+/** Ideas: knowledge (taught by whom), culture and values, languages, faith, good of exchange. */
+function ideaNodes(details: PersonDetails): HTMLElement[] {
+  const ideas = details.ideas;
+  const nodes: HTMLElement[] = [el('div', 'sheet-section', 'Sait')];
+  if (!ideas) return nodes;
+  const known = el('ul', 'sheet-list');
+  for (const line of ideas.knowledge) known.append(el('li', '', `${line.name} (${line.origin})`));
+  nodes.push(known);
+  if (ideas.learning.length > 0) nodes.push(el('div', 'sheet-text muted', `Apprend : ${ideas.learning.map((line) => `${line.name} ${line.progress} %`).join(', ')}`));
+  nodes.push(el('div', 'sheet-section', `Culture : ${ideas.culture || 'aucune'}`));
+  for (const value of ideas.values) {
+    const row = bar(value.name, value.value, 'good');
+    row.title = value.meaning;
+    nodes.push(row);
+  }
+  nodes.push(el('div', 'sheet-section', 'Langues'), el('div', 'sheet-text', ideas.languages.map((line) => `${line.name} (${line.fluency} %)`).join(', ') || 'aucune'));
+  nodes.push(el('div', 'sheet-section', 'Croyances'));
+  nodes.push(ideas.religion ? bar(ideas.religion, ideas.piety, 'good') : el('div', 'sheet-text muted', 'Aucune religion'));
+  if (ideas.token) nodes.push(el('div', 'sheet-text muted', `Accepte en paiement : ${ideas.token.toLowerCase()} (confiance ${ideas.tokenTrust} %)`));
+  return nodes;
+}
+
 /** Character sheet: identity, family, traits, needs, inventory, current action and why. */
 export class PersonSheet {
   person = -1;
@@ -167,9 +189,8 @@ export class PersonSheet {
       for (const line of details.carried) list.append(el('li', '', itemText(line, tables)));
       nodes.push(list);
     }
+    nodes.push(...ideaNodes(details));
     nodes.push(
-      el('div', 'sheet-section', 'Sait'),
-      el('div', 'sheet-text', details.knowledge.map((k) => roster.knowledgeNames[k]).join(', ')),
       el('div', 'sheet-section', 'Se souvient'),
       el('div', 'sheet-text', `${details.rememberedWater} point(s) d’eau, ${details.rememberedFood} coin(s) de cueillette`),
       el('div', 'sheet-text muted', `Ressenti : ${fr.format(details.feltCelsius)} °C · ${roster.weatherNames[details.weather] ?? ''}`),

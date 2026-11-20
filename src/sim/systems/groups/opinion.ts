@@ -5,6 +5,7 @@ import type { GroupsSystem } from './groups-system';
 import { LEVEL_COUNT } from './params';
 import { bestRegime, feeling, groupFactors, regimeFit } from './power';
 import { hasPowerAmbition } from './ambitions';
+import { feel } from '../individuals/social/relations';
 
 const FULL = 100;
 const NEUTRAL = 50;
@@ -33,11 +34,35 @@ export function readJournal(sys: GroupsSystem): void {
     if (!tribe) continue;
     tribe.sufferings.push({ day: sys.day, cause, event: event.id });
     while (tribe.sufferings.length > 0 && sys.day - tribe.sufferings[0]!.day > yearDays) tribe.sufferings.shift();
+    const close = (person: number): boolean => sys.humans.social.kinOf(person, dead) !== 0 || feeling(sys, person, dead, 'affection') >= sys.humans.social.params.relations.friendAffection;
     for (const person of tribe.members) {
       if (person === dead || people.alive[person] === 0) continue;
-      if (sys.humans.social.kinOf(person, dead) !== 0 || feeling(sys, person, dead, 'affection') >= sys.humans.social.params.relations.friendAffection) {
-        sys.grievance[person] = clamp(sys.grievance[person]! + sys.params.opinion.grievanceLoss);
-      }
+      if (close(person)) sys.grievance[person] = clamp(sys.grievance[person]! + sys.params.opinion.grievanceLoss);
+    }
+    blameLeaders(sys, tribe, event.id, close);
+  }
+}
+
+/**
+ * A death by hunger, thirst, cold or disease under the leaders' authority: those who lost someone
+ * dear hold the leaders responsible (less trust, less respect), the others a little; much more when
+ * the death follows a move or a migration the leaders decided.
+ */
+function blameLeaders(sys: GroupsSystem, tribe: Group, event: number, close: (person: number) => boolean): void {
+  const o = sys.params.opinion;
+  if (tribe.leaders.length === 0) return;
+  const camp = sys.humans.camps[tribe.camp];
+  const afterMove = camp !== undefined && camp.movedEvent >= 0 && sys.day - tribe.settledDay <= o.moveBlameDays && sys.day > tribe.foundedDay;
+  const factor = afterMove ? o.moveBlameFactor : 1;
+  const social = sys.humans.social;
+  for (const person of tribe.members) {
+    if (!sys.isAdult(person) || sys.people.alive[person] === 0 || tribe.leaders.includes(person)) continue;
+    const share = (close(person) ? 1 : o.blameOthers) * factor;
+    if (share <= 0) continue;
+    for (const leader of tribe.leaders) {
+      // One does not blame one's own kin as much.
+      const kin = social.kinOf(person, leader) !== 0 ? 0.5 : 1;
+      feel(social, person, leader, { affection: 0, trust: -o.blameTrust * share * kin, respect: -o.blameRespect * share * kin }, 'blamed', afterMove ? camp!.movedEvent : event);
     }
   }
 }
@@ -92,10 +117,18 @@ export function approvalTarget(sys: GroupsSystem, group: Group, person: number, 
   if (leaders.length === 0) return NEUTRAL - (o.welfareWeight * sys.grievance[person]!) / FULL;
   let relation = 0;
   let kin = 0;
+  let clan = 0;
+  // Within a tribe, one prefers a leader of one's own clan, and distrusts one of a rival clan.
+  const ownClan = group.level === 0 ? sys.member[person * LEVEL_COUNT + 1]! : -1;
   for (const leader of leaders) {
     relation += o.respectWeight * feeling(sys, person, leader, 'respect') + o.affectionWeight * feeling(sys, person, leader, 'affection') + o.trustWeight * feeling(sys, person, leader, 'trust');
     if (sys.humans.social.kinOf(person, leader) !== 0) kin = 1;
+    if (ownClan >= 0) {
+      const theirs = sys.member[leader * LEVEL_COUNT + 1]!;
+      clan += theirs === ownClan ? 1 : theirs >= 0 ? -0.5 : 0;
+    }
   }
   relation /= leaders.length;
-  return NEUTRAL + relation / 2 + o.kinBonus * kin - (o.welfareWeight * sys.grievance[person]!) / FULL;
+  clan /= leaders.length;
+  return NEUTRAL + relation / 2 + o.kinBonus * kin + o.clanBonus * clan - (o.welfareWeight * sys.grievance[person]!) / FULL;
 }

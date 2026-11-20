@@ -107,7 +107,7 @@ export interface ProductionParams {
     foodReserveDaysBySeason: number[];
     firewoodReserveHours: number;
     storageFullShare: number;
-    urgency: { fire: number; shelter: number; openSite: number; storage: number; station: number; perMember: number; craft: number };
+    urgency: { fire: number; shelter: number; openSite: number; storage: number; station: number; perMember: number; craft: number; worship: number };
   };
   quality: { base: number; skillWeight: number; toolWeight: number; randomness: number };
   work: { skillSpeedBonus: number; branchHarmToPlant: number; spareFoodPlants: number; keepingPreference: number; keepingDays: number; searchTiles: number; campTiles: number; buildRingMin: number; buildRingMax: number };
@@ -127,7 +127,7 @@ export interface ProductionParams {
     siteStarted: string;
     buildingDone: string;
     firstItem: string;
-    reasons: { shelter: string; storage: string; fire: string; station: string; perMember: string };
+    reasons: { shelter: string; storage: string; fire: string; station: string; perMember: string; worship: string };
   };
 }
 
@@ -301,6 +301,7 @@ export const PRODUCTION_SCHEMA: Schema = {
             station: urgency('un atelier qui manque pour une recette voulue'),
             perMember: urgency('un bâtiment voulu par la coutume (champ…)'),
             craft: urgency('il manque tous les objets voulus par la coutume (proportionnel au manque)'),
+            worship: urgency('les fidèles d’une religion veulent un lieu de culte'),
           },
         },
       },
@@ -377,6 +378,7 @@ export const PRODUCTION_SCHEMA: Schema = {
             fire: text('Raison : feu', 'Raison d’un chantier de feu de camp.'),
             station: text('Raison : atelier', 'Raison d’un chantier d’atelier. Remplacement : {recette}.'),
             perMember: text('Raison : coutume', 'Raison d’un chantier voulu par la coutume. Remplacement : {n}.'),
+            worship: text('Raison : culte', 'Raison d’un chantier de lieu de culte (sanctuaire, tombe) voulu par les fidèles.'),
           },
         },
       },

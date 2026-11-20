@@ -1,10 +1,29 @@
 import { choice, DataFileError, flag, int, num, pair, text, validateData, type Schema } from '../../core/data-validation';
 
 /** What a group's situation may favour (each measured 0..1 by the groups system). */
-export const FACTORS = ['small', 'large', 'surplus', 'settled', 'elders', 'rivalry', 'scarcity', 'cold', 'territory', 'religion', 'trade', 'privateProperty', 'writing', 'war'] as const;
+export const FACTORS = [
+  'small',
+  'large',
+  'surplus',
+  'settled',
+  'elders',
+  'rivalry',
+  'scarcity',
+  'cold',
+  'territory',
+  'religion',
+  'trade',
+  'privateProperty',
+  'writing',
+  'war',
+  'hierarchy',
+  'equality',
+  'eldersCustom',
+  'sharing',
+] as const;
 export type Factor = (typeof FACTORS)[number];
 /** What makes someone fit to lead (each measured 0..1 for a candidate). */
-export const POWER_FEATURES = ['respect', 'prestige', 'age', 'lineage', 'force', 'wealth'] as const;
+export const POWER_FEATURES = ['respect', 'prestige', 'age', 'lineage', 'force', 'wealth', 'piety'] as const;
 export type PowerFeature = (typeof POWER_FEATURES)[number];
 /** How the leaders decide for the group. */
 export const DECISIONS = ['consensus', 'council', 'chief'] as const;
@@ -54,7 +73,7 @@ export interface GroupsParams {
   property: RuleOption[];
   inheritance: RuleOption[];
   strategies: Strategy[];
-  duties: { boost: number; others: number; minSkillHours: number };
+  duties: { boost: number; others: number; minSkillHours: number; favoritism: number; unfairGrievance: number };
   opinion: {
     approvalRate: number;
     respectWeight: number;
@@ -71,13 +90,33 @@ export interface GroupsParams {
     grievanceDecay: number;
     hungerFloor: number;
     coldFloor: number;
+    blameTrust: number;
+    blameRespect: number;
+    blameOthers: number;
+    moveBlameDays: number;
+    moveBlameFactor: number;
+    clanBonus: number;
   };
   obedience: { base: number; legitimacy: number; relation: number; traits: Record<string, number> };
-  politics: { everyDays: number; gap: number; minLegitimacy: number; actChance: number; ambitionTrait: number; supportShare: number; reformChance: number; failedRespect: number; reviewYears: number; challengerRespect: number };
+  politics: {
+    everyDays: number;
+    gap: number;
+    minLegitimacy: number;
+    actChance: number;
+    ambitionTrait: number;
+    supportShare: number;
+    reformChance: number;
+    failedRespect: number;
+    reviewYears: number;
+    challengerRespect: number;
+    rivalMargin: number;
+    rivalChance: number;
+    successionShare: number;
+  };
   clans: { everyDays: number; minFamilies: number; minMembers: number; kinTie: number; friendAffection: number; joinTie: number; foundAmbition: number };
   families: { joinSpouse: boolean };
   scission: { minMembers: number; minAdults: number; approvalBelow: number; chance: number; loyaltyGap: number; loyaltyChance: number; distanceTiles: [number, number]; waterMaxTiles: number };
-  fusion: { maxMembers: number; sufferingDeaths: number; minOpinion: number; sizeRatio: number; chance: number };
+  fusion: { maxMembers: number; sufferingShare: number; minOpinion: number; despairOpinion: number; sizeRatio: number; chance: number };
   betrayal: { approvalBelow: number; minAffection: number; chance: number };
   contact: { meetTiles: number; opinionRate: number; scissionOpinion: number; allianceOpinion: number; allianceChance: number };
   moves: { sufferingEffect: number; migrateDeathShare: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number; foresightDays: number };
@@ -110,6 +149,12 @@ const CAUSE_KEYS = [
   'goodsShared',
   'allied',
   'loyalty',
+  'rival',
+  'succession',
+  'blame',
+  'favoritism',
+  'successionYields',
+  'successionLeaves',
 ] as const;
 
 const TEXT_KEYS = [
@@ -135,6 +180,9 @@ const TEXT_KEYS = [
   'move',
   'migration',
   'dissolved',
+  'religionAdopted',
+  'succession',
+  'successionWon',
 ] as const;
 
 const TEXT_HELP = 'Texte du journal. Remplacements entre accolades : {nom}, {groupe}, {raison}… (voir le fichier par défaut).';
@@ -193,7 +241,7 @@ export const GROUPS_SCHEMA: Schema = {
   kind: 'object',
   fields: {
     levels: { kind: 'array', minLength: LEVEL_COUNT, maxLength: LEVEL_COUNT, items: text('Nom d’un niveau', 'Nom des niveaux de groupe : 0 le plus grand (tribu), 1 (clan), 2 (famille).') },
-    nameTemplates: { kind: 'array', minLength: LEVEL_COUNT, maxLength: LEVEL_COUNT, items: text('Nom d’un groupe', 'Nom descriptif d’un groupe de ce niveau ({nom} : son fondateur), en attendant les langues.') },
+    nameTemplates: { kind: 'array', minLength: LEVEL_COUNT, maxLength: LEVEL_COUNT, items: text('Nom d’un groupe', 'Nom d’un groupe de ce niveau ({nom} : pour une tribu, le nom de son peuple dans sa langue ; sinon, son fondateur).') },
     adultAge: int(10, 30, 'Âge adulte (groupes)', 'À partir de cet âge, on compte dans la vie du groupe (soutien, mécontentement, ambitions).', 'ans'),
     elderAge: int(30, 90, 'Âge d’un ancien', 'À partir de cet âge, on est un ancien (conseil des anciens).', 'ans'),
     factors: {
@@ -229,6 +277,8 @@ export const GROUPS_SCHEMA: Schema = {
         boost: num(1, 5, 'Obligation confiée', 'Facteur sur l’envie de faire le travail que le dirigeant a confié.', 'facteur'),
         others: num(0, 1, 'Autres travaux', 'Facteur sur les autres travaux du camp pour qui obéit à son obligation.', 'facteur'),
         minSkillHours: num(0, 1000, 'Pratique utile', 'Heures de pratique à partir desquelles un dirigeant tient compte du savoir-faire d’un membre.', 'heures'),
+        favoritism: share('Favoritisme', 'Un dirigeant moins généreux que ceci (trait de générosité) épargne les obligations à sa propre famille.'),
+        unfairGrievance: num(0, 50, 'Obligations injustes', 'Grief gagné, à chaque répartition, par qui reçoit une obligation pendant que la famille du dirigeant en est dispensée.', 'points'),
       },
     },
     opinion: {
@@ -249,6 +299,12 @@ export const GROUPS_SCHEMA: Schema = {
         grievanceDecay: share('Oubli des griefs', 'Part des griefs qui s’efface chaque jour.'),
         hungerFloor: num(0, 100, 'Faim qui pèse', 'Faim à partir de laquelle on en veut à ses dirigeants.', 'sur 100'),
         coldFloor: num(0, 100, 'Froid qui pèse', 'Froid à partir duquel on en veut à ses dirigeants.', 'sur 100'),
+        blameTrust: num(0, 100, 'Reproche : confiance', 'Confiance perdue envers les dirigeants par qui perd un proche de faim, de soif, de froid ou de maladie sous leur autorité.', 'points'),
+        blameRespect: num(0, 100, 'Reproche : respect', 'Respect perdu envers les dirigeants par qui perd un proche sous leur autorité.', 'points'),
+        blameOthers: share('Reproche des autres', 'Part de ce reproche ressentie par les autres membres de la tribu, qui n’ont pas perdu de proche.'),
+        moveBlameDays: int(0, 400, 'Déplacement meurtrier', 'Pendant ces jours après un déplacement ou une migration décidés par les dirigeants, les morts leur sont reprochées davantage.', 'jours'),
+        moveBlameFactor: num(1, 10, 'Poids d’un déplacement meurtrier', 'Facteur sur le reproche des morts qui suivent un déplacement décidé par les dirigeants.', 'facteur'),
+        clanBonus: num(0, 100, 'Esprit de clan', 'Soutien en plus envers un dirigeant de son propre clan (et en moins envers celui d’un autre clan, de moitié).', 'points'),
       },
     },
     obedience: {
@@ -273,6 +329,9 @@ export const GROUPS_SCHEMA: Schema = {
         failedRespect: num(-100, 0, 'Échec d’une contestation', 'Respect perdu auprès des membres par qui conteste sans succès.', 'points'),
         reviewYears: num(0.1, 50, 'Révision', 'Années entre deux révisions des dirigeants d’une bande ou d’un conseil.', 'ans'),
         challengerRespect: num(0, 100, 'Respect du chef', 'Respect gagné envers le nouveau chef chez ceux qui l’ont soutenu.', 'points'),
+        rivalMargin: num(0, 5, 'Rival plus fort', 'Avance (atouts pesés par le régime) d’un ambitieux sur le chef à partir de laquelle il ose le défier, même sans grand mécontentement (chef vieilli, affaibli).', 'points'),
+        rivalChance: share('Défi d’un rival', 'Chance, à chaque examen, qu’un tel rival défie le chef.'),
+        successionShare: share('Crise de succession', 'À la mort d’un chef, part des adultes qu’il faut à un second prétendant pour disputer la succession.'),
       },
     },
     clans: {
@@ -305,8 +364,9 @@ export const GROUPS_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         maxMembers: int(1, 500, 'Petite tribu', 'Taille en dessous de laquelle une tribu en difficulté peut en rejoindre une autre.', 'personnes'),
-        sufferingDeaths: num(0, 100, 'Difficulté', 'Morts récentes (un an) qui mettent une petite tribu en difficulté.', 'morts'),
-        minOpinion: num(-100, 100, 'Opinion nécessaire', 'Opinion de l’autre tribu qu’il faut pour la rejoindre.', 'points'),
+        sufferingShare: share('Difficulté', 'Part des membres morts de faim, de soif, de froid ou de maladie en un an qui met une petite tribu en difficulté.'),
+        minOpinion: num(-100, 100, 'Opinion nécessaire', 'Opinion de l’autre tribu qu’il faut pour la rejoindre quand tout va à peu près bien.', 'points'),
+        despairOpinion: num(-100, 100, 'Opinion dans la détresse', 'Opinion qui suffit quand la petite tribu est au plus mal (on va chercher refuge même chez des gens qu’on aime peu).', 'points'),
         sizeRatio: num(1, 20, 'Plus grande', 'L’autre tribu doit être au moins ce nombre de fois plus grande.', 'facteur'),
         chance: share('Décision de rejoindre', 'Chance de décider la fusion à chaque examen, quand tout y pousse.'),
       },

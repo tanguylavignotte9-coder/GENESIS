@@ -5,7 +5,7 @@
     "Famille"
   ],
   "nameTemplates": [
-    "la tribu de {nom}",
+    "la tribu des {nom}",
     "le clan de {nom}",
     "la famille de {nom}"
   ],
@@ -40,11 +40,13 @@
         "age": 0.2,
         "lineage": 0,
         "force": 0.1,
-        "wealth": 0
+        "wealth": 0,
+        "piety": 0
       },
       "favors": {
         "small": 1,
-        "scarcity": 0.5
+        "scarcity": 0.5,
+        "equality": 0.6
       },
       "requires": []
     },
@@ -68,11 +70,13 @@
         "age": 1.2,
         "lineage": 0,
         "force": 0,
-        "wealth": 0
+        "wealth": 0,
+        "piety": 0
       },
       "favors": {
         "settled": 1,
-        "elders": 1
+        "elders": 1,
+        "eldersCustom": 0.8
       },
       "requires": []
     },
@@ -95,12 +99,14 @@
         "age": 0.2,
         "lineage": 1.2,
         "force": 0.8,
-        "wealth": 0.3
+        "wealth": 0.3,
+        "piety": 0
       },
       "favors": {
         "surplus": 1,
         "rivalry": 1,
-        "large": 0.6
+        "large": 0.6,
+        "hierarchy": 0.8
       },
       "requires": []
     },
@@ -122,7 +128,8 @@
         "age": 0,
         "lineage": 2,
         "force": 0.8,
-        "wealth": 0.5
+        "wealth": 0.5,
+        "piety": 0
       },
       "favors": {
         "large": 1,
@@ -150,7 +157,8 @@
         "age": 0.5,
         "lineage": 0,
         "force": 0,
-        "wealth": 0
+        "wealth": 0,
+        "piety": 2
       },
       "favors": {
         "religion": 2
@@ -177,7 +185,8 @@
         "age": 0,
         "lineage": 1,
         "force": 0,
-        "wealth": 2
+        "wealth": 2,
+        "piety": 0
       },
       "favors": {
         "trade": 1,
@@ -206,7 +215,8 @@
         "age": 0,
         "lineage": 0,
         "force": 0,
-        "wealth": 0.2
+        "wealth": 0.2,
+        "piety": 0
       },
       "favors": {
         "writing": 1,
@@ -234,7 +244,8 @@
         "age": 0,
         "lineage": 0,
         "force": 2,
-        "wealth": 0.3
+        "wealth": 0.3,
+        "piety": 0
       },
       "favors": {
         "war": 1,
@@ -266,7 +277,8 @@
       },
       "favors": {
         "scarcity": 0.5,
-        "small": 0.3
+        "small": 0.3,
+        "sharing": 0.8
       }
     },
     {
@@ -385,7 +397,9 @@
   "duties": {
     "boost": 1.5,
     "others": 0.75,
-    "minSkillHours": 20
+    "minSkillHours": 20,
+    "favoritism": 0.35,
+    "unfairGrievance": 4
   },
   "opinion": {
     "approvalRate": 0.08,
@@ -402,7 +416,13 @@
     "grievanceBlockedAmbition": 0.6,
     "grievanceDecay": 0.04,
     "hungerFloor": 60,
-    "coldFloor": 50
+    "coldFloor": 50,
+    "blameTrust": 14,
+    "blameRespect": 8,
+    "blameOthers": 0.35,
+    "moveBlameDays": 40,
+    "moveBlameFactor": 2,
+    "clanBonus": 12
   },
   "obedience": {
     "base": 0.8,
@@ -424,7 +444,10 @@
     "reformChance": 0.3,
     "failedRespect": -20,
     "reviewYears": 2,
-    "challengerRespect": 15
+    "challengerRespect": 15,
+    "rivalMargin": 0.35,
+    "rivalChance": 0.15,
+    "successionShare": 0.3
   },
   "clans": {
     "everyDays": 40,
@@ -452,11 +475,12 @@
     "loyaltyChance": 0.02
   },
   "fusion": {
-    "maxMembers": 12,
-    "sufferingDeaths": 3,
+    "maxMembers": 20,
+    "sufferingShare": 0.15,
     "minOpinion": 10,
+    "despairOpinion": -25,
     "sizeRatio": 1.5,
-    "chance": 0.2
+    "chance": 0.25
   },
   "betrayal": {
     "approvalBelow": 25,
@@ -500,7 +524,10 @@
     "move": "{decision} : la tribu déplace son camp de {distance} tuiles vers {direction}, dans {lieu} ({raison}).",
     "migration": "{decision} : {groupe} migre loin d’ici, à {distance} tuiles vers {direction}, dans {lieu} ({raison}).",
     "dissolved": "{groupe} disparaît : {raison}.",
-    "scissionStay": "{clan} refuse de suivre {tribu} ({raison}) : {membres} personnes restent et fondent {nouvelle} ; {biens}."
+    "scissionStay": "{clan} refuse de suivre {tribu} ({raison}) : {membres} personnes restent et fondent {nouvelle} ; {biens}.",
+    "succession": "À la mort de {ancien}, {rival} dispute la tête de {groupe} à {nom} : {soutiens} adultes sur {total} le suivent ; {issue}.",
+    "successionWon": "À la mort de {ancien}, {rival} l’emporte sur {nom}, pourtant désigné{e} par la coutume, et prend la tête de {groupe} ({soutiens} adultes sur {total} le suivent).",
+    "religionAdopted": "{groupe} adopte {religion} : {fideles} de ses {total} adultes y croient."
   },
   "factorTexts": {
     "small": "le groupe est petit",
@@ -516,7 +543,11 @@
     "trade": "le commerce prospère",
     "privateProperty": "chacun possède ses biens",
     "writing": "l’écriture est connue",
-    "war": "la guerre menace"
+    "war": "la guerre menace",
+    "hierarchy": "on obéit volontiers au chef",
+    "equality": "tous se veulent égaux",
+    "eldersCustom": "la coutume écoute les anciens",
+    "sharing": "tout se partage"
   },
   "featureTexts": {
     "respect": "respecté{e} de tous",
@@ -524,7 +555,8 @@
     "age": "doyen{ne} du groupe",
     "lineage": "héritier{e} de la lignée",
     "force": "dans la force de l’âge",
-    "wealth": "le plus riche"
+    "wealth": "le plus riche",
+    "piety": "fervent{e} et inspiré{e}"
   },
   "dutyNames": {
     "food": "nourrir le camp",
@@ -553,6 +585,12 @@
     "goodsCommon": "tout étant en commun, ils n’emportent que ce qu’ils portent",
     "goodsShared": "ils emportent leur part des réserves",
     "allied": "alliance",
-    "loyalty": "ses membres suivent {nom} plus que les dirigeants de la tribu"
+    "loyalty": "ses membres suivent {nom} plus que les dirigeants de la tribu",
+    "rival": "{nom} se juge plus capable que {chef}",
+    "succession": "mort de {nom}",
+    "blame": "des proches sont morts sous son autorité",
+    "favoritism": "la famille du dirigeant est dispensée des corvées",
+    "successionYields": "la dispute s’éteint sans suite",
+    "successionLeaves": "battu, le prétendant emmène son clan fonder sa propre tribu"
   }
 }

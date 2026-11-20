@@ -13,6 +13,10 @@ import { decide } from './moves';
 const FULL = 100;
 /** Tries to find a place for a new camp (technical). */
 const SITE_TRIES = 16;
+/** Mean hunger (0..1) of a small tribe that is in difficulty even without deaths. */
+const HUNGRY = 0.6;
+/** Opinion points a very hospitable (or very wary) host forgives (or demands) to take in a tribe. */
+const HOSPITALITY_OPINION = 60;
 
 /**
  * A clan leaves its tribe and founds a tribe of its own: it settles elsewhere (or stays where it is
@@ -172,7 +176,9 @@ export function tribeRelations(sys: GroupsSystem, tribe: Group): void {
     const other = sys.groups[otherId]!;
     const back = other.known.get(tribe.id);
     if (!other.alive || !back || view.allied || view.opinion < c.allianceOpinion || back.opinion < c.allianceOpinion) continue;
-    if (rng.nextFloat() >= c.allianceChance || !decide(sys, tribe, () => true)) continue;
+    // Without a common language or an interpreter, an alliance takes longer to conclude.
+    const understood = sys.ideas ? sys.ideas.tribesUnderstand(tribe, other) : 1;
+    if (rng.nextFloat() >= c.allianceChance * understood || !decide(sys, tribe, () => true)) continue;
     view.allied = true;
     back.allied = true;
     publishGroupEvent(sys, GROUP_EVENTS.alliance, params.texts.alliance, { a: capitalize(tribe.name), b: other.name, raison: params.causeTexts.opinion }, tribe, [...tribe.leaders, ...other.leaders], [tribe.leaderEvent, other.leaderEvent], { other: other.id });
@@ -185,12 +191,27 @@ export function tribeRelations(sys: GroupsSystem, tribe: Group): void {
 function considerFusion(sys: GroupsSystem, tribe: Group): boolean {
   const { params, rng, humans } = sys;
   const f = params.fusion;
-  if (tribe.members.length > f.maxMembers || recentSufferings(sys, tribe) < f.sufferingDeaths) return false;
+  if (tribe.members.length > f.maxMembers) return false;
+  // How badly the small tribe is doing: its recent deaths for its size, and the hunger of its members.
+  const deaths = recentSufferings(sys, tribe) / Math.max(1, f.sufferingShare * tribe.members.length);
+  let hunger = 0;
+  for (const person of tribe.members) hunger += humans.people.hunger[person]! / 100;
+  const meanHunger = hunger / Math.max(1, tribe.members.length);
+  // In difficulty: many deaths for its size, or most members going hungry.
+  if (deaths < 1 && meanHunger < HUNGRY) return false;
+  const despair = Math.min(1, Math.max(0, (deaths - 1) / 2 + meanHunger - HUNGRY / 2));
+  // In despair, one seeks refuge even with people one likes little.
+  const needed = f.minOpinion + (f.despairOpinion - f.minOpinion) * Math.max(0, despair);
   let host: Group | null = null;
-  let best = f.minOpinion;
+  let best = needed;
   for (const [otherId, view] of tribe.known) {
     const other = sys.groups[otherId]!;
     if (!other.alive || other.camp < 0 || other.members.length < f.sizeRatio * tribe.members.length || view.opinion < best) continue;
+    // The host must be willing: it does not take in a tribe it hates.
+    const back = other.known.get(tribe.id);
+    // A hospitable people takes in even those it likes little.
+    const welcome = sys.ideas ? sys.ideas.groupValue(other, 'hospitality') - 0.5 : 0;
+    if (!back || back.opinion < f.despairOpinion - HOSPITALITY_OPINION * welcome) continue;
     best = view.opinion;
     host = other;
   }

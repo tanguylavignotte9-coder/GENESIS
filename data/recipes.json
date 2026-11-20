@@ -6,7 +6,7 @@
     { "id": "collect_branches", "name": "Ramasser du bois", "label": "Ramasse du bois", "hours": 0.17, "effect": "none",
       "source": { "kind": "plantBranches", "species": [] }, "inputs": [], "tools": [], "outputs": [{ "item": "branches", "qty": 1 }] },
     { "id": "collect_stones", "name": "Ramasser des pierres", "label": "Ramasse des pierres", "hours": 0.25, "effect": "none",
-      "source": { "kind": "terrain", "species": [] }, "inputs": [], "tools": [], "outputs": [{ "item": "stone", "qty": 1 }, { "item": "flint", "qty": 1 }] },
+      "source": { "kind": "terrain", "species": [] }, "inputs": [], "tools": [], "outputs": [{ "item": "stone", "qty": 1 }, { "item": "flint", "qty": 1 }, { "item": "shells", "qty": 1 }] },
     { "id": "dig_clay", "name": "Extraire de l’argile", "label": "Extrait de l’argile", "hours": 0.3, "effect": "none",
       "source": { "kind": "terrain", "species": [] }, "inputs": [], "tools": [], "outputs": [{ "item": "clay", "qty": 1 }] },
     { "id": "draw_water", "name": "Puiser de l’eau", "label": "Puise de l’eau", "hours": 0.05, "effect": "none",

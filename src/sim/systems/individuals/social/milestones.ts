@@ -26,7 +26,7 @@ function publishPair(life: SocialLife, type: string, template: string, a: number
     tick: life.tick,
     type,
     text: fillTemplate(template, { a: life.name(a), b: life.name(b), raisons: reasons.text }),
-    place: { x, y, label: describeLocation(life.world.landmasses, life.world.landmassNames, x, y, life.size) },
+    place: { x, y, label: describeLocation(life.world, x, y) },
     actors: [
       { kind: 'human', id: a },
       { kind: 'human', id: b },
@@ -166,7 +166,7 @@ export function learnDeath(life: SocialLife, person: number, fact: Fact, from: n
         lien: tieName(life, person, dead),
         par: from >= 0 ? fillTemplate(texts.toldBy, { nom: life.name(from) }) : '',
       }),
-      place: { x, y, label: describeLocation(life.world.landmasses, life.world.landmassNames, x, y, life.size) },
+      place: { x, y, label: describeLocation(life.world, x, y) },
       actors: from >= 0 ? [{ kind: 'human', id: person }, { kind: 'human', id: dead }, { kind: 'human', id: from }] : [{ kind: 'human', id: person }, { kind: 'human', id: dead }],
       causes: fact.event >= 0 ? [fact.event] : [],
       details: { person, dead },

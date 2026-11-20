@@ -42,6 +42,7 @@
     { "id": "jar", "name": "Jarre", "feminine": true, "category": "tool", "bulk": 3, "food": 0, "halfLifeDays": 0, "warmthCelsius": 0, "carryBonus": 0, "fuelHours": 0, "wantPerMember": 0.2 },
     { "id": "bowl", "name": "Bol", "feminine": false, "category": "tool", "bulk": 0.5, "food": 0, "halfLifeDays": 0, "warmthCelsius": 0, "carryBonus": 0, "fuelHours": 0, "wantPerMember": 0.2 },
     { "id": "canoe", "name": "Pirogue", "feminine": true, "category": "tool", "bulk": 30, "food": 0, "halfLifeDays": 0, "warmthCelsius": 0, "carryBonus": 0, "fuelHours": 0, "wantPerMember": 0 },
+    { "id": "shells", "name": "Coquillages", "feminine": false, "category": "material", "bulk": 0.2, "food": 0, "halfLifeDays": 0, "warmthCelsius": 0, "carryBonus": 0, "fuelHours": 0, "wantPerMember": 0.5 },
     { "id": "leather_clothing", "name": "Vêtement de cuir", "feminine": false, "category": "clothing", "bulk": 1, "food": 0, "halfLifeDays": 0, "warmthCelsius": 6, "carryBonus": 0, "fuelHours": 0, "wantPerMember": 1 }
   ]
 }

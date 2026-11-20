@@ -43,7 +43,7 @@ export function moveCamp(sys: IndividualsSystem, camp: Camp, destination: number
   const before = camp.center;
   const x = destination % sys.size;
   const y = Math.floor(destination / sys.size);
-  const label = describeLocation(sys.world.landmasses, sys.world.landmassNames, x, y, sys.size);
+  const label = describeLocation(sys.world, x, y);
   camp.movedEvent = sys.journal.publish({
     tick,
     type: CAMP_MOVED,

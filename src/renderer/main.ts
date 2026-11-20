@@ -15,6 +15,7 @@ import { PersonSheet } from './hud/person-sheet';
 import { TribePanel } from './hud/tribe-panel';
 import { SavesPanel } from './hud/saves-panel';
 import { GroupsPanel } from './hud/groups-panel';
+import { IdeasPanel } from './hud/ideas-panel';
 import { TribeLayer } from './life/tribe-layer';
 import { StatsPanel } from './hud/stats-panel';
 import { TimeControls } from './hud/time-controls';
@@ -266,6 +267,11 @@ async function main(): Promise<void> {
     if (event.code !== 'KeyG' || event.target instanceof HTMLInputElement) return;
     element<HTMLButtonElement>('groups-toggle').click();
   });
+  const ideasPanel = new IdeasPanel(element('ideas'), element<HTMLButtonElement>('ideas-toggle'), element('ideas-body'), (person) => selectPerson(person));
+  window.addEventListener('keydown', (event) => {
+    if (event.code !== 'KeyI' || event.target instanceof HTMLInputElement) return;
+    element<HTMLButtonElement>('ideas-toggle').click();
+  });
   const perfPanel = new PerfPanel(element('perf'));
   const tribe = new TribePanel(element('tribe'), element<HTMLButtonElement>('tribe-toggle'), element('tribe-list'), selectPerson);
   const followBadge = element('follow');
@@ -286,6 +292,7 @@ async function main(): Promise<void> {
         journal.clear();
         tribes.clear();
         groupsPanel.clear();
+        ideasPanel.clear();
         camera.stopFollowing();
         sheet.close();
         return;
@@ -366,6 +373,9 @@ async function main(): Promise<void> {
       case 'groups':
         tribes.setGroups(message.groups);
         groupsPanel.setGroups(message.groups);
+        return;
+      case 'ideas':
+        ideasPanel.setIdeas(message.ideas);
         return;
       case 'roster':
         roster = message.roster;
@@ -490,6 +500,7 @@ async function main(): Promise<void> {
     tribe.update(people.snapshot, now);
     tribes.update(camera.pixelsPerTile);
     groupsPanel.update(now);
+    ideasPanel.update(now);
     if (sheet.isOpen && now - lastPersonRequest > VIEW.inspectEveryMs) {
       lastPersonRequest = now;
       sim.inspectPerson(++personRequest, sheet.person);

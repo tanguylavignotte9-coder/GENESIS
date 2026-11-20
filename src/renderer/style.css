@@ -1061,3 +1061,55 @@ body:has(#stats:not([hidden])) #journal {
 .group-gauge-fill.bad {
   background: #e07060;
 }
+
+/* ----- Ideas (cultures, languages, religions, knowledge, exchanges, places) ----- */
+
+#ideas-toggle {
+  bottom: 12px;
+  right: 400px;
+  padding: 6px 12px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#ideas {
+  bottom: 52px;
+  right: 12px;
+  width: 500px;
+  max-height: 62vh;
+  overflow-y: auto;
+  background: rgba(16, 20, 28, 0.96);
+  font-size: 13px;
+}
+
+.ideas-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.ideas-tab {
+  padding: 2px 8px;
+  border: 1px solid var(--hud-border);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--hud-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ideas-tab.active {
+  color: var(--hud-text);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.idea-box.lost .group-title {
+  color: var(--hud-muted);
+  text-decoration: line-through;
+}

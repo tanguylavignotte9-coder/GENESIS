@@ -12,8 +12,10 @@ import type { SocialDetails } from '../sim/systems/individuals/social/describe';
 import type { LifeFacts } from '../sim/systems/individuals/life/describe';
 import type { SaveMeta } from '../sim/core/save/save';
 import type { GroupsFacts, MembershipFacts } from '../sim/systems/groups/describe';
+import type { IdeasFacts, PersonIdeasFacts } from '../sim/systems/ideas/describe';
 
 export type { GroupFacts, GroupsFacts } from '../sim/systems/groups/describe';
+export type { IdeaFacts, IdeasFacts, PersonIdeasFacts } from '../sim/systems/ideas/describe';
 
 /** Why a world is saved: by the player, automatically, or when the game closes. */
 export type SaveReason = 'manual' | 'auto' | 'quit';
@@ -311,6 +313,8 @@ export interface PersonDetails {
   life: LifeDetails;
   /** Tribe, clan and household, role in each, duty. */
   groups: MembershipFacts;
+  /** Knowledge (and where it comes from), culture, languages, religion, good of exchange. */
+  ideas: PersonIdeasFacts | null;
 }
 
 /** Life cycle side of a character sheet. */
@@ -367,6 +371,8 @@ export type FromSimMessage =
   | { type: 'humans'; humans: HumansSnapshot }
   /** Tribes, clans and households (sent once a game day). */
   | { type: 'groups'; groups: GroupsFacts }
+  /** Knowledge, cultures, languages, religions, goods of exchange and named places (sent once a game day). */
+  | { type: 'ideas'; ideas: IdeasFacts }
   | { type: 'weather'; regions: Uint8Array }
   | { type: 'person'; details: PersonDetails }
   /** The people changed (births, ages, couples): identity and family links again. */

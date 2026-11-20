@@ -8,6 +8,177 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Étape 7.6 · Sauvegarde, loups (reste de 7.5) et étape 9 · Groupes — 20 nov. 2026
+
+**Fait (sauvegarde, `src/sim/core/save/`, `src/main/save-store.ts`) :**
+- Le monde entier est copié tel qu'il est en mémoire (graphe d'objets : références partagées, tableaux typés en
+  binaire, Map/Set dans leur ordre, classes retrouvées par une **liste de clés stables** `save/classes.ts`, jamais par
+  `constructor.name` qu'une compilation minifiée peut changer). Rien n'est recalculé au chargement. Les rappels entre
+  systèmes (interactions, vue des personnes par la production, `walkableTile`) sont déclarés `transientKeys()` et
+  recréés par `afterLoad()`. Toute classe non déclarée ou fonction non déclarée fait échouer la sauvegarde avec un
+  message clair (le test long rencontre toutes les classes d'un monde de 12 ans).
+- Contenu : simulation complète (carte, flore, faune, humains, relations, objets, bâtiments, générateur aléatoire,
+  horloge, groupes), journal, preset actif et valeurs des variables (rechargées dans l'Atelier, validées par les
+  schémas actuels : message clair si elles ne sont plus valides).
+- Format versionné `SAVE_FORMAT_VERSION` (actuellement **2**, passé de 1 à 2 avec les groupes et les territoires) :
+  une autre version est refusée (« faite par une version plus ancienne / plus récente du jeu »).
+- Fichier : ligne `GENESIS-SAUVEGARDE`, description en JSON lisible sans charger le monde (date de jeu, graine,
+  population, preset, nom, date réelle), puis le monde compressé (gzip niveau 1, en tâche de fond). Écriture dans un
+  fichier temporaire puis renommage (une coupure ne détruit jamais la sauvegarde précédente).
+- Jeu : panneau **Sauvegardes** (bouton à côté de « Nouveau monde », touche F5) : sauvegarder sous un nom, charger,
+  partager (copie dans `sauvegardes/partage/`, versionné), supprimer ; chaque ligne affiche date de jeu, graine,
+  population, preset, date réelle, taille ; une sauvegarde incompatible est marquée et ne peut pas être chargée.
+  Sauvegarde automatique toutes les 5 minutes réelles sur 3 emplacements tournants et à la fermeture du jeu
+  (`time.json` → `autosave`, réglable dans l'Atelier ; la fenêtre attend la sauvegarde, 20 s au plus).
+- `npm run sim -- --seed 7 --years 50 --save nom` puis `npm run sim -- --load nom --years 30` (aussi avec
+  `--ecosystem`). `sauvegardes/` est exclu du dépôt sauf `sauvegardes/partage/`.
+- Tests : copie du graphe (références partagées, classes, nombres spéciaux, tableaux qui partagent un tampon),
+  refus en français, **monde sauvegardé puis rechargé = monde jamais interrompu, octet par octet** (rapide : petite
+  carte, 6 mois ; long : vraie carte, an 12, un an de plus), format refusé, magasin de fichiers. Vérifié aussi dans
+  le vrai jeu (Electron sous écran virtuel) : sauvegarder, recharger, sauvegarde à la fermeture.
+
+**Fait (loups, défaut restant de l'étape 7.5) :** diagnostic à partir de sauvegardes « écosystème seul » à l'an 60
+(graines 42, 7, 3) : les loups ne mouraient pas faute de gibier (70 à 140 proies à moins de 16 tuiles par loup) mais
+**ne se reproduisaient presque plus** (0 à 6 naissances par an pour 28 louves adultes) : 91 % des refus venaient de la
+règle de densité des herbivores (plus de 14 loups dans un rayon de 48 tuiles), le reste du gibier compté autour.
+Comportements réels ajoutés (`fauna/territory.ts`, `group-life.ts`, `behavior.ts`) :
+- **territoire de meute** autour d'une tanière (`territoryTiles` 20) : une meute plus faible cède la place et va
+  s'installer plus loin ; le meneur revient vers sa tanière quand il s'en écarte ;
+- **seule la louve dominante** (la plus âgée de la meute) d'une meute qui tient son territoire met bas, si elle est
+  bien nourrie : remplace pour les loups la règle de densité et le comptage de proies ;
+- **dispersion** des jeunes adultes (`dispersalPerYear` 0,5) qui s'apparient avec un autre solitaire (jamais avec
+  une meute) et fondent une meute sur une terre libre ;
+- **gros gibier préféré** (`bigPreyMeat` 15) : les petites proies (lapins) seulement faute de gros gibier à portée.
+- Essais successifs (écosystème seul, 30 ans depuis l'an 60, 3 graines) : territoire seul → **pullulation puis
+  extinction** (graine 7 : 64 → 235 loups, gibier épuisé, plus un loup à l'an 90) ; + louve dominante → stable mais le
+  nombre de meutes baisse lentement ; + dispersion → **les loups oscillent sans s'éteindre** (graine 42 : 18 → 75 → 43 ;
+  graine 7 : 48 à 86 ; graine 3 : 50 à 100). Retenu.
+- **Pas concluant dans les mondes complets** : dans la validation (avec humains, depuis l'an 0, 100 ans), les loups
+  s'éteignent encore dans 5 mondes sur 10 et restent rares ailleurs (5 à 32 au lieu de 63 à 91) ; lions éteints dans
+  5 sur 10. Arrêté là comme demandé : à reprendre à l'étape 11 (riposte, conflit) ou dans une étape d'équilibrage
+  (pistes : rythme de départ des meutes au début du monde, territoire plus grand, effet des chasseurs humains).
+
+**Fait (étape 9, `src/sim/systems/groups/`, `data/groups.json`) :**
+- Une seule classe `Group` pour les trois niveaux (tribu, clan, famille) : régime, dirigeants, anciens dirigeants
+  (lignée), légitimité, mécontentement, propriété, héritage, stratégie, emplacements culture/religion/monnaie (-1),
+  camp (tribus), souffrances récentes, tribus connues avec opinion et alliance. Appartenance : un groupe par niveau
+  (`member`, tableau typé), soutien de chacun aux dirigeants de chaque niveau (`approval`), griefs (`grievance`),
+  obéissance et obligation.
+- Départ : la tribu (un groupe de niveau 0 par camp) et les foyers (couple et enfants). Les clans se forment tous les
+  40 jours : foyers liés par le sang autour du plus âgé, ou autour d'un ambitieux et de ses amis ; un foyer sans clan
+  rejoint celui auquel il est le plus lié. Les foyers suivent la vie (enfant chez qui l'élève, nouveau couple).
+- Régimes : les 8 du design avec titre, nombre de dirigeants, façon de décider (consensus, conseil, chef), hérédité,
+  poids des atouts (respect, prestige, âge, lignée, force, richesse), situations qui les favorisent (petit, nombreux,
+  surplus, installé, anciens, rivalités, temps durs, froid) et conditions nécessaires (religion, écriture, commerce,
+  territoire, guerre : pas encore simulées, donc monarchie, théocratie, oligarchie, république et dictature ne
+  peuvent pas apparaître). Le régime de départ est celui qui convient le mieux ; une réforme le change quand un autre
+  convient nettement mieux.
+- Dirigeants : désignés parmi les adultes selon les poids du régime ; une bande ou un conseil est revu tous les 2 ans,
+  un chef garde le pouvoir jusqu'à sa mort ou son renversement.
+- Les dirigeants : **répartissent les obligations** (nourriture, bois, construction, artisanat, au prorata des besoins
+  du camp, à qui le fait le mieux : facteur sur l'entrée correspondante du cerveau, si l'on obéit) ; **décident des
+  déplacements et migrations** (remplace le consensus de l'étape 6 : même envie individuelle, plus forte après des
+  morts de faim, de froid ou de maladie ; décision selon le régime ; migration lointaine, vers la chaleur si le froid a
+  tué, après beaucoup de morts ; par grand froid seul qui a faim veut partir ; un clan qui n'obéit pas reste et fonde
+  sa tribu) ; **fixent la stratégie** (facteurs sur les réserves et envies de la coutume) et **les règles de propriété
+  et d'héritage** (selon leur caractère et la situation, avec une inertie). L'héritage suit la règle de la tribu
+  (au conjoint puis aux enfants, aux enfants seuls, à l'aîné, au groupe).
+- Obéissance : chance selon la légitimité, la relation au dirigeant et le caractère (ambition, colère, application).
+- Légitimité = soutien moyen des adultes (respect, affection, confiance envers les dirigeants, parenté, régime adapté,
+  griefs) ; mécontentement = griefs moyens (faim, froid, deuil d'un proche, maladie, ambition contrariée), lus en partie
+  dans le journal (morts par cause).
+- Vie politique (tous les 5 jours par groupe) : quand mécontentement − légitimité dépasse 15 (ou légitimité < 30), un
+  ambitieux agit : le chef d'un clan qui rejette le pouvoir peut emmener son clan fonder une tribu ailleurs (**scission**
+  : nouveau camp près de l'eau, sur le même continent, loin des autres camps ; part des réserves sauf si tout est en
+  commun) ; sinon il **conteste** : s'il est préféré par la moitié des adultes il **renverse** le dirigeant (ses
+  partisans le respectent davantage), sinon il perd la face.
+- Entre tribus : rencontre quand des membres se voient (10 tuiles), opinion qui suit les relations des membres
+  (négative au départ après une scission), **alliance**, **fusion** d'une petite tribu en difficulté dans une plus
+  grande qu'elle estime (elle devient un de ses clans), **départ d'un individu** sans attaches vers une autre tribu.
+- Ambitions nouvelles dans la fiche (`social.json`) : devenir chef, fonder son clan, fonder sa tribu, données par le
+  système de groupes selon le caractère et la situation, jugées par lui.
+- Lisibilité : panneau **Groupes** (touche G) : chaque tribu (couleur, clic = centrer sur le camp), régime et accès au
+  pouvoir, dirigeants cliquables, jauges de légitimité et de mécontentement, membres, règles, stratégie, tribus
+  connues, clans et familles (dépliables), tribus disparues. Fiche personnage : tribu, clan, famille, rôle, soutien,
+  obligation, désobéissance. Carte : bannière de la couleur de la tribu et son nom (avec le nombre de membres)
+  au-dessus du camp. Journal : formation, désignations, changements de régime et de règles, stratégie, contestations,
+  renversements, scissions, fusions, alliances, départs, rencontres, déplacements, avec leurs causes.
+- `npm run sim` : tribus, clans, régimes apparus, compteurs politiques et événements politiques datés.
+- Tests : `tests/sim/groups/groups.test.ts` (tribu de départ, régimes impossibles, naissances, obligations,
+  scission, contestation, fusion, déterminisme).
+
+**Défauts trouvés et corrigés pendant la validation (au niveau des individus) :**
+- Migration vers une terre tirée au hasard, inconnue de tous : 21 morts de soif et 11 de froid (graine 3). Une
+  migration ne vise plus qu'un lieu de nourriture connu d'un membre.
+- Migration décidée par un conseil affamé en plein hiver puis en fin d'automne : toute la tribu morte de froid en
+  quelques jours (graines 6 et 7). Sous 8 °C au camp, ou si le froid est prévisible dans 10 jours (par les saisons), on
+  ne lève pas le camp, même affamé : le froid tue en quelques jours, la faim en quelques semaines.
+- **Morts de soif en masse** (60 à 95 par monde, effondrements) : après un déplacement du camp, chacun allait boire à
+  l'eau de l'ancien camp dont il se souvenait. Une eau à portée de vue passe maintenant avant un souvenir lointain
+  (`actions.ts`, défaut ancien rendu visible par des déplacements plus fréquents).
+- Une tribu de 100 « migrait » dès 4 morts dans l'année et déplaçait son camp deux fois par an : les temps durs et le
+  seuil de migration sont une **part des membres** (12 % et 15 %).
+- Règles et stratégies qui changeaient d'une semaine à l'autre : inertie (`power.ruleInertia`).
+- Vie politique figée (aucune scission en 100 ans sur 10 mondes) alors que les membres d'un clan soutenaient leur
+  chef bien plus que ceux de la tribu : un chef de clan ambitieux peut partir quand l'écart dépasse 25 points.
+
+**Décisions et écarts (à valider) :**
+- La sauvegarde copie l'état en mémoire plutôt que de rejouer le monde : rapide et exact, mais **toute évolution de
+  l'état de la simulation (nouveau champ, nouvelle classe, nouvelle variable) doit changer `SAVE_FORMAT_VERSION`** ;
+  les anciennes sauvegardes sont alors refusées (pas de conversion).
+- Sauvegarde automatique en **minutes réelles** (5 min) plutôt qu'en jours de jeu (en x500, une sauvegarde par jour de
+  jeu ferait une sauvegarde par seconde). Elle ne se fait pas en pause.
+- Le système de groupes appelle quelques méthodes du système des individus pour les actes physiques (`moveCampTo`,
+  `foundCamp`, `joinCamp`) et de la production (`applyCampPolicy`, `shareStock`, `mergeCamp`) ; il lit le journal
+  (morts par cause). Le test d'architecture couvre le dossier `groups`.
+- Les familles ont le régime « conseil des anciens » (le seul permis au niveau 2), sans récit au journal.
+- Une scission « par refus de suivre » (clan qui n'obéit pas au moment d'un déplacement) fonde une tribu sur place.
+- Fusion : la petite tribu devient **un clan** de la grande (ses propres clans disparaissent dans ce clan).
+- Héritage : la règle « au groupe » donne les biens au stock commun ; « propriété commune » : un clan qui part
+  n'emporte que ce que ses membres portent.
+- Le paramètre `campMoveText` de `humans.json` est retiré (le texte vient de `groups.json`) ; `campMove` reste (l'envie
+  individuelle de partir).
+- Les régimes « impossibles » à cette époque le sont par une condition nécessaire (`requires`) mesurée à 0 tant que
+  religion, écriture, commerce, territoire et guerre n'existent pas.
+
+**Dette technique :**
+- **Politique encore calme** : en 100 ans sur 10 mondes, aucune contestation, aucun renversement, aucune fusion, aucun
+  départ individuel vers une autre tribu (seulement en scénarios de test) ; le mécontentement (souffrances) reste
+  sous la légitimité. Les scissions par loyauté (16) et les alliances (17) apparaissent. À rééquilibrer (griefs liés
+  à la taille, aux querelles avec le chef, aux décisions contestées) → prochaine étape d'équilibrage ou étape 10.
+- Rencontres entre tribus étrangères rares (les tribus nées d'une scission se connaissent déjà) → avec la carte
+  politique (étape 12) et le conflit (étape 11).
+- Morts de soif encore 19 % des décès (6 % à l'étape 7.5) → à examiner (sécheresses ? trajets ?).
+- Loups et lions (voir ci-dessus) → étape 11.
+- Culture, religion, monnaie : emplacements prévus dans `Group` (-1) → étape 10.
+- Les noms de clan dans la phrase « les familles de Ka et Mi » ne font pas l'élision.
+
+**Dettes résolues :** consensus de déplacement du camp (étape 6) et héritage par coutume (étape 8) remplacés par les
+décisions et règles des groupes ; « coutume » des obligations remplacée par les obligations données par les
+dirigeants ; défaut des loups de l'étape 7.5 partiellement (voir ci-dessus).
+
+**Mesures (serveurs de Claude Code) :**
+- **Validation, 10 graines × 100 ans** (et non 200 : budget de 45 min ; 32 min, 4 calculs en parallèle) :
+  **10 tribus de départ sur 10 en vie à l'an 100** (49, 57, 69, 74, 82, 136, 137, 141, 148, 192 habitants ; pics 70 à
+  192) ; 16 scissions (0 à 3 par monde), 17 alliances, 0 fusion, 0 contestation, 0 renversement, 0 départ individuel ;
+  23 tribus au total dont **20 en vie** à la fin (1 à 3 par monde) ; 3 petites tribus issues d'une scission se sont
+  éteintes (graines 3, 8, 9). Régimes apparus : bande égalitaire (10 mondes), conseil des anciens (10), chefferie
+  (8) ; aucun autre (impossible à cette époque). Causes des 1 428 décès : maladie 37 %, vieillesse 20 %, soif 19 %,
+  faim 14 %, froid 6 %, en couches 3 %, prédateurs 1 %.
+- Sauvegarde : monde de 2-3 ans ≈ 78 Mo en mémoire → 14 Mo sur disque ; sauvegarder 0,13 s, compresser ≈ 0,45 s (en
+  tâche de fond), recharger 0,06 s (+ décompression). Test long : an 12 rechargé identique octet par octet.
+- **Calcul** (`tsx`, une autre simulation en parallèle, donc un peu pessimiste) : tribu de 30 → **114 ms** par jour de
+  jeu, dont **0,2 ms** pour les groupes ; **1 015 humains (34 tribus) → 686 ms** par jour, dont **4,7 ms** pour les
+  groupes (à l'étape 7.5 : 94 et 599 ms). Pendant la validation (4 calculs en parallèle) : 130 à 360 ms par jour pour
+  des tribus de 50 à 190 personnes.
+- Tests rapides : 465 en ~40 s. **Tests longs : 11/11** (27 min ; dont le nouveau test long de sauvegarde). Le test
+  long social exigeait une « brouille » en 2 ans sur 6 mondes : il n'y en a plus aucune, alors qu'il n'y en avait
+  déjà qu'une sur 3 mondes avant cette étape (comparé avec l'ancien code) ; il compte maintenant aussi les disputes
+  inscrites dans les relations (ce qu'il voulait vérifier : les conflits existent).
+- Loups dans les mondes de la validation (an 100, avec humains) : 0, 0, 28, 26, 32, 5, 17, 0, 0, 0 (63 à 91 au départ).
+
+---
+
 ## Étape 7.5 · Déplacement naturel, écosystème — 19 nov. 2026
 
 **Fait (déplacement naturel, `src/sim/core/motion.ts`) :**

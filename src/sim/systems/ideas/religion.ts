@@ -247,7 +247,7 @@ export function clergyCheck(sys: IdeasSystem): void {
       const priest = faithful.length >= params.clergyMembers * PRIEST_FACTOR;
       const female = people.female[best] === 1;
       const title = priest ? (female ? 'prêtresse' : 'prêtre') : female ? 'chamane' : 'chaman';
-      publishIdeaEvent(sys, IDEA_EVENTS.clergy, sys.params.texts.clergy, { nom: people.names[best]!, titre: title, religion: religionLabel(idea), tribu: tribe.name }, best, [idea.event], { religion: idea.id });
+      publishIdeaEvent(sys, IDEA_EVENTS.clergy, sys.params.texts.clergy, { nom: people.names[best]!, titre: title, religion: religionLabel(idea).replace(/^le /, ''), tribu: tribe.name }, best, [idea.event], { religion: idea.id });
     }
   }
 }

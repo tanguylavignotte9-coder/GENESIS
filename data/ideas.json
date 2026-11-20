@@ -101,7 +101,7 @@
     "religionBorn": "{nom} se met à vénérer {croyance} ({raison}) : une religion naît, {religion}, avec ses {rite}.",
     "religionAdopted": "{tribu} adopte {religion} : {fideles} de ses {total} adultes y croient.",
     "schism": "Schisme : les fidèles de {religion} de {tribu} ne croient plus comme les autres et fondent {nouvelle} ({croyance}).",
-    "clergy": "{nom} devient {titre} de {religion} chez {tribu}, pour sa ferveur et son charisme.",
+    "clergy": "{nom} devient {titre} du {religion} chez {tribu}, pour sa ferveur et son charisme.",
     "currency": "{tribu} a désormais un bien d’échange, accepté en paiement de tout : {objet} ({part} des adultes l’acceptent).",
     "firstTrade": "{a} ({tribu_a}) et {b} ({tribu_b}) font un premier troc : {objet_a} contre {objet_b}.",
     "misunderstanding": "Un troc tourne mal entre {a} ({tribu_a}) et {b} ({tribu_b}) : ils ne se comprennent pas.",

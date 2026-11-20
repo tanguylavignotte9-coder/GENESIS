@@ -161,7 +161,6 @@ export interface HumanParams {
     waterMaxTiles: number;
     minAdults: number;
   };
-  campMoveText: string;
 }
 
 type Apply = 'live' | 'newWorld';
@@ -409,7 +408,6 @@ export const HUMANS_SCHEMA: Schema = {
         minAdults: v('integer', 1, 50, 'Adultes nécessaires', 'Nombre minimal d’adultes vivants pour décider ensemble.', 'personnes'),
       },
     },
-    campMoveText: text('Déplacement du camp', 'Phrase du journal. Remplacements : {distance}, {direction}, {lieu}.'),
   },
 };
 

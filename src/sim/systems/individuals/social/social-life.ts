@@ -71,6 +71,11 @@ export class SocialLife {
     this.knitTribes();
   }
 
+  /** Political ambitions are judged by the groups system (step 9). */
+  stillWantsPower(person: number, id: string): boolean {
+    return this.sys.groups?.stillWants(person, id) ?? false;
+  }
+
   /** Room for the people born since (the arrays grow with the population). */
   grow(): void {
     const capacity = this.people.capacity;

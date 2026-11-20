@@ -3,6 +3,7 @@ import { feltTemperature } from '../sim/systems/individuals/body';
 import { INPUTS } from '../sim/systems/individuals/params';
 import { describeSocial } from '../sim/systems/individuals/social/describe';
 import { describeLife } from '../sim/systems/individuals/life/describe';
+import { describeMembership } from '../sim/systems/groups/describe';
 import { HumanFlag, type HumanStats, type HumansSnapshot, type ItemLine, type PersonDetails, type Roster } from '../shared/messages';
 import type { Inventory } from '../sim/systems/production/inventory';
 
@@ -102,6 +103,7 @@ export function describePerson(simulation: Simulation, requestId: number, person
     spouse: people.spouse[person]!,
     social: describeSocial(humans.social, person),
     life: describeLife(humans.life, person),
+    groups: describeMembership(simulation.groups, person),
   };
 }
 

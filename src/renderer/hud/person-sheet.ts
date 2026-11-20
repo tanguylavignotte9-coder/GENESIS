@@ -143,6 +143,7 @@ export class PersonSheet {
     for (const need of NEEDS) nodes.push(bar(need.label, details.needs[need.key], 'need'));
     nodes.push(bar(details.social.loneliness.name, details.social.loneliness.value, 'need'));
     nodes.push(bar('Santé', details.health, 'good'));
+    nodes.push(...this.groupNodes(details));
     nodes.push(...this.socialNodes(details, female));
 
     nodes.push(el('div', 'sheet-section', 'Caractère'));
@@ -174,6 +175,19 @@ export class PersonSheet {
       el('div', 'sheet-text muted', `Ressenti : ${fr.format(details.feltCelsius)} °C · ${roster.weatherNames[details.weather] ?? ''}`),
     );
     this.body.replaceChildren(...nodes);
+  }
+
+  /** Tribe, clan and household: the role in each, the support for its leaders, the duty given. */
+  private groupNodes(details: PersonDetails): HTMLElement[] {
+    const groups = details.groups;
+    const nodes: HTMLElement[] = [el('div', 'sheet-section', 'Groupes')];
+    if (groups.levels.length === 0) nodes.push(el('div', 'sheet-text muted', 'Aucun'));
+    for (const line of groups.levels) {
+      nodes.push(el('div', 'sheet-text', `${line.levelName} : ${line.name} — ${line.role} (soutien aux dirigeants ${Math.round(line.support)})`));
+    }
+    if (details.alive && groups.duty) nodes.push(el('div', 'sheet-text', `Obligation : ${groups.duty}${groups.obeys ? '' : ' (n’obéit pas)'}`));
+    else if (details.alive && !groups.obeys) nodes.push(el('div', 'sheet-text muted', 'N’obéit pas à ses dirigeants'));
+    return nodes;
   }
 
   /** Emotions, ambitions, relations (with their reasons), marking memories and important news. */

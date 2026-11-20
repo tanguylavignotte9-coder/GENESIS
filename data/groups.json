@@ -1,0 +1,554 @@
+{
+  "levels": [
+    "Tribu",
+    "Clan",
+    "Famille"
+  ],
+  "nameTemplates": [
+    "la tribu de {nom}",
+    "le clan de {nom}",
+    "la famille de {nom}"
+  ],
+  "adultAge": 16,
+  "elderAge": 50,
+  "factors": {
+    "smallMembers": 30,
+    "largeMembers": 90,
+    "surplusDays": 25,
+    "settledYears": 12,
+    "elderShare": 0.15,
+    "rivalryShare": 0.15,
+    "sufferingDeaths": 4
+  },
+  "regimes": [
+    {
+      "id": "band",
+      "name": "Bande égalitaire",
+      "access": "Prestige et consensus",
+      "title": "meneur",
+      "titleFemale": "meneuse",
+      "leaders": 1,
+      "decision": "consensus",
+      "hereditary": false,
+      "levels": [
+        0,
+        1
+      ],
+      "weights": {
+        "respect": 1,
+        "prestige": 0.7,
+        "age": 0.2,
+        "lineage": 0,
+        "force": 0.1,
+        "wealth": 0
+      },
+      "favors": {
+        "small": 1,
+        "scarcity": 0.5
+      },
+      "requires": []
+    },
+    {
+      "id": "elders",
+      "name": "Conseil des anciens",
+      "access": "Âge et sagesse",
+      "title": "ancien du conseil",
+      "titleFemale": "ancienne du conseil",
+      "leaders": 3,
+      "decision": "council",
+      "hereditary": false,
+      "levels": [
+        0,
+        1,
+        2
+      ],
+      "weights": {
+        "respect": 0.6,
+        "prestige": 0.5,
+        "age": 1.2,
+        "lineage": 0,
+        "force": 0,
+        "wealth": 0
+      },
+      "favors": {
+        "settled": 1,
+        "elders": 1
+      },
+      "requires": []
+    },
+    {
+      "id": "chiefdom",
+      "name": "Chefferie",
+      "access": "Force et prestige, puis hérédité",
+      "title": "chef",
+      "titleFemale": "cheffe",
+      "leaders": 1,
+      "decision": "chief",
+      "hereditary": true,
+      "levels": [
+        0,
+        1
+      ],
+      "weights": {
+        "respect": 0.5,
+        "prestige": 1,
+        "age": 0.2,
+        "lineage": 1.2,
+        "force": 0.8,
+        "wealth": 0.3
+      },
+      "favors": {
+        "surplus": 1,
+        "rivalry": 1,
+        "large": 0.6
+      },
+      "requires": []
+    },
+    {
+      "id": "monarchy",
+      "name": "Monarchie",
+      "access": "Hérédité, conquête",
+      "title": "roi",
+      "titleFemale": "reine",
+      "leaders": 1,
+      "decision": "chief",
+      "hereditary": true,
+      "levels": [
+        0
+      ],
+      "weights": {
+        "respect": 0.3,
+        "prestige": 0.6,
+        "age": 0,
+        "lineage": 2,
+        "force": 0.8,
+        "wealth": 0.5
+      },
+      "favors": {
+        "large": 1,
+        "territory": 1
+      },
+      "requires": [
+        "territory"
+      ]
+    },
+    {
+      "id": "theocracy",
+      "name": "Théocratie",
+      "access": "Désignation religieuse",
+      "title": "grand prêtre",
+      "titleFemale": "grande prêtresse",
+      "leaders": 1,
+      "decision": "chief",
+      "hereditary": false,
+      "levels": [
+        0
+      ],
+      "weights": {
+        "respect": 0.8,
+        "prestige": 0.5,
+        "age": 0.5,
+        "lineage": 0,
+        "force": 0,
+        "wealth": 0
+      },
+      "favors": {
+        "religion": 2
+      },
+      "requires": [
+        "religion"
+      ]
+    },
+    {
+      "id": "oligarchy",
+      "name": "Oligarchie",
+      "access": "Richesse et naissance",
+      "title": "notable",
+      "titleFemale": "notable",
+      "leaders": 3,
+      "decision": "council",
+      "hereditary": true,
+      "levels": [
+        0
+      ],
+      "weights": {
+        "respect": 0.2,
+        "prestige": 0.4,
+        "age": 0,
+        "lineage": 1,
+        "force": 0,
+        "wealth": 2
+      },
+      "favors": {
+        "trade": 1,
+        "privateProperty": 1
+      },
+      "requires": [
+        "trade",
+        "privateProperty"
+      ]
+    },
+    {
+      "id": "republic",
+      "name": "République",
+      "access": "Élection",
+      "title": "magistrat",
+      "titleFemale": "magistrate",
+      "leaders": 3,
+      "decision": "consensus",
+      "hereditary": false,
+      "levels": [
+        0
+      ],
+      "weights": {
+        "respect": 1.5,
+        "prestige": 0.6,
+        "age": 0,
+        "lineage": 0,
+        "force": 0,
+        "wealth": 0.2
+      },
+      "favors": {
+        "writing": 1,
+        "large": 0.5
+      },
+      "requires": [
+        "writing"
+      ]
+    },
+    {
+      "id": "dictatorship",
+      "name": "Dictature",
+      "access": "Coup d’État, force",
+      "title": "dictateur",
+      "titleFemale": "dictatrice",
+      "leaders": 1,
+      "decision": "chief",
+      "hereditary": false,
+      "levels": [
+        0
+      ],
+      "weights": {
+        "respect": 0,
+        "prestige": 0.3,
+        "age": 0,
+        "lineage": 0,
+        "force": 2,
+        "wealth": 0.3
+      },
+      "favors": {
+        "war": 1,
+        "scarcity": 0.5
+      },
+      "requires": [
+        "war"
+      ]
+    }
+  ],
+  "power": {
+    "respectScale": 40,
+    "prestigeAgeYears": 40,
+    "forceAgeYears": [
+      22,
+      40
+    ],
+    "wealthItems": 10,
+    "regimeInertia": 0.35,
+    "ruleInertia": 0.4
+  },
+  "property": [
+    {
+      "id": "common",
+      "name": "Tout en commun",
+      "traits": {
+        "generosity": 1,
+        "sociability": 0.5
+      },
+      "favors": {
+        "scarcity": 0.5,
+        "small": 0.3
+      }
+    },
+    {
+      "id": "family",
+      "name": "Propriété familiale",
+      "traits": {
+        "generosity": 0.2,
+        "ambition": 0.3
+      },
+      "favors": {
+        "surplus": 0.5,
+        "settled": 0.3
+      }
+    },
+    {
+      "id": "private",
+      "name": "Propriété privée",
+      "traits": {
+        "ambition": 1,
+        "generosity": -1
+      },
+      "favors": {
+        "surplus": 1,
+        "large": 0.3
+      }
+    }
+  ],
+  "inheritance": [
+    {
+      "id": "spouseChildren",
+      "name": "Au conjoint, puis aux enfants",
+      "traits": {
+        "sociability": 0.5
+      }
+    },
+    {
+      "id": "childrenEqual",
+      "name": "Partagé entre les enfants",
+      "traits": {
+        "generosity": 0.6
+      }
+    },
+    {
+      "id": "eldestChild",
+      "name": "À l’aîné des enfants",
+      "traits": {
+        "ambition": 0.8
+      }
+    },
+    {
+      "id": "group",
+      "name": "Au groupe",
+      "traits": {
+        "generosity": 1,
+        "ambition": -0.8
+      }
+    }
+  ],
+  "strategies": [
+    {
+      "id": "balance",
+      "name": "Vivre au jour le jour",
+      "food": 1,
+      "wood": 1,
+      "build": 1,
+      "craft": 1,
+      "traits": {
+        "prudence": -0.3
+      },
+      "favors": {}
+    },
+    {
+      "id": "provisions",
+      "name": "Faire des provisions",
+      "food": 1.6,
+      "wood": 1,
+      "build": 0.9,
+      "craft": 0.8,
+      "traits": {
+        "prudence": 1
+      },
+      "favors": {
+        "scarcity": 1.5
+      }
+    },
+    {
+      "id": "shelter",
+      "name": "S’abriter et se chauffer",
+      "food": 1.1,
+      "wood": 1.5,
+      "build": 1.4,
+      "craft": 0.9,
+      "traits": {
+        "prudence": 0.5
+      },
+      "favors": {
+        "cold": 1.5
+      }
+    },
+    {
+      "id": "tools",
+      "name": "Fabriquer des outils",
+      "food": 0.9,
+      "wood": 1,
+      "build": 1,
+      "craft": 1.6,
+      "traits": {
+        "curiosity": 0.8,
+        "diligence": 0.6
+      },
+      "favors": {
+        "surplus": 0.8
+      }
+    }
+  ],
+  "duties": {
+    "boost": 1.5,
+    "others": 0.75,
+    "minSkillHours": 20
+  },
+  "opinion": {
+    "approvalRate": 0.08,
+    "respectWeight": 0.5,
+    "affectionWeight": 0.3,
+    "trustWeight": 0.2,
+    "fitWeight": 15,
+    "welfareWeight": 20,
+    "kinBonus": 15,
+    "grievanceHunger": 1.5,
+    "grievanceCold": 1.2,
+    "grievanceLoss": 12,
+    "grievanceSick": 0.8,
+    "grievanceBlockedAmbition": 0.6,
+    "grievanceDecay": 0.04,
+    "hungerFloor": 60,
+    "coldFloor": 50
+  },
+  "obedience": {
+    "base": 0.8,
+    "legitimacy": 0.5,
+    "relation": 0.3,
+    "traits": {
+      "ambition": -0.25,
+      "temper": -0.2,
+      "diligence": 0.15
+    }
+  },
+  "politics": {
+    "everyDays": 5,
+    "gap": 15,
+    "minLegitimacy": 30,
+    "actChance": 0.25,
+    "ambitionTrait": 0.55,
+    "supportShare": 0.5,
+    "reformChance": 0.3,
+    "failedRespect": -20,
+    "reviewYears": 2,
+    "challengerRespect": 15
+  },
+  "clans": {
+    "everyDays": 40,
+    "minFamilies": 2,
+    "minMembers": 5,
+    "kinTie": 1,
+    "friendAffection": 50,
+    "joinTie": 1.2,
+    "foundAmbition": 0.65
+  },
+  "families": {
+    "joinSpouse": true
+  },
+  "scission": {
+    "minMembers": 6,
+    "minAdults": 2,
+    "approvalBelow": 35,
+    "chance": 0.3,
+    "distanceTiles": [
+      25,
+      60
+    ],
+    "waterMaxTiles": 3
+  },
+  "fusion": {
+    "maxMembers": 12,
+    "sufferingDeaths": 3,
+    "minOpinion": 10,
+    "sizeRatio": 1.5,
+    "chance": 0.2
+  },
+  "betrayal": {
+    "approvalBelow": 25,
+    "minAffection": 60,
+    "chance": 0.02
+  },
+  "contact": {
+    "meetTiles": 10,
+    "opinionRate": 0.05,
+    "scissionOpinion": -30,
+    "allianceOpinion": 40,
+    "allianceChance": 0.1
+  },
+  "moves": {
+    "sufferingEffect": 0.4,
+    "migrateDeaths": 4,
+    "migrateMinTiles": 40,
+    "migrateWarmth": 0.5,
+    "winterCelsius": 2
+  },
+  "texts": {
+    "founded": "{groupe} se forme : {raison}.",
+    "clanKin": "les familles de {familles} se reconnaissent du même sang autour de {nom}",
+    "clanAmbition": "{nom}, ambitieux{e}, rassemble autour de {lui_elle} {familles}",
+    "familyNew": "{a} et {b} fondent leur foyer",
+    "leaderChosen": "{nom} devient {role} de {groupe} ({raison}).",
+    "leaderInherited": "{nom} succède à {ancien} à la tête de {groupe}, par la lignée.",
+    "councilChosen": "Le conseil de {groupe} : {noms} ({raison}).",
+    "regimeChanged": "{groupe} change de régime : {ancien} → {nouveau} ({raison}).",
+    "ruleChanged": "{nom} fixe une nouvelle règle pour {groupe} : {regle} ({raison}).",
+    "strategyChanged": "{nom} oriente {groupe} : « {strategie} » ({raison}).",
+    "contested": "{nom} conteste l’autorité de {chef} sur {groupe} ({raison}) mais n’est suivi{e} que par {soutiens} sur {total}.",
+    "overthrown": "{nom} renverse {chef} à la tête de {groupe}, soutenu{e} par {soutiens} membres sur {total} ({raison}).",
+    "reform": "{nom} réforme {groupe} : {changement} ({raison}).",
+    "scission": "{clan} quitte {tribu} ({raison}) : {membres} personnes partent fonder {nouvelle}, à {distance} tuiles vers {direction} ; {biens}.",
+    "fusion": "{petite} rejoint {grande} ({raison}) : {membres} personnes s’y installent.",
+    "alliance": "{a} et {b} font alliance ({raison}).",
+    "betrayal": "{nom} quitte {ancien} pour {nouveau} ({raison}).",
+    "contact": "{a} rencontre {b} pour la première fois, dans {lieu}.",
+    "move": "{decision} : la tribu déplace son camp de {distance} tuiles vers {direction}, dans {lieu} ({raison}).",
+    "migration": "{decision} : {groupe} migre loin d’ici, à {distance} tuiles vers {direction}, dans {lieu} ({raison}).",
+    "dissolved": "{groupe} disparaît : {raison}.",
+    "scissionStay": "{clan} refuse de suivre {tribu} ({raison}) : {membres} personnes restent et fondent {nouvelle} ; {biens}."
+  },
+  "factorTexts": {
+    "small": "le groupe est petit",
+    "large": "le groupe est nombreux",
+    "surplus": "les réserves abondent",
+    "settled": "le camp est installé depuis longtemps",
+    "elders": "les anciens sont nombreux",
+    "rivalry": "les rivalités se multiplient",
+    "scarcity": "les temps sont durs",
+    "cold": "le froid a tué",
+    "territory": "le territoire est immense",
+    "religion": "une religion domine",
+    "trade": "le commerce prospère",
+    "privateProperty": "chacun possède ses biens",
+    "writing": "l’écriture est connue",
+    "war": "la guerre menace"
+  },
+  "featureTexts": {
+    "respect": "respecté{e} de tous",
+    "prestige": "admiré{e} pour son savoir-faire",
+    "age": "doyen{ne} du groupe",
+    "lineage": "héritier{e} de la lignée",
+    "force": "dans la force de l’âge",
+    "wealth": "le plus riche"
+  },
+  "dutyNames": {
+    "food": "nourrir le camp",
+    "wood": "rapporter du bois",
+    "build": "bâtir",
+    "craft": "fabriquer des outils"
+  },
+  "causeTexts": {
+    "hunger": "famine",
+    "cold": "froid",
+    "disease": "maladie",
+    "noLeader": "le pouvoir était vacant",
+    "death": "mort de {nom}",
+    "review": "choix du groupe",
+    "discontent": "mécontentement : {m} contre une légitimité de {l}",
+    "opinion": "bonne entente",
+    "smallAndSuffering": "petite tribu en difficulté",
+    "ties": "attache envers {nom}",
+    "rejected": "rejet de ses dirigeants",
+    "disobeyed": "refus de suivre la tribu",
+    "decisionConsensus": "Les adultes décident ensemble",
+    "decisionCouncil": "Le conseil décide",
+    "decisionChief": "{nom} décide",
+    "farFood": "il faut aller de plus en plus loin pour trouver à manger",
+    "suffering": "après {n} morts de faim, de froid ou de maladie en un an",
+    "goodsCommon": "tout étant en commun, ils n’emportent que ce qu’ils portent",
+    "goodsShared": "ils emportent leur part des réserves",
+    "allied": "alliance"
+  }
+}

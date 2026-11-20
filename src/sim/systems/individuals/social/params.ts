@@ -30,13 +30,14 @@ export const CONVERSATIONS = ['chat', 'confide', 'console', 'seduce', 'argue'] a
 export type ConversationKind = (typeof CONVERSATIONS)[number];
 
 /** Why a relation is what it is (the main reasons are kept with it). */
-export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played'] as const;
+export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played', 'contested', 'rallied'] as const;
 export type ReasonId = (typeof REASONS)[number];
 
 export const NEWS_KINDS = ['death', 'couple', 'food', 'danger'] as const;
 export type NewsKind = (typeof NEWS_KINDS)[number];
 
-export const AMBITIONS = ['makeFriends', 'findPartner', 'excelSkill', 'regainEsteem'] as const;
+/** The last three are political: the groups system offers and judges them (data/groups.json). */
+export const AMBITIONS = ['makeFriends', 'findPartner', 'excelSkill', 'regainEsteem', 'becomeChief', 'foundClan', 'foundTribe'] as const;
 export type AmbitionId = (typeof AMBITIONS)[number];
 
 export interface Feelings {

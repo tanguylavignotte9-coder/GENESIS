@@ -1,4 +1,5 @@
 import animalsJson from '../../../data/animals.json';
+import groupsJson from '../../../data/groups.json';
 import biomesJson from '../../../data/biomes.json';
 import buildingsJson from '../../../data/buildings.json';
 import climateJson from '../../../data/climate.json';
@@ -19,6 +20,7 @@ import { parseFloraParams, PLANTS_SCHEMA, type FloraParams } from '../systems/fl
 import { checkHumanLinks, HUMANS_SCHEMA, parseHumanParams, type HumanParams } from '../systems/individuals/params';
 import { parseSocialParams, SOCIAL_SCHEMA, type SocialParams } from '../systems/individuals/social/params';
 import { LIFE_SCHEMA, parseLifeParams, type LifeParams } from '../systems/individuals/life/params';
+import { checkGroupLinks, GROUPS_SCHEMA, parseGroupsParams, type GroupsParams } from '../systems/groups/params';
 import { checkProductionLinks } from '../systems/production/links';
 import {
   BUILDINGS_SCHEMA,
@@ -56,6 +58,7 @@ export interface GameData {
   humans: HumanParams;
   social: SocialParams;
   life: LifeParams;
+  groups: GroupsParams;
   knowledge: KnowledgeCatalog;
   items: ItemCatalog;
   recipes: RecipeBook;
@@ -88,6 +91,7 @@ export const DATA_FILES: readonly DataFileInfo[] = [
   { file: 'humans.json', key: 'humans', system: 'Humains', schema: HUMANS_SCHEMA },
   { file: 'social.json', key: 'social', system: 'Humains', schema: SOCIAL_SCHEMA },
   { file: 'life.json', key: 'life', system: 'Humains', schema: LIFE_SCHEMA },
+  { file: 'groups.json', key: 'groups', system: 'Groupes', schema: GROUPS_SCHEMA },
   { file: 'knowledge.json', key: 'knowledge', system: 'Production', schema: KNOWLEDGE_SCHEMA },
   { file: 'items.json', key: 'items', system: 'Production', schema: ITEMS_SCHEMA },
   { file: 'recipes.json', key: 'recipes', system: 'Production', schema: RECIPES_SCHEMA },
@@ -112,6 +116,7 @@ export function defaultRawData(): RawGameData {
     humans: humansJson,
     social: socialJson,
     life: lifeJson,
+    groups: groupsJson,
     knowledge: knowledgeJson,
     items: itemsJson,
     recipes: recipesJson,
@@ -136,6 +141,11 @@ export function parseGameData(raw: RawGameData): GameData {
     humans.traits.map((trait) => trait.id),
   );
   const life = parseLifeParams(raw.life);
+  const groups = parseGroupsParams(raw.groups);
+  checkGroupLinks(
+    groups,
+    humans.traits.map((trait) => trait.id),
+  );
   const knowledge = parseKnowledge(raw.knowledge);
   const items = parseItems(raw.items);
   const recipes = parseRecipes(raw.recipes);
@@ -171,6 +181,7 @@ export function parseGameData(raw: RawGameData): GameData {
     humans,
     social,
     life,
+    groups,
     knowledge,
     items,
     recipes,

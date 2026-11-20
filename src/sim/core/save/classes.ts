@@ -11,6 +11,8 @@ import { FishStock } from '../../systems/fauna/fish';
 import { GroupStore } from '../../systems/fauna/groups';
 import { FloraState } from '../../systems/flora/flora-state';
 import { FloraSystem } from '../../systems/flora/flora-system';
+import { Group } from '../../systems/groups/group';
+import { GroupsSystem } from '../../systems/groups/groups-system';
 import { Camp } from '../../systems/individuals/camp';
 import { IndividualsSystem } from '../../systems/individuals/individuals-system';
 import { LifeCycle } from '../../systems/individuals/life/life-cycle';
@@ -70,4 +72,6 @@ export const SAVED_CLASSES: ClassRegistry = {
   SocialLife,
   SocialState,
   NewsBoard,
+  GroupsSystem,
+  Group,
 };

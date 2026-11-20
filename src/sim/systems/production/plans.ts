@@ -30,7 +30,9 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
 
   const seasons = params.custom.foodReserveDaysBySeason;
   const season = sys.climate.seasonAt(camp.center);
-  const reserve = (seasons[season] ?? seasons[0] ?? 0) * members.length * sys.body.dailyFood;
+  // The tribe's strategy (fixed by its leaders, groups system) scales what custom asks for.
+  const policy = camp.policy;
+  const reserve = (seasons[season] ?? seasons[0] ?? 0) * members.length * sys.body.dailyFood * policy.food;
   // Custom counts what is in the stock, in members' hands, and on its way back from harvests.
   let food = sys.stockFood(camp.id) + camp.pendingFood;
   for (const person of members) food += sys.carriedFood(person);
@@ -46,8 +48,9 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
   };
   countFuel(camp.stock);
   for (const person of members) countFuel(sys.carried[person]!);
-  needs.wood = fireKnown && params.custom.firewoodReserveHours > 0 ? clamp01(1 - fuelHours / params.custom.firewoodReserveHours) : 0;
-  needs.woodReserve = fireKnown ? params.custom.firewoodReserveHours : 0;
+  const woodReserve = params.custom.firewoodReserveHours * policy.wood;
+  needs.wood = fireKnown && woodReserve > 0 ? clamp01(1 - fuelHours / woodReserve) : 0;
+  needs.woodReserve = fireKnown ? woodReserve : 0;
   needs.woodHave = fuelHours;
 
   sourceCache.clear();
@@ -56,10 +59,11 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
   if (!needs.craftPlan && camp.unfinished.length > 0) needs.craft = params.custom.urgency.craft;
   // Any missing object custom wants is a need; the more is missing, the stronger.
   if (needs.craftPlan) needs.craft = params.custom.urgency.craft * (0.5 + 0.5 * craftShortfall(sys, camp, needs.craftPlan, members.length));
+  needs.craft = clamp01(needs.craft * policy.craft);
   const build = chooseBuild(sys, camp, knowledge, members.length, needs.craftPlan);
   if (build) {
     needs.buildPlan = build.plan;
-    needs.build = build.urgency;
+    needs.build = clamp01(build.urgency * policy.build);
   }
 }
 

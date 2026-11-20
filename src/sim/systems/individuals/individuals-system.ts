@@ -16,7 +16,8 @@ import { performAction, startAction } from './actions';
 import { liveHours } from './body';
 import { compileActions, rankActions, scoreAction, TOP_ACTIONS, type CompiledAction } from './brain';
 import { Camp } from './camp';
-import { considerMoving } from './camp-move';
+import { moveCamp } from './camp-move';
+import type { GroupView } from './group-view';
 import { createTribes } from './tribe';
 import { DeathCause, People } from './people';
 import { INPUTS, type Behavior, type HumanParams } from './params';
@@ -106,6 +107,8 @@ export class IndividualsSystem {
   private readonly marshBiome: number;
   /** Ground a person may walk on. */
   walkableTile!: (tile: number) => boolean;
+  /** The groups system (step 9): duties, inheritance rules, political ambitions. */
+  groups: GroupView | null = null;
   step = 0;
   hour = 0;
   private absoluteDay = 0;
@@ -305,7 +308,6 @@ export class IndividualsSystem {
       this.social.newDay(absoluteDay);
       this.life.newDay(absoluteDay, tick);
       this.forgetOldPlaces();
-      for (const camp of this.camps) considerMoving(this, camp, absoluteDay, tick);
     }
     const hours = this.stepHours;
     const { people } = this;
@@ -399,10 +401,12 @@ export class IndividualsSystem {
     const gap = mate < 0 ? 0 : people.distance(mate, person);
     input[k++] = Math.min(1, gap / (2 * params.danger.isolationTiles));
     const reserves = production.reserveNeeds(person);
-    input[k++] = reserves.food;
-    input[k++] = reserves.wood;
-    input[k++] = needs.build;
-    input[k++] = needs.craft;
+    // The duty one's leaders gave (if one obeys) weighs on the camp's needs one answers.
+    const groups = this.groups;
+    input[k++] = groups ? Math.min(1, reserves.food * groups.dutyFactor(person, 0)) : reserves.food;
+    input[k++] = groups ? Math.min(1, reserves.wood * groups.dutyFactor(person, 1)) : reserves.wood;
+    input[k++] = groups ? Math.min(1, needs.build * groups.dutyFactor(person, 2)) : needs.build;
+    input[k++] = groups ? Math.min(1, needs.craft * groups.dutyFactor(person, 3)) : needs.craft;
     input[k++] = 1;
     this.social.fillInputs(person, input, k);
     this.life.fillInputs(person, input, k + SOCIAL_INPUTS.length);
@@ -1001,6 +1005,56 @@ export class IndividualsSystem {
       }
     }
     return best;
+  }
+
+  /** The groups system takes over the decisions of the tribes (step 9). */
+  attachGroups(view: GroupView): void {
+    this.groups = view;
+  }
+
+  /**
+   * The tribe's leaders decided to move the camp (groups system): the journal tells it with
+   * `text`, then the people and the common stock go.
+   */
+  moveCampTo(campId: number, destination: number, tick: number, text: string, causes: readonly number[], actors: readonly number[]): number {
+    return moveCamp(this, this.camps[campId]!, destination, this.absoluteDay, tick, text, causes, actors);
+  }
+
+  /**
+   * A new camp at `center` for `members` (a group that leaves its tribe): they belong to it from now
+   * on and walk there; it starts without buildings. Returns the new camp's id.
+   */
+  foundCamp(center: number, members: readonly number[], cause: number): number {
+    const id = this.camps.length;
+    const camp = new Camp(id, center, this.size, this.params.camp.homeRadiusTiles);
+    camp.computeWayHome(this.terrain);
+    camp.settledDay = this.absoluteDay;
+    camp.movedEvent = cause;
+    this.camps.push(camp);
+    this.campPeople.push([]);
+    this.production.openCamp(id, center, cause);
+    for (const person of members) this.joinCamp(person, id);
+    return id;
+  }
+
+  /** The person now belongs to another camp (and leaves what they were doing). */
+  joinCamp(person: number, campId: number): void {
+    const { people } = this;
+    const from = people.camp[person]!;
+    if (from === campId) return;
+    const members = this.campPeople[from];
+    if (members) {
+      const at = members.indexOf(person);
+      if (at >= 0) members.splice(at, 1);
+    }
+    this.campPeople[campId]!.push(person);
+    people.camp[person] = campId;
+    people.forageDistance[person] = 0;
+    people.farFood[person] = -1;
+    people.target[person] = -1;
+    people.paths[person] = null;
+    people.nextThink[person] = this.step;
+    this.production.leaveCamp(person);
   }
 
   /** Living members of a camp (in the order they joined it). */

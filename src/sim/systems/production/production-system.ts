@@ -11,7 +11,7 @@ import type { ClimateState } from '../world/climate-state';
 import { Water } from '../world/hydrology';
 import type { World } from '../world/world';
 import { BuildState, newBuilding, type Building } from './buildings';
-import { CampState, type CampNeeds } from './camps';
+import { CampState, type CampPolicy, type CampNeeds } from './camps';
 import { nearestGroundPile, type GroundPile } from './ground';
 import { Catalog, type BuildingType } from './catalog';
 import { publishBuildingDone } from './events';
@@ -273,6 +273,62 @@ export class ProductionSystem {
         this.bedOf[person] = home.id;
       }
     }
+  }
+
+  /** A camp founded by people who left their tribe: no buildings yet, an empty stock. */
+  openCamp(camp: number, center: number, cause: number): void {
+    this.camps[camp] = new CampState(camp, center, this.catalog.items.length);
+    this.camps[camp]!.settleEvent = cause;
+    this.buildingsChanged();
+  }
+
+  /** The person leaves their camp (for another one): their bed and their work there. */
+  leaveCamp(person: number): void {
+    const building = this.buildings[this.bedOf[person]!];
+    if (building) building.residents = building.residents.filter((resident) => resident !== person);
+    this.bedOf[person] = -1;
+    this.endJob(person);
+  }
+
+  /** The strategy of the camp's tribe: factors on the reserves and urges of custom. */
+  applyCampPolicy(camp: number, policy: CampPolicy): void {
+    const state = this.camps[camp];
+    if (!state) return;
+    state.policy = { ...policy };
+    state.needsHour = -1;
+  }
+
+  /** Part (0..1) of every pile of a camp's common stock goes to another camp (a split, by the property rules). */
+  shareStock(from: number, to: number, share: number): string[] {
+    const source = this.camps[from]!.stock;
+    const target = this.camps[to]!.stock;
+    const names: string[] = [];
+    const items = [...new Set(source.piles.map((pile) => pile.item))];
+    for (const item of items) {
+      const taken = source.take(item, source.count(item) * share);
+      if (taken.qty <= 0) continue;
+      target.put(item, taken.qty, taken.quality, -1 - to);
+      names.push(this.catalog.items[item]!.name);
+    }
+    this.camps[from]!.needsHour = -1;
+    this.camps[to]!.needsHour = -1;
+    return names;
+  }
+
+  /**
+   * A tribe joins another: its camp is left (buildings abandoned), what its people can carry of the
+   * stock joins the other camp's stock.
+   */
+  mergeCamp(from: number, into: number, movers: number, cause: number): void {
+    const center = this.camps[into]!.center;
+    this.relocateCamp(from, center, movers, cause);
+    const source = this.camps[from]!.stock;
+    const target = this.camps[into]!.stock;
+    for (const item of [...new Set(source.piles.map((pile) => pile.item))]) {
+      const taken = source.take(item, source.count(item));
+      if (taken.qty > 0) target.put(item, taken.qty, taken.quality, -1 - into);
+    }
+    this.camps[into]!.needsHour = -1;
   }
 
   /**

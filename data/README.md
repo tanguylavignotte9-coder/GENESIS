@@ -17,6 +17,7 @@ se modifie en direct ou pour le prochain monde, et les réglages s'enregistrent 
 | `daysPerSeason` | Nombre de jours par saison | 10 |
 | `seasons` | Noms des saisons, dans l'ordre ; une année = toutes les saisons (4 × 10 = 40 jours) | Printemps, Été, Automne, Hiver |
 | `speeds` | Vitesses proposées (boutons et touches 1 à 5) ; la pause est à part | 1, 5, 25, 100, 500 |
+| `autosave` | Sauvegarde automatique (lue par le jeu, pas par la simulation) : intervalle en minutes réelles (0 = jamais), nombre d'emplacements « auto » utilisés à tour de rôle, sauvegarde à la fermeture | 5 min, 3, oui |
 
 ## `climate.json` — saisons et années anormales
 
@@ -140,6 +141,11 @@ de chasse, `migratory` / `migrationTiles`, `domesticable` (pour l'élevage plus 
 (ce que l'animal fournit à sa mort). Vitesses en tuiles par heure : `walkTilesPerHour` (marche),
 `fleeSprintTiles` (fuite devant un humain), `sprintTiles` (poursuite d'un chasseur).
 `birthIntervalDays` : une mère ne conçoit pas de nouveau tant qu'elle élève ses petits.
+Espèces territoriales (étape 9, les loups) : `territoryTiles` (rayon défendu autour de la tanière ; une meute
+cède la place à une plus forte, seule la femelle dominante d'une meute qui tient son territoire met bas : cela
+remplace pour elles `crowdingRadius` / `crowdingMax` et le gibier compté autour), `dispersalPerYear` (chance par an
+qu'un jeune adulte parte fonder sa meute avec un autre solitaire). `bigPreyMeat` : un chasseur préfère les proies
+qui donnent au moins cette viande et ne se rabat sur les petites que faute de gros gibier à portée.
 
 ## Métadonnées des variables (Atelier des variables)
 
@@ -181,7 +187,7 @@ par les humains et leur vitesse de marche.
 | `terrain` | Coûts de marche (forêt, broussailles, gué, pente) pour la recherche de chemin |
 | `decision` | Part de hasard, persévérance, envie de déposer au stock en passant, ouvrage en cours qu'on finit |
 | `actions` | Les actions du cerveau (voir ci-dessous) |
-| `campMove`, `campMoveText` | Déplacement du camp par consensus des adultes (distance de cueillette qui fait vouloir partir, part d'adultes nécessaire, délai entre deux départs) et sa phrase du journal |
+| `campMove` | Envie de déplacer le camp (distance de cueillette qui fait vouloir partir, part d'adultes nécessaire pour une décision collective, délai entre deux départs) ; la décision revient aux dirigeants (`groups.json`) |
 | `deathTexts`, `settlementText` | Phrases du journal |
 
 **Les actions** (« utility AI ») : chaque action a un poids et des *considérations*. Chaque considération
@@ -279,3 +285,24 @@ Aucune règle ne limite ni ne soutient la population : naissances et morts vienn
 | `orphans` | Qui recueille un orphelin : famille d'abord, puis proches du défunt, selon l'affection, la générosité et les enfants déjà à charge ; personne si nul n'en a envie |
 | `census` | Fréquence des points de la courbe de population |
 | `texts` | Phrases du journal (naissances, épidémies, famines, orphelins, héritages) |
+
+## `groups.json` — groupes, pouvoir et règles (étape 9)
+
+Un seul concept de groupe pour tous les niveaux : 0 la tribu, 1 les clans, 2 les familles (foyers).
+
+| Clé | Rôle |
+| --- | --- |
+| `levels`, `nameTemplates` | Noms des niveaux et noms descriptifs des groupes (« la tribu de {nom} ») |
+| `adultAge`, `elderAge` | Âge à partir duquel on compte dans la vie politique, âge d'un ancien |
+| `factors` | Comment on mesure la situation d'un groupe (petit, nombreux, surplus, installé, anciens, rivalités, temps durs) |
+| `regimes` | Les 8 régimes : titre des dirigeants, nombre de dirigeants, façon de décider (consensus, conseil, chef), hérédité, niveaux possibles, poids de chaque atout pour accéder au pouvoir (`weights` : respect, prestige, âge, lignée, force, richesse), situations qui le favorisent (`favors`) et conditions nécessaires (`requires` : religion, écriture, commerce, territoire, guerre… pas encore simulées, donc ces régimes ne peuvent pas apparaître) |
+| `power` | Échelles des atouts des candidats, inertie d'un régime avant une réforme |
+| `property`, `inheritance`, `strategies` | Règles de propriété, d'héritage et stratégies possibles, choisies par les dirigeants selon leur caractère (`traits`) et la situation (`favors`) ; une stratégie multiplie les réserves et envies de la coutume (nourriture, bois, construction, artisanat) |
+| `duties` | Obligations confiées par les dirigeants : poids du travail confié et des autres travaux |
+| `opinion` | Soutien aux dirigeants (respect, affection, confiance, régime adapté, bien-être) et griefs (faim, froid, deuil, maladie, ambition contrariée, oubli) |
+| `obedience` | Chance d'obéir selon la légitimité, la relation au dirigeant et le caractère |
+| `politics` | Rythme de la vie politique, écart mécontentement − légitimité qui fait agir les ambitieux, soutien nécessaire pour renverser un chef, réformes |
+| `clans`, `families` | Formation des clans (liens du sang, amitiés, ambition) et des foyers |
+| `scission`, `fusion`, `betrayal`, `contact` | Départ d'un clan pour fonder une tribu, petite tribu en difficulté qui en rejoint une autre, départ d'un individu vers une autre tribu, rencontres, opinions et alliances entre tribus |
+| `moves` | Déplacements du camp et migrations décidés par les dirigeants, selon les souffrances passées |
+| `texts`, `factorTexts`, `featureTexts`, `dutyNames`, `causeTexts` | Phrases du journal et de la fiche personnage |

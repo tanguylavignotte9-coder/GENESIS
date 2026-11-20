@@ -714,6 +714,5 @@
     "minMoveTiles": 12,
     "waterMaxTiles": 3,
     "minAdults": 2
-  },
-  "campMoveText": "Les adultes décident ensemble de déplacer le camp : il faut aller de plus en plus loin pour trouver à manger. La tribu part s’installer à {distance} tuiles vers {direction}, dans {lieu}."
+  }
 }

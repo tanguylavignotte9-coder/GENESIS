@@ -6,7 +6,8 @@ import { BUILDING_DONE, FIRST_ITEM, SITE_STARTED } from '../../../src/sim/system
 import { campOwner, Inventory } from '../../../src/sim/systems/production/inventory';
 import { qualityFor } from '../../../src/sim/systems/production/jobs';
 import { spoil, spoilFactor } from '../../../src/sim/systems/production/spoilage';
-import { CAMP_MOVED, considerMoving } from '../../../src/sim/systems/individuals/camp-move';
+import { CAMP_MOVED } from '../../../src/sim/systems/individuals/camp-move';
+import { considerMove } from '../../../src/sim/systems/groups/moves';
 import { dataWithSize } from '../world/helpers';
 
 const SIZE = 320;
@@ -248,8 +249,8 @@ describe('moving the camp', () => {
       people.farFood[p] = far;
     }
     camp.settledDay = -data.humans.campMove.minDaysBetweenMoves;
-    // The adults weigh it up at the start of a day.
-    considerMoving(humans, camp, 1, simulation.clock.tick);
+    // The tribe's power weighs it up (every adult wants it: whatever the regime, the tribe goes).
+    considerMove(simulation.groups, simulation.groups.tribes()[0]!);
     const move = simulation.journal.all().find((event) => event.type === CAMP_MOVED);
     expect(move).toBeDefined();
     expect(move!.text).toContain('tuiles vers');

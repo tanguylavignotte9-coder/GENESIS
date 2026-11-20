@@ -10,6 +10,7 @@ import { COUPLE_FORMED, FALLING_OUT, GREAT_FRIENDSHIP, MOURNING, SEPARATION } fr
 import { EPIDEMIC_START } from './systems/individuals/life/disease';
 import { FAMINE } from './systems/individuals/life/life-cycle';
 import { ADOPTION } from './systems/individuals/life/orphans';
+import { GROUP_EVENTS } from './systems/groups/texts';
 
 /** Social events listed in the summary. */
 const SOCIAL_EVENTS = [COUPLE_FORMED, GREAT_FRIENDSHIP, FALLING_OUT, SEPARATION, MOURNING];
@@ -80,6 +81,16 @@ export interface HeadlessReport {
     /** Couples, great friendships, falling-outs, separations and griefs, with their date. */
     social: string[];
   };
+  /** Groups: tribes alive, regimes seen, splits, mergers…, and the political events, dated. */
+  groups: {
+    tribesAlive: number;
+    tribesEver: number;
+    clansEver: number;
+    /** Regimes held by tribes and clans at some point (name, groups that had it). */
+    regimes: { name: string; groups: number }[];
+    counts: Record<keyof typeof GROUP_EVENTS, number>;
+    events: string[];
+  };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -135,6 +146,7 @@ export function runHeadless(
     faunaEvents: summarizeFaunaEvents(simulation),
     humans: summarizeHumans(simulation, timeline),
     production: summarizeProduction(simulation),
+    groups: summarizeGroups(simulation),
     msPerDay: ticks > 0 ? elapsed / ((simulation.clock.tick - startTick) / data.time.ticksPerDay) : 0,
     randomFingerprint,
   };
@@ -198,6 +210,34 @@ function summarizeHumans(simulation: Simulation, timeline: HeadlessReport['human
       .all()
       .filter((event) => LIFE_EVENTS.includes(event.type))
       .map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+  };
+}
+
+/** Political events listed in the summary (the many leader designations of bands are not). */
+const POLITICAL_EVENTS: readonly string[] = [GROUP_EVENTS.founded, GROUP_EVENTS.regime, GROUP_EVENTS.overthrown, GROUP_EVENTS.contested, GROUP_EVENTS.scission, GROUP_EVENTS.fusion, GROUP_EVENTS.alliance, GROUP_EVENTS.betrayal, GROUP_EVENTS.contact, GROUP_EVENTS.move, GROUP_EVENTS.dissolved, GROUP_EVENTS.rule, GROUP_EVENTS.strategy, CAMP_MOVED];
+
+function summarizeGroups(simulation: Simulation): HeadlessReport['groups'] {
+  const { groups, journal } = simulation;
+  const time = simulation.data.time;
+  const events = journal.all();
+  const counts = Object.fromEntries(Object.entries(GROUP_EVENTS).map(([key, type]) => [key, events.filter((event) => event.type === type).length])) as Record<keyof typeof GROUP_EVENTS, number>;
+  counts.move = events.filter((event) => event.type === CAMP_MOVED).length;
+  // Regimes seen: the founding regime of each tribe and clan, plus every regime change.
+  const seen = new Map<string, Set<number>>();
+  const add = (regime: string, group: number): void => {
+    const set = seen.get(regime) ?? new Set<number>();
+    set.add(group);
+    seen.set(regime, set);
+  };
+  for (const group of groups.groups) if (group.level < 2) add(groups.params.regimes[group.regime]!.id, group.id);
+  for (const event of events) if (event.type === GROUP_EVENTS.regime) add(String(event.details['from']), Number(event.details['group']));
+  return {
+    tribesAlive: groups.tribes().length,
+    tribesEver: groups.groups.filter((group) => group.level === 0).length,
+    clansEver: groups.groups.filter((group) => group.level === 1).length,
+    regimes: groups.params.regimes.flatMap((regime) => (seen.has(regime.id) ? [{ name: regime.name, groups: seen.get(regime.id)!.size }] : [])),
+    counts,
+    events: events.filter((event) => POLITICAL_EVENTS.includes(event.type)).map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
   };
 }
 

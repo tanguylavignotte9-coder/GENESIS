@@ -54,6 +54,14 @@ export interface Unfinished {
   progress: number;
 }
 
+/** Factors on the reserves and urges custom asks for, set by the tribe's strategy. */
+export interface CampPolicy {
+  food: number;
+  wood: number;
+  build: number;
+  craft: number;
+}
+
 /** Production's view of a camp: where it is, its common stock, its needs. */
 export class CampState {
   stock = new Inventory();
@@ -71,6 +79,8 @@ export class CampState {
   needsHour = -1;
   /** Journal event of the camp's last move: the cause of the fire, shelters and cache rebuilt (-1 = none). */
   settleEvent = -1;
+  /** Factors the tribe's strategy puts on what custom asks for (groups system, step 9). */
+  policy: CampPolicy = { food: 1, wood: 1, build: 1, craft: 1 };
   needs: CampNeeds = { food: 0, wood: 0, build: 0, craft: 0, buildPlan: null, craftPlan: null, foodReserve: 0, foodHave: 0, woodReserve: 0, woodHave: 0, members: [], knowledge: 0 };
 
   constructor(

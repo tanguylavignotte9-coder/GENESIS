@@ -14,6 +14,8 @@ import { WorkshopPage } from './hud/workshop/workshop-page';
 import { PersonSheet } from './hud/person-sheet';
 import { TribePanel } from './hud/tribe-panel';
 import { SavesPanel } from './hud/saves-panel';
+import { GroupsPanel } from './hud/groups-panel';
+import { TribeLayer } from './life/tribe-layer';
 import { StatsPanel } from './hud/stats-panel';
 import { TimeControls } from './hud/time-controls';
 import { Tooltip } from './hud/tooltip';
@@ -53,7 +55,8 @@ async function main(): Promise<void> {
   const people = new HumanLayer();
   const buildings = new BuildingLayer();
   const night = new NightLayer();
-  mapView.container.addChild(plants.container, buildings.container, animals.container, people.container, night.sprite);
+  const tribes = new TribeLayer();
+  mapView.container.addChild(plants.container, buildings.container, animals.container, people.container, night.sprite, tribes.container);
   app.stage.addChild(mapView.container);
   const camera = new Camera(app.canvas, mapView.container);
   const tooltip = new Tooltip(element('tooltip'));
@@ -255,6 +258,14 @@ async function main(): Promise<void> {
     window.genesis,
     { requestSave: (requestId, reason) => sim.save(requestId, reason), load: (body, label) => sim.load(body, label) },
   );
+  const groupsPanel = new GroupsPanel(element('groups'), element<HTMLButtonElement>('groups-toggle'), element('groups-body'), (person) => selectPerson(person), (x, y) => {
+    camera.stopFollowing();
+    camera.focusOn(x, y);
+  });
+  window.addEventListener('keydown', (event) => {
+    if (event.code !== 'KeyG' || event.target instanceof HTMLInputElement) return;
+    element<HTMLButtonElement>('groups-toggle').click();
+  });
   const perfPanel = new PerfPanel(element('perf'));
   const tribe = new TribePanel(element('tribe'), element<HTMLButtonElement>('tribe-toggle'), element('tribe-list'), selectPerson);
   const followBadge = element('follow');
@@ -273,6 +284,8 @@ async function main(): Promise<void> {
         panel.setGenerating(message.seed);
         tooltip.hide();
         journal.clear();
+        tribes.clear();
+        groupsPanel.clear();
         camera.stopFollowing();
         sheet.close();
         return;
@@ -349,6 +362,10 @@ async function main(): Promise<void> {
         return;
       case 'humanStats':
         stats.addHumans(message.stats);
+        return;
+      case 'groups':
+        tribes.setGroups(message.groups);
+        groupsPanel.setGroups(message.groups);
         return;
       case 'roster':
         roster = message.roster;
@@ -471,6 +488,8 @@ async function main(): Promise<void> {
       perfPanel.update(app.ticker.FPS);
     }
     tribe.update(people.snapshot, now);
+    tribes.update(camera.pixelsPerTile);
+    groupsPanel.update(now);
     if (sheet.isOpen && now - lastPersonRequest > VIEW.inspectEveryMs) {
       lastPersonRequest = now;
       sim.inspectPerson(++personRequest, sheet.person);

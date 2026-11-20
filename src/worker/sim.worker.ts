@@ -10,6 +10,7 @@ import { loadGameData } from '../sim/core/game-data';
 import { daysPerYear } from '../sim/core/time-params';
 import { Workshop, type WorkshopResult } from '../sim/core/workshop';
 import { loadWorld, saveWorld } from '../sim/core/save/save';
+import { describeGroups } from '../sim/systems/groups/describe';
 import type { FromSimMessage, JournalEntry, LifeTables, SaveReason, ToSimMessage } from '../shared/messages';
 import { PerfMeter } from './perf-meter';
 import { snapshotWorld } from './world-snapshot';
@@ -284,6 +285,7 @@ function publishChanges(current: Simulation): void {
     sentRosterLiving = living;
     sentRosterDay = day;
     post({ type: 'roster', roster: snapshotRoster(current) });
+    post({ type: 'groups', groups: describeGroups(current.groups) });
     const stats = snapshotHumanStats(current, sentHumanSamples);
     sentHumanSamples += stats.samples.length;
     post({ type: 'humanStats', stats });

@@ -6,7 +6,7 @@ import { fertilityAt, oldAgeDeathPerDay, vigorAt, vulnerabilityAt } from '../../
 import { BIRTH, considerConception, desireForChild, fertility } from '../../../src/sim/systems/individuals/life/birth';
 import { diseaseDamagePerHour, EPIDEMIC_END, EPIDEMIC_START, infect, spreadDisease } from '../../../src/sim/systems/individuals/life/disease';
 import { ADOPTION } from '../../../src/sim/systems/individuals/life/orphans';
-import { BELONGINGS_FOUND, findBelongings, INHERITANCE } from '../../../src/sim/systems/individuals/life/heritage';
+import { BELONGINGS_FOUND, findBelongings, heirsOf, INHERITANCE } from '../../../src/sim/systems/individuals/life/heritage';
 import { NEVER_DAY } from '../../../src/sim/systems/individuals/life/state';
 import { memoryWeight } from '../../../src/sim/systems/individuals/social/feelings';
 import { learn } from '../../../src/sim/systems/individuals/social/news';
@@ -367,11 +367,13 @@ describe('orphans and inheritance', () => {
     expect(life.orphans.some((orphan) => orphan.child === child)).toBe(true);
   });
 
-  it('the objects of the dead go to the partner, as custom wants', () => {
+  it('the objects of the dead go to the partner, when the tribe\'s inheritance rule says so', () => {
     const simulation = world();
     const { humans, production } = simulation;
     const { people } = humans;
     const { woman, man } = couple(simulation);
+    const tribe = simulation.groups.tribeOf(man)!;
+    tribe.inheritance = simulation.data.groups.inheritance.findIndex((rule) => rule.id === 'spouseChildren');
     const knife = production.catalog.itemIndex.get('stone_knife')!;
     production.carried[man]!.put(knife, 1, 0.5, man);
     people.placeAt(man, humans.camps[0]!.centerX + 0.5, humans.camps[0]!.centerY + 0.5);
@@ -379,6 +381,10 @@ describe('orphans and inheritance', () => {
     expect(production.hasItem(woman, knife)).toBe(true);
     const inheritance = simulation.journal.all().find((event) => event.type === INHERITANCE)!;
     expect(inheritance.text).toContain(people.names[woman]!);
+    // With the rule "to the group", nobody inherits: the objects go to the common stock.
+    tribe.inheritance = simulation.data.groups.inheritance.findIndex((rule) => rule.id === 'group');
+    production.carried[woman]!.put(knife, 1, 0.5, woman);
+    expect(heirsOf(humans.life, woman)).toEqual([]);
   });
 
   it('far from the camp, the objects of the dead stay on the ground until someone passing by finds them', () => {

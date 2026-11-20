@@ -10,16 +10,24 @@ export const INHERITANCE = 'life.inheritance';
 export const BELONGINGS_FOUND = 'life.belongingsFound';
 
 /**
- * Who inherits the personal objects of the dead, by the default custom (to be replaced by the
- * property rules of the groups, step 9): the living partner, otherwise the children; with no heir,
- * the camp's common stock. Far from the camp, the objects stay on the ground where the body lies.
+ * Who inherits the personal objects of the dead, by the inheritance rule of their tribe (groups
+ * system; the default custom before it): the living partner then the children, the children
+ * only, the eldest child, or the group. With no heir, the camp's common stock. Far from the camp,
+ * the objects stay on the ground where the body lies.
  */
 export function heirsOf(life: LifeCycle, dead: number): number[] {
   const { people, sys } = life;
   const camp = people.camp[dead]!;
+  const rule = sys.groups?.inheritanceRule(dead) ?? 'spouseChildren';
+  if (rule === 'group') return [];
   const spouse = people.spouse[dead]!;
-  if (life.alive(spouse) && people.camp[spouse] === camp) return [spouse];
-  return sys.campMembers(camp).filter((child) => people.mother[child] === dead || people.father[child] === dead);
+  if (rule === 'spouseChildren' && life.alive(spouse) && people.camp[spouse] === camp) return [spouse];
+  const children = sys.campMembers(camp).filter((child) => people.mother[child] === dead || people.father[child] === dead);
+  if (rule === 'eldestChild' && children.length > 1) {
+    const eldest = children.reduce((best, child) => (people.ageYears[child]! > people.ageYears[best]! ? child : best));
+    return [eldest];
+  }
+  return children;
 }
 
 /** The objects of the dead go to the heirs (told in the journal with the main objects). */

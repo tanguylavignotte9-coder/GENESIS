@@ -39,7 +39,8 @@ function stillWanted(life: SocialLife, person: number, kind: number, target: num
       return esteem < life.params.relations.friendAffection && memoryWeight(life, person, 'quarrel', target) > 0;
     }
     default:
-      return false;
+      // Political ambitions (become chief, found a clan or a tribe): judged by the groups system.
+      return life.stillWantsPower(person, AMBITIONS[kind]!);
   }
 }
 
@@ -120,6 +121,36 @@ function drawn(life: SocialLife, options: readonly Candidate[]): Candidate {
     if (roll <= 0) return option;
   }
   return options[options.length - 1]!;
+}
+
+/**
+ * The groups system gives a person a political ambition born of their situation (a free slot, or in
+ * place of the newest other ambition). Returns true if the ambition is new.
+ */
+export function offerAmbition(life: SocialLife, person: number, id: AmbitionId, target: number): boolean {
+  const kind = Ambition[id];
+  if (hasAmbition(life, person, kind)) return false;
+  const s = life.state;
+  const max = Math.min(AMBITION_SLOTS, life.params.ambitions.max);
+  const want = life.params.ambitions.kinds[id].weight * personality(life, person, life.params.ambitions.kinds[id].traits);
+  if (want <= 0) return false;
+  let slot = -1;
+  let newest = -1;
+  for (let k = person * AMBITION_SLOTS; k < person * AMBITION_SLOTS + max; k++) {
+    if (s.ambition[k]! < 0) {
+      slot = k;
+      break;
+    }
+    if (s.ambitionSince[k]! > newest) {
+      newest = s.ambitionSince[k]!;
+      slot = k;
+    }
+  }
+  if (slot < 0) return false;
+  s.ambition[slot] = kind;
+  s.ambitionTarget[slot] = target;
+  s.ambitionSince[slot] = life.day;
+  return true;
 }
 
 export function hasAmbition(life: SocialLife, person: number, kind: number): boolean {

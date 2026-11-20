@@ -127,6 +127,13 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   console.log(`  Vie sociale           : ${fr.format(work.social.length)} événement(s) (couples, grandes amitiés, brouilles, séparations, deuils)`);
   const shown = work.social.length <= MAX_LISTED_ANOMALIES ? work.social : [...work.social.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...work.social.slice(-MAX_LISTED_ANOMALIES / 2)];
   for (const line of shown) console.log(`    ${line}`);
+  const g = report.groups;
+  const c = g.counts;
+  console.log(`  Groupes               : ${fr.format(g.tribesAlive)} tribu(s) en vie (${fr.format(g.tribesEver)} au total), ${fr.format(g.clansEver)} clan(s) formé(s)`);
+  console.log(`  Régimes apparus       : ${g.regimes.map((regime) => `${regime.name} (${regime.groups})`).join(', ') || 'aucun'}`);
+  console.log(`  Vie politique         : ${c.leader} désignation(s), ${c.regime} changement(s) de régime, ${c.contested} contestation(s), ${c.overthrown} renversement(s), ${c.scission} scission(s), ${c.fusion} fusion(s), ${c.alliance} alliance(s), ${c.betrayal} départ(s) vers une autre tribu, ${c.contact} rencontre(s), ${c.move} déplacement(s), ${c.rule} règle(s), ${c.strategy} stratégie(s)`);
+  const politics = g.events.length <= MAX_LISTED_ANOMALIES ? g.events : [...g.events.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...g.events.slice(-MAX_LISTED_ANOMALIES / 2)];
+  for (const line of politics) console.log(`    ${line}`);
   console.log(`  Animaux               : ${fr.format(totalAnimals)} (début → fin, minimum–maximum observés)`);
   for (const line of report.animals) {
     console.log(`    ${line.name.padEnd(18)} ${fr.format(line.start).padStart(6)} → ${fr.format(line.end).padStart(6)}   (${fr.format(line.min)}–${fr.format(line.max)})`);

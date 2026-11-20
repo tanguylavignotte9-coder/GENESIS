@@ -429,6 +429,29 @@
         "traits": {
           "temper": -0.6
         }
+      },
+      "becomeChief": {
+        "name": "Devenir chef",
+        "weight": 1,
+        "traits": {
+          "ambition": 1
+        }
+      },
+      "foundClan": {
+        "name": "Fonder son propre clan",
+        "weight": 1,
+        "traits": {
+          "ambition": 1,
+          "sociability": 0.5
+        }
+      },
+      "foundTribe": {
+        "name": "Fonder sa propre tribu",
+        "weight": 1,
+        "traits": {
+          "ambition": 1,
+          "curiosity": 0.5
+        }
       }
     },
     "dailyChance": 0.15
@@ -500,6 +523,14 @@
     "played": {
       "text": "jeux d’enfants",
       "dated": false
+    },
+    "contested": {
+      "text": "{autre} a contesté le pouvoir",
+      "dated": true
+    },
+    "rallied": {
+      "text": "{nom} a suivi {autre} pour prendre le pouvoir",
+      "dated": true
     }
   },
   "kinNames": {

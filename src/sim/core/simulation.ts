@@ -1,6 +1,7 @@
 import { FaunaSystem } from '../systems/fauna/fauna-system';
 import { FloraSystem } from '../systems/flora/flora-system';
 import { IndividualsSystem } from '../systems/individuals/individuals-system';
+import { GroupsSystem } from '../systems/groups/groups-system';
 import { ProductionSystem, type BodyFacts } from '../systems/production/production-system';
 import { WeatherState } from '../systems/world/weather';
 import { startAnomalyYear } from '../systems/world/anomalies';
@@ -48,6 +49,7 @@ export class Simulation {
   readonly weather: WeatherState;
   readonly production: ProductionSystem;
   readonly humans: IndividualsSystem;
+  readonly groups: GroupsSystem;
   /** Ticks between two steps of the animals, and of the humans. */
   readonly ticksPerStep: number;
   readonly ticksPerHumanStep: number;
@@ -101,6 +103,7 @@ export class Simulation {
       this.clock.tick,
       this.interactions,
     );
+    this.groups = new GroupsSystem(this.humans, data.groups, this.rng, this.journal, this.date.absoluteDay, this.clock.tick);
   }
 
   /**
@@ -116,6 +119,7 @@ export class Simulation {
     this.humans.refreshParams();
     this.humans.social.refreshParams(this.data.social);
     this.humans.life.refreshParams(this.data.life);
+    this.groups.refreshParams(this.data.groups);
   }
 
   /** Hour of the day, 0..24 (fractional). */
@@ -189,5 +193,7 @@ export class Simulation {
     this.fauna.runDay(date.absoluteDay, date.dayOfYear, this.journal, tick);
     // The production system is created after the first day starts (it needs the world's life).
     if (this.production) this.production.dailyUpdate();
+    // The groups decide after the plants and animals lived their day (absent during the warm-up).
+    if (this.groups) this.groups.dailyUpdate(date.absoluteDay, tick);
   }
 }

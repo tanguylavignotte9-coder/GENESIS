@@ -72,7 +72,7 @@ export function liveHours(sys: IndividualsSystem, person: number, hours: number)
     healHarm(harm, at, FULL - people.health[person]!);
   }
   if (people.health[person]! > 0) return DeathCause.None;
-  return worstHarm(harm, at);
+  return worstHarm(harm, at, life.state.disease[person]! >= 0);
 }
 
 const HARM_CAUSES = [DeathCause.Hunger, DeathCause.Thirst, DeathCause.Cold, DeathCause.Disease] as const;
@@ -86,9 +86,12 @@ function healHarm(harm: Float32Array, at: number, deficit: number): void {
   for (let k = 0; k < HARM_KINDS; k++) harm[at + k] = harm[at + k]! * keep;
 }
 
-/** The cause that did the most harm (hunger when none, as before). */
-function worstHarm(harm: Float32Array, at: number): number {
+/** The cause that did the most harm (hunger when none); a disease only if one is still sick. */
+function worstHarm(harm: Float32Array, at: number, sick: boolean): number {
   let best = 0;
-  for (let k = 1; k < HARM_KINDS; k++) if (harm[at + k]! > harm[at + best]!) best = k;
+  for (let k = 1; k < HARM_KINDS; k++) {
+    if (HARM_CAUSES[k] === DeathCause.Disease && !sick) continue;
+    if (harm[at + k]! > harm[at + best]!) best = k;
+  }
   return HARM_CAUSES[best]!;
 }

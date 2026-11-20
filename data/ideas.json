@@ -85,7 +85,7 @@
     "tokenItems": ["flint", "bone", "leather", "stone_knife", "scraper", "bone_needle", "bowl", "basket", "shells"],
     "tokenAcceptChance": 0.4,
     "tokenGain": 0.2,
-    "tokenSpreadPerTalk": 0.1,
+    "tokenSpreadPerTalk": 0.05,
     "tokenDecayPerYear": 0.2,
     "currencyShare": 0.5,
     "currencyStrength": 0.5

@@ -14,6 +14,8 @@ import { IDEA_EVENTS, publishIdeaEvent } from './texts';
  */
 
 const PERCENT = 100;
+/** Share of one's trust in a good that hearsay can pass on (one trusts one's own trades more). */
+const HEARSAY = 0.7;
 
 /** Several times a day: who of different tribes are within reach of each other. */
 export function encounters(sys: IdeasSystem): void {
@@ -169,7 +171,10 @@ export function tokenTalk(sys: IdeasSystem, a: number, b: number): void {
   ] as const) {
     const item = h.token[x]!;
     if (item < 0) continue;
-    const gain = spread * h.tokenTrust[x]!;
+    // Hearsay is weaker than one's own trades: it never brings the other above what one trusts oneself.
+    const ceiling = HEARSAY * h.tokenTrust[x]!;
+    const gain = Math.min(spread * h.tokenTrust[x]!, Math.max(0, ceiling - (h.token[y] === item ? h.tokenTrust[y]! : 0)));
+    if (gain <= 0) continue;
     if (h.token[y] === item || h.token[y] === -1 || h.tokenTrust[y]! < gain) trustToken(sys, y, item, gain);
   }
 }

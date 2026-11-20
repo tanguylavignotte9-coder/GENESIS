@@ -9,8 +9,6 @@ import { listNames, nameOf } from './texts';
 import { fillTemplate } from '../../core/text';
 import { describeLocation } from '../world/places';
 
-/** Directions tried for a migration (technical). */
-const MIGRATION_TRIES = 12;
 /** A clan refuses to follow when more than this share of its adults do not obey. */
 const REFUSE_SHARE = 0.5;
 const MAX_CAUSES = 3;
@@ -111,22 +109,20 @@ function meetingSite(sys: GroupsSystem, proposals: readonly number[]): number {
   return chosen;
 }
 
-/** Far away: a known place of food far enough, else open land in some direction; warmer if the cold killed. */
+/**
+ * Far away, but only where someone of the tribe knows there is food (one does not lead the tribe
+ * into the unknown): the farthest known place, warmer if the cold killed. -1 if nobody knows any.
+ */
 function migrationSite(sys: GroupsSystem, tribe: Group, proposals: readonly number[]): number {
-  const { humans, params, rng } = sys;
+  const { humans, params } = sys;
   const camp = humans.camps[tribe.camp]!;
   const size = humans.size;
-  const minTiles = params.moves.migrateMinTiles;
+  const people = humans.people;
+  const minTiles = humans.params.campMove.minMoveTiles;
   const coldShare = recentSufferings(sys, tribe, DeathCause.Cold) / Math.max(1, recentSufferings(sys, tribe));
   const candidates = [...proposals];
-  for (let k = 0; k < MIGRATION_TRIES; k++) {
-    const distance = rng.nextRange(minTiles, minTiles * 2);
-    const dx = rng.nextRange(-1, 1);
-    const dy = rng.nextRange(-1, 1);
-    const length = Math.sqrt(dx * dx + dy * dy) || 1;
-    const x = Math.round(camp.centerX + (dx / length) * distance);
-    const y = Math.round(camp.centerY + (dy / length) * distance);
-    if (x >= 0 && y >= 0 && x < size && y < size) candidates.push(y * size + x);
+  for (const person of sys.adults(tribe)) {
+    for (let k = person * people.foodSlots; k < (person + 1) * people.foodSlots; k++) if (people.foodMemory[k]! >= 0) candidates.push(people.foodMemory[k]!);
   }
   let best = -1;
   let bestScore = -Infinity;
@@ -135,7 +131,7 @@ function migrationSite(sys: GroupsSystem, tribe: Group, proposals: readonly numb
     const d = Math.hypot((tile % size) - camp.centerX, Math.floor(tile / size) - camp.centerY);
     if (d < minTiles || !humans.terrain.walkable(tile) || humans.world.landmasses.idOf[tile] !== humans.world.landmasses.idOf[camp.center]) continue;
     const warmth = humans.climate.temperatureAt(tile) - here;
-    const score = d / minTiles + params.moves.migrateWarmth * coldShare * warmth;
+    const score = d / params.moves.migrateMinTiles + params.moves.migrateWarmth * coldShare * warmth;
     if (score > bestScore) {
       bestScore = score;
       best = tile;

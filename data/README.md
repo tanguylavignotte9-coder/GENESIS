@@ -174,8 +174,7 @@ par les humains et leur vitesse de marche.
 | --- | --- |
 | `tribe` | Nombre et taille des tribus de départ, part d'anciens, enfants par couple, âges (les bâtiments de départ sont dans `production.json`) |
 | `site` | Choix de l'emplacement du camp : climat tempéré, eau douce proche, plantes nourricières autour |
-| `names` | Syllabes du générateur de noms provisoires |
-| `traits` | Traits de caractère (prudence, sociabilité, curiosité, ardeur au travail) |
+| `traits` | Traits de caractère (prudence, sociabilité, curiosité, ardeur au travail, générosité, colère, ambition, spiritualité) ; les noms des personnes viennent de leur langue (`ideas.json`) |
 | `skills`, `skillLearning` | Compétences (cueillette, artisanat, chasse…), le métier affiché pour chacune, vitesse d'apprentissage par la pratique |
 | `stepsPerHour`, `thinkEveryMinutes` | Rythme d'action et de réflexion de chaque personne |
 | `needs` | Vitesse de la faim (moins vite en dormant), de la soif, de la fatigue, du froid ; dégâts et guérison (un jeûne tue en plusieurs semaines) |
@@ -205,10 +204,31 @@ porté, comportement `carried`), `child`, `young`, `guardianAway` (loin de son p
 
 ## `knowledge.json` — les savoirs
 
-Liste des savoirs des ères 0 et 1 (en attendant le système d'idées) : nom, ère de repère, prérequis.
-**`startsKnown`** (« Connu au départ », dans l'Atelier) décide ce que sait la tribu de départ : par défaut
-cueillette, maîtrise du feu et huttes ; cocher par exemple « Taille de la pierre » et « Chasse » donne une
-tribu de chasseurs. Une recette, un bâtiment ou une action ne sont utilisables que si leur savoir est connu.
+Les savoirs des ères 0 et 1, qui sont des idées du système d'idées (`ideas.json`) : nom (et nom avec son
+article pour le journal, `the`), ère de repère, prérequis (tous nécessaires pour le découvrir ou l'apprendre)
+et **conditions de découverte** (`discovery`) : le besoin qui pousse à le trouver (`need` : faim, froid,
+hiver à passer, gibier rare, famine…), ce que les alentours du camp doivent offrir (`environment` : silex,
+argile, gibier, eau, céréales sauvages…), la compétence dont la pratique aide (`skill`) et la facilité
+(`chance`, 1 = ordinaire). **`startsKnown`** (« Connu au départ », dans l'Atelier) décide ce que sait la tribu
+de départ : par défaut cueillette, maîtrise du feu et huttes. Une recette, un bâtiment ou une action ne sont
+utilisables que par qui connaît leur savoir.
+
+## `ideas.json` — le système d'idées (étape 10)
+
+Un seul mécanisme pour les savoirs, les cultures, les langues, les religions et les biens d'échange : une idée
+est portée par des personnes avec une force, se transmet par les relations, dérive quand des populations ne se
+parlent plus et disparaît quand plus personne ne la porte.
+
+| Clé | Rôle |
+| --- | --- |
+| `everyDays` | Rythme des examens (écarts entre populations, chamans, biens d'échange, noms de lieux) |
+| `knowledge` | Découverte (chance par jour, traits et pratique qui aident, milieu observé autour du camp), apprentissage (enseignement par un parent ou quelqu'un à qui l'on parle, observation du travail, observation d'étrangers, enfants plus rapides) |
+| `values` | Les valeurs d'une culture (partage, hiérarchie, hospitalité, bravoure, place des anciens) et leur effet sur l'envie de faire certaines actions (`actions`) ; les groupes en tiennent compte (régimes, règles, accueil) |
+| `culture` | Dérive des valeurs, influence des conversations, poids du vécu, écart à partir duquel une nouvelle culture est reconnue |
+| `language` | Sons dans lesquels les langues puisent, nombre de syllabes des noms, finales des noms de femmes et de peuples, dérive de la prononciation, écart qui fait naître une langue fille, apprentissage d'une langue étrangère (au foyer, au contact), compréhension entre langues sœurs |
+| `religion` | Croyances possibles et leurs rites, chances de naissance (deuil, catastrophe, révélation), conversion, ferveur des enfants, tiédeur, chaman et prêtre, lieu de culte, liens de la foi |
+| `trade` | Rencontres entre tribus, envie d'échanger (opinion, hospitalité), malentendus (langue), objets qui peuvent devenir un bien d'échange et part des adultes qui doivent l'accepter |
+| `texts`, `needTexts`, `environmentTexts` | Phrases du journal |
 
 ## `items.json` — les objets
 
@@ -292,16 +312,16 @@ Un seul concept de groupe pour tous les niveaux : 0 la tribu, 1 les clans, 2 les
 
 | Clé | Rôle |
 | --- | --- |
-| `levels`, `nameTemplates` | Noms des niveaux et noms descriptifs des groupes (« la tribu de {nom} ») |
+| `levels`, `nameTemplates` | Noms des niveaux et des groupes (« la tribu des {nom} » : le nom du peuple dans sa langue ; « le clan de {nom} » : son fondateur) |
 | `adultAge`, `elderAge` | Âge à partir duquel on compte dans la vie politique, âge d'un ancien |
 | `factors` | Comment on mesure la situation d’un groupe (petit, nombreux, surplus, installé, anciens, rivalités, temps durs : part des membres morts en un an) |
 | `regimes` | Les 8 régimes : titre des dirigeants, nombre de dirigeants, façon de décider (consensus, conseil, chef), hérédité, niveaux possibles, poids de chaque atout pour accéder au pouvoir (`weights` : respect, prestige, âge, lignée, force, richesse), situations qui le favorisent (`favors`) et conditions nécessaires (`requires` : religion, écriture, commerce, territoire, guerre… pas encore simulées, donc ces régimes ne peuvent pas apparaître) |
 | `power` | Échelles des atouts des candidats, inertie d'un régime avant une réforme |
 | `property`, `inheritance`, `strategies` | Règles de propriété, d'héritage et stratégies possibles, choisies par les dirigeants selon leur caractère (`traits`) et la situation (`favors`) ; une stratégie multiplie les réserves et envies de la coutume (nourriture, bois, construction, artisanat) |
-| `duties` | Obligations confiées par les dirigeants : poids du travail confié et des autres travaux |
-| `opinion` | Soutien aux dirigeants (respect, affection, confiance, régime adapté, bien-être) et griefs (faim, froid, deuil, maladie, ambition contrariée, oubli) |
+| `duties` | Obligations confiées par les dirigeants : poids du travail confié et des autres travaux, favoritisme d'un chef peu généreux envers sa famille et grief de ceux qui triment |
+| `opinion` | Soutien aux dirigeants (respect, affection, confiance, régime adapté, bien-être, esprit de clan) et griefs (faim, froid, deuil, maladie, ambition contrariée, oubli) ; reproches aux dirigeants pour les morts sous leur autorité (plus encore après un déplacement décidé par eux) |
 | `obedience` | Chance d'obéir selon la légitimité, la relation au dirigeant et le caractère |
-| `politics` | Rythme de la vie politique, écart mécontentement − légitimité qui fait agir les ambitieux, soutien nécessaire pour renverser un chef, réformes |
+| `politics` | Rythme de la vie politique, écart mécontentement − légitimité qui fait agir les ambitieux, soutien nécessaire pour renverser un chef, réformes, défi d'un rival plus capable, crise de succession à la mort d'un chef |
 | `clans`, `families` | Formation des clans (liens du sang, amitiés, ambition) et des foyers |
 | `scission`, `fusion`, `betrayal`, `contact` | Départ d'un clan pour fonder une tribu, petite tribu en difficulté qui en rejoint une autre, départ d'un individu vers une autre tribu, rencontres, opinions et alliances entre tribus |
 | `moves` | Déplacements du camp et migrations décidés par les dirigeants, selon les souffrances passées |

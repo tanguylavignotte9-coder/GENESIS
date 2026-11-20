@@ -203,6 +203,9 @@ describe('exchanges', () => {
     const items = production.catalog.itemIndex;
     const basket = items.get('basket')!;
     const knife = items.get('stone_knife')!;
+    const hospitality = ideas.params.values.findIndex((value) => value.id === 'hospitality');
+    ideas.holdings.values[a * ideas.holdings.valueCount + hospitality] = 1;
+    ideas.holdings.values[b * ideas.holdings.valueCount + hospitality] = 1;
     production.carried[a]!.put(basket, 3, 0.5, a);
     production.carried[b]!.put(knife, 3, 0.5, b);
     // They meet: b stands next to a.

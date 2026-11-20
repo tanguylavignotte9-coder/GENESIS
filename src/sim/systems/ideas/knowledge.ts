@@ -2,7 +2,7 @@ import { HUMAN_DEATH } from '../individuals/individuals-system';
 import type { IdeasSystem } from './ideas-system';
 import { Family, Idea } from './idea';
 import { ENVIRONMENTS, type EnvironmentId, type NeedId } from './params';
-import { IDEA_EVENTS, publishIdeaEvent } from './texts';
+import { IDEA_EVENTS, listWords, publishIdeaEvent } from './texts';
 
 const FULL = 100;
 /** Species a hunter can approach and tame (for husbandry), and big trees (for a canoe). */
@@ -262,54 +262,68 @@ function aptitudeToLearn(sys: IdeasSystem, person: number): number {
 }
 
 /**
- * Deaths of holders (read in the journal): a discovery whose last holder is gone is lost — told in
- * the journal, with whether others still know the same craft elsewhere.
+ * Deaths of holders (read in the journal): a piece of knowledge nobody of the camp knows any more
+ * is lost there — told once, with the last of its holders who died, and whether anyone in the
+ * world still knows it. (Losing everything with the last members of a tribe is not told twice.)
  */
 export function readDeaths(sys: IdeasSystem, events: readonly { type: string; details: Record<string, string | number>; id: number }[]): void {
-  const { holdings } = sys;
-  for (const event of events) {
-    if (event.type !== HUMAN_DEATH) continue;
-    const dead = Number(event.details['person']);
-    if (dead >= holdings.count) continue;
-    const known = holdings.known[dead]!;
-    if (known === 0) continue;
-    for (let k = 0; k < sys.catalog.knowledge.length; k++) {
-      if ((known & (1 << k)) === 0) continue;
-      const source = holdings.source[dead * holdings.knowledgeCount + k]!;
-      checkLoss(sys, dead, k, source, event.id);
-    }
-  }
-}
-
-function checkLoss(sys: IdeasSystem, dead: number, k: number, source: number, deathEvent: number): void {
   const { holdings, humans } = sys;
   const people = humans.people;
-  const def = sys.catalog.knowledge[k]!;
-  const camp = people.camp[dead]!;
-  let inCamp = false;
-  let anywhere = false;
-  let sameSource = false;
-  for (let p = 0; p < people.count; p++) {
-    if (people.alive[p] === 0 || !holdings.knows(p, k)) continue;
-    anywhere = true;
-    if (people.camp[p] === camp) inCamp = true;
-    if (holdings.source[p * holdings.knowledgeCount + k] === source) sameSource = true;
-    if (inCamp && sameSource) return;
+  const deaths = events.filter((event) => event.type === HUMAN_DEATH && Number(event.details['person']) < holdings.count && holdings.known[Number(event.details['person'])]! !== 0);
+  if (deaths.length === 0) return;
+  const told = new Set<string>();
+  // The last to die carries the story.
+  for (const event of [...deaths].reverse()) {
+    const dead = Number(event.details['person']);
+    const camp = people.camp[dead]!;
+    const lostHere: number[] = [];
+    const lostEverywhere: number[] = [];
+    for (let k = 0; k < sys.catalog.knowledge.length; k++) {
+      if (!holdings.knows(dead, k) || told.has(`${camp}:${k}`)) continue;
+      const where = holders(sys, k, camp);
+      if (where.inCamp) continue;
+      endDiscovery(sys, holdings.source[dead * holdings.knowledgeCount + k]!);
+      told.add(`${camp}:${k}`);
+      if (where.anywhere) {
+        if (humans.campMembers(camp).length > 0) lostHere.push(k);
+      } else if (where.living > 0 && (humans.campMembers(camp).length > 0 || !sys.catalog.knowledge[k]!.startsKnown)) lostEverywhere.push(k);
+    }
+    const vars = { nom: people.names[dead]!, e: people.female[dead] === 1 ? 'e' : '', tribu: sys.groups?.tribeOfCamp(camp)?.name ?? 'la tribu' };
+    const names = (list: number[]): string => listWords(list.map((k) => sys.catalog.knowledge[k]!.the));
+    if (lostHere.length > 0) publishIdeaEvent(sys, IDEA_EVENTS.lost, sys.params.texts.lostHere, { ...vars, savoirs: names(lostHere) }, dead, [event.id], { knowledge: lostHere.map((k) => sys.catalog.knowledge[k]!.id).join(',') });
+    if (lostEverywhere.length > 0) publishIdeaEvent(sys, IDEA_EVENTS.lost, sys.params.texts.lost, { ...vars, savoirs: names(lostEverywhere) }, dead, [event.id], { knowledge: lostEverywhere.map((k) => sys.catalog.knowledge[k]!.id).join(',') });
   }
-  const idea = sys.ideas[source];
-  if (!sameSource && idea && idea.alive) {
-    idea.endedDay = sys.day;
-    idea.holders = 0;
-  }
-  if (inCamp) return;
-  const tribe = sys.groups?.tribeOfCamp(camp) ?? null;
-  const vars = { savoir: capitalizeFirst(def.the), nom: people.names[dead]!, e: people.female[dead] === 1 ? 'e' : '', tribu: tribe?.name ?? 'la tribu' };
-  const event = publishIdeaEvent(sys, IDEA_EVENTS.lost, anywhere ? sys.params.texts.lostHere : sys.params.texts.lost, vars, dead, [deathEvent], { knowledge: def.id });
-  if (idea && !sameSource) idea.endEvent = event;
 }
 
-function capitalizeFirst(text: string): string {
-  return text.charAt(0).toUpperCase() + text.slice(1);
+/** Who still knows knowledge `k`: in the camp, anywhere, and how many people live at all. */
+function holders(sys: IdeasSystem, k: number, camp: number): { inCamp: boolean; anywhere: boolean; living: number } {
+  const people = sys.humans.people;
+  let inCamp = false;
+  let anywhere = false;
+  let living = 0;
+  for (let p = 0; p < people.count; p++) {
+    if (people.alive[p] === 0) continue;
+    living++;
+    if (!sys.holdings.knows(p, k)) continue;
+    anywhere = true;
+    if (people.camp[p] === camp) inCamp = true;
+  }
+  return { inCamp, anywhere, living };
 }
+
+/** A discovery nobody carries any more has ended. */
+function endDiscovery(sys: IdeasSystem, source: number): void {
+  const idea = sys.ideas[source];
+  if (!idea || !idea.alive) return;
+  const h = sys.holdings;
+  const people = sys.humans.people;
+  for (let p = 0; p < people.count && p < h.count; p++) {
+    if (people.alive[p] === 0) continue;
+    for (let k = 0; k < h.knowledgeCount; k++) if (h.source[p * h.knowledgeCount + k] === source && h.knows(p, k)) return;
+  }
+  idea.endedDay = sys.day;
+  idea.holders = 0;
+}
+
 
 export { Idea };

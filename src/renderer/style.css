@@ -392,7 +392,7 @@ body:has(#stats:not([hidden])) #journal {
 #help {
   bottom: 12px;
   left: 12px;
-  max-width: calc(100vw - 460px);
+  max-width: calc(100vw - 560px);
   color: var(--hud-muted);
   font-size: 12px;
 }
@@ -1066,7 +1066,7 @@ body:has(#stats:not([hidden])) #journal {
 
 #ideas-toggle {
   bottom: 12px;
-  right: 400px;
+  right: 445px;
   padding: 6px 12px;
   border: 1px solid var(--hud-border);
   border-radius: 4px;

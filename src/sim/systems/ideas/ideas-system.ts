@@ -110,6 +110,7 @@ export class IdeasSystem implements IdeaView {
   attachGroups(groups: GroupsSystem): void {
     this.groups = groups;
     for (const camp of this.humans.camps) nameNewPlaces(this, camp.id);
+    this.recount();
   }
 
   addIdea(family: FamilyId, name: string, parent: number, founder: number, event: number, tribe: number): Idea {

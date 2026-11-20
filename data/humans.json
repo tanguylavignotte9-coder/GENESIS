@@ -326,6 +326,26 @@
       }
     },
     {
+      "id": "fetch_firewood",
+      "behavior": "harvest",
+      "minAge": 8,
+      "recipes": ["collect_branches"],
+      "items": ["branches"],
+      "name": "Chercher du bois pour le feu",
+      "label": "Cherche du bois pour le feu",
+      "weight": 1.2,
+      "reason": "cold",
+      "considerations": [
+        { "input": "cold", "curve": "logistic", "a": 0.35, "b": 10 },
+        { "input": "fireLow", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "woodLow", "curve": "linear", "a": 0.8, "b": 0.2 },
+        { "input": "load", "curve": "linear", "a": -1, "b": 1 }
+      ],
+      "traits": {
+        "prudence": 0.2
+      }
+    },
+    {
       "id": "deposit",
       "behavior": "deposit",
       "minAge": 3,

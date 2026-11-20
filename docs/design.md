@@ -294,6 +294,15 @@ La technologie n'est donc pas un système à part : c'est l'ensemble des savoirs
 
 Chaque langue génère ses propres noms et sonorités et diverge avec le temps. Deux peuples qui ne parlent pas la même langue communiquent mal : commerce plus difficile, diplomatie plus lente, malentendus. Des interprètes ou une langue commune peuvent apparaître.
 
+### Croire ou ne pas croire
+
+L'apparition de religions dans presque toutes les sociétés est réaliste. Mais **l'adhésion se joue au niveau de l'individu** : on peut vivre entouré de croyants sans adhérer soi-même.
+
+- Chacun décide d'adhérer ou non selon ses traits (spiritualité, curiosité, esprit critique, indépendance), ses expériences (un deuil peut rapprocher ou éloigner du sacré) et la pression de son entourage.
+- Un individu peut être **sans religion**, perdre la foi ou se convertir au cours de sa vie.
+- La pression sociale dépend de la culture et du groupe : tolérance dans certaines sociétés, méfiance ou mise à l'écart dans d'autres, surtout sous une théocratie.
+- Aux ères 0 et 1, les non-croyants sont rares mais possibles. Leur part pourra croître aux ères avancées avec de nouvelles idées (philosophie, sciences), sans que ce soit garanti.
+
 **Question ouverte :** quels sont les premiers savoirs et leur réseau de prérequis (à établir dans un document de données dédié) ?
 
 ## Travail et production

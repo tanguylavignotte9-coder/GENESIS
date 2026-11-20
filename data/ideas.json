@@ -24,7 +24,7 @@
     { "id": "elders", "name": "Place des anciens", "low": "les anciens s’effacent", "high": "les anciens sont écoutés", "actions": {} }
   ],
   "culture": {
-    "noisePerYear": 0.06,
+    "noisePerYear": 0.15,
     "conformityPerTalk": 0.03,
     "childNoise": 0.05,
     "splitDistance": 0.25,
@@ -34,7 +34,7 @@
     "personSpread": 0.08
   },
   "language": {
-    "noisePerYear": 0.05,
+    "noisePerYear": 0.12,
     "conformityPerTalk": 0.03,
     "childNoise": 0.04,
     "splitDistance": 0.3,
@@ -55,7 +55,7 @@
     "kinshipIntelligibility": 0.6
   },
   "religion": {
-    "noisePerYear": 0.06,
+    "noisePerYear": 0.12,
     "conformityPerTalk": 0.03,
     "childNoise": 0.05,
     "splitDistance": 0.35,

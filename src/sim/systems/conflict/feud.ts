@@ -4,6 +4,7 @@ import { ambitionTarget, offerAmbition } from '../individuals/social/ambitions';
 import { feel } from '../individuals/social/relations';
 import { Kin } from '../individuals/social/state';
 import { judgeMurder } from './brawl';
+import { strengthOf, weaponFactor } from './combat';
 import type { ConflictSystem } from './conflict-system';
 import { Feud } from './state';
 import { CONFLICT_EVENTS, e, placeOfPerson, publish } from './texts';
@@ -139,11 +140,20 @@ function tryRevenge(sys: ConflictSystem, feud: Feud, avenger: number, target: nu
   const people = humans.people;
   const social = humans.social;
   if (people.distance(avenger, target) > params.feud.reachTiles || humans.life.isChild(avenger)) return;
+  // After a failed attempt, the grudge smoulders for a while before one tries again.
+  if (sys.day - (sys.lastRevenge.get(avenger) ?? -Infinity) < params.feud.cooldownDays) return;
   const chance = params.feud.actChancePerDay * Math.max(0, 1 + (2 * social.trait(avenger, 'temper') - 1)) * Math.max(0, 1.5 - social.trait(avenger, 'prudence'));
   if (sys.rng.nextFloat() >= chance) return;
   sys.currentFight = 'revenge';
   sys.counts.revenges++;
-  const victim = feud.names[feud.sides[0].has(avenger) ? 0 : 1];
+  sys.lastRevenge.set(avenger, sys.day);
+  // The last of one's family who fell to the other side.
+  const side = feud.sides[0].has(avenger) ? 0 : 1;
+  let victim = feud.names[side];
+  for (const id of feud.events) {
+    const dead = Number(sys.journal.get(id)?.details['person'] ?? -1);
+    if (dead >= 0 && feud.sides[side].has(dead)) victim = people.names[dead] ?? victim;
+  }
   const context = `pour venger les siens (${victim})`;
   let hurt = 0;
   for (let blow = 0; blow < params.brawl.blows * 2 && people.alive[avenger] === 1 && people.alive[target] === 1; blow++) {
@@ -152,7 +162,7 @@ function tryRevenge(sys: ConflictSystem, feud: Feud, avenger: number, target: nu
       [target, avenger],
     ] as const) {
       if (people.alive[hitter] !== 1 || people.alive[struck] !== 1 || sys.rng.nextFloat() >= params.combat.hitChance) continue;
-      const damage = params.combat.blowDamage * humans.life.vigor(hitter) * (0.5 + sys.rng.nextFloat());
+      const damage = params.combat.blowDamage * strengthOf(sys, hitter, weaponFactor(sys, hitter)) * (0.5 + sys.rng.nextFloat());
       const outcome = humans.interactions.attack({ attacker: { kind: 'human', id: hitter }, target: { kind: 'human', id: struck }, damage, attackerName: people.names[hitter]!, tick: sys.tick, motive: 'fight', context, causes: feud.events.slice(-1) });
       if (struck === target) hurt += outcome.damage ?? 0;
       if (outcome.killed) {

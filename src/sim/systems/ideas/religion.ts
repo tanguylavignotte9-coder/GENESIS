@@ -269,8 +269,8 @@ export function religionTalk(sys: IdeasSystem, a: number, b: number): void {
     if (h.religion[listener]! < 0 && h.piety[speaker]! > 0.5 && params.mistrustPerTalk > 0 && !sys.humans.life.isChild(listener) && pressure > 0) {
       feel(sys.humans.social, speaker, listener, { affection: 0, trust: -params.mistrustPerTalk * pressure, respect: 0 }, 'impiety');
     }
-    // One clings to the faith one has: changing faith is rarer than embracing one.
-    const resistance = h.religion[listener]! >= 0 ? 1 - (1 - h.piety[listener]!) * (1 - params.switchResistance) : 0;
+    // One clings to the faith one has, and one who lost faith does not easily believe again.
+    const resistance = h.religion[listener]! >= 0 ? 1 - (1 - h.piety[listener]!) * (1 - params.switchResistance) : h.lostFaith[listener] === 1 ? params.switchResistance : 0;
     const conformity = 1 + params.conformityConversion * pressure * faithShare(sys, listener, faith);
     const chance = params.spreadPerTalk * h.piety[speaker]! * (0.3 + spiritual(sys, listener)) * (1 - resistance) * (1 - doubt(sys, listener)) * conformity;
     if (sys.rng.nextFloat() >= chance) continue;

@@ -108,6 +108,8 @@ export interface FaunaParams {
     cohesionRadius: number;
     wanderChance: number;
     wanderRadius: number;
+    /** A hungry hunter with no prey in reach goes looking this far (the leader takes its pack along). */
+    huntSearchTiles: number;
     fleeDistance: number;
     chaseSteps: number;
     packShareRadius: number;
@@ -254,6 +256,7 @@ export const ANIMALS_SCHEMA: Schema = {
         cohesionRadius: int(1, 64, 'Cohésion du groupe', 'Au-delà de cette distance du chef, l’animal rejoint son groupe.', 'tuiles'),
         wanderChance: share('Promenade', 'Chance de partir se promener quand l’animal n’a besoin de rien.'),
         wanderRadius: int(1, 64, 'Rayon de promenade', 'Distance maximale d’une promenade.', 'tuiles'),
+        huntSearchTiles: num(0, 100, 'Battre la campagne', 'Un chasseur affamé sans proie à portée part chercher aussi loin (le meneur emmène sa meute ; il revient vers sa tanière une fois repu).', 'tuiles'),
         fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),
         chaseSteps: int(1, 500, 'Durée d’une poursuite', 'Un chasseur abandonne après ce nombre de pas de poursuite.', 'pas'),
         packShareRadius: int(0, 64, 'Partage de la proie', 'Les membres de la meute dans quatre fois ce rayon viennent manger la proie.', 'tuiles'),

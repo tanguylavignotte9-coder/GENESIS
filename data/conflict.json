@@ -16,6 +16,7 @@
   "feud": {
     "avengeChance": 0.5,
     "actChancePerDay": 0.03,
+    "cooldownDays": 60,
     "reachTiles": 10,
     "fadeYears": 12,
     "fadeChancePerYear": 0.3,

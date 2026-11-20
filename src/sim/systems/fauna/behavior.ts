@@ -86,10 +86,21 @@ export function think(fauna: FaunaSystem, slot: number): void {
     }
   }
 
-  if (store.hunger[slot]! > params.needs.seekFoodAbove && findFood(fauna, slot, species)) return;
-
   const group = store.group[slot]!;
   const leader = fauna.groups.leader[group]!;
+  if (store.hunger[slot]! > params.needs.seekFoodAbove) {
+    if (findFood(fauna, slot, species)) return;
+    // A hungry hunter with nothing in reach does not wait by its den: it goes looking for game,
+    // the leader taking its pack along (the others keep following it).
+    const leads = leader === slot || leader < 0 || store.alive[leader] !== 1;
+    if (species.huntRadius > 0 && leads && params.behavior.huntSearchTiles > 0) {
+      const k = fauna.rng.nextIntInclusive(0, DIRECTION_COUNT - 1);
+      const r = params.behavior.huntSearchTiles;
+      setTarget(fauna, slot, State.Wander, x + DIRECTIONS_X[k]! * r, y + DIRECTIONS_Y[k]! * r);
+      return;
+    }
+  }
+
   if (leader === slot && fauna.groups.migrating[group] === 1) {
     setTarget(fauna, slot, State.Migrate, fauna.groups.migrateX[group]! + 0.5, fauna.groups.migrateY[group]! + 0.5);
     return;

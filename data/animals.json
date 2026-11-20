@@ -20,6 +20,7 @@
     "cohesionRadius": 6,
     "wanderChance": 0.3,
     "wanderRadius": 6,
+    "huntSearchTiles": 24,
     "fleeDistance": 10,
     "chaseSteps": 30,
     "packShareRadius": 3,

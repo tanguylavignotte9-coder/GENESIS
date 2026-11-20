@@ -61,6 +61,11 @@ function weaponOf(sys: ConflictSystem, person: number, stock: Map<number, number
   return { factor: best, ranged: bestItem >= 0 && bestItem === bow };
 }
 
+/** Best weapon factor among what the person carries (1 for bare hands). */
+export function weaponFactor(sys: ConflictSystem, person: number): number {
+  return weaponOf(sys, person, new Map()).factor;
+}
+
 /** Weapons held in a camp's common stock (item → count). */
 export function stockWeapons(sys: ConflictSystem, camp: number): Map<number, number> {
   const { production } = sys.humans;

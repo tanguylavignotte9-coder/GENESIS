@@ -25,6 +25,7 @@ export interface ConflictParams {
   feud: {
     avengeChance: number;
     actChancePerDay: number;
+    cooldownDays: number;
     reachTiles: number;
     fadeYears: number;
     fadeChancePerYear: number;
@@ -160,6 +161,7 @@ export const CONFLICT_SCHEMA: Schema = {
       fields: {
         avengeChance: chance('Désir de vengeance', 'Chance qu’un proche adulte d’une victime de meurtre veuille la venger (selon sa colère facile et sa prudence).'),
         actChancePerDay: chance('Passage à l’acte', 'Chance par jour qu’un vengeur qui croise sa cible passe à l’acte (selon son caractère).'),
+        cooldownDays: num(0, 400, 'Rancune qui couve', 'Jours qu’un vengeur laisse passer après une tentative ratée avant d’essayer de nouveau.', 'jours'),
         reachTiles: num(1, 60, 'Distance de la vengeance', 'Distance à laquelle un vengeur peut atteindre sa cible.', 'tuiles'),
         fadeYears: num(1, 100, 'Oubli de la vendetta', 'Années sans nouveau sang après lesquelles une vendetta peut s’éteindre.', 'ans'),
         fadeChancePerYear: chance('Extinction', 'Chance par an, passé ce délai, que les deux familles fassent la paix.'),

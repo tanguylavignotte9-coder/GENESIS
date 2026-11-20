@@ -42,6 +42,7 @@ function groupPolitics(sys: GroupsSystem, group: Group): void {
     offerPowerAmbitions(sys, group);
   }
   challenge(sys, group);
+  if (group.level === 0 && group.alive) loyaltySplits(sys, group);
   if (group.level === 0 && group.alive) tribeRelations(sys, group);
 }
 
@@ -183,6 +184,22 @@ function challenge(sys: GroupsSystem, group: Group): void {
     }
   }
   contest(sys, group, challenger, discontent);
+}
+
+/**
+ * A clan whose members follow their own leader much more than the tribe's leaders may leave with
+ * them, if that leader is ambitious: big bands split this way, without any hardship.
+ */
+function loyaltySplits(sys: GroupsSystem, tribe: Group): void {
+  const { params, rng } = sys;
+  const s = params.scission;
+  for (const clan of sys.childrenOf(tribe).filter((group) => group.level === 1)) {
+    const leader = clan.leaders[0];
+    if (leader === undefined || !tribe.alive) continue;
+    if (sys.humans.social.trait(leader, 'ambition') < params.politics.ambitionTrait && !hasPowerAmbition(sys, leader)) continue;
+    if (meanApproval(sys, clan, 1) - meanApproval(sys, clan, 0) < s.loyaltyGap || rng.nextFloat() >= s.loyaltyChance) continue;
+    if (scission(sys, tribe, clan, params.causeTexts.loyalty.replace('{nom}', nameOf(sys, leader)), [clan.leaderEvent, tribe.leaderEvent])) return;
+  }
 }
 
 function contest(sys: GroupsSystem, group: Group, challenger: number, reason: string): void {

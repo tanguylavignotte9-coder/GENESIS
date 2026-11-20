@@ -447,7 +447,9 @@
       25,
       60
     ],
-    "waterMaxTiles": 3
+    "waterMaxTiles": 3,
+    "loyaltyGap": 25,
+    "loyaltyChance": 0.02
   },
   "fusion": {
     "maxMembers": 12,
@@ -473,7 +475,8 @@
     "migrateDeathShare": 0.15,
     "migrateMinTiles": 40,
     "migrateWarmth": 0.5,
-    "winterCelsius": 8
+    "winterCelsius": 8,
+    "foresightDays": 10
   },
   "texts": {
     "founded": "{groupe} se forme : {raison}.",
@@ -549,6 +552,7 @@
     "suffering": "après {n} morts de faim, de froid ou de maladie en un an",
     "goodsCommon": "tout étant en commun, ils n’emportent que ce qu’ils portent",
     "goodsShared": "ils emportent leur part des réserves",
-    "allied": "alliance"
+    "allied": "alliance",
+    "loyalty": "ses membres suivent {nom} plus que les dirigeants de la tribu"
   }
 }

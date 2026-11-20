@@ -45,7 +45,9 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
   const curiosity = humans.params.traits.findIndex((trait) => trait.id === 'curiosity');
   const adults = sys.adults(tribe);
   // In the cold, nobody wants to leave the huts and the fire: the cold kills in days, hunger in weeks.
-  if (humans.climate.temperatureAt(camp.center) < params.moves.winterCelsius) return;
+  // …nor when the cold season is coming: one knows the seasons.
+  const coming = humans.climate.temperatureAhead(camp.center, params.moves.foresightDays);
+  if (Math.min(humans.climate.temperatureAt(camp.center), coming) < params.moves.winterCelsius) return;
   const proposals = new Map<number, number>();
   for (const p of adults) {
     const eager = curiosity >= 0 ? 2 * people.trait(p, curiosity) - 1 : 0;

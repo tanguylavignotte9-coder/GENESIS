@@ -43,7 +43,8 @@ export function offerPowerAmbitions(sys: GroupsSystem, tribe: Group): void {
     if (!sys.isLeader(person, tribe)) offerAmbition(social, person, 'becomeChief', -1);
     const clan = sys.groupOf(person, 1);
     if (!clan && ambition >= params.clans.foundAmbition) offerAmbition(social, person, 'foundClan', -1);
-    if (clan && sys.isLeader(person, clan) && meanApproval(sys, clan, 0) < params.scission.approvalBelow) offerAmbition(social, person, 'foundTribe', -1);
+    const rejected = clan !== null && (meanApproval(sys, clan, 0) < params.scission.approvalBelow || meanApproval(sys, clan, 1) - meanApproval(sys, clan, 0) >= params.scission.loyaltyGap);
+    if (clan && sys.isLeader(person, clan) && rejected) offerAmbition(social, person, 'foundTribe', -1);
   }
 }
 

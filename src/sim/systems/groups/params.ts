@@ -76,11 +76,11 @@ export interface GroupsParams {
   politics: { everyDays: number; gap: number; minLegitimacy: number; actChance: number; ambitionTrait: number; supportShare: number; reformChance: number; failedRespect: number; reviewYears: number; challengerRespect: number };
   clans: { everyDays: number; minFamilies: number; minMembers: number; kinTie: number; friendAffection: number; joinTie: number; foundAmbition: number };
   families: { joinSpouse: boolean };
-  scission: { minMembers: number; minAdults: number; approvalBelow: number; chance: number; distanceTiles: [number, number]; waterMaxTiles: number };
+  scission: { minMembers: number; minAdults: number; approvalBelow: number; chance: number; loyaltyGap: number; loyaltyChance: number; distanceTiles: [number, number]; waterMaxTiles: number };
   fusion: { maxMembers: number; sufferingDeaths: number; minOpinion: number; sizeRatio: number; chance: number };
   betrayal: { approvalBelow: number; minAffection: number; chance: number };
   contact: { meetTiles: number; opinionRate: number; scissionOpinion: number; allianceOpinion: number; allianceChance: number };
-  moves: { sufferingEffect: number; migrateDeathShare: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number };
+  moves: { sufferingEffect: number; migrateDeathShare: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number; foresightDays: number };
   texts: Record<(typeof TEXT_KEYS)[number], string>;
   factorTexts: Record<Factor, string>;
   featureTexts: Record<PowerFeature, string>;
@@ -109,6 +109,7 @@ const CAUSE_KEYS = [
   'goodsCommon',
   'goodsShared',
   'allied',
+  'loyalty',
 ] as const;
 
 const TEXT_KEYS = [
@@ -294,6 +295,8 @@ export const GROUPS_SCHEMA: Schema = {
         minAdults: int(1, 100, 'Adultes d’une scission', 'Adultes qu’il faut à un clan pour partir.', 'personnes'),
         approvalBelow: num(0, 100, 'Rejet du pouvoir', 'Soutien moyen du clan envers les dirigeants de la tribu en dessous duquel il envisage de partir.', 'points'),
         chance: share('Décision de partir', 'Chance qu’un clan mécontent décide de partir, à chaque examen.'),
+        loyaltyGap: num(0, 100, 'Loyauté envers le clan', 'Écart entre le soutien des membres d’un clan à leur chef et aux dirigeants de la tribu à partir duquel un chef ambitieux peut emmener son clan.', 'points'),
+        loyaltyChance: share('Départ par loyauté', 'Chance, à chaque examen, qu’un tel clan parte fonder sa tribu.'),
         distanceTiles: pair(num(5, 300, 'Distance du nouveau camp', 'Distance du nouveau camp d’une tribu issue d’une scission.', 'tuiles')),
         waterMaxTiles: int(0, 20, 'Eau proche', 'Distance maximale de l’eau pour un nouveau camp.', 'tuiles'),
       },
@@ -332,6 +335,7 @@ export const GROUPS_SCHEMA: Schema = {
         sufferingEffect: share('Souffrances passées', 'Part dont les souffrances passées (famines, froid, épidémies) rendent plus prompt à partir.'),
         migrateDeathShare: share('Migration', 'Part des membres morts de faim, de soif, de froid ou de maladie en un an à partir de laquelle on migre loin plutôt que de se déplacer un peu.'),
         migrateMinTiles: num(5, 500, 'Distance d’une migration', 'Distance à partir de laquelle un lieu connu compte pleinement comme destination de migration (on préfère partir loin).', 'tuiles'),
+        foresightDays: int(0, 100, 'Prévoir l’hiver', 'On ne lève pas le camp si le froid est prévisible d’ici ce nombre de jours (par les saisons).', 'jours'),
         winterCelsius: num(-50, 40, 'Froid qui retient', 'En dessous de cette température au camp, personne ne veut lever le camp : on reste près des huttes et du feu (le froid tue en quelques jours).', '°C'),
         migrateWarmth: share('Chercher la chaleur', 'Poids de la chaleur dans le choix d’une destination de migration après des morts de froid.'),
       },

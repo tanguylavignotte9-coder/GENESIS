@@ -149,6 +149,13 @@ export class ClimateState {
     return temperature;
   }
 
+  /** °C foreseeable on the tile `days` from now: the seasons only (abnormal years cannot be foreseen). */
+  temperatureAhead(index: number, days: number): number {
+    const y = (index / this.map.size) | 0;
+    const signal = seasonSignal((this.dayOfYear + days) % this.daysPerYear, this.daysPerYear, this.rows.northern[y] === 1, this.params);
+    return this.map.temperature[index]! + this.rows.temperatureAmplitude[y]! * signal;
+  }
+
   /** 0..1 right now. */
   humidityAt(index: number): number {
     const y = (index / this.map.size) | 0;

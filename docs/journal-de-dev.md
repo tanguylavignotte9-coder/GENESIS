@@ -132,7 +132,10 @@ culture/religion/monnaie des groupes (étape 9).
   3 morts sur 129 (2 %, contre 43 sur 187), 163 habitants à l'an 100.
 - **Calcul** (`tsx`, sous charge : 4 calculs en parallèle, donc pessimiste) : tribu de 30 → 287 ms par jour de jeu,
   dont **1,1 ms** pour les idées ; **1 019 humains (34 tribus) → 1 061 ms** par jour, dont **72 ms** pour les idées
-  et 11 ms pour les groupes.
+  et 11 ms pour les groupes. **Machine au repos** : tribu de 30 → **114 ms** par jour (idées 0,7 ms) ; **1 019 humains →
+  868 ms** par jour (idées 55 ms, groupes 9 ms ; à l'étape 9 : 686 ms avec un autre calcul en parallèle). Le budget de
+  x500 (960 ms par jour de jeu) est presque atteint avec 1 000 humains : à alléger (rencontres, apprentissage) si le PC
+  de Tanguy le confirme.
 - Tests rapides : 510 en ~50 s. **Tests longs : 13/13** (dont le nouveau test des idées).
 
 ---

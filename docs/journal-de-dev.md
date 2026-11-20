@@ -8,6 +8,135 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Préalables (vie politique, soif) et étape 10 · Idées — 20 nov. 2026
+
+**Fait (préalable soif) :**
+- Diagnostic (chaque mort de soif enregistrée avec son contexte) : presque toutes les « morts de soif » touchaient des
+  personnes à bout (faim 100, froid 100, fatigue 100). La cause retenue était la **dernière atteinte** (la soif blesse
+  30 fois plus vite que la faim), pas ce qui avait usé le corps. Désormais chaque personne accumule ses atteintes
+  (faim, soif, froid, maladie : `People.harm`) depuis qu'elle était en pleine santé ; la cause de la mort est la plus
+  lourde (la maladie seulement si l'on est encore malade).
+- Comportements absurdes corrigés au niveau des individus : un malade restait couché au bord de l'eau (`be_sick`), un
+  épuisé dormait au lieu d'aller boire à quelques pas (`sleep`), un mourant de soif donnait à manger aux autres
+  (`give`) : la soif retient désormais ces actions. Un affamé cherchait à manger jusqu'à une soif extrême puis
+  n'atteignait plus l'eau : boire passe avant manger dès que la soif se fait sentir (poids 1,2 → 1,5).
+- **Défaut ancien découvert** : la réserve de nourriture « par saison » lisait le signal des saisons (−1…+1) comme
+  un numéro de saison : elle restait toujours celle du printemps et la tribu ne faisait **jamais de provisions
+  pour l'hiver**. Corrigé (`ClimateState.seasonIndexAt`, saison de l'hémisphère du camp). La réserve de bois suit
+  aussi les saisons (36 h de feu au printemps et en été, 96 h en automne, 120 h en hiver).
+- En famine d'hiver, plus personne n'allait chercher de bois (la cueillette l'emportait, le bois ne se ramassait que
+  de jour) : feu éteint, toute une tribu gelait en quelques jours (graines 3 et 6). Nouvelle action « Chercher du
+  bois pour le feu » quand on a froid, que le feu baisse et que la réserve est vide.
+
+**Fait (préalable vie politique, `src/sim/systems/groups/`) :**
+- **Reproches aux dirigeants** (`opinion.ts`) : chaque mort de faim, de soif, de froid ou de maladie sous leur
+  autorité fait perdre confiance et respect envers eux aux proches du mort (un peu aux autres), deux fois plus dans
+  les 40 jours qui suivent un déplacement ou une migration qu'ils ont décidés (raison « blamed » dans la relation).
+- **Favoritisme** : un chef peu généreux dispense sa famille des corvées ; ceux qui triment lui en veulent.
+- **Esprit de clan** : on soutient davantage un dirigeant de son clan, moins celui d'un clan rival.
+- **Rival plus capable** : sans crise, un ambitieux nettement plus apte que le chef (chef vieilli, affaibli) peut le
+  défier ; la tribu suit qui elle préfère.
+- **Crise de succession** (`succession.ts`) : à la mort d'un chef, chaque adulte suit le prétendant qu'il préfère ;
+  si un second prétendant ambitieux a au moins 30 % des adultes, la succession est disputée : il l'emporte, ou
+  s'incline, ou emmène son clan.
+- **Fusion** : une petite tribu (≤ 20) en difficulté (morts pour sa taille, ou faim) cherche refuge même chez des
+  voisins peu aimés quand elle est au plus mal ; un peuple hospitalier accueille plus volontiers.
+
+**Fait (étape 10, `src/sim/systems/ideas/`, `data/ideas.json`, `data/knowledge.json`) :**
+- Un seul mécanisme : une idée (`Idea` : famille, nom, origine — qui, quand, tribu, événement —, idée mère) est
+  portée par des personnes (`PersonIdeas`, tableaux typés). Cultures, langues et religions : chacun porte un petit
+  vecteur (valeurs, prononciation, croyances) hérité de ses parents avec une variation, qui dérive un peu chaque jour
+  et que chaque conversation rapproche de celui de l'autre (`drift.ts`). Une tribu dont la moyenne s'écarte de celle
+  des autres porteurs au-delà d'un seuil fonde une nouvelle culture, une langue fille ou une religion (schisme).
+- **Savoirs** : les 23 savoirs sont des idées. Découverte par un adulte qui a le besoin (faim, froid, hiver à
+  passer, gibier rare, famine…, mesurés pour lui et son camp), si le milieu s'y prête (silex, argile, gibier, eau,
+  céréales sauvages… autour du camp) et selon sa curiosité, son application et sa pratique du domaine, une fois les
+  prérequis connus ; jamais si quelqu'un du camp le sait déjà (on l'apprend de lui). Une même découverte peut être
+  refaite ailleurs (« sans rien savoir de ceux qui l'ont trouvé ailleurs »). Apprentissage : parents et tuteur, ceux
+  à qui l'on a parlé, ce qu'on a vu faire au camp, les étrangers croisés ; les enfants apprennent plus vite. Les
+  bébés ne savent plus rien. Perte : quand plus personne du camp ne sait, raconté une fois avec le dernier détenteur.
+  Le champ de bits `people.knowledge` est remplacé par les idées (`IdeaView.knowledge`).
+- **Cultures** : 5 valeurs (partage, hiérarchie, hospitalité, bravoure, place des anciens). Le vécu les façonne
+  (règle de propriété, façon dont on est gouverné, opinion des autres tribus, chasse, anciens) ; elles pèsent sur les
+  actions (`values[].actions` : don, chasse, fuite) et sur les groupes (facteurs « hierarchy », « equality »,
+  « eldersCustom », « sharing » des régimes et des règles, accueil d'une tribu en détresse, envie d'échanger).
+- **Langues** : sons tirés au hasard (consonnes, voyelles, syllabes fermées, finales des femmes et des peuples), noms
+  des personnes (uniques), des tribus (« la tribu des Tamuki ») et des lieux. Langue fille = quelques changements de
+  sons. Fluidité par langue (3 au plus) : enfants, conjoint, contact avec des étrangers ; compréhension entre langues
+  sœurs. Alliances plus lentes, trocs plus risqués (malentendus) sans langue commune ; interprète (journal).
+- **Lieux nommés** (`core/toponyms.ts`, registre partagé comme le journal) : régions, monts, rivières (par leur
+  embouchure), îles, nommés par la première tribu qui s'y installe ; `describeLocation` (désormais `(world, x, y)`)
+  dit « le pays de Soro », « la vallée de la Tamu », « les monts Karak », « l'île de Mena ».
+- **Religions** : aucune au départ ; naissent du deuil (ancêtres), d'une catastrophe (épidémie, famine, année
+  terrible : esprits, forces de la nature) chez une personne très spirituelle (nouveau trait « Spiritualité »), ou
+  d'une révélation (charisme et ferveur). Conversion par la conversation, ferveur des enfants, tiédeur sans fidèles
+  autour, liens de la foi, chaman puis prêtre, lieu de culte voulu par les fidèles (sanctuaire, ou tombe mégalithique
+  pour un culte des ancêtres qui sait bâtir en pierre), schismes. Atout « piété » pour la théocratie.
+- **Échanges** : troc entre personnes de tribus différentes qui se croisent (3 regards par jour), selon l'opinion,
+  l'hospitalité et la compréhension ; un objet durable accepté sans besoin parce que d'autres l'acceptent ; quand la
+  moitié des adultes d'une tribu l'acceptent, c'est son bien d'échange (facteur « trade »). Coquillages ajoutés
+  (plages, parure) comme bien possible.
+- Les groupes adoptent la culture, la langue, la religion (majorité des adultes) et le bien d'échange de leurs membres
+  (`groups/adoption.ts`).
+- Lisibilité : panneau **Idées** (touche I : cultures avec leurs valeurs, langues avec leurs sons et des noms,
+  religions avec croyance, rite et clergé, savoirs avec qui les a découverts, quand et pourquoi, échanges, lieux
+  nommés) ; fiche personnage (savoirs et de qui on les tient, apprentissages en cours, culture et valeurs, langues
+  et aisance, religion et ferveur, bien accepté) ; journal (découvertes avec leur contexte, savoirs perdus, cultures,
+  langues, religions, schismes, chamans, premiers trocs, malentendus, interprètes, biens d'échange, crises de
+  succession, adoptions d'une religion). `npm run sim` résume les idées.
+- Tests : `tests/sim/ideas/ideas.test.ts` (10 scénarios), succession et reproches dans `groups.test.ts`, saison de
+  l'hémisphère, test long `tests/long/ideas.test.ts`.
+
+**Réglages pendant la validation :** cultures, langues et croyances changeaient trop lentement (aucune tribu séparée
+ne s'éloignait des autres en 100 ans : écarts 0,03 à 0,1) : dérive individuelle plus forte, puis seuils abaissés
+(culture 0,18, langue 0,22, religion 0,25) après mesure des écarts réels (plafond vers 0,17-0,21 après 40 ans de
+séparation). Bien d'échange présent dans 9 mondes sur 10 : la confiance transmise par la conversation reste
+maintenant sous celle de qui a vraiment troqué.
+
+**Décisions et écarts (à valider) :**
+- Les savoirs restent décrits dans `knowledge.json` (enrichi des conditions de découverte), passé dans l'Atelier sous
+  le système « Idées » ; les conditions sont un besoin et un milieu choisis dans deux listes codées (15 besoins,
+  13 milieux) : un nouveau besoin demande une ligne de code.
+- Le troc n'a lieu qu'entre tribus : dans une tribu, les biens sont au stock commun et passent par les dons.
+- Les rites n'ont pas encore d'effet propre (funérailles, fêtes) au-delà du réconfort des fidèles en deuil.
+- Une tribu prend un nom de peuple dans la langue de son fondateur ; clans et familles gardent le nom du fondateur.
+- Le premier récit d'installation reste descriptif (les lieux sont nommés juste après).
+- `humans.json → names` (syllabes provisoires) est retiré : un preset qui le contient affiche « variable inconnue ».
+- Sauvegardes : format 3 (les anciennes sont refusées).
+
+**Dette technique :**
+- Morts de soif restantes : des affamés et malades épuisés qui n'atteignent plus l'eau (histoire légitime, à
+  surveiller).
+- Cultures et langues nouvelles rares en 100 ans : il faut des tribus séparées longtemps, sans fusion → à suivre sur
+  de plus longues parties.
+- Élevage découvert mais sans effet (pas de bêtes domestiques) → étape d'élevage.
+- Calcul des idées pour 1 000 humains (~70 ms par jour sous charge) : rencontres et apprentissage à alléger si besoin.
+
+**Dettes résolues :** savoirs = simple liste (étapes 4, 6, 8) ; savoirs reçus à la naissance (étape 8) ; noms
+provisoires (étape 4, 8) et lieux descriptifs (étape 2) ; vie politique trop calme et soif (étape 9) ; emplacements
+culture/religion/monnaie des groupes (étape 9).
+
+**Mesures (serveurs de Claude Code) :**
+- **Validation, 10 graines × 100 ans** (4 calculs en parallèle, ~55 min ; faite **avant** les dernières corrections de
+  la soif — sommeil, don, priorité à boire —, des seuils des cultures et langues et du bien d'échange) : **10 tribus de
+  départ sur 10 en vie à l'an 100** (29, 56, 77, 78, 106, 112, 123, 158, 177, 238 habitants) ; 23 scissions, 14 fusions
+  (6 mondes), 18 alliances, 14 contestations (2 mondes), 9 renversements (3 mondes), 9 crises de succession
+  (6 mondes) ; régimes : bande, conseil des anciens, chefferie (4 mondes), théocratie (7 mondes).
+- Savoirs (fin, sur 10 mondes) : taille de la pierre, chasse, cuisson, vannerie, pêche, pirogue partout ; pierre
+  polie 9 ; conservation, terre crue, construction en pierre 7 ; arc, élevage 6 ; **agriculture 4**, tissage 4,
+  mouture 3, poterie 3, irrigation 2, travail des peaux 1. 8 à 18 découvertes par monde ; 4 savoirs perdus en tout.
+  Religions dans 10 mondes (1 à 3 nées, schismes ou rivales), cultures et langues : 1 seule par monde (corrigé ensuite).
+- Causes des 1 419 décès : maladie 39 %, soif 23 %, vieillesse 18 %, froid 12 %, faim 3 %, en couches 3 %,
+  prédateurs 2 %.
+- **Contrôles après corrections** : graine 3 → soif 6 morts sur 77 (8 %, contre 37 sur 132) ; graine 4 → soif
+  3 morts sur 129 (2 %, contre 43 sur 187), 163 habitants à l'an 100.
+- **Calcul** (`tsx`, sous charge : 4 calculs en parallèle, donc pessimiste) : tribu de 30 → 287 ms par jour de jeu,
+  dont **1,1 ms** pour les idées ; **1 019 humains (34 tribus) → 1 061 ms** par jour, dont **72 ms** pour les idées
+  et 11 ms pour les groupes.
+- Tests rapides : 510 en ~50 s. **Tests longs : 13/13** (dont le nouveau test des idées).
+
+---
+
 ## Étape 7.6 · Sauvegarde, loups (reste de 7.5) et étape 9 · Groupes — 20 nov. 2026
 
 **Fait (sauvegarde, `src/sim/core/save/`, `src/main/save-store.ts`) :**

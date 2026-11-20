@@ -80,6 +80,8 @@ export interface LifeParams {
   famine: { minDeaths: number; windowDays: number };
   orphans: { minGuardianAge: number; maxGuardianAge: number; kinBonus: number; bondWeight: number; generosityEffect: number; burdenPerChild: number; minWillingness: number };
   census: { everyDays: number };
+  /** Wounds of a fight or of an animal that fought back: a heavy one may leave someone crippled for life. */
+  wounds: { crippleDamage: number; crippleChance: number; crippleVigor: number };
   texts: {
     birth: string;
     stillbirth: string;
@@ -96,6 +98,7 @@ export interface LifeParams {
     belongingsFound: string;
     weakenedByHunger: string;
     weakenedByCold: string;
+    crippled: string;
     ties: {
       grandmother: string;
       grandfather: string;
@@ -309,6 +312,14 @@ export const LIFE_SCHEMA: Schema = {
         minWillingness: num(0, 3, 'Envie minimale', 'En dessous de cette envie, personne ne recueille l’enfant.', 'fraction'),
       },
     },
+    wounds: {
+      kind: 'object',
+      fields: {
+        crippleDamage: num(1, 100, 'Blessure grave', 'Une blessure qui enlève au moins ces points de santé peut laisser estropié.', 'points de santé'),
+        crippleChance: num(0, 1, 'Estropié', 'Chance qu’une blessure grave laisse la personne estropiée à vie (proportionnelle à la gravité).', 'chance'),
+        crippleVigor: num(0, 1, 'Vigueur d’un estropié', 'Part de sa vigueur (travail, marche, combat) que garde une personne estropiée.', 'fraction'),
+      },
+    },
     census: {
       kind: 'object',
       fields: {
@@ -333,6 +344,7 @@ export const LIFE_SCHEMA: Schema = {
         belongingsFound: text('Affaires retrouvées', 'Journal, quand quelqu’un retrouve au sol les affaires d’une personne morte loin du camp. Remplacements : {trouveur}, {mort}, {il_elle}, {e}, {objets}.'),
         weakenedByHunger: text('Affaibli par la faim', 'Fin de phrase d’une mort de maladie ou d’une épidémie. Remplacement : {e}.'),
         weakenedByCold: text('Affaibli par le froid', 'Fin de phrase d’une mort de maladie ou d’une épidémie. Remplacement : {e}.'),
+        crippled: text('Estropié', 'Journal : une blessure laisse quelqu’un estropié. Remplacements : {nom}, {e}, {cause} (« d’un coup de lance de Ka », « de sa lutte contre un aurochs »).'),
         ties: {
           kind: 'object',
           fields: {

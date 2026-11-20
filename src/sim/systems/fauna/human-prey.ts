@@ -75,8 +75,9 @@ export function huntHuman(fauna: FaunaSystem, slot: number, species: AnimalSpeci
 }
 
 /** The predator's side of an attack: if the person died, the body becomes a carcass it eats first. */
-export function onAttackDone(fauna: FaunaSystem, slot: number, _attack: Attack, outcome: AttackOutcome): void {
+export function onAttackDone(fauna: FaunaSystem, slot: number, attack: Attack, outcome: AttackOutcome): void {
   if (!outcome.killed) return;
   fauna.carrion.add(outcome.y * fauna.size + outcome.x, outcome.remains);
-  feastOnKill(fauna, slot, outcome.x + 0.5, outcome.y + 0.5);
+  // An animal that defended itself against its hunter does not eat him.
+  if ((attack.motive ?? 'predation') === 'predation') feastOnKill(fauna, slot, outcome.x + 0.5, outcome.y + 0.5);
 }

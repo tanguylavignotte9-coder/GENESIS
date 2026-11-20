@@ -94,7 +94,7 @@ export function describeSocial(life: SocialLife, person: number): SocialDetails 
     if (code < 0) continue;
     const id = AMBITIONS[code]!;
     const target = s.ambitionTarget[k]!;
-    const about = id === 'regainEsteem' && target >= 0 ? ` (${life.name(target)})` : id === 'excelSkill' && target >= 0 ? ` (${life.humanParams.skills[target]?.name ?? ''})` : '';
+    const about = (id === 'regainEsteem' || id === 'avenge') && target >= 0 ? ` (${life.name(target)})` : id === 'excelSkill' && target >= 0 ? ` (${life.humanParams.skills[target]?.name ?? ''})` : '';
     ambitions.push(params.ambitions.kinds[id].name + about);
   }
 

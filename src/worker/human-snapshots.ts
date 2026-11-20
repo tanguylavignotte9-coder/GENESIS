@@ -1,4 +1,5 @@
 import { describePersonIdeas } from '../sim/systems/ideas/describe';
+import { describePersonConflict } from '../sim/systems/conflict/describe';
 import type { Simulation } from '../sim/core/simulation';
 import { feltTemperature } from '../sim/systems/individuals/body';
 import { INPUTS } from '../sim/systems/individuals/params';
@@ -36,7 +37,8 @@ export function snapshotRoster(simulation: Simulation): Roster {
 export function snapshotHumans(simulation: Simulation): { snapshot: HumansSnapshot; transfer: ArrayBuffer[] } {
   const { people } = simulation.humans;
   const flags = new Uint8Array(people.count);
-  for (let p = 0; p < people.count; p++) flags[p] = (people.alive[p] ? HumanFlag.Alive : 0) | (people.working[p] ? HumanFlag.Working : 0);
+  const conflict = simulation.conflict;
+  for (let p = 0; p < people.count; p++) flags[p] = (people.alive[p] ? HumanFlag.Alive : 0) | (people.working[p] ? HumanFlag.Working : 0) | (conflict.warCall(p) > 0 ? HumanFlag.Fighting : 0);
   const n = people.count;
   const snapshot: HumansSnapshot = {
     x: people.px.slice(0, n),
@@ -106,12 +108,13 @@ export function describePerson(simulation: Simulation, requestId: number, person
     life: describeLife(humans.life, person),
     groups: describeMembership(simulation.groups, person),
     ideas: describePersonIdeas(simulation.ideas, person),
+    conflict: describePersonConflict(simulation.conflict, person),
   };
 }
 
 /** Width of an age band of the pyramid (display). */
 const BAND_YEARS = 5;
-const DEATH_CAUSES = ['', 'Faim', 'Soif', 'Froid', 'Prédateur', 'Vieillesse', 'Maladie', 'En couches'];
+const DEATH_CAUSES = ['', 'Faim', 'Soif', 'Froid', 'Prédateur', 'Vieillesse', 'Maladie', 'En couches', 'Violence'];
 
 /** Population of the humans: census points since `fromSample`, age pyramid of the living, causes of death. */
 export function snapshotHumanStats(simulation: Simulation, fromSample: number): HumanStats {

@@ -30,14 +30,14 @@ export const CONVERSATIONS = ['chat', 'confide', 'console', 'seduce', 'argue'] a
 export type ConversationKind = (typeof CONVERSATIONS)[number];
 
 /** Why a relation is what it is (the main reasons are kept with it). */
-export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played', 'contested', 'rallied', 'blamed', 'taught', 'traded', 'faith', 'impiety'] as const;
+export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played', 'contested', 'rallied', 'blamed', 'taught', 'traded', 'faith', 'impiety', 'assaulted', 'murdered', 'enemy'] as const;
 export type ReasonId = (typeof REASONS)[number];
 
 export const NEWS_KINDS = ['death', 'couple', 'food', 'danger'] as const;
 export type NewsKind = (typeof NEWS_KINDS)[number];
 
 /** The last three are political: the groups system offers and judges them (data/groups.json). */
-export const AMBITIONS = ['makeFriends', 'findPartner', 'excelSkill', 'regainEsteem', 'becomeChief', 'foundClan', 'foundTribe'] as const;
+export const AMBITIONS = ['makeFriends', 'findPartner', 'excelSkill', 'regainEsteem', 'becomeChief', 'foundClan', 'foundTribe', 'avenge'] as const;
 export type AmbitionId = (typeof AMBITIONS)[number];
 
 export interface Feelings {
@@ -355,7 +355,7 @@ export const SOCIAL_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         death: text('Une mort', 'Nouvelle d’une mort (fiche personnage). Remplacements : {nom}, {e}, {cause}.'),
-        causes: { kind: 'array', minLength: 8, maxLength: 8, items: text('Cause de mort', 'Fin de phrase selon la cause : aucune, faim, soif, froid, fauve, vieillesse, maladie, en couches. Remplacement : {e}.') },
+        causes: { kind: 'array', minLength: 9, maxLength: 9, items: text('Cause de mort', 'Fin de phrase selon la cause : aucune, faim, soif, froid, fauve, vieillesse, maladie, en couches, violence. Remplacement : {e}.') },
         unknownCause: text('Cause inconnue', 'Quand la nouvelle a perdu la cause en route.'),
         couple: text('Un couple', 'Nouvelle d’un couple. Remplacements : {a}, {b}.'),
         food: text('Un coin de nourriture', 'Remplacements : {distance}, {direction}.'),

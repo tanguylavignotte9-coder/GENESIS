@@ -15,6 +15,8 @@ import { Group } from '../../systems/groups/group';
 import { GroupsSystem } from '../../systems/groups/groups-system';
 import { Idea } from '../../systems/ideas/idea';
 import { IdeasSystem } from '../../systems/ideas/ideas-system';
+import { ConflictSystem } from '../../systems/conflict/conflict-system';
+import { Envoy, Expedition, Feud, TribeRelation } from '../../systems/conflict/state';
 import { PersonIdeas } from '../../systems/ideas/holdings';
 import { Camp } from '../../systems/individuals/camp';
 import { IndividualsSystem } from '../../systems/individuals/individuals-system';
@@ -78,6 +80,11 @@ export const SAVED_CLASSES: ClassRegistry = {
   Group,
   IdeasSystem,
   Idea,
+  ConflictSystem,
+  TribeRelation,
+  Expedition,
+  Feud,
+  Envoy,
   PersonIdeas,
   Toponyms,
 };

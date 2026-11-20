@@ -302,6 +302,6 @@ export function contest(sys: GroupsSystem, group: Group, challenger: number, rea
     reform(sys, group, groupFactors(sys, group), [event]);
     return;
   }
-  const event = publishGroupEvent(sys, GROUP_EVENTS.contested, params.texts.contested, vars, group, [challenger, chief], [group.leaderEvent]);
+  const event = publishGroupEvent(sys, GROUP_EVENTS.contested, params.texts.contested, vars, group, [challenger, chief], [group.leaderEvent], { challenger, supporters: supporters.length, adults: adults.length + group.leaders.length });
   for (const person of adults) if (!supporters.includes(person)) feel(social, person, challenger, { affection: 0, trust: 0, respect: params.politics.failedRespect }, 'contested', event);
 }

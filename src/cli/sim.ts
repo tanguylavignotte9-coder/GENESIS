@@ -136,6 +136,13 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   for (const line of politics) console.log(`    ${line}`);
   const i = report.ideas;
   console.log(`  Idées                 : ${i.discoveries} découverte(s), ${i.lost} savoir(s) perdu(s) ; cultures ${i.cultures.alive}/${i.cultures.ever}, langues ${i.languages.alive}/${i.languages.ever}, religions ${i.religions.alive}/${i.religions.ever} (vivantes/apparues) ; sans religion ${i.unbelievers.without}/${i.unbelievers.adults} adultes (dont ${i.unbelievers.lostFaith} ont perdu la foi ; ${i.unbelievers.faithLost} pertes de foi et ${i.unbelievers.conversions} conversions racontées) ; biens d’échange : ${i.currencies.join(', ') || 'aucun'} ; ${i.places} lieu(x) nommé(s)`);
+  const k = report.conflict.counts;
+  console.log(`  Conflit               : ${k['brawls']} rixe(s), ${k['murders']} meurtre(s), ${k['exiles']} exil(s), ${k['feuds']} vendetta(s), ${k['revenges']} vengeance(s), ${k['raids']} raid(s), ${k['wars']} guerre(s), ${k['battles']} bataille(s), ${k['conquests']} conquête(s), ${k['tributes']} tribut(s), ${k['peaces']} paix, ${k['truces']} trêve(s), ${k['civilWars']} guerre(s) civile(s), ${k['captives']} captif(s), ${k['deserters']} déserteur(s), ${k['betrayals']} trahison(s) ; ${report.conflict.violentDeaths} mort(s) violente(s) ; ${report.conflict.tribesAlive} tribu(s) à la fin, ${report.conflict.atWar} guerre(s) en cours`);
+  console.log(`  Prédateurs            : ${report.predators.map((line) => `${line.name} ${line.count}`).join(', ')}`);
+  if (report.conflict.events.length > 0) {
+    console.log('  Violence et diplomatie :');
+    for (const line of report.conflict.events.slice(0, 60)) console.log(`    ${line}`);
+  }
   console.log(`  Savoirs portés (fin)  : ${i.knowledgeKnown.join(', ') || 'aucun'}`);
   const ideaLines = i.events.length <= MAX_LISTED_ANOMALIES * 2 ? i.events : [...i.events.slice(0, MAX_LISTED_ANOMALIES), '…', ...i.events.slice(-MAX_LISTED_ANOMALIES)];
   for (const line of ideaLines) console.log(`    ${line}`);

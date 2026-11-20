@@ -43,6 +43,12 @@ export function startAction(sys: IndividualsSystem, person: number, action: Comp
   return started;
 }
 
+/** Away on a mission (a war party, an embassy): one does not go home to sleep. */
+function onMission(sys: IndividualsSystem, person: number): boolean {
+  const conflict = sys.conflict;
+  return conflict !== null && (conflict.warCall(person) > 0 || conflict.envoyCall(person) > 0);
+}
+
 /** Is there water to drink within sight, on the way down to it? */
 function waterInSight(sys: IndividualsSystem, from: number): boolean {
   const path = sys.fauna.waterPath;
@@ -78,11 +84,16 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
     case 'warm_up':
       return production.fireLit(camp.id) && sys.goHome(person, production.fireTile(camp.id), true);
     case 'sleep': {
+      // Away with a war party or on an embassy, one sleeps where night falls.
+      if (onMission(sys, person)) {
+        sys.stayAt(person, here);
+        return true;
+      }
       const bed = production.bed(person).tile;
       return sys.goHome(person, bed >= 0 ? bed : production.fireTile(camp.id), bed < 0);
     }
     case 'return_camp':
-      return sys.goHome(person, camp.center, true);
+      return !onMission(sys, person) && sys.goHome(person, camp.center, true);
     case 'flee':
       // Fleeing means running back to the others; once at the camp there is nowhere safer to go.
       if (camp.distanceTo(people.x[person]!, people.y[person]!) <= sys.params.tribe.campRadius) return false;
@@ -101,6 +112,11 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
     }
     case 'carried':
       return sys.life.carrier(person) >= 0;
+    case 'mission': {
+      // A war party's gathering place or the enemy camp, an emissary's destination, then home.
+      const target = sys.conflict ? sys.conflict.missionTarget(person) : -1;
+      return target >= 0 && sys.goTo(person, target);
+    }
     case 'follow_guardian': {
       const guardian = sys.life.state.guardian[person]!;
       if (!sys.life.alive(guardian) || guardian === person) return false;
@@ -241,6 +257,16 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
       return meeting(sys, person, hours, true);
     case 'carried':
       return beCarried(sys, person, hours);
+    case 'mission': {
+      // The mission moved on (the party marches off, the emissary is sent home): a new way.
+      const target = sys.conflict ? sys.conflict.missionTarget(person) : -1;
+      if (target < 0) return true;
+      if (target !== people.target[person]) return !sys.goTo(person, target);
+      return sys.arrived(person, hours, () => {
+        people.working[person] = 1;
+        return false;
+      });
+    }
     case 'follow_guardian': {
       const guardian = sys.life.state.guardian[person]!;
       return !sys.life.alive(guardian) || sys.follow(person, guardian, hours);

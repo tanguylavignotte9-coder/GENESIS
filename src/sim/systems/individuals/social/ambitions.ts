@@ -38,6 +38,9 @@ function stillWanted(life: SocialLife, person: number, kind: number, target: num
       const esteem = theirs >= 0 ? life.state.affection[theirs]! : 0;
       return esteem < life.params.relations.friendAffection && memoryWeight(life, person, 'quarrel', target) > 0;
     }
+    case 'avenge':
+      // Given by the conflict system: lives as long as the one to punish (the killer or one of theirs).
+      return target >= 0 && life.alive(target);
     default:
       // Political ambitions (become chief, found a clan or a tribe): judged by the groups system.
       return life.stillWantsPower(person, AMBITIONS[kind]!);

@@ -70,6 +70,9 @@ export interface AnimalSpecies {
   huntRadius: number;
   /** Hunters only: chance per step to bring down an adjacent prey. */
   huntSuccess: number;
+  /** Chance that the animal fights back when a human hunter strikes it, and the health a blow removes. */
+  riposteChance: number;
+  riposteDamage: number;
   /** Hunters only: running speed while chasing, tiles per hour. */
   sprintTiles: number;
   /** Food units its body gives to the hunters who kill it. */
@@ -202,6 +205,8 @@ const SPECIES_SCHEMA: Schema = {
     fleeSprintTiles: num(0.1, 20, 'Course de fuite', 'Gibier : vitesse de course en fuyant un humain.', 'tuiles/heure'),
     huntRadius: int(0, 64, 'Rayon de chasse', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
     huntSuccess: share('Réussite de la chasse', 'Chasseurs : chance par pas de terrasser une proie à son contact.'),
+    riposteChance: share('Riposte', 'Chance que l’animal se défende quand un chasseur humain le frappe (charge, coups de cornes, de défenses ou de griffes).'),
+    riposteDamage: num(0, 200, 'Force de la riposte', 'Santé qu’enlève à un chasseur un coup de l’animal qui se défend (au hasard entre la moitié et une fois et demie).', 'points de santé'),
     sprintTiles: num(0.1, 20, 'Course', 'Chasseurs : vitesse de course pendant la poursuite.', 'tuiles/heure'),
     meat: num(0, 1000, 'Viande', 'Unités de nourriture que donne le corps d’un adulte à ses chasseurs (moitié pour un petit).', 'unités'),
     migratory: flag('Migrateur', 'Les troupeaux partent vers l’équateur en automne et reviennent au printemps.'),

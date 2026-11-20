@@ -112,10 +112,11 @@ export class HumanLayer {
         // Looking where one goes: from the front, the back, or the side (mirrored to the left).
         const across = Math.abs(point.headingX) >= Math.abs(point.headingY);
         const view: HumanView = across ? 'side' : point.headingY > 0 ? 'front' : 'back';
-        const texture = this.texture(roster.female[p] === 1, Math.floor(tileHash(p, 7, 3) * VARIANTS), asleep, view, stride, running);
+        const armed = !asleep && (humans.flags[p]! & HumanFlag.Fighting) !== 0;
+        const texture = this.texture(roster.female[p] === 1, Math.floor(tileHash(p, 7, 3) * VARIANTS), asleep, view, stride, running, armed);
         const sprite = this.sprite(used++);
         const child = roster.ageYears[p]! < CHILD_AGE ? CHILD_SCALE : 1;
-        const scale = (HUMAN_TILES * child) / (asleep ? texture.height : texture.width);
+        const scale = (HUMAN_TILES * child * (armed ? 8 / 6 : 1)) / (asleep ? texture.height : texture.width);
         sprite.texture = texture;
         sprite.scale.set(view === 'side' && point.headingX < 0 && !asleep ? -scale : scale, scale);
         const bounce = stride === 1 ? (running ? VIEW.runBounceTiles : VIEW.walkBounceTiles) : 0;
@@ -129,11 +130,11 @@ export class HumanLayer {
     if (selected) this.ring.position.set(selected.x, selected.y);
   }
 
-  private texture(female: boolean, variant: number, asleep: boolean, view: HumanView, stride: number, running: boolean): Texture {
-    const key = `${female ? 1 : 0}:${variant}:${asleep ? 1 : 0}:${view}:${stride}:${running ? 1 : 0}`;
+  private texture(female: boolean, variant: number, asleep: boolean, view: HumanView, stride: number, running: boolean, armed: boolean): Texture {
+    const key = `${female ? 1 : 0}:${variant}:${asleep ? 1 : 0}:${view}:${stride}:${running ? 1 : 0}:${armed ? 1 : 0}`;
     let texture = this.textures.get(key);
     if (!texture) {
-      texture = drawHuman({ female, variant, asleep, view, stride, running });
+      texture = drawHuman({ female, variant, asleep, view, stride, running, armed });
       this.textures.set(key, texture);
     }
     return texture;

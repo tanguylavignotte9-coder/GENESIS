@@ -710,6 +710,37 @@
       "traits": { "diligence": -0.3 }
     },
     {
+      "id": "go_to_war",
+      "behavior": "mission",
+      "name": "Partir au combat",
+      "label": "Part au combat",
+      "minAge": 14,
+      "weight": 1.8,
+      "reason": "warCall",
+      "considerations": [
+        { "input": "warCall", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "fatigue", "curve": "linear", "a": -0.3, "b": 1 },
+        { "input": "night", "curve": "linear", "a": -0.6, "b": 1 },
+        { "input": "hunger", "curve": "linear", "a": -0.3, "b": 1 }
+      ],
+      "traits": { "prudence": -0.2, "temper": 0.15 }
+    },
+    {
+      "id": "carry_message",
+      "behavior": "mission",
+      "name": "Porter un message",
+      "label": "Porte un message à une autre tribu",
+      "minAge": 14,
+      "weight": 1.8,
+      "reason": "envoyCall",
+      "considerations": [
+        { "input": "envoyCall", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "fatigue", "curve": "linear", "a": -0.3, "b": 1 },
+        { "input": "night", "curve": "linear", "a": -0.6, "b": 1 }
+      ],
+      "traits": { "diligence": 0.2 }
+    },
+    {
       "id": "rest",
       "behavior": "rest",
       "name": "Se reposer",
@@ -726,10 +757,11 @@
     "hunger": "{nom} est mort{e} de faim dans {lieu}.",
     "thirst": "{nom} est mort{e} de soif dans {lieu}{aggravation}.",
     "cold": "{nom} est mort{e} de froid dans {lieu}{aggravation}.",
-    "predator": "{nom} a été tué{e} par {un_animal} dans {lieu}{aggravation}.",
+    "predator": "{nom} a été tué{e} par {un_animal}{contexte} dans {lieu}{aggravation}.",
     "oldAge": "{nom} s’éteint de vieillesse à {age} ans, dans {lieu}.",
     "disease": "{nom} meurt de {maladie} à {age} ans{aggravation}, dans {lieu}.",
-    "childbirth": "{nom} meurt en couches à {age} ans, dans {lieu}."
+    "childbirth": "{nom} meurt en couches à {age} ans, dans {lieu}.",
+    "violence": "{nom} est tué{e} par {tueur} {contexte}, dans {lieu}{aggravation}."
   },
   "settlementText": "Une tribu de {personnes} personnes s'installe dans {lieu} : {batiments}.",
   "campMove": {

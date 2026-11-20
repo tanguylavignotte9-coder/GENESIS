@@ -20,7 +20,7 @@
     { "id": "sharing", "name": "Partage", "low": "chacun garde ce qu’il a", "high": "tout se partage", "actions": { "give": 0.6 } },
     { "id": "hierarchy", "name": "Hiérarchie", "low": "tous égaux", "high": "on obéit au chef", "actions": {} },
     { "id": "hospitality", "name": "Hospitalité", "low": "méfiance envers les étrangers", "high": "l’étranger est accueilli", "actions": {} },
-    { "id": "bravery", "name": "Bravoure", "low": "la prudence avant tout", "high": "le courage est sacré", "actions": { "hunt": 0.4, "flee": -0.3 } },
+    { "id": "bravery", "name": "Bravoure", "low": "la prudence avant tout", "high": "le courage est sacré", "actions": { "hunt": 0.4, "flee": -0.3, "go_to_war": 0.3 } },
     { "id": "elders", "name": "Place des anciens", "low": "les anciens s’effacent", "high": "les anciens sont écoutés", "actions": {} }
   ],
   "culture": {

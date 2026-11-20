@@ -25,3 +25,14 @@ export function drawTribeBanner(graphics: Graphics, x: number, y: number, color:
 export function tribeLabelStyle(color: number): TextStyle {
   return new TextStyle({ fontFamily: 'system-ui, Segoe UI, sans-serif', fontSize: LABEL_FONT_PIXELS, fontWeight: '600', fill: color, stroke: { color: LABEL_STROKE, width: 3 } });
 }
+
+const BLADE_COLOR = 0xd8d8e0;
+const BATTLE_GLOW = 0xc83030;
+
+/** Where a battle took place: two crossed blades on a red mark, fading with the hours (`fade` 0..1). */
+export function drawBattleMark(graphics: Graphics, x: number, y: number, fade: number): void {
+  const alpha = Math.max(0.15, 1 - fade);
+  graphics.circle(x, y, 0.7).fill({ color: BATTLE_GLOW, alpha: 0.35 * alpha });
+  graphics.moveTo(x - 0.45, y - 0.45).lineTo(x + 0.45, y + 0.45).stroke({ width: 0.12, color: BLADE_COLOR, alpha });
+  graphics.moveTo(x + 0.45, y - 0.45).lineTo(x - 0.45, y + 0.45).stroke({ width: 0.12, color: BLADE_COLOR, alpha });
+}

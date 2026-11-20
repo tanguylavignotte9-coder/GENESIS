@@ -36,13 +36,17 @@ function nearestPrey(sys: ProductionSystem, x: number, y: number, recipe: Recipe
   return { slot: best, uid: fauna.store.uid[best]!, tile: fauna.store.y[best]! * sys.size + fauna.store.x[best]! };
 }
 
-function strikeRange(sys: ProductionSystem, person: number): number {
-  const { hunting } = sys.params;
-  const ranged = hunting.rangedTools.some((id) => {
+/** Does the hunter carry a weapon that shoots from afar (a bow)? */
+function shootsFromAfar(sys: ProductionSystem, person: number): boolean {
+  return sys.params.hunting.rangedTools.some((id) => {
     const item = sys.catalog.itemIndex.get(id);
     return item !== undefined && sys.carried[person]!.count(item) >= 1 - 1e-9;
   });
-  return ranged ? hunting.rangedStrikeTiles : hunting.strikeTiles;
+}
+
+function strikeRange(sys: ProductionSystem, person: number): number {
+  const { hunting } = sys.params;
+  return shootsFromAfar(sys, person) ? hunting.rangedStrikeTiles : hunting.strikeTiles;
 }
 
 export function huntStep(sys: ProductionSystem, person: number, job: Job, hours: number, out: WorkResult): void {
@@ -79,8 +83,33 @@ export function huntStep(sys: ProductionSystem, person: number, job: Job, hours:
   out.tile = store.y[job.prey]! * sys.size + store.x[job.prey]!;
 }
 
+/**
+ * A big animal may fight back when struck (an aurochs charges, a boar or a bear turns on the
+ * hunter): the blow is applied to the hunter through the interactions; a skilled hunter, or one who
+ * shoots from afar, is less exposed. Returns true if the hunt ends there (the hunter fell, or the
+ * animal got away).
+ */
+function riposte(sys: ProductionSystem, person: number, job: Job, recipe: Recipe): boolean {
+  const species = sys.fauna.speciesOf(job.prey);
+  const skill = recipe.skill >= 0 ? sys.people.skill(person, recipe.skill) : 0;
+  const chance = species.riposteChance * (shootsFromAfar(sys, person) ? sys.params.hunting.rangedRiposte : 1) * (1 - skill / 2);
+  if (chance <= 0 || sys.rng.nextFloat() >= chance) return false;
+  const female = sys.people.female(person);
+  const outcome = sys.interactions.attack({
+    attacker: { kind: 'animal', id: job.prey },
+    target: { kind: 'human', id: person },
+    damage: species.riposteDamage * (0.5 + sys.rng.nextFloat()),
+    attackerName: species.name.toLowerCase(),
+    tick: sys.tick,
+    motive: 'defense',
+    context: ` qu’${female ? 'elle' : 'il'} chassait`,
+  });
+  return outcome.killed || sys.rng.nextFloat() < sys.params.hunting.riposteEscape;
+}
+
 /** The blow: the fauna applies the death, the hunter takes the carcass (as much as can be carried). */
 function strike(sys: ProductionSystem, person: number, job: Job, recipe: Recipe): void {
+  if (riposte(sys, person, job, recipe)) return;
   const outcome = sys.interactions.attack({
     attacker: { kind: 'human', id: person },
     target: { kind: 'animal', id: job.prey },

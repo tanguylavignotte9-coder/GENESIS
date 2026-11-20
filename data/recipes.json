@@ -20,7 +20,7 @@
     { "id": "make_spear", "name": "Fabriquer une lance", "label": "Fabrique une lance", "knowledge": "hunting", "skill": "crafting", "hours": 3, "effect": "none",
       "inputs": [{ "items": ["branches"], "qty": 1 }, { "items": ["flint"], "qty": 1 }], "tools": ["stone_knife"], "outputs": [{ "item": "spear", "qty": 1 }] },
     { "id": "hunt", "name": "Chasser", "label": "Chasse", "knowledge": "hunting", "skill": "hunting", "hours": 1, "effect": "none",
-      "source": { "kind": "prey", "species": ["deer", "horse", "goat", "boar", "rabbit", "aurochs"] }, "inputs": [], "tools": ["spear", "bow"], "outputs": [{ "item": "carcass", "qty": 1 }] },
+      "source": { "kind": "prey", "species": ["deer", "horse", "goat", "boar", "rabbit", "aurochs", "bear"] }, "inputs": [], "tools": ["spear", "bow"], "outputs": [{ "item": "carcass", "qty": 1 }] },
     { "id": "butcher", "name": "Dépecer", "label": "Dépèce une carcasse", "knowledge": "hunting", "skill": "butchery", "hours": 1, "effect": "none",
       "inputs": [{ "items": ["carcass"], "qty": 1 }], "tools": ["stone_knife"],
       "outputs": [{ "item": "meat", "qty": 8 }, { "item": "hide", "qty": 0.5 }, { "item": "bone", "qty": 1 }, { "item": "sinew", "qty": 0.5 }] },

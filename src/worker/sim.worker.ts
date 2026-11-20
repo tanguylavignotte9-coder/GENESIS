@@ -22,6 +22,7 @@ import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
 import { describeBrain } from '../sim/systems/individuals/brain-describe';
 import { describeAnimalBrain } from '../sim/systems/fauna/brain-trace';
 import { describeGovernance } from '../sim/systems/groups/governance';
+import { recentBattles, relationStatus } from '../sim/systems/conflict/describe';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -317,7 +318,10 @@ function publishChanges(current: Simulation, now = performance.now()): void {
     sentRosterLiving = living;
     sentRosterDay = day;
     post({ type: 'roster', roster: snapshotRoster(current) });
-    post({ type: 'groups', groups: describeGroups(current.groups) });
+    const groups = describeGroups(current.groups);
+    for (const group of groups.groups) for (const known of group.known) known.status = relationStatus(current.conflict, group.id, known.group);
+    post({ type: 'groups', groups });
+    post({ type: 'battles', battles: recentBattles(current.conflict, current.data.time.ticksPerDay / 24, 48) });
     post({ type: 'ideas', ideas: describeIdeas(current.ideas) });
     const stats = snapshotHumanStats(current, sentHumanSamples);
     sentHumanSamples += stats.samples.length;

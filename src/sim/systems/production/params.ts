@@ -107,7 +107,7 @@ export interface ProductionParams {
     foodReserveDaysBySeason: number[];
     firewoodReserveHoursBySeason: number[];
     storageFullShare: number;
-    urgency: { fire: number; shelter: number; openSite: number; storage: number; station: number; perMember: number; craft: number; worship: number };
+    urgency: { fire: number; shelter: number; openSite: number; storage: number; station: number; perMember: number; craft: number; worship: number; defense: number };
   };
   quality: { base: number; skillWeight: number; toolWeight: number; randomness: number };
   work: { skillSpeedBonus: number; branchHarmToPlant: number; spareFoodPlants: number; keepingPreference: number; keepingDays: number; searchTiles: number; campTiles: number; buildRingMin: number; buildRingMax: number };
@@ -120,6 +120,9 @@ export interface ProductionParams {
     skillBonus: number;
     meatPerCarcass: number;
     giveUpHours: number;
+    /** Share of the animal's riposte left when it is shot from afar (bow), and chance that a wounded animal escapes. */
+    rangedRiposte: number;
+    riposteEscape: number;
   };
   crop: { growthDays: number; minCelsius: number; grainPerSeed: number; strawPerSeed: number };
   terrainSources: TerrainSource[];
@@ -127,7 +130,7 @@ export interface ProductionParams {
     siteStarted: string;
     buildingDone: string;
     firstItem: string;
-    reasons: { shelter: string; storage: string; fire: string; station: string; perMember: string; worship: string };
+    reasons: { shelter: string; storage: string; fire: string; station: string; perMember: string; worship: string; defense: string };
   };
 }
 
@@ -302,6 +305,7 @@ export const PRODUCTION_SCHEMA: Schema = {
             perMember: urgency('un bâtiment voulu par la coutume (champ…)'),
             craft: urgency('il manque tous les objets voulus par la coutume (proportionnel au manque)'),
             worship: urgency('les fidèles d’une religion veulent un lieu de culte'),
+            defense: urgency('une menace connue (guerre, raid, vendetta) pousse à se protéger (proportionnel à la menace)'),
           },
         },
       },
@@ -340,6 +344,8 @@ export const PRODUCTION_SCHEMA: Schema = {
         skillBonus: num(0, 1, 'Effet de l’expérience', 'Chance de réussite ajoutée par une compétence de chasse parfaite.', 'probabilité'),
         meatPerCarcass: num(1, 100, 'Taille d’une carcasse', 'Viande d’animal par unité de carcasse rapportée (un cerf de 30 donne 3 carcasses).', 'unités'),
         giveUpHours: num(0.5, 48, 'Patience', 'Heures de traque sans succès avant d’abandonner.', 'heures'),
+        rangedRiposte: num(0, 1, 'Chasser de loin', 'Part du risque de riposte qui reste quand on tire à l’arc plutôt que de frapper à la lance.', 'fraction'),
+        riposteEscape: num(0, 1, 'Proie qui s’échappe', 'Chance qu’un animal qui s’est défendu s’échappe (le chasseur rentre bredouille, s’il en réchappe).', 'chance'),
       },
     },
     crop: {
@@ -379,6 +385,7 @@ export const PRODUCTION_SCHEMA: Schema = {
             station: text('Raison : atelier', 'Raison d’un chantier d’atelier. Remplacement : {recette}.'),
             perMember: text('Raison : coutume', 'Raison d’un chantier voulu par la coutume. Remplacement : {n}.'),
             worship: text('Raison : culte', 'Raison d’un chantier de lieu de culte (sanctuaire, tombe) voulu par les fidèles.'),
+            defense: text('Raison : défense', 'Raison d’un chantier de palissade ou de mur quand une menace est connue.'),
           },
         },
       },

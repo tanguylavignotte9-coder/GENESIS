@@ -20,6 +20,8 @@ export interface HumanLook {
   stride: number;
   /** Running: longer strides, arms pumping, body leaning forward. */
   running: boolean;
+  /** In a war party: a red band on the head and a spear in hand. */
+  armed?: boolean;
 }
 
 /** Width of a standing adult, in map tiles (children are drawn smaller). */
@@ -47,13 +49,37 @@ function paletteOf(variant: number): Palette {
 export function drawHuman(look: HumanLook): Texture {
   const colors = paletteOf(look.variant);
   if (look.asleep) return lying(colors, look.female);
+  if (look.armed) return armed(colors, look);
   if (look.view === 'side') return side(colors, look);
   return facing(colors, look);
 }
 
+const WAR_BAND: Rgb = [190, 40, 40];
+const SPEAR_SHAFT: Rgb = [120, 85, 50];
+const SPEAR_TIP: Rgb = [210, 210, 220];
+
+/** A fighter: the ordinary figure, a red band across the head, and a spear held upright beside the body. */
+function armed(colors: Palette, look: HumanLook): Texture {
+  const canvas = new PixelCanvas(8, 12);
+  const body = new PixelCanvas(6, 10);
+  if (look.view === 'side') drawSide(body, colors, look);
+  else drawFacing(body, colors, look);
+  canvas.blit(body, 0, 2);
+  for (let x = 1; x < 5; x++) canvas.set(x, 3, WAR_BAND);
+  for (let y = 1; y < 12; y++) canvas.set(6, y, SPEAR_SHAFT);
+  canvas.set(6, 0, SPEAR_TIP);
+  canvas.set(7, 1, SPEAR_TIP, SHADE);
+  return canvas.toTexture();
+}
+
 /** Front or back: the face shows from the front, the hair covers the head from the back. */
-function facing({ skin, hair, cloth }: Palette, look: HumanLook): Texture {
+function facing(colors: Palette, look: HumanLook): Texture {
   const canvas = new PixelCanvas(6, 10);
+  drawFacing(canvas, colors, look);
+  return canvas.toTexture();
+}
+
+function drawFacing(canvas: PixelCanvas, { skin, hair, cloth }: Palette, look: HumanLook): void {
   const back = look.view === 'back';
   for (let x = 1; x < 5; x++) canvas.set(x, 0, hair);
   for (let y = 1; y < 3; y++) for (let x = 1; x < 5; x++) canvas.set(x, y, back ? hair : skin, x === 4 ? 0.9 : 1);
@@ -74,12 +100,16 @@ function facing({ skin, hair, cloth }: Palette, look: HumanLook): Texture {
     canvas.set(last ? feet[1]! : 3, y, skin, SHADE);
     if (look.female && y === 7) canvas.set(2, y, cloth);
   }
-  return canvas.toTexture();
 }
 
 /** Profile, facing right: legs and arms scissor with the stride; a runner leans forward. */
-function side({ skin, hair, cloth }: Palette, look: HumanLook): Texture {
+function side(colors: Palette, look: HumanLook): Texture {
   const canvas = new PixelCanvas(6, 10);
+  drawSide(canvas, colors, look);
+  return canvas.toTexture();
+}
+
+function drawSide(canvas: PixelCanvas, { skin, hair, cloth }: Palette, look: HumanLook): void {
   const lean = look.running && look.stride !== 0 ? 1 : 0;
   // Head: hair on top and at the back, face toward the right, a nose.
   for (let x = 1 + lean; x < 4 + lean; x++) canvas.set(x, 0, hair);
@@ -107,7 +137,6 @@ function side({ skin, hair, cloth }: Palette, look: HumanLook): Texture {
     // Passing step: one leg lifted.
     canvas.set(3, 8, skin, SHADE);
   }
-  return canvas.toTexture();
 }
 
 function lying({ skin, hair, cloth }: Palette, female: boolean): Texture {

@@ -24,7 +24,7 @@ export interface CampNeeds {
   knowledge: number;
 }
 
-export type WantReason = 'fire' | 'shelter' | 'storage' | 'station' | 'perMember' | 'worship';
+export type WantReason = 'fire' | 'shelter' | 'storage' | 'station' | 'perMember' | 'worship' | 'defense';
 
 export interface BuildPlan {
   /** Existing site to work on (-1: start a new one of `type`). */
@@ -81,6 +81,8 @@ export class CampState {
   settleEvent = -1;
   /** Factors the tribe's strategy puts on what custom asks for (groups system, step 9). */
   policy: CampPolicy = { food: 1, wood: 1, build: 1, craft: 1 };
+  /** How threatened the camp feels (0..1: a war, a recent raid, a feud known to its people), set by the conflict system. */
+  threat = 0;
   needs: CampNeeds = { food: 0, wood: 0, build: 0, craft: 0, buildPlan: null, craftPlan: null, foodReserve: 0, foodHave: 0, woodReserve: 0, woodHave: 0, members: [], knowledge: 0 };
 
   constructor(

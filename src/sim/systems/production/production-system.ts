@@ -306,6 +306,14 @@ export class ProductionSystem {
     state.needsHour = -1;
   }
 
+  /** How threatened a camp feels (0..1), told by the conflict system: a threat makes it want defenses. */
+  setThreat(camp: number, level: number): void {
+    const state = this.camps[camp];
+    if (!state || state.threat === level) return;
+    state.threat = level;
+    state.needsHour = -1;
+  }
+
   /** Part (0..1) of every pile of a camp's common stock goes to another camp (a split, by the property rules). */
   shareStock(from: number, to: number, share: number): string[] {
     const source = this.camps[from]!.stock;
@@ -637,6 +645,41 @@ export class ProductionSystem {
       given += taken.qty * food;
     }
     return given;
+  }
+
+  /**
+   * Provisions for a journey (a war party, an emissary): up to `units` of food value taken from the
+   * camp's common stock, what keeps longest first, as much as one can carry. Returns the value taken.
+   */
+  takeRations(person: number, units: number): number {
+    const camp = this.camps[this.people.camp(person)];
+    if (!camp) return 0;
+    const source = camp.stock;
+    const target = this.carried[person]!;
+    let taken = 0;
+    while (taken < units - 1e-9 && this.room(person) > 1e-6) {
+      let best = -1;
+      let bestLife = -1;
+      for (let k = 0; k < source.piles.length; k++) {
+        const pile = source.piles[k]!;
+        if (this.catalog.food[pile.item]! <= 0) continue;
+        const life = this.catalog.halfLife[pile.item]! || Number.MAX_VALUE;
+        if (life > bestLife) {
+          bestLife = life;
+          best = k;
+        }
+      }
+      if (best < 0) break;
+      const item = source.piles[best]!.item;
+      const food = this.catalog.food[item]!;
+      const room = this.room(person) / this.catalog.bulk[item]!;
+      const got = source.take(item, Math.min(room, (units - taken) / food));
+      if (got.qty <= 0) break;
+      target.put(item, got.qty, got.quality, person);
+      taken += got.qty * food;
+    }
+    camp.needsHour = -1;
+    return taken;
   }
 
   /** A tool the person carries twice or more (one could be given away), or -1. */

@@ -15,6 +15,9 @@ import { LifeState, NEVER_DAY } from './state';
 export { LIFE_INPUTS } from './inputs';
 
 export const FAMINE = 'life.famine';
+export const CRIPPLED = 'life.crippled';
+/** Health of a body in full health. */
+const FULL_HEALTH = 100;
 const FULL = 100;
 const HOURS_PER_DAY = 24;
 
@@ -132,6 +135,7 @@ export class LifeCycle {
     const disease = state.disease[person]!;
     if (disease >= 0) vigor *= params.diseases[disease]?.vigorWhileSick ?? 1;
     if (state.pregnant(person)) vigor *= params.pregnancy.vigorFactor;
+    if (state.crippled[person] === 1) vigor *= params.wounds.crippleVigor;
     return vigor;
   }
 
@@ -310,6 +314,28 @@ export class LifeCycle {
       details: { camp },
     });
     this.famineCount++;
+  }
+
+  /**
+   * A wound one survives (a fight, an animal that fought back): a heavy one may leave the person
+   * crippled for life (less vigour for walking, working and fighting), told in the journal.
+   */
+  onWounded(person: number, damage: number, cause: string, event: number): void {
+    const { state, params } = this;
+    if (damage < params.wounds.crippleDamage || state.crippled[person] === 1 || this.people.alive[person] !== 1) return;
+    if (this.rng.nextFloat() >= params.wounds.crippleChance * Math.min(1, damage / FULL_HEALTH)) return;
+    state.crippled[person] = 1;
+    const x = this.people.x[person]!;
+    const y = this.people.y[person]!;
+    state.crippledEvent[person] = this.journal.publish({
+      tick: this.tick,
+      type: CRIPPLED,
+      text: fillTemplate(params.texts.crippled, { nom: this.people.names[person]!, e: this.people.female[person] === 1 ? 'e' : '', cause }),
+      place: this.place(x, y),
+      actors: [{ kind: 'human', id: person }],
+      causes: event >= 0 ? [event] : [],
+      details: { person },
+    });
   }
 
   /** A famine is over once nobody died of hunger for a while. */

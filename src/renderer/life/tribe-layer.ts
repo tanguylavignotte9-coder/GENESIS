@@ -1,6 +1,6 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import type { GroupsFacts } from '../../shared/messages';
-import { drawTribeBanner, tribeColor, tribeLabelStyle } from '../art/tribe';
+import { drawBattleMark, drawTribeBanner, tribeColor, tribeLabelStyle } from '../art/tribe';
 
 /** Lift of the name above the camp's heart, in screen pixels. */
 const LABEL_LIFT_PIXELS = 18;
@@ -12,6 +12,9 @@ export class TribeLayer {
   private readonly banners = new Graphics();
   private readonly labels = new Map<number, Text>();
   private facts: GroupsFacts | null = null;
+  /** Recent battles (tile, game hours since). */
+  private battles: { x: number; y: number; age: number }[] = [];
+  private static readonly BATTLE_HOURS = 48;
 
   constructor() {
     this.container.addChild(this.banners);
@@ -23,6 +26,11 @@ export class TribeLayer {
 
   clear(): void {
     this.facts = null;
+    this.battles = [];
+  }
+
+  setBattles(battles: { x: number; y: number; age: number }[]): void {
+    this.battles = battles;
   }
 
   update(pixelsPerTile: number): void {
@@ -49,5 +57,6 @@ export class TribeLayer {
       shown.add(group.id);
     }
     for (const [id, label] of this.labels) if (!shown.has(id)) label.visible = false;
+    for (const battle of this.battles) drawBattleMark(this.banners, battle.x + 0.5, battle.y - 1.5, battle.age / TribeLayer.BATTLE_HOURS);
   }
 }

@@ -42,6 +42,8 @@ export class Group {
   readonly known = new Map<number, { opinion: number; since: number; allied: boolean }>();
   /** Day the tribe settled its camp where it is (founding or last move). */
   settledDay = 0;
+  /** Tribes: how much war weighs on the tribe (0 peace … 1 at war), told by the conflict system. */
+  war = 0;
   /** The latest collective decisions of the leaders, with the options weighed (visual governance). */
   readonly decisions: DecisionRecord[] = [];
 

@@ -217,7 +217,7 @@ describe('believing or not (the choice of each person)', () => {
     expect(h.lostFaith[doubter]).toBe(1);
     const lost = simulation.journal.all().find((event) => event.type === IDEA_EVENTS.faithLost && event.actors.some((actor) => actor.id === doubter));
     expect(lost).toBeDefined();
-    expect(lost!.text).toMatch(/ne croit plus aux esprits/);
+    expect(lost!.text).toMatch(/ne croit plus aux /);
     expect(describePersonIdeas(simulation.ideas, doubter)!.faithNote).toMatch(/perdu la foi/);
     // The others, who do not doubt, keep their faith.
     const others = [...Array(simulation.humans.people.count).keys()].filter((p) => p !== doubter && simulation.humans.people.alive[p] === 1);

@@ -176,6 +176,11 @@
   "census": {
     "everyDays": 10
   },
+  "wounds": {
+    "crippleDamage": 30,
+    "crippleChance": 0.35,
+    "crippleVigor": 0.6
+  },
   "texts": {
     "birth": "{mere} met au monde {enfant}, {nom} (père : {pere}).",
     "stillbirth": "{mere} met au monde un enfant mort-né (père : {pere}).",
@@ -192,6 +197,7 @@
     "belongingsFound": "{trouveur} retrouve les affaires de {mort} là où {il_elle} est tombé{e} : {objets}.",
     "weakenedByHunger": ", affaibli{e} par la faim",
     "weakenedByCold": ", affaibli{e} par le froid",
+    "crippled": "{nom} survit, mais reste estropié{e} {cause}.",
     "ties": {
       "grandmother": "sa grand-mère",
       "grandfather": "son grand-père",

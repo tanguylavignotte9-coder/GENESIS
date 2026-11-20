@@ -4,7 +4,7 @@ import { familyTree, lifeLines } from './family-tree';
 
 const fr = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
 const PERCENT = 100;
-const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'attaque d’un prédateur', 'vieillesse', 'maladie', 'en couches'];
+const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'attaque d’un prédateur', 'vieillesse', 'maladie', 'en couches', 'tué au combat'];
 const STAGES = { baby: 'bébé', child: 'enfant', adult: 'adulte', elder: 'ancien' } as const;
 
 /** French words for the inputs that explain a decision ("Va boire — soif 72 %"). */
@@ -190,6 +190,7 @@ export class PersonSheet {
       for (const line of details.carried) list.append(el('li', '', itemText(line, tables)));
       nodes.push(list);
     }
+    nodes.push(...this.conflictNodes(details));
     nodes.push(...ideaNodes(details));
     nodes.push(
       el('div', 'sheet-section', 'Se souvient'),
@@ -197,6 +198,31 @@ export class PersonSheet {
       el('div', 'sheet-text muted', `Ressenti : ${fr.format(details.feltCelsius)} °C · ${roster.weatherNames[details.weather] ?? ''}`),
     );
     this.body.replaceChildren(...nodes);
+  }
+
+  /** Wounds of war, victims, personal enemies, a war party or an embassy. */
+  private conflictNodes(details: PersonDetails): HTMLElement[] {
+    const facts = details.conflict;
+    if (!facts.crippled && facts.victims.length === 0 && facts.enemies.length === 0 && !facts.mission) return [];
+    const nodes: HTMLElement[] = [el('div', 'sheet-section', 'Violence et guerre')];
+    if (facts.mission) nodes.push(el('div', 'sheet-text', facts.mission));
+    if (facts.crippled) nodes.push(el('div', 'sheet-text', facts.crippled));
+    const people = (label: string, list: { person: number; name: string; why?: string }[]): void => {
+      if (list.length === 0) return;
+      const line = el('div', 'sheet-text');
+      line.append(document.createTextNode(label));
+      list.forEach((entry, k) => {
+        if (k > 0) line.append(document.createTextNode(', '));
+        const link = el('span', 'person-link', entry.name);
+        link.addEventListener('click', () => this.onPerson(entry.person));
+        line.append(link);
+        if (entry.why) line.append(document.createTextNode(` (${entry.why})`));
+      });
+      nodes.push(line);
+    };
+    people('A tué : ', facts.victims);
+    people('Ennemis : ', facts.enemies);
+    return nodes;
   }
 
   /** Tribe, clan and household: the role in each, the support for its leaders, the duty given. */

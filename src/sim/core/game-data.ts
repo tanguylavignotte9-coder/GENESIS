@@ -1,6 +1,7 @@
 import animalsJson from '../../../data/animals.json';
 import groupsJson from '../../../data/groups.json';
 import ideasJson from '../../../data/ideas.json';
+import conflictJson from '../../../data/conflict.json';
 import biomesJson from '../../../data/biomes.json';
 import buildingsJson from '../../../data/buildings.json';
 import climateJson from '../../../data/climate.json';
@@ -23,6 +24,7 @@ import { parseSocialParams, SOCIAL_SCHEMA, type SocialParams } from '../systems/
 import { LIFE_SCHEMA, parseLifeParams, type LifeParams } from '../systems/individuals/life/params';
 import { checkGroupLinks, GROUPS_SCHEMA, parseGroupsParams, type GroupsParams } from '../systems/groups/params';
 import { checkIdeaLinks, IDEAS_SCHEMA, parseIdeasParams, type IdeasParams } from '../systems/ideas/params';
+import { checkConflictLinks, CONFLICT_SCHEMA, parseConflictParams, type ConflictParams } from '../systems/conflict/params';
 import { checkProductionLinks } from '../systems/production/links';
 import {
   BUILDINGS_SCHEMA,
@@ -62,6 +64,7 @@ export interface GameData {
   life: LifeParams;
   groups: GroupsParams;
   ideas: IdeasParams;
+  conflict: ConflictParams;
   knowledge: KnowledgeCatalog;
   items: ItemCatalog;
   recipes: RecipeBook;
@@ -97,6 +100,7 @@ export const DATA_FILES: readonly DataFileInfo[] = [
   { file: 'groups.json', key: 'groups', system: 'Groupes', schema: GROUPS_SCHEMA },
   { file: 'ideas.json', key: 'ideas', system: 'Idées', schema: IDEAS_SCHEMA },
   { file: 'knowledge.json', key: 'knowledge', system: 'Idées', schema: KNOWLEDGE_SCHEMA },
+  { file: 'conflict.json', key: 'conflict', system: 'Conflit', schema: CONFLICT_SCHEMA },
   { file: 'items.json', key: 'items', system: 'Production', schema: ITEMS_SCHEMA },
   { file: 'recipes.json', key: 'recipes', system: 'Production', schema: RECIPES_SCHEMA },
   { file: 'buildings.json', key: 'buildings', system: 'Production', schema: BUILDINGS_SCHEMA },
@@ -122,6 +126,7 @@ export function defaultRawData(): RawGameData {
     life: lifeJson,
     groups: groupsJson,
     ideas: ideasJson,
+    conflict: conflictJson,
     knowledge: knowledgeJson,
     items: itemsJson,
     recipes: recipesJson,
@@ -153,6 +158,7 @@ export function parseGameData(raw: RawGameData): GameData {
   );
   const knowledge = parseKnowledge(raw.knowledge, humans.skills.map((skill) => skill.id));
   const ideas = parseIdeasParams(raw.ideas);
+  const conflict = parseConflictParams(raw.conflict);
   const items = parseItems(raw.items);
   const recipes = parseRecipes(raw.recipes);
   const buildings = parseBuildings(raw.buildings);
@@ -175,6 +181,11 @@ export function parseGameData(raw: RawGameData): GameData {
     items.items.map((item) => item.id),
     humans.traits.map((trait) => trait.id),
   );
+  checkConflictLinks(
+    conflict,
+    items.items.map((item) => item.id),
+    buildings.buildings.map((building) => building.id),
+  );
   checkHumanLinks(
     humans,
     knowledge.knowledge.map((item) => item.id),
@@ -195,6 +206,7 @@ export function parseGameData(raw: RawGameData): GameData {
     life,
     groups,
     ideas,
+    conflict,
     knowledge,
     items,
     recipes,

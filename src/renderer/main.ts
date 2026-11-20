@@ -406,6 +406,9 @@ async function main(): Promise<void> {
         tribes.setGroups(message.groups);
         groupsPanel.setGroups(message.groups);
         return;
+      case 'battles':
+        tribes.setBattles(message.battles);
+        return;
       case 'ideas':
         ideasPanel.setIdeas(message.ideas);
         return;

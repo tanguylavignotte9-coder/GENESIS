@@ -107,6 +107,16 @@ export interface HeadlessReport {
     places: number;
     events: string[];
   };
+  /** Violence and diplomacy (step 11): counts, violent deaths, tribes at war, and the dated stories. */
+  conflict: {
+    counts: Record<string, number>;
+    violentDeaths: number;
+    tribesAlive: number;
+    atWar: number;
+    events: string[];
+  };
+  /** Predators alive at the end (wolves, lions). */
+  predators: { name: string; count: number }[];
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -164,6 +174,13 @@ export function runHeadless(
     production: summarizeProduction(simulation),
     groups: summarizeGroups(simulation),
     ideas: summarizeIdeas(simulation),
+    conflict: summarizeConflict(simulation),
+    predators: ['wolf', 'lion'].map((id) => {
+      const code = simulation.data.fauna.species.findIndex((species) => species.id === id);
+      let count = 0;
+      for (let slot = 0; slot < simulation.fauna.store.slots; slot++) if (simulation.fauna.store.alive[slot] === 1 && simulation.fauna.store.species[slot] === code) count++;
+      return { name: simulation.data.fauna.species[code]?.name ?? id, count };
+    }),
     msPerDay: ticks > 0 ? elapsed / ((simulation.clock.tick - startTick) / data.time.ticksPerDay) : 0,
     randomFingerprint,
   };
@@ -178,7 +195,7 @@ function summarizeAnimals(simulation: Simulation, startCounts: number[]): Popula
   });
 }
 
-const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'prédateur', 'vieillesse', 'maladie', 'en couches'];
+const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'prédateur', 'vieillesse', 'maladie', 'en couches', 'violence'];
 /** Years between two points of the timeline. */
 const TIMELINE_YEARS = 10;
 const LIFE_EVENTS = [EPIDEMIC_START, FAMINE, ADOPTION];
@@ -306,6 +323,24 @@ function countUnbelievers(simulation: Simulation, events: readonly { type: strin
     lostFaith,
     faithLost: events.filter((event) => event.type === IDEA_EVENTS.faithLost).length,
     conversions: events.filter((event) => event.type === IDEA_EVENTS.conversion).length,
+  };
+}
+
+function summarizeConflict(simulation: Simulation): HeadlessReport['conflict'] {
+  const { conflict, journal, humans } = simulation;
+  const time = simulation.data.time;
+  let violent = 0;
+  for (let p = 0; p < humans.people.count; p++) if (humans.people.alive[p] === 0 && humans.people.deathCause[p] === 8) violent++;
+  const tribes = simulation.groups.tribes().filter((tribe) => tribe.members.length > 0);
+  return {
+    counts: { ...conflict.counts },
+    violentDeaths: violent,
+    tribesAlive: tribes.length,
+    atWar: [...conflict.relations.values()].filter((relation) => relation.state === 'war').length,
+    events: journal
+      .all()
+      .filter((event) => event.type.startsWith('conflict.') || event.type === 'life.crippled')
+      .map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
   };
 }
 

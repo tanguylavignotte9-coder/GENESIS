@@ -452,6 +452,14 @@
           "ambition": 1,
           "curiosity": 0.5
         }
+      },
+      "avenge": {
+        "name": "Venger un proche",
+        "weight": 1,
+        "traits": {
+          "temper": 1,
+          "prudence": -0.6
+        }
       }
     },
     "dailyChance": 0.15
@@ -551,6 +559,18 @@
     "impiety": {
       "text": "{nom} se méfie de {autre}, qui ne partage pas sa foi",
       "dated": false
+    },
+    "assaulted": {
+      "text": "{autre} a frappé {nom}",
+      "dated": true
+    },
+    "murdered": {
+      "text": "{autre} a tué un proche de {nom}",
+      "dated": true
+    },
+    "enemy": {
+      "text": "{autre} est un ennemi de guerre de {nom}",
+      "dated": true
     }
   },
   "kinNames": {
@@ -578,7 +598,8 @@
       ", tué{e} par un fauve",
       " de vieillesse",
       " de maladie",
-      " en couches"
+      " en couches",
+      ", tué{e} par un autre"
     ],
     "unknownCause": " (on ne sait pas comment)",
     "couple": "{a} et {b} forment un couple",

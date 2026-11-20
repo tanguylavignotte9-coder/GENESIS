@@ -49,6 +49,8 @@ export class SocialLife {
   tick = 0;
   /** Today's conversations, as pairs (speaker, listener): what the ideas system reads (teaching, influence). */
   readonly talkLog: number[] = [];
+  /** Pairs who quarrelled since the conflict system last looked (a quarrel may turn to blows). */
+  readonly quarrelLog: number[] = [];
 
   constructor(
     private readonly sys: IndividualsSystem,

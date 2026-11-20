@@ -105,7 +105,7 @@ export class GroupsPanel {
       box.append(governance);
       box.append(el('div', 'sheet-text muted', `Propriété : ${group.property} · Héritage : ${group.inheritance.toLowerCase()} · Stratégie : ${group.strategy.toLowerCase()}`));
       if (group.known.length > 0) {
-        const known = group.known.map((other) => `${other.name} (${other.allied ? 'alliée, ' : ''}opinion ${Math.round(other.opinion)})`).join(', ');
+        const known = group.known.map((other) => `${other.name} (${other.allied ? 'alliée, ' : ''}${other.status ? `${other.status}, ` : ''}opinion ${Math.round(other.opinion)})`).join(', ');
         box.append(el('div', 'sheet-text muted', `Connaît : ${known}`));
       }
     }

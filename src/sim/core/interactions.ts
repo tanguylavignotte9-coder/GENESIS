@@ -36,9 +36,18 @@ export interface Attack {
   target: BodyRef;
   /** Health points the blow removes (the target's owner decides what it means). */
   damage: number;
-  /** French name of the attacker, for the journal ("loup"). */
+  /** French name of the attacker, for the journal ("loup", or a person's name). */
   attackerName: string;
   tick: number;
+  /**
+   * Why the blow: a predator after its prey (default), an animal defending itself against its hunter,
+   * or a fight between people (brawl, revenge, raid, battle).
+   */
+  motive?: 'predation' | 'defense' | 'fight';
+  /** End of the journal sentence telling the context ("lors d’une rixe", "qu’il chassait"). */
+  context?: string;
+  /** Journal events that led to the blow (a quarrel, a murder avenged, a declaration of war). */
+  causes?: readonly number[];
 }
 
 export interface AttackOutcome {
@@ -50,6 +59,8 @@ export interface AttackOutcome {
   y: number;
   /** Journal event that told what happened (-1 if none). */
   eventId: number;
+  /** Health the target lost (0 if the blow did nothing). */
+  damage?: number;
 }
 
 /** What a system offers for the beings it owns. */

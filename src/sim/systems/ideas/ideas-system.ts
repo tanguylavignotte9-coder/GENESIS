@@ -228,6 +228,14 @@ export class IdeasSystem implements IdeaView {
     return peopleNameIn(this, language >= 0 ? language : this.startingLanguage(0));
   }
 
+  /** A person's own cultural value (0..1, 0.5 if unknown): "bravery", "hierarchy"… */
+  personValue(person: number, value: string): number {
+    const v = valueIndex(this, value);
+    const h = this.holdings;
+    if (v < 0 || person >= h.count || h.ready[person] === 0) return 0.5;
+    return h.values[person * h.valueCount + v]!;
+  }
+
   /** Mean of a cultural value among the adults of a group (0.5 if unknown). */
   groupValue(group: Group, value: string): number {
     const v = valueIndex(this, value);

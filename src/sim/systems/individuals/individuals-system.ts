@@ -19,6 +19,7 @@ import { BrainWatch, traceDecision } from './brain-trace';
 import { Camp } from './camp';
 import { moveCamp } from './camp-move';
 import type { GroupView } from './group-view';
+import type { ConflictView } from './conflict-view';
 import type { IdeaView } from './idea-view';
 import { createTribes } from './tribe';
 import { ChangeWhy, DeathCause, People } from './people';
@@ -40,7 +41,7 @@ export const HUMAN_DEATH = 'humans.death';
 const FULL = 100;
 const MINUTES_PER_HOUR = 60;
 /** What the journal says of each death cause (index = DeathCause). */
-const DEATH_TEXT_KEYS = ['hunger', 'hunger', 'thirst', 'cold', 'predator', 'oldAge', 'disease', 'childbirth'] as const;
+const DEATH_TEXT_KEYS = ['hunger', 'hunger', 'thirst', 'cold', 'predator', 'oldAge', 'disease', 'childbirth', 'violence'] as const;
 const EXPLORE_ATTEMPTS = 4;
 const MARSH_BIOME = 'marsh';
 /** Cell size of the grid that lets the others find people quickly (technical, not gameplay). */
@@ -113,6 +114,8 @@ export class IndividualsSystem {
   walkableTile!: (tile: number) => boolean;
   /** The groups system (step 9): duties, inheritance rules, political ambitions. */
   groups: GroupView | null = null;
+  /** The conflict system (step 11): war parties and emissaries. */
+  conflict: ConflictView | null = null;
   step = 0;
   hour = 0;
   private absoluteDay = 0;
@@ -434,6 +437,8 @@ export class IndividualsSystem {
     input[k++] = groups ? Math.min(1, needs.build * groups.dutyFactor(person, 2)) : needs.build;
     input[k++] = groups ? Math.min(1, needs.craft * groups.dutyFactor(person, 3)) : needs.craft;
     input[k++] = 1;
+    input[k++] = this.conflict ? this.conflict.warCall(person) : 0;
+    input[k++] = this.conflict ? this.conflict.envoyCall(person) : 0;
     this.social.fillInputs(person, input, k);
     this.life.fillInputs(person, input, k + SOCIAL_INPUTS.length);
   }
@@ -477,16 +482,28 @@ export class IndividualsSystem {
     const y = people.y[person]!;
     const outcome: AttackOutcome = { killed: false, remains: 0, x, y, eventId: -1 };
     if (people.alive[person] === 0) return outcome;
-    people.health[person] = people.health[person]! - attack.damage;
+    const before = people.health[person]!;
+    people.health[person] = before - attack.damage;
+    outcome.damage = Math.min(before, attack.damage);
     people.danger[person] = FULL;
     people.nextThink[person] = this.step;
+    const human = attack.attacker.kind === 'human';
     if (people.health[person]! > 0) {
       this.social.onAttacked(person);
+      // A heavy wound (a fight, an animal fighting back) may leave one crippled.
+      if (attack.motive === 'fight' || attack.motive === 'defense') {
+        const cause = human ? `d’un coup de ${attack.attackerName}${attack.context ? ` ${attack.context}` : ''}` : `de sa lutte contre un ${attack.attackerName}`;
+        this.life.onWounded(person, attack.damage, cause, attack.causes?.[0] ?? -1);
+      }
       return outcome;
     }
     outcome.killed = true;
-    outcome.remains = params.danger.corpseMeat;
-    outcome.eventId = this.die(person, DeathCause.Predator, attack.tick, { attack });
+    outcome.remains = human ? 0 : params.danger.corpseMeat;
+    outcome.eventId = this.die(person, human ? DeathCause.Violence : DeathCause.Predator, attack.tick, {
+      attack,
+      causes: [...(attack.causes ?? [])],
+      vars: human ? { tueur: attack.attackerName, contexte: attack.context ?? '' } : { contexte: attack.context ?? '' },
+    });
     this.grid.remove(person, this.grid.cellOf(x, y));
     return outcome;
   }
@@ -504,7 +521,7 @@ export class IndividualsSystem {
     const template = this.params.deathTexts[DEATH_TEXT_KEYS[cause] ?? 'hunger'];
     const animal = info.attack?.attackerName ?? '';
     const causes = [...(info.causes ?? [])];
-    const vars: Record<string, string> = { age: String(Math.floor(people.ageYears[person]!)), aggravation: '', ...info.vars };
+    const vars: Record<string, string> = { age: String(Math.floor(people.ageYears[person]!)), aggravation: '', contexte: '', tueur: '', ...info.vars };
     const needs = cause === DeathCause.Hunger || cause === DeathCause.Thirst || cause === DeathCause.Cold;
     // A death by hunger, thirst or cold inside a hardship region is caused by that hardship.
     const hardship = this.life.hardshipAt(tile);
@@ -536,7 +553,8 @@ export class IndividualsSystem {
       place: { x, y, label: place },
       actors: info.attack ? [{ kind: 'human', id: person }, info.attack.attacker] : [{ kind: 'human', id: person }],
       causes: [...new Set(causes)].filter((id) => id >= 0 && this.journal.get(id) !== undefined),
-      details: { cause, person },
+      // A killing: who struck (the conflict system reads it for revenge and feuds).
+      details: info.attack?.attacker.kind === 'human' ? { cause, person, killer: info.attack.attacker.id, motive: info.attack.motive ?? 'fight' } : { cause, person },
     });
     if (cause === DeathCause.Hunger) this.camps[people.camp[person]!]!.hungerDeaths.push({ day: this.absoluteDay, event });
     this.social.onDeath(person, cause, event);
@@ -1030,6 +1048,11 @@ export class IndividualsSystem {
       }
     }
     return best;
+  }
+
+  /** The conflict system calls people to war parties and sends emissaries (step 11). */
+  attachConflict(view: ConflictView): void {
+    this.conflict = view;
   }
 
   /** The groups system takes over the decisions of the tribes (step 9). */

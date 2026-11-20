@@ -8,9 +8,9 @@ import { appendColumns } from '../../core/columns';
 export const NEEDS = ['hunger', 'thirst', 'fatigue', 'cold', 'danger'] as const;
 export type NeedId = (typeof NEEDS)[number];
 
-export const DeathCause = { None: 0, Hunger: 1, Thirst: 2, Cold: 3, Predator: 4, OldAge: 5, Disease: 6, Childbirth: 7 } as const;
+export const DeathCause = { None: 0, Hunger: 1, Thirst: 2, Cold: 3, Predator: 4, OldAge: 5, Disease: 6, Childbirth: 7, Violence: 8 } as const;
 /** Number of death causes (None included): texts indexed by cause have this length. */
-export const DEATH_CAUSE_COUNT = 8;
+export const DEATH_CAUSE_COUNT = 9;
 /** Kinds of harm counted per person (hunger, thirst, cold, disease), see `People.harm`. */
 export const HARM_KINDS = 4;
 /** Decisions kept per person for the visual brain (the last ones, with why the activity changed). */

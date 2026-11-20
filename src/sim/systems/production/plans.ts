@@ -319,6 +319,15 @@ function chooseBuild(sys: ProductionSystem, camp: CampState, knowledge: number, 
       return { plan: { site: -1, type: station.index, reason: 'station', recipe: craft.recipe }, urgency: urgency.station };
     }
   }
+  // A known threat (war, raids, a feud) makes the camp want a palisade or a wall, the best it can build.
+  if (camp.threat > 0 && !buildings.some((b) => sys.typeOf(b).def.function === 'defense')) {
+    let defense: BuildingType | null = null;
+    for (const type of sys.catalog.buildings) {
+      if (type.def.function !== 'defense' || !satisfies(knowledge, type.knowledgeMask) || !type.materials.every((need) => obtainable(sys, camp, knowledge, need))) continue;
+      if (!defense || type.def.workHours > defense.def.workHours) defense = type;
+    }
+    if (defense) return fresh(defense, 'defense', Math.min(1, urgency.defense * camp.threat));
+  }
   // The faithful of a religion want a place of worship (a sanctuary, or a tomb for their ancestors).
   const worship = sys.faith?.worshipWanted(camp.id) ?? null;
   const shrine = worship ? sys.catalog.buildings.find((type) => type.def.id === worship) : undefined;

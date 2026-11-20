@@ -48,6 +48,7 @@ const FOREIGN_NAMES: Record<string, string[]> = {
   production: ['fauna', 'flora', 'humans', 'people', 'world', 'climate', 'weather', 'faith'],
   groups: ['fauna', 'flora', 'people', 'world', 'climate', 'weather', 'production', 'ideas'],
   ideas: ['fauna', 'flora', 'people', 'world', 'climate', 'weather', 'production', 'humans', 'groups'],
+  conflict: ['fauna', 'flora', 'people', 'world', 'climate', 'weather', 'production', 'humans', 'groups', 'ideas', 'life', 'social'],
 };
 const MUTATORS = 'place|kill|spawn|add|remove|insert|clear|fill|set|push|splice';
 

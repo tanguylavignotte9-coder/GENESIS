@@ -52,6 +52,7 @@ export function talk(life: SocialLife, speaker: number, listener: number, kind: 
       stir(life, listener, 'anger', params.argueAngerCaused * (1 + params.temperEffect * (2 * life.trait(listener, 'temper') - 1)));
       remember(life, speaker, 'quarrel', listener, 0.6);
       remember(life, listener, 'quarrel', speaker, 1);
+      life.quarrelLog.push(speaker, listener);
       break;
     default:
       break;
@@ -66,6 +67,7 @@ export function talk(life: SocialLife, speaker: number, listener: number, kind: 
       stir(life, a, 'anger', params.frictionAnger * (1 + params.temperEffect * (2 * life.trait(a, 'temper') - 1)));
     }
     checkPair(life, speaker, listener);
+    life.quarrelLog.push(speaker, listener);
     return;
   }
   feel(life, listener, speaker, listenerFeels, def.reason, event);

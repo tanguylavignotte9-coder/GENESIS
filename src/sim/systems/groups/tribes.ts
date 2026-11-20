@@ -83,12 +83,16 @@ export function scission(sys: GroupsSystem, tribe: Group, clan: Group, reason: s
 
 /** A place for a new camp: where its members found food far away, or toward open land, near water, away from other camps. */
 function newSite(sys: GroupsSystem, tribe: Group, clan: Group): number {
+  return newSiteFor(sys, tribe, clan.members);
+}
+
+function newSiteFor(sys: GroupsSystem, tribe: Group, members: readonly number[]): number {
   const { humans, params, rng } = sys;
   const camp = humans.camps[tribe.camp]!;
   const [near, far] = params.scission.distanceTiles;
   const size = humans.size;
   const candidates: number[] = [];
-  for (const person of clan.members) if (humans.people.farFood[person]! >= 0) candidates.push(humans.people.farFood[person]!);
+  for (const person of members) if (humans.people.farFood[person]! >= 0) candidates.push(humans.people.farFood[person]!);
   for (let k = 0; k < SITE_TRIES; k++) {
     const distance = rng.nextRange(near, far);
     const dx = rng.nextRange(-1, 1);
@@ -216,18 +220,26 @@ function considerFusion(sys: GroupsSystem, tribe: Group): boolean {
     host = other;
   }
   if (!host || rng.nextFloat() >= f.chance || !decide(sys, tribe, () => true)) return false;
-  const members = [...tribe.members];
-  const leader = tribe.leaders[0] ?? members[0]!;
+  const leader = tribe.leaders[0] ?? tribe.members[0]!;
   const event = publishGroupEvent(
     sys,
     GROUP_EVENTS.fusion,
     params.texts.fusion,
-    { petite: capitalize(tribe.name), grande: host.name, raison: params.causeTexts.smallAndSuffering, membres: String(members.length) },
+    { petite: capitalize(tribe.name), grande: host.name, raison: params.causeTexts.smallAndSuffering, membres: String(tribe.members.length) },
     tribe,
     [leader, ...host.leaders],
     [...tribe.sufferings.slice(-3).map((s) => s.event), tribe.leaderEvent],
     { into: host.id },
   );
+  absorbTribe(sys, tribe, host, event);
+  return true;
+}
+
+/** A tribe becomes a clan of another (a fusion, or a conquest): its people join the host's camp; its own clans dissolve into that clan. */
+export function absorbTribe(sys: GroupsSystem, tribe: Group, host: Group, event: number): Group {
+  const { humans } = sys;
+  const members = [...tribe.members];
+  const leader = tribe.leaders[0] ?? members[0] ?? tribe.founder;
   const oldCamp = tribe.camp;
   for (const person of members) humans.joinCamp(person, host.camp);
   humans.production.mergeCamp(oldCamp, host.camp, members.length, event);
@@ -248,7 +260,55 @@ function considerFusion(sys: GroupsSystem, tribe: Group): boolean {
   clan.members = members;
   host.members.push(...members);
   designateLeaders(sys, clan, [event], true);
-  return true;
+  return clan;
+}
+
+/**
+ * Someone is driven out of their tribe (a murderer exiled): they go to live in a known tribe that
+ * thinks well enough of theirs, or else found a camp of their own with their household. Returns
+ * where they went, in words ("part vivre chez la tribu des Ka", "s’en va fonder un camp ailleurs").
+ */
+export function exileMember(sys: GroupsSystem, tribe: Group, person: number, event: number): string {
+  const { humans, people } = sys;
+  let refuge: Group | null = null;
+  let best = -Infinity;
+  for (const [otherId, view] of tribe.known) {
+    const other = sys.groups[otherId]!;
+    const back = other.known.get(tribe.id);
+    // A tribe that hates the exile's people does not take them in.
+    if (!other.alive || other.camp < 0 || !back || back.opinion < 0 || view.opinion < best) continue;
+    best = view.opinion;
+    refuge = other;
+  }
+  const household = sys.groupOf(person, 2);
+  const followers = [person, ...(household?.members ?? []).filter((p) => p !== person && people.alive[p] === 1 && (people.spouse[person] === p || people.mother[p] === person || people.father[p] === person))];
+  const leave = (into: Group): void => {
+    for (const p of followers) {
+      if (humans.people.camp[p] !== into.camp) humans.joinCamp(p, into.camp);
+      sys.setMember(p, into);
+      sys.clearMember(p, 1);
+      tribe.members = tribe.members.filter((member) => member !== p);
+      tribe.leaders = tribe.leaders.filter((leader) => leader !== p);
+      if (!into.members.includes(p)) into.members.push(p);
+    }
+  };
+  if (refuge) {
+    leave(refuge);
+    for (const p of followers) sys.approval[p * LEVEL_COUNT] = 20;
+    return `part vivre chez ${refuge.name}`;
+  }
+  const camp = humans.camps[tribe.camp];
+  const site = camp ? newSiteFor(sys, tribe, followers) : -1;
+  if (site < 0) return 'reste aux abords du camp, rejeté de tous';
+  const created = sys.addGroup(0, -1, person, tribe.regime, event);
+  created.camp = humans.foundCamp(site, followers, event);
+  leave(created);
+  created.members = [...followers];
+  designateLeaders(sys, created, [event], true);
+  const opinion = sys.params.contact.scissionOpinion;
+  created.known.set(tribe.id, { opinion, since: sys.day, allied: false });
+  tribe.known.set(created.id, { opinion, since: sys.day, allied: false });
+  return followers.length > 1 ? 'part avec les siens fonder un camp ailleurs' : 'part seul fonder un camp ailleurs';
 }
 
 /** An adult who rejects their leaders and is attached to someone of another tribe may go and live there. */

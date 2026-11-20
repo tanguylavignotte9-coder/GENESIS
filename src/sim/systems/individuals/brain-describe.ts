@@ -61,6 +61,8 @@ const INPUT_LABELS: Partial<Record<Input, [string, string]>> = {
   child: ['Enfant', 'Situation'],
   young: ['Jeune', 'Situation'],
   always: ['Toujours possible', 'Situation'],
+  warCall: ['Appel aux armes', 'Obligations'],
+  envoyCall: ['Mission d’émissaire', 'Obligations'],
 };
 
 export function inputLabel(input: number): string {

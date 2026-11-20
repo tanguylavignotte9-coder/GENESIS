@@ -25,6 +25,21 @@ export class PixelCanvas {
     return x >= 0 && y >= 0 && x < this.width && y < this.height && this.pixels[(y * this.width + x) * 4 + 3] !== 0;
   }
 
+  /** Copies the drawn pixels of another canvas at (dx, dy). */
+  blit(other: PixelCanvas, dx: number, dy: number): void {
+    for (let y = 0; y < other.height; y++) {
+      for (let x = 0; x < other.width; x++) {
+        const from = (y * other.width + x) * 4;
+        if (other.pixels[from + 3] === 0) continue;
+        const tx = x + dx;
+        const ty = y + dy;
+        if (tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) continue;
+        const to = (ty * this.width + tx) * 4;
+        for (let c = 0; c < 4; c++) this.pixels[to + c] = other.pixels[from + c]!;
+      }
+    }
+  }
+
   toTexture(): Texture {
     const source = new BufferImageSource({ resource: this.pixels, width: this.width, height: this.height, format: 'rgba8unorm' });
     source.scaleMode = 'nearest';

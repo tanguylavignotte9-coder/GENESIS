@@ -74,6 +74,8 @@ export function groupFactors(sys: GroupsSystem, group: Group): Record<Factor, nu
     }
     values.trade = tribe.currency >= 0 ? 1 : 0;
   }
+  // War (conflict system): a tribe at war or under threat favours a chief, even a dictator.
+  values.war = clamp01(tribe.war);
   return values;
 }
 

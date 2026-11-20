@@ -61,7 +61,8 @@ describe('group life', () => {
     const { groups, humans } = simulation;
     const guardian = humans.life.state.guardian;
     for (let p = humans.startingCount; p < humans.people.count; p++) {
-      if (humans.people.alive[p] === 0) continue;
+      // Born since this morning's group life: they will be counted tomorrow.
+      if (humans.people.alive[p] === 0 || humans.life.state.birthDay[p] === simulation.date.absoluteDay) continue;
       expect(groups.groupOf(p, 0)).not.toBeNull();
       const raiser = guardian[p]!;
       if (raiser >= 0 && humans.people.alive[raiser] === 1 && humans.people.ageYears[p]! < simulation.data.groups.adultAge) expect(groups.groupOf(p, 2)).toBe(groups.groupOf(raiser, 2));

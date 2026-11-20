@@ -3,6 +3,7 @@ import { FloraSystem } from '../systems/flora/flora-system';
 import { IndividualsSystem } from '../systems/individuals/individuals-system';
 import { GroupsSystem } from '../systems/groups/groups-system';
 import { IdeasSystem } from '../systems/ideas/ideas-system';
+import { ConflictSystem } from '../systems/conflict/conflict-system';
 import { ProductionSystem, type BodyFacts } from '../systems/production/production-system';
 import { WeatherState } from '../systems/world/weather';
 import { startAnomalyYear } from '../systems/world/anomalies';
@@ -53,6 +54,8 @@ export class Simulation {
   readonly groups: GroupsSystem;
   /** Knowledge, cultures, languages, religions and goods of exchange (step 10). */
   readonly ideas: IdeasSystem;
+  /** Brawls, feuds, raids, wars, civil wars and diplomacy (step 11). */
+  readonly conflict: ConflictSystem;
   /** Ticks between two steps of the animals, and of the humans. */
   readonly ticksPerStep: number;
   readonly ticksPerHumanStep: number;
@@ -112,6 +115,7 @@ export class Simulation {
     this.production.attachFaith(this.ideas);
     this.groups = new GroupsSystem(this.humans, data.groups, this.rng, this.journal, this.date.absoluteDay, this.clock.tick, this.ideas);
     this.ideas.attachGroups(this.groups);
+    this.conflict = new ConflictSystem(data.conflict, this.humans, this.groups, this.ideas, this.rng, this.journal);
   }
 
   /**
@@ -129,6 +133,7 @@ export class Simulation {
     this.humans.life.refreshParams(this.data.life);
     this.groups.refreshParams(this.data.groups);
     this.ideas.refreshParams(this.data.ideas);
+    this.conflict.refreshParams(this.data.conflict);
   }
 
   /** Hour of the day, 0..24 (fractional). */
@@ -163,6 +168,7 @@ export class Simulation {
         this.production.runStep(1 / this.data.humans.stepsPerHour, now);
         this.humans.runStep(this.hour, Math.floor(now / ticksPerDay), this.journal, now);
         this.ideas.runStep(this.hour);
+        this.conflict.runStep(this.hour, now);
       }
     }
   }
@@ -207,5 +213,7 @@ export class Simulation {
     if (this.groups) this.groups.dailyUpdate(date.absoluteDay, tick);
     // The ideas live their day after the groups (they read who belongs where).
     if (this.ideas && this.groups) this.ideas.dailyUpdate(date.absoluteDay, tick);
+    // Then violence and diplomacy (they read the day's deaths and the groups' quarrels).
+    if (this.conflict) this.conflict.dailyUpdate(date.absoluteDay, tick);
   }
 }

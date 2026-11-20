@@ -26,7 +26,7 @@ export interface GroupFacts {
   campX: number;
   campY: number;
   /** Tribes: the other tribes they know. */
-  known: { group: number; name: string; opinion: number; allied: boolean }[];
+  known: { group: number; name: string; opinion: number; allied: boolean; status: string }[];
   /** Day of founding (absolute day) and the founder. */
   foundedDay: number;
   founder: string;
@@ -78,7 +78,7 @@ function facts(sys: GroupsSystem, group: Group): GroupFacts {
     strategy: params.strategies[tribe.strategy]!.name,
     campX: camp ? camp.centerX : -1,
     campY: camp ? camp.centerY : -1,
-    known: [...group.known.entries()].map(([id, view]) => ({ group: id, name: sys.groups[id]!.name, opinion: round(view.opinion), allied: view.allied })),
+    known: [...group.known.entries()].map(([id, view]) => ({ group: id, name: sys.groups[id]!.name, opinion: round(view.opinion), allied: view.allied, status: '' })),
     foundedDay: group.foundedDay,
     founder: people.names[group.founder] ?? '?',
     children: sys.childrenOf(group).filter((child) => child.members.length > 0).map((child) => child.id),

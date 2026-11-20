@@ -25,13 +25,15 @@ export const INPUTS = [
   'buildNeed',
   'craftNeed',
   'always',
+  'warCall',
+  'envoyCall',
   ...SOCIAL_INPUTS,
   ...LIFE_INPUTS,
 ] as const;
 export type Input = (typeof INPUTS)[number];
 
 /** Built-in behaviours; each data action names one of them (work behaviours run recipes of data/recipes.json). */
-export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play'] as const;
+export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play', 'mission'] as const;
 export type Behavior = (typeof BEHAVIORS)[number];
 
 export interface Consideration {
@@ -148,7 +150,7 @@ export interface HumanParams {
   terrain: { forestCost: number; shrubCost: number; riverCost: number; slopeCostPer100m: number; maxPathNodes: number; heuristicWeight: number };
   decision: { randomness: number; keepCurrentBonus: number; keepWorkBonus: number; depositAtCamp: number };
   actions: ActionDef[];
-  deathTexts: { hunger: string; thirst: string; cold: string; predator: string; oldAge: string; disease: string; childbirth: string };
+  deathTexts: { hunger: string; thirst: string; cold: string; predator: string; oldAge: string; disease: string; childbirth: string; violence: string };
   settlementText: string;
   campMove: {
     forageFarTiles: number;
@@ -383,6 +385,7 @@ export const HUMANS_SCHEMA: Schema = {
         oldAge: text('Mort de vieillesse', DEATH_HELP),
         disease: text('Mort de maladie', `${DEATH_HELP} Aussi : {maladie}, {aggravation} (« , affaibli par la faim »).`),
         childbirth: text('Morte en couches', DEATH_HELP),
+        violence: text('Mort violente', `${DEATH_HELP} Aussi : {tueur} (qui a frappé), {contexte} (rixe, vengeance, raid, bataille).`),
       },
     },
     settlementText: text('Installation de la tribu', 'Phrase du journal au début du monde. Remplacements : {personnes}, {lieu}, {batiments}.', 'newWorld'),

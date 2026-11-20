@@ -10,6 +10,7 @@ import type { VariableValue } from '../sim/core/variables';
 import type { PresetFile, WorkshopVariable } from '../sim/core/workshop';
 import type { SocialDetails } from '../sim/systems/individuals/social/describe';
 import type { BrainFacts } from '../sim/core/brain-facts';
+import type { PersonConflictFacts } from '../sim/systems/conflict/describe';
 import type { GovernanceFacts } from '../sim/systems/groups/governance';
 import type { LifeFacts } from '../sim/systems/individuals/life/describe';
 import type { SaveMeta } from '../sim/core/save/save';
@@ -281,7 +282,7 @@ export interface BuildingDetails {
   crop: { sown: number; growth: number; growthDays: number; grain: number } | null;
 }
 
-export const HumanFlag = { Alive: 1, Working: 2 } as const;
+export const HumanFlag = { Alive: 1, Working: 2, Fighting: 4 } as const;
 
 /** Character sheet of a person. */
 export interface PersonDetails {
@@ -321,6 +322,8 @@ export interface PersonDetails {
   groups: MembershipFacts;
   /** Knowledge (and where it comes from), culture, languages, religion, good of exchange. */
   ideas: PersonIdeasFacts | null;
+  /** Wounds of war, victims, personal enemies, a war party or an embassy (step 11). */
+  conflict: PersonConflictFacts;
 }
 
 /** Life cycle side of a character sheet. */
@@ -384,6 +387,8 @@ export type FromSimMessage =
   /** Visual brain of the watched person or animal (sent while it is watched). */
   | { type: 'brain'; brain: BrainFacts }
   | { type: 'governance'; governance: GovernanceFacts | null }
+  /** Recent battles (tile and game hours since), for the map. */
+  | { type: 'battles'; battles: { x: number; y: number; age: number }[] }
   /** The people changed (births, ages, couples): identity and family links again. */
   | { type: 'roster'; roster: Roster }
   | { type: 'humanStats'; stats: HumanStats }

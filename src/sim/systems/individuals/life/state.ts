@@ -36,6 +36,9 @@ export class LifeState {
   /** Journal event of the birth (-1 for the starting tribe) and of being taken in (-1). */
   readonly birthEvent: Int32Array;
   readonly adoptionEvent: Int32Array;
+  /** 1 once a wound left the person crippled for life, and the journal event that tells it (-1). */
+  readonly crippled: Uint8Array;
+  readonly crippledEvent: Int32Array;
 
   constructor(count: number, diseaseCount: number) {
     this.diseaseCount = diseaseCount;
@@ -56,6 +59,8 @@ export class LifeState {
     this.lastSkillStep = new Int32Array(count).fill(-1);
     this.birthEvent = new Int32Array(count).fill(-1);
     this.adoptionEvent = new Int32Array(count).fill(-1);
+    this.crippled = new Uint8Array(count);
+    this.crippledEvent = new Int32Array(count).fill(-1);
   }
 
   get capacity(): number {

@@ -10,7 +10,7 @@
     "foodReserveDaysBySeason": [3, 8, 14, 6],
     "firewoodReserveHoursBySeason": [36, 36, 96, 120],
     "storageFullShare": 0.8,
-    "urgency": { "fire": 1, "shelter": 0.9, "openSite": 0.6, "storage": 0.45, "station": 0.5, "perMember": 0.35, "craft": 0.6, "worship": 0.4 }
+    "urgency": { "fire": 1, "shelter": 0.9, "openSite": 0.6, "storage": 0.45, "station": 0.5, "perMember": 0.35, "craft": 0.6, "worship": 0.4, "defense": 0.8 }
   },
   "quality": { "base": 0.3, "skillWeight": 0.5, "toolWeight": 0.2, "randomness": 0.1 },
   "work": { "skillSpeedBonus": 0.8, "branchHarmToPlant": 0.03, "spareFoodPlants": 4, "keepingPreference": 1, "keepingDays": 30, "searchTiles": 30, "campTiles": 6, "buildRingMin": 2, "buildRingMax": 7 },
@@ -22,7 +22,9 @@
     "successChance": 0.25,
     "skillBonus": 0.5,
     "meatPerCarcass": 10,
-    "giveUpHours": 6
+    "giveUpHours": 6,
+    "rangedRiposte": 0.25,
+    "riposteEscape": 0.5
   },
   "crop": { "growthDays": 16, "minCelsius": 8, "grainPerSeed": 6, "strawPerSeed": 2 },
   "terrainSources": [
@@ -43,7 +45,8 @@
       "fire": "il n’y a pas de feu au camp",
       "station": "il en faut un pour « {recette} »",
       "perMember": "la coutume en veut un pour {n} personnes",
-      "worship": "les fidèles veulent un lieu pour leur culte"
+      "worship": "les fidèles veulent un lieu pour leur culte",
+      "defense": "une menace pèse sur le camp"
     }
   }
 }

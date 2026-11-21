@@ -48,7 +48,8 @@ export function liveHours(sys: IndividualsSystem, person: number, hours: number)
   const chill = needs.comfortCelsius - feltTemperature(sys, person);
   const cold = chill > 0 ? people.cold[person]! + chill * needs.coldPerDegreeHour * hours : people.cold[person]! - needs.warmingPerHour * hours;
   people.cold[person] = Math.max(0, Math.min(FULL, cold));
-  people.danger[person] = Math.max(0, people.danger[person]! - needs.dangerDecayPerHour * hours);
+  // The fear of a danger fades only once no predator is in sight any more.
+  if (people.threat[person]! < 0) people.danger[person] = Math.max(0, people.danger[person]! - needs.dangerDecayPerHour * hours);
 
   // Damage from each critical need. The cause of a death is the need that wore the body down most
   // since it was last whole: a starving body that also goes without water one last day dies of

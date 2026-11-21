@@ -178,6 +178,55 @@ describe('daily life', () => {
     expect(attacks).toBe(0);
   });
 
+  it('facing a predator, safety falls and fear rises while it is in sight; both come back once it is gone', () => {
+    const { simulation, p, wolf } = loneWalkerAndWolf();
+    const { humans, fauna } = simulation;
+    const fear = (): number => humans.social.state.emotions[p * 5 + 3]!;
+    const fearBefore = fear();
+    for (let hour = 0; hour < 3; hour++) {
+      fauna.store.hunger[wolf] = 0;
+      humans.people.placeAt(p, (fauna.store.px[wolf]! + 3) % SIZE, fauna.store.py[wolf]!);
+      simulation.step(hourTicks);
+    }
+    expect(humans.people.threat[p]).toBeGreaterThanOrEqual(0);
+    expect(humans.people.danger[p]).toBeGreaterThan(80);
+    const scared = fear();
+    expect(scared).toBeGreaterThan(Math.max(40, fearBefore));
+    // Back among the others, far from the wolf: the danger fades, then the fear.
+    const camp = humans.camps[0]!;
+    for (let hour = 0; hour < 12; hour++) {
+      humans.people.placeAt(p, camp.centerX + 0.5, camp.centerY + 0.5);
+      simulation.step(hourTicks);
+    }
+    expect(humans.people.threat[p]).toBe(-1);
+    expect(humans.people.danger[p]).toBe(0);
+    expect(fear()).toBeLessThan(scared);
+  });
+
+  it('adults drive a starving predator off the camp (shouts, fire, weapons)', () => {
+    const simulation = new Simulation(42, data);
+    const { humans, fauna } = simulation;
+    const camp = humans.camps[0]!;
+    const species = fauna.params.species.findIndex((s) => s.id === 'wolf');
+    const pack = fauna.groups.add(species, -1);
+    const wolf = fauna.spawn(species, camp.centerX + 4, camp.centerY, pack, 1000);
+    fauna.groups.leader[pack] = wolf;
+    const driveOff = actionIndex(simulation, 'drive_off');
+    let drivers = 0;
+    let fled = false;
+    const quarter = hourTicks / data.humans.stepsPerHour;
+    for (let step = 0; step < 6 * data.humans.stepsPerHour && !fled; step++) {
+      // Starving: the crowd alone no longer keeps it away.
+      fauna.store.hunger[wolf] = data.fauna.humanPrey.minHunger + 5;
+      fauna.store.thirst[wolf] = 0;
+      simulation.step(quarter);
+      for (let q = 0; q < humans.people.count; q++) if (humans.people.action[q] === driveOff) drivers++;
+      fled = fauna.store.fleesHuman[wolf] === 1;
+    }
+    expect(drivers).toBeGreaterThan(0);
+    expect(fled).toBe(true);
+  });
+
   it('a person killed by a predator is in the journal with the animal, and the predator eats the body', () => {
     const { simulation, p, wolf } = loneWalkerAndWolf();
     const { humans, fauna } = simulation;

@@ -25,7 +25,7 @@ const INPUT_LABELS: Partial<Record<Input, [string, string]>> = {
   fatigue: ['Fatigue', 'Besoins'],
   cold: ['Froid', 'Besoins'],
   sick: ['Malade', 'Besoins'],
-  danger: ['Peur d’un danger', 'Émotions'],
+  danger: ['Danger (sécurité perdue)', 'Besoins'],
   joy: ['Joie', 'Émotions'],
   sadness: ['Tristesse', 'Émotions'],
   anger: ['Colère', 'Émotions'],
@@ -64,6 +64,7 @@ const INPUT_LABELS: Partial<Record<Input, [string, string]>> = {
   always: ['Toujours possible', 'Situation'],
   warCall: ['Appel aux armes', 'Obligations'],
   envoyCall: ['Mission d’émissaire', 'Obligations'],
+  threatNearCamp: ['Prédateur près du camp', 'Situation'],
 };
 
 export function inputLabel(input: number): string {

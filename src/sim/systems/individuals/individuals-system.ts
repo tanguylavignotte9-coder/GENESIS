@@ -191,6 +191,7 @@ export class IndividualsSystem {
         y: (person) => this.people.py[person]!,
         alive: (person) => this.people.alive[person] === 1,
         hunting: (person) => this.production.isHunting(person),
+        scaring: (person) => this.behavior(person) === 'drive_off',
       },
       { sufferAttack: (person, attack, journal) => this.sufferAttack(person, attack, journal) },
     );
@@ -448,6 +449,7 @@ export class IndividualsSystem {
     input[k++] = 1;
     input[k++] = this.conflict ? this.conflict.warCall(person) : 0;
     input[k++] = this.conflict ? this.conflict.envoyCall(person) : 0;
+    input[k++] = this.threatNearCamp(person) ? 1 : 0;
     this.social.fillInputs(person, input, k);
     this.life.fillInputs(person, input, k + SOCIAL_INPUTS.length);
   }
@@ -475,10 +477,22 @@ export class IndividualsSystem {
     const gap = mate < 0 ? Infinity : people.distance(mate, person);
     people.isolated[person] = gap > params.danger.isolationTiles ? 1 : 0;
     if (threat >= 0) {
-      // Alone, a predator is terrifying; among the others, it is only worrying.
-      people.danger[person] = people.isolated[person] === 1 ? FULL : FULL * params.danger.groupFearShare;
+      // Alone, a predator is terrifying; among the others, it is only worrying. The feeling of
+      // safety falls (danger rises) and fear grips the person while the predator is in sight.
+      const level = people.isolated[person] === 1 ? FULL : FULL * params.danger.groupFearShare;
+      people.danger[person] = Math.max(people.danger[person]!, level);
+      this.social.feelFear(person, people.danger[person]! * params.danger.sightFearShare);
       if (wasSafe) people.nextThink[person] = this.step;
     }
+  }
+
+  /** A predator seen close to one's camp, by an adult among the others: it can be driven off. */
+  threatNearCamp(person: number): boolean {
+    const { people, fauna } = this;
+    const threat = people.threat[person]!;
+    if (threat < 0 || people.isolated[person] === 1) return false;
+    const camp = this.camps[people.camp[person]!]!;
+    return camp.distanceTo(fauna.store.px[threat]!, fauna.store.py[threat]!) <= this.params.danger.campGuardTiles;
   }
 
   /**

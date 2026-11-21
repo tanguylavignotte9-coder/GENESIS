@@ -28,13 +28,14 @@ export const INPUTS = [
   'always',
   'warCall',
   'envoyCall',
+  'threatNearCamp',
   ...SOCIAL_INPUTS,
   ...LIFE_INPUTS,
 ] as const;
 export type Input = (typeof INPUTS)[number];
 
 /** Built-in behaviours; each data action names one of them (work behaviours run recipes of data/recipes.json). */
-export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play', 'mission', 'herd'] as const;
+export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play', 'mission', 'herd', 'drive_off'] as const;
 export type Behavior = (typeof BEHAVIORS)[number];
 
 export interface Consideration {
@@ -146,6 +147,8 @@ export interface HumanParams {
     alertTiles: number;
     isolationTiles: number;
     groupFearShare: number;
+    sightFearShare: number;
+    campGuardTiles: number;
     corpseMeat: number;
   };
   terrain: { forestCost: number; shrubCost: number; riverCost: number; slopeCostPer100m: number; maxPathNodes: number; heuristicWeight: number };
@@ -317,6 +320,8 @@ export const HUMANS_SCHEMA: Schema = {
         alertTiles: v('integer', 1, 30, 'Vigilance', 'Distance à laquelle on repère un prédateur.', 'tuiles'),
         isolationTiles: v('integer', 1, 30, 'Isolement', 'Une personne sans personne d’autre à cette distance est isolée (et vulnérable).', 'tuiles'),
         groupFearShare: v('number', 0, 1, 'Peur en groupe', 'Part de la peur ressentie face à un prédateur quand on n’est pas seul.', 'fraction'),
+        sightFearShare: v('number', 0, 1, 'Frayeur', 'Tant qu’un prédateur est en vue, l’émotion « peur » monte au moins à cette part du danger ressenti (puis retombe à son rythme une fois le danger écarté).', 'fraction'),
+        campGuardTiles: v('integer', 1, 40, 'Prédateur près du camp', 'Un prédateur vu à moins de cette distance du centre du camp peut être chassé par les adultes (cris, feu, armes).', 'tuiles'),
         corpseMeat: v('number', 0, 200, 'Dépouille', 'Viande laissée pour les charognards par un humain tué.', 'unités'),
       },
     },

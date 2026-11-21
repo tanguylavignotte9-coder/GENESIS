@@ -153,9 +153,12 @@ export interface FaunaParams {
   /** Carcasses: share of the meat that rots each day, and scraps below which they vanish. */
   carrion: { rotPerDay: number; minimumMeat: number };
   stats: { intervalDays: number };
+  /**
+   * How wild animals perceive humans: individual wariness; predators keep away from people
+   * (even more from a group or a camp) unless they are starving, and from anyone who drives them off.
+   */
+  humanFear: { warinessSpread: number; crowdShare: number; crowdMax: number; crowdTiles: number; driveOffFactor: number };
   /** Predators and humans: who may attack a person walking alone, and how. */
-  /** How game perceives humans: individual wariness, people who are not hunting. */
-  humanFear: { warinessSpread: number; calmShare: number };
   humanPrey: { hunters: string[]; minHunger: number; loneTiles: number; attackChancePerStep: number; attackDamage: number };
   /** Domestic animals (husbandry): pasture, taming, escapes, how their deaths are told. */
   domestic: {
@@ -221,7 +224,7 @@ const SPECIES_SCHEMA: Schema = {
     minCelsius: num(-80, 40, 'Résistance au froid', 'En dessous de cette température, l’animal souffre du froid.', '°C'),
     walkTilesPerHour: num(0.1, 20, 'Vitesse de marche', 'Distance parcourue en une heure de jeu en marchant.', 'tuiles/heure'),
     fleeRadius: int(0, 64, 'Distance de fuite', 'Proies : distance à laquelle un chasseur est remarqué (0 = ne fuit jamais).', 'tuiles'),
-    humanFleeTiles: int(0, 64, 'Méfiance envers les humains', 'Gibier : distance à laquelle un animal de prudence moyenne remarque un chasseur humain et s’enfuit (0 = ne craint pas les humains). Plus le chasseur est proche, plus il a de chances d’être remarqué.', 'tuiles'),
+    humanFleeTiles: int(0, 64, 'Méfiance envers les humains', 'Distance à laquelle un animal sauvage de prudence moyenne remarque un humain (chasseur ou simple passant) et s’enfuit (0 = ne craint pas les humains). Plus l’humain est proche, plus il a de chances d’être remarqué. Un prédateur affamé ne fuit plus. Les bêtes domestiques ne fuient jamais.', 'tuiles'),
     fleeSprintTiles: num(0.1, 20, 'Course de fuite', 'Gibier : vitesse de course en fuyant un humain.', 'tuiles/heure'),
     huntRadius: int(0, 64, 'Rayon de chasse', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
     huntSuccess: share('Réussite de la chasse', 'Chasseurs : chance par pas de terrasser une proie à son contact.'),
@@ -347,7 +350,10 @@ export const ANIMALS_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         warinessSpread: num(0, 1, 'Écart de prudence', 'Chaque animal naît plus ou moins prudent : sa distance de méfiance varie de ± cette fraction autour de celle de son espèce.', 'fraction', NEW_WORLD),
-        calmShare: share('Humains paisibles', 'Une personne qui ne chasse pas inquiète moins : elle n’est remarquée qu’à cette fraction de la distance de méfiance.'),
+        crowdShare: num(0, 2, 'Crainte des groupes', 'Prédateurs : chaque personne de plus autour de celle qu’il voit allonge sa distance de méfiance de cette fraction (un camp, un groupe font plus peur qu’une personne seule).', 'fraction'),
+        crowdMax: int(1, 50, 'Taille de groupe la plus effrayante', 'Au-delà de ce nombre de personnes ensemble, un prédateur n’a pas plus peur.', 'personnes'),
+        crowdTiles: num(0.5, 20, 'Distance d’un groupe', 'Les personnes à moins de cette distance de celle que voit le prédateur comptent comme son groupe.', 'tuiles'),
+        driveOffFactor: num(1, 5, 'Chasser un prédateur', 'Une personne qui chasse un prédateur du camp (cris, feu, armes) est remarquée de cette fois plus loin, même par un prédateur affamé.', 'facteur'),
       },
     },
     humanPrey: {

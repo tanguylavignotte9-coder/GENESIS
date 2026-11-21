@@ -29,6 +29,8 @@ export interface BodyView {
   alive(id: number): boolean;
   /** True while the being is out hunting (game is warier of a hunter than of a passer-by). */
   hunting(id: number): boolean;
+  /** True while the being drives a predator off (shouts, fire, weapons): even a starving predator runs. */
+  scaring?(id: number): boolean;
 }
 
 export interface Attack {

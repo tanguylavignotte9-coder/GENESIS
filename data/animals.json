@@ -54,7 +54,7 @@
   },
   "carrion": { "rotPerDay": 0.15, "minimumMeat": 1 },
   "stats": { "intervalDays": 10 },
-  "humanFear": { "warinessSpread": 0.5, "calmShare": 0.4 },
+  "humanFear": { "warinessSpread": 0.5, "crowdShare": 0.35, "crowdMax": 8, "crowdTiles": 4, "driveOffFactor": 2.5 },
   "humanPrey": { "hunters": ["wolf", "lion", "bear"], "minHunger": 70, "loneTiles": 6, "attackChancePerStep": 0.6, "attackDamage": 40 },
   "domestic": {
     "pastureTiles": 6,
@@ -139,7 +139,7 @@
       "populationPer1000Tiles": 0.3, "groupSize": [3, 7], "maxGroupSize": 12,
       "maxAgeYears": 12, "adultAgeYears": 2, "breedingDays": [28, 40], "gestationDays": 7, "litter": [1, 3], "conceptionChance": 0.08, "birthIntervalDays": 40, "crowdingRadius": 48, "crowdingMax": 14, "territoryTiles": 20, "dispersalPerYear": 0.5, "bigPreyMeat": 15, "preyCheckRadius": 24, "breedingMinPrey": 60,
       "hungerPerDay": 12, "foodPerDay": 0.45, "thirstPerDay": 20, "minCelsius": -45, "walkTilesPerHour": 1, "fleeRadius": 0,
-      "humanFleeTiles": 0, "fleeSprintTiles": 2,
+      "humanFleeTiles": 8, "fleeSprintTiles": 2,
       "huntRadius": 16, "huntSuccess": 0.12, "riposteChance": 0.4, "riposteDamage": 35, "sprintTiles": 2.6, "meat": 15, "migratory": false, "migrationTiles": 0, "domesticable": true, "milk": 0, "wool": 0, "tameName": "chien", "tameFeminine": false,
       "carcass": [{ "resource": "hide", "amount": 1 }, { "resource": "bone", "amount": 2 }, { "resource": "sinew", "amount": 1 }] },
     { "id": "bear", "name": "Ours", "plural": "ours", "color": "#5b3a22", "size": 4, "diet": { "berries": 1, "roots": 1, "fish": 1, "meat": 1 },
@@ -147,7 +147,7 @@
       "populationPer1000Tiles": 0.4, "groupSize": [1, 1], "maxGroupSize": 3,
       "maxAgeYears": 25, "adultAgeYears": 4, "breedingDays": [10, 20], "gestationDays": 16, "litter": [1, 2], "conceptionChance": 0.06, "birthIntervalDays": 80, "crowdingRadius": 32, "crowdingMax": 6, "territoryTiles": 0, "dispersalPerYear": 0, "bigPreyMeat": 0, "preyCheckRadius": 0, "breedingMinPrey": 0,
       "hungerPerDay": 15, "foodPerDay": 3, "thirstPerDay": 20, "minCelsius": -45, "walkTilesPerHour": 0.8, "fleeRadius": 0,
-      "humanFleeTiles": 0, "fleeSprintTiles": 2,
+      "humanFleeTiles": 5, "fleeSprintTiles": 2,
       "huntRadius": 0, "huntSuccess": 0, "riposteChance": 0.5, "riposteDamage": 80, "sprintTiles": 2, "meat": 40, "migratory": false, "migrationTiles": 0, "domesticable": false, "milk": 0, "wool": 0, "tameName": "ours", "tameFeminine": false,
       "carcass": [{ "resource": "meat", "amount": 40 }, { "resource": "hide", "amount": 4 }, { "resource": "bone", "amount": 4 }, { "resource": "sinew", "amount": 2 }] },
     { "id": "lion", "name": "Lion", "plural": "lions", "color": "#c79a4a", "size": 4, "diet": { "meat": 1 },
@@ -155,7 +155,7 @@
       "populationPer1000Tiles": 0.3, "groupSize": [2, 6], "maxGroupSize": 10,
       "maxAgeYears": 15, "adultAgeYears": 3, "breedingDays": [0, 40], "gestationDays": 10, "litter": [1, 2], "conceptionChance": 0.05, "birthIntervalDays": 60, "crowdingRadius": 48, "crowdingMax": 12, "territoryTiles": 0, "dispersalPerYear": 0, "bigPreyMeat": 0, "preyCheckRadius": 24, "breedingMinPrey": 50,
       "hungerPerDay": 12, "foodPerDay": 0.45, "thirstPerDay": 20, "minCelsius": -10, "walkTilesPerHour": 1, "fleeRadius": 0,
-      "humanFleeTiles": 0, "fleeSprintTiles": 2,
+      "humanFleeTiles": 7, "fleeSprintTiles": 2,
       "huntRadius": 20, "huntSuccess": 0.12, "riposteChance": 0.5, "riposteDamage": 70, "sprintTiles": 2.6, "meat": 30, "migratory": false, "migrationTiles": 0, "domesticable": false, "milk": 0, "wool": 0, "tameName": "lion", "tameFeminine": false,
       "carcass": [{ "resource": "meat", "amount": 30 }, { "resource": "hide", "amount": 3 }, { "resource": "bone", "amount": 3 }, { "resource": "sinew", "amount": 2 }] }
   ]

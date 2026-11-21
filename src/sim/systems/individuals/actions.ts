@@ -99,6 +99,12 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       // Fleeing means running back to the others; once at the camp there is nowhere safer to go.
       if (camp.distanceTo(people.x[person]!, people.y[person]!) <= sys.params.tribe.campRadius) return false;
       return people.threat[person]! >= 0 && sys.goHome(person, camp.center, true);
+    case 'drive_off': {
+      // Shouting, waving a brand or a weapon, one walks at the predator to drive it from the camp.
+      const threat = people.threat[person]!;
+      if (!sys.threatNearCamp(person)) return false;
+      return sys.goTo(person, sys.fauna.store.y[threat]! * sys.world.size + sys.fauna.store.x[threat]!);
+    }
     case 'stay_with_group': {
       const mate = sys.nearestTribeMember(person);
       return mate >= 0 && sys.goTo(person, sys.tileOf(mate));
@@ -252,6 +258,9 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
     case 'flee':
     case 'stay_with_group':
       return sys.arrived(person, hours, () => true);
+    case 'drive_off':
+      // Over once the predator is gone from sight (it ran off) or reached.
+      return people.threat[person]! < 0 || sys.arrived(person, hours, () => true);
     case 'converse':
       return meeting(sys, person, hours, false);
     case 'give':

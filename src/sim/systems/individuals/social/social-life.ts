@@ -256,6 +256,13 @@ export class SocialLife {
     witness(this, fact, this.people.px[person]!, this.people.py[person]!);
   }
 
+  /** A danger in sight: fear rises to at least `level` (0..100); it fades by itself afterwards. */
+  feelFear(person: number, level: number): void {
+    const at = person * EMOTIONS.length + EMOTION_INDEX.fear;
+    const current = this.state.emotions[at]!;
+    if (current < level) stir(this, person, 'fear', level - current);
+  }
+
   /** A predator seen: a danger worth telling (once a day at most per person). */
   onThreat(person: number, x: number, y: number): void {
     const s = this.state;

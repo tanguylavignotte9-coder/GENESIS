@@ -25,6 +25,7 @@ const REASONS: Record<string, { label: string; percent: boolean }> = {
   craftNeed: { label: 'il manque des objets au camp', percent: false },
   isolation: { label: 'loin des autres', percent: false },
   awayFromCamp: { label: 'loin du camp', percent: false },
+  threatNearCamp: { label: 'un prédateur rôde près du camp', percent: false },
   always: { label: 'rien d’urgent', percent: false },
   loneliness: { label: 'solitude', percent: true },
   joy: { label: 'joie', percent: true },
@@ -47,7 +48,6 @@ const NEEDS: { key: keyof PersonDetails['needs']; label: string }[] = [
   { key: 'thirst', label: 'Soif' },
   { key: 'fatigue', label: 'Fatigue' },
   { key: 'cold', label: 'Froid' },
-  { key: 'danger', label: 'Danger' },
 ];
 
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
@@ -164,6 +164,8 @@ export class PersonSheet {
 
     nodes.push(el('div', 'sheet-section', 'Besoins'));
     for (const need of NEEDS) nodes.push(bar(need.label, details.needs[need.key], 'need'));
+    // Safety: it falls while a predator is in sight, and comes back once the danger is gone.
+    nodes.push(bar('Sécurité', PERCENT - details.needs.danger, 'good'));
     nodes.push(bar(details.social.loneliness.name, details.social.loneliness.value, 'need'));
     nodes.push(bar('Santé', details.health, 'good'));
     nodes.push(...this.groupNodes(details));

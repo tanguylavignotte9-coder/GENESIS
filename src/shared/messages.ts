@@ -1,3 +1,4 @@
+import type { KnowledgeTreeFacts } from '../sim/systems/ideas/knowledge-tree';
 import type { HistorySample } from '../sim/history';
 /** Typed messages exchanged between the display (renderer) and the simulation worker. */
 import type { EventPlace } from '../sim/core/journal';
@@ -21,6 +22,7 @@ import type { IdeasFacts, PersonIdeasFacts } from '../sim/systems/ideas/describe
 export type { HistorySample, TribeSample } from '../sim/history';
 export type { GroupFacts, GroupsFacts } from '../sim/systems/groups/describe';
 export type { IdeaFacts, IdeasFacts, PersonIdeasFacts } from '../sim/systems/ideas/describe';
+export type { KnowledgeTreeFacts, TreeNode } from '../sim/systems/ideas/knowledge-tree';
 
 /** Why a world is saved: by the player, automatically, or when the game closes. */
 export type SaveReason = 'manual' | 'auto' | 'quit';
@@ -43,6 +45,8 @@ export type ToSimMessage =
   | { type: 'watchBrain'; kind: 'human' | 'animal' | 'none'; id: number }
   /** Visual governance of a tribe (group id). */
   | { type: 'inspectGovernance'; tribe: number }
+  /** Knowledge tree (view K) as seen from a tribe (-1: the first one). */
+  | { type: 'inspectKnowledgeTree'; tribe: number }
   /** Asks for the details of a building (function, state, stock…). */
   | { type: 'inspectBuilding'; requestId: number; building: number }
   /** Variables workshop: get the variables, change one, reset, presets. */
@@ -406,6 +410,7 @@ export type FromSimMessage =
   /** Visual brain of the watched person or animal (sent while it is watched). */
   | { type: 'brain'; brain: BrainFacts }
   | { type: 'governance'; governance: GovernanceFacts | null }
+  | { type: 'knowledgeTree'; tree: KnowledgeTreeFacts | null }
   /** Recent battles (tile and game hours since), for the map. */
   | { type: 'battles'; battles: { x: number; y: number; age: number }[] }
   /** The people changed (births, ages, couples): identity and family links again. */

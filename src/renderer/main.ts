@@ -37,6 +37,7 @@ import { AnimalSheet } from './hud/animal-sheet';
 import { VIEW } from './view-settings';
 import { Favorites } from './hud/favorites';
 import { GenealogyPanel } from './hud/genealogy-panel';
+import { KnowledgeTreePanel } from './hud/knowledge-tree-panel';
 import { HelpPage } from './hud/help-page';
 import { PoliticalPanel } from './hud/political-panel';
 import { RelationsPanel } from './hud/relations-panel';
@@ -320,6 +321,7 @@ async function main(): Promise<void> {
   const genealogy = new GenealogyPanel(toolbar, (person) => selectPerson(person), () => (sheet.isOpen ? sheet.person : (groupsLeader() ?? 0)));
   const relations = new RelationsPanel(toolbar, (person) => selectPerson(person));
   const politicalPanel = new PoliticalPanel(toolbar, political);
+  const knowledgeTree = new KnowledgeTreePanel(toolbar, (tribe) => sim.inspectKnowledgeTree(tribe), (person) => selectPerson(person));
   const favorites = new Favorites(toolbar, (person) => selectPerson(person));
   new HelpPage(toolbar);
   const weatherButton = document.createElement('button');
@@ -509,6 +511,9 @@ async function main(): Promise<void> {
         journal.add(message.entries);
         favorites.onEntries(message.entries);
         return;
+      case 'knowledgeTree':
+        knowledgeTree.receive(message.tree);
+        return;
       case 'status':
         time.setStatus(message.date, message.paused, message.speedIndex);
         pace.observe(message.tick, performance.now(), message.paused, 1000 / (motion.ticksPerRealSecond * (knownSpeeds[message.speedIndex] ?? 1)));
@@ -629,6 +634,7 @@ async function main(): Promise<void> {
     groupsPanel.update(now);
     governancePanel.update(now);
     ideasPanel.update(now);
+    knowledgeTree.tick(now);
     if (animalSheet.isOpen && now - lastAnimalRequest > VIEW.inspectEveryMs) {
       lastAnimalRequest = now;
       sim.inspect(animalSheet.nextRequest(), 0, animalSheet.uid);

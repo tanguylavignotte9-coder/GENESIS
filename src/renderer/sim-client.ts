@@ -37,6 +37,10 @@ export class SimClient {
     this.send({ type: 'watchBrain', kind, id });
   }
 
+  inspectKnowledgeTree(tribe: number): void {
+    this.send({ type: 'inspectKnowledgeTree', tribe });
+  }
+
   inspectGovernance(tribe: number): void {
     this.send({ type: 'inspectGovernance', tribe });
   }

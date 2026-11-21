@@ -13,6 +13,7 @@ import { Workshop, type WorkshopResult } from '../sim/core/workshop';
 import { loadWorld, saveWorld } from '../sim/core/save/save';
 import { describeGroups } from '../sim/systems/groups/describe';
 import { describeIdeas } from '../sim/systems/ideas/describe';
+import { describeKnowledgeTree } from '../sim/systems/ideas/knowledge-tree';
 import type { FromSimMessage, JournalEntry, LifeTables, SaveReason, ToSimMessage } from '../shared/messages';
 import { PerfMeter } from './perf-meter';
 import { snapshotWorld } from './world-snapshot';
@@ -429,6 +430,20 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
         const time = simulation.data.time;
         if (governance) for (const decision of governance.decisions) decision.date = formatDate(dateAtTick(decision.day * time.ticksPerDay, time), time);
         post({ type: 'governance', governance });
+      }
+      return;
+    case 'inspectKnowledgeTree':
+      if (simulation) {
+        const { recipes, buildings } = simulation.data;
+        post({
+          type: 'knowledgeTree',
+          tree: describeKnowledgeTree(
+            simulation.ideas,
+            message.tribe,
+            recipes.recipes.map((r) => ({ id: r.id, name: r.name, knowledge: r.knowledge ? [r.knowledge] : [] })),
+            buildings.buildings.map((b) => ({ id: b.id, name: b.name, knowledge: b.knowledge })),
+          ),
+        });
       }
       return;
     case 'inspectBuilding': {

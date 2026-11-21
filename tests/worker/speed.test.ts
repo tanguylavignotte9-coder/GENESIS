@@ -5,6 +5,7 @@ import { Workshop } from '../../src/sim/core/workshop';
 import { sampleHistory } from '../../src/sim/history';
 import { describeGroups } from '../../src/sim/systems/groups/describe';
 import { describeIdeas } from '../../src/sim/systems/ideas/describe';
+import { describeKnowledgeTree } from '../../src/sim/systems/ideas/knowledge-tree';
 import { describeBrain } from '../../src/sim/systems/individuals/brain-describe';
 import { describeAnimalBrain } from '../../src/sim/systems/fauna/brain-trace';
 import { recentBattles } from '../../src/sim/systems/conflict/describe';
@@ -33,7 +34,9 @@ function publish(simulation: Simulation): void {
   describeIdeas(simulation.ideas);
   recentBattles(simulation.conflict, ticksPerDay / 24, 48);
   sampleHistory(simulation);
-  describePerson(simulation, 1, 0);
+  // Every sheet (someone working a discovery out reads needs and surroundings) and the knowledge tree.
+  for (let p = 0; p < simulation.humans.people.count; p++) describePerson(simulation, 1, p);
+  describeKnowledgeTree(simulation.ideas, -1, [], []);
   describeBuilding(simulation, 1, 0);
   inspect(simulation, 1, simulation.humans.camps[0]!.center, simulation.fauna.store.uid[0]!);
   describeBrain(simulation.humans, 0, data.time, 'printemps');

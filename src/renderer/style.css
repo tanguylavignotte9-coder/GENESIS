@@ -1580,3 +1580,106 @@ body:has(#stats:not([hidden])) #journal {
   overflow-y: auto;
   margin-top: 6px;
 }
+
+/* Knowledge tree (K) */
+.tool-window.knowledge-tree {
+  width: 880px;
+}
+
+.tree-top {
+  margin-bottom: 6px;
+}
+
+.tree-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 4px 0 8px;
+  font-size: 12px;
+}
+
+.tree-key::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  border-radius: 2px;
+  vertical-align: middle;
+  background: var(--tree-color);
+}
+
+.tree-detail {
+  min-height: 40px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.tree-graph {
+  overflow: auto;
+  max-height: calc(100vh - 360px);
+}
+
+.tree-svg text {
+  fill: #e8ecf2;
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.tree-node {
+  cursor: pointer;
+}
+
+.tree-node rect {
+  fill: var(--tree-color);
+  fill-opacity: 0.28;
+  stroke: var(--tree-color);
+  stroke-width: 1.2;
+}
+
+.tree-node.chosen rect {
+  stroke-width: 2.5;
+  fill-opacity: 0.45;
+}
+
+.tree-node.recipe text,
+.tree-node.building text {
+  font-size: 10px;
+}
+
+.tree-node.known,
+.tree-key.known {
+  --tree-color: #5fbf6a;
+}
+
+.tree-node.pondering,
+.tree-key.pondering {
+  --tree-color: #f0b43c;
+}
+
+.tree-node.ready,
+.tree-key.ready {
+  --tree-color: #5aa6e8;
+}
+
+.tree-node.out,
+.tree-key.out {
+  --tree-color: #7b818c;
+}
+
+.tree-node.out text {
+  fill: #a5abb5;
+}
+
+.tree-link {
+  fill: none;
+  stroke: rgba(200, 210, 225, 0.22);
+  stroke-width: 1;
+}
+
+.tree-link.chosen {
+  stroke: #f0d080;
+  stroke-width: 2;
+}

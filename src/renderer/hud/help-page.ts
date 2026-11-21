@@ -12,6 +12,7 @@ const KEYS: readonly [string, string][] = [
   ['G', 'groupes : tribus, clans, familles'],
   ['I', 'idées : cultures, langues, religions, savoirs, échanges'],
   ['T', 'arbre généalogique'],
+  ['K', 'arbre des savoirs'],
   ['R', 'carte des relations'],
   ['P', 'vue politique (calques de la carte)'],
   ['F', 'personnages suivis et leurs nouvelles'],
@@ -27,6 +28,7 @@ const KEYS: readonly [string, string][] = [
 const PANELS: readonly [string, string][] = [
   ['Journal', 'La chronique des événements, du plus récent au plus ancien. Filtrez par tribu, par personne, par type d’événement ou par période, et cherchez un mot. « Cause » mène à l’événement qui a provoqué celui-ci : on remonte ainsi toute une chaîne. Un clic sur un événement centre la carte sur son lieu, un clic sur un nom ouvre la fiche.'],
   ['Fiche personnage', 'Identité, traits, force, besoins, santé, compétences, relations, souvenirs, savoirs, croyances, groupes. « Afficher le cerveau » montre comment la personne décide ; ☆ la suit ; « Arbre » et « Relations » ouvrent sa famille et ses liens.'],
+  ['Savoirs (K)', 'Le graphe des savoirs, recettes et bâtiments, reliés à ce qu’ils demandent. Pour la tribu choisie : en vert ce qu’elle connaît, en orange ce que quelqu’un est en train de découvrir (et qui), en bleu ce dont les conditions sont réunies, en gris ce qui reste hors de portée. Un clic sur un élément explique pourquoi.'],
   ['Généalogie (T)', 'Plusieurs générations autour d’une personne : aïeux, frères et sœurs, descendance. Un clic sur un nom recentre l’arbre, un double-clic ouvre la fiche. Les morts sont marqués †, les lignées éteintes signalées, et la liste des fondateurs dit combien de leurs descendants vivent.'],
   ['Relations (R)', 'Un graphe des liens de la personne dont la fiche est ouverte (famille, amour, affection, rivalité), et un graphe des tribus (alliances, guerres, trêves, tributs).'],
   ['Politique (P)', 'Des calques sur la carte : territoires des tribus, cultures, langues, religions, alliances et guerres. Chaque couleur est une tribu ou une idée partagée.'],

@@ -56,6 +56,14 @@ export function relationStatus(sys: ConflictSystem, tribe: number, other: number
   return parts.join(', ');
 }
 
+/** The state between two tribes, for the map and the relations graph (war, truce, who pays a tribute: 1 this one, -1 the other). */
+export function relationState(sys: ConflictSystem, tribe: number, other: number): { war: boolean; truce: boolean; tribute: number } {
+  const relation = sys.findRelation(tribe, other);
+  if (!relation) return { war: false, truce: false, tribute: 0 };
+  const tribute = relation.tributePayer < 0 ? 0 : relation.tributePayer === sys.side(relation, tribe) ? 1 : -1;
+  return { war: relation.state === 'war', truce: relation.state === 'truce', tribute };
+}
+
 /** Recent battles for the map (where, and how many game hours ago). */
 export function recentBattles(sys: ConflictSystem, ticksPerHour: number, hours: number): { x: number; y: number; age: number }[] {
   return sys.battles.map((mark) => ({ x: mark.x, y: mark.y, age: (sys.tick - mark.tick) / ticksPerHour })).filter((mark) => mark.age <= hours);

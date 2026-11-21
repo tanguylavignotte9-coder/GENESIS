@@ -1,3 +1,4 @@
+import { isExileCamp } from './systems/groups/describe';
 import { DOMESTIC_EVENTS } from './systems/fauna/domestic';
 import { HUSBANDRY_EVENTS } from './systems/production/husbandry';
 import { dateAtTick, formatDate } from './core/calendar';
@@ -88,6 +89,7 @@ export interface HeadlessReport {
   /** Groups: tribes alive, regimes seen, splits, mergers…, and the political events, dated. */
   groups: {
     tribesAlive: number;
+    exileCamps: number;
     tribesEver: number;
     clansEver: number;
     /** Regimes held by tribes and clans at some point (name, groups that had it). */
@@ -271,7 +273,9 @@ function summarizeGroups(simulation: Simulation): HeadlessReport['groups'] {
   for (const group of groups.groups) if (group.level < 2) add(groups.params.regimes[group.regime]!.id, group.id);
   for (const event of events) if (event.type === GROUP_EVENTS.regime) add(String(event.details['from']), Number(event.details['group']));
   return {
-    tribesAlive: groups.tribes().length,
+    // A lone exile's camp is not a people: counted apart.
+    tribesAlive: groups.tribes().filter((tribe) => !isExileCamp(tribe)).length,
+    exileCamps: groups.tribes().filter((tribe) => isExileCamp(tribe)).length,
     tribesEver: groups.groups.filter((group) => group.level === 0).length,
     clansEver: groups.groups.filter((group) => group.level === 1).length,
     regimes: groups.params.regimes.flatMap((regime) => (seen.has(regime.id) ? [{ name: regime.name, groups: seen.get(regime.id)!.size }] : [])),
@@ -336,7 +340,7 @@ function summarizeConflict(simulation: Simulation): HeadlessReport['conflict'] {
   const time = simulation.data.time;
   let violent = 0;
   for (let p = 0; p < humans.people.count; p++) if (humans.people.alive[p] === 0 && humans.people.deathCause[p] === 8) violent++;
-  const tribes = simulation.groups.tribes().filter((tribe) => tribe.members.length > 0);
+  const tribes = simulation.groups.tribes().filter((tribe) => tribe.members.length > 0 && !isExileCamp(tribe));
   return {
     counts: { ...conflict.counts },
     violentDeaths: violent,

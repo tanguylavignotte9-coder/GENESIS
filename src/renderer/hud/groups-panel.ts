@@ -52,7 +52,7 @@ export class GroupsPanel {
   setGroups(facts: GroupsFacts): void {
     this.facts = facts;
     this.dirty = true;
-    const tribes = facts.groups.filter((group) => group.level === 0).length;
+    const tribes = facts.groups.filter((group) => group.level === 0 && !group.exile).length;
     this.toggle.textContent = `Groupes (${tribes} tribu${tribes > 1 ? 's' : ''})`;
   }
 
@@ -77,7 +77,10 @@ export class GroupsPanel {
     const box = el('div', `group-box level-${group.level}`);
     const title = el('div', 'group-title');
     if (group.level === 0) title.style.color = tribeColorCss(group.id);
-    title.textContent = `${group.levelName} · ${group.name.charAt(0).toUpperCase()}${group.name.slice(1)} — ${group.members} membre${group.members > 1 ? 's' : ''} (${group.adults} adulte${group.adults > 1 ? 's' : ''})`;
+    // A lone exile is not a people: their camp is shown as such (and not counted as a tribe).
+    title.textContent = group.exile
+      ? `Camp d’exilé · ${group.leaders[0]?.name ?? group.founder}, seul${group.name ? ` (${group.name})` : ''}`
+      : `${group.levelName} · ${group.name.charAt(0).toUpperCase()}${group.name.slice(1)} — ${group.members} membre${group.members > 1 ? 's' : ''} (${group.adults} adulte${group.adults > 1 ? 's' : ''})`;
     if (group.level === 0 && group.campX >= 0) {
       title.classList.add('clickable');
       title.title = 'Centrer la carte sur le camp';

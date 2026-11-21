@@ -58,6 +58,9 @@
 
     <section id="person" class="panel" hidden>
       <div class="person-buttons">
+        <button id="person-favorite" type="button" title="Suivre sa vie : notifications de ses grands moments">☆ Suivre sa vie</button>
+        <button id="person-tree" type="button" title="Son arbre généalogique">Arbre</button>
+        <button id="person-relations" type="button" title="Ses liens en graphe">Relations</button>
         <button id="person-brain" type="button" title="Voir comment cette personne décide">Afficher le cerveau</button>
         <button id="person-follow" type="button">Suivre</button>
         <button id="person-close" type="button" title="Fermer">✕</button>
@@ -101,7 +104,9 @@
       <div class="stats-tabs">
         <button id="stats-tab-humans" type="button" class="active">Humains</button>
         <button id="stats-tab-animals" type="button">Animaux</button>
+        <button id="stats-tab-world" type="button">Monde et tribus</button>
       </div>
+      <div id="stats-world" hidden></div>
       <div id="stats-humans">
         <div class="stats-title">Population humaine</div>
         <canvas id="humans-chart"></canvas>
@@ -137,9 +142,7 @@
 
     <section id="perf" class="panel" hidden></section>
 
-    <div id="help" class="panel">
-      Glisser ou ZQSD / flèches : se déplacer · Molette : zoomer · Espace : pause · 1 à 5 : vitesse · Clic sur une personne ou un bâtiment : sa fiche (Maj+clic : le bâtiment sous les gens) · Clic sur un animal : le suivre · F2 : atelier des variables · F3 : performances · G : groupes · I : idées · F5 : sauvegardes
-    </div>
+    <div id="toolbar" class="panel" title="Outils du spectateur (H : aide)"></div>
 
     <section id="workshop" hidden>
       <header class="workshop-header">

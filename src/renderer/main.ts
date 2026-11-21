@@ -2,7 +2,7 @@ import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
 import { ClimateState } from '../sim/systems/world/climate-state';
-import type { ClimateYearSnapshot, FromSimMessage, LifeTables, MotionInfo, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
+import type { ClimateYearSnapshot, FromSimMessage, GroupsFacts, LifeTables, MotionInfo, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
 import { runRenderTest, type RenderTestHost } from './bench/render-test';
 import '../shared/bridge';
 import { Hover } from './hover';
@@ -35,6 +35,13 @@ import { BrainPanel } from './hud/brain-panel';
 import { GovernancePanel } from './hud/governance-panel';
 import { AnimalSheet } from './hud/animal-sheet';
 import { VIEW } from './view-settings';
+import { Favorites } from './hud/favorites';
+import { GenealogyPanel } from './hud/genealogy-panel';
+import { HelpPage } from './hud/help-page';
+import { PoliticalPanel } from './hud/political-panel';
+import { RelationsPanel } from './hud/relations-panel';
+import { PoliticalLayer } from './map/political-layer';
+import { WeatherLayer } from './map/weather-layer';
 import './style.css';
 
 const BACKGROUND_COLOR = '#0b0d12';
@@ -60,7 +67,9 @@ async function main(): Promise<void> {
   const buildings = new BuildingLayer();
   const night = new NightLayer();
   const tribes = new TribeLayer();
-  mapView.container.addChild(plants.container, buildings.container, animals.container, people.container, night.sprite, tribes.container);
+  const political = new PoliticalLayer();
+  const weatherLayer = new WeatherLayer();
+  mapView.container.addChild(plants.container, buildings.container, animals.container, people.container, weatherLayer.graphics, night.sprite, political.graphics, tribes.container);
   app.stage.addChild(mapView.container);
   const camera = new Camera(app.canvas, mapView.container);
   const tooltip = new Tooltip(element('tooltip'));
@@ -124,6 +133,7 @@ async function main(): Promise<void> {
     },
     (person) => selectPerson(person),
     (person) => roster?.names[person] ?? '',
+    () => (sheet.isOpen ? sheet.person : -1),
   );
   const stats = new StatsPanel(
     element('stats'),
@@ -138,6 +148,7 @@ async function main(): Promise<void> {
       pyramid: element<HTMLCanvasElement>('pyramid-chart'),
       causes: element('death-causes'),
     },
+    { tab: element<HTMLButtonElement>('stats-tab-world'), block: element('stats-world') },
   );
   const sheet = new PersonSheet(
     element('person'),
@@ -298,6 +309,52 @@ async function main(): Promise<void> {
     if (event.code !== 'KeyI' || event.target instanceof HTMLInputElement) return;
     element<HTMLButtonElement>('ideas-toggle').click();
   });
+  // The spectator's tools (toolbar at the bottom left): genealogy, relations, politics, followed people, help.
+  const toolbar = element('toolbar');
+  const genealogy = new GenealogyPanel(toolbar, (person) => selectPerson(person), () => (sheet.isOpen ? sheet.person : (groupsLeader() ?? 0)));
+  const relations = new RelationsPanel(toolbar, (person) => selectPerson(person));
+  const politicalPanel = new PoliticalPanel(toolbar, political);
+  const favorites = new Favorites(toolbar, (person) => selectPerson(person));
+  new HelpPage(toolbar);
+  const weatherButton = document.createElement('button');
+  weatherButton.type = 'button';
+  weatherButton.className = 'tool-button active';
+  weatherButton.textContent = 'Météo';
+  weatherButton.title = 'Afficher ou cacher la pluie et la neige (M)';
+  const toggleWeather = (): void => {
+    weatherLayer.enabled = !weatherLayer.enabled;
+    weatherButton.classList.toggle('active', weatherLayer.enabled);
+  };
+  weatherButton.addEventListener('click', () => {
+    weatherButton.blur();
+    toggleWeather();
+  });
+  toolbar.append(weatherButton);
+  window.addEventListener('keydown', (event) => {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.key.toLowerCase() === 'm') toggleWeather();
+  });
+  let lastGroups: GroupsFacts | null = null;
+  const groupsLeader = (): number | undefined => lastGroups?.groups.find((g) => g.level === 0)?.leaders[0]?.person;
+  const favoriteButton = element<HTMLButtonElement>('person-favorite');
+  const showFavorite = (): void => {
+    const on = sheet.person >= 0 && favorites.has(sheet.person);
+    favoriteButton.textContent = on ? '★ Suivi' : '☆ Suivre sa vie';
+    favoriteButton.classList.toggle('active', on);
+  };
+  favorites.onChange = showFavorite;
+  favoriteButton.addEventListener('click', (event) => {
+    (event.currentTarget as HTMLButtonElement).blur();
+    if (sheet.person >= 0) favorites.toggle(sheet.person);
+  });
+  element<HTMLButtonElement>('person-tree').addEventListener('click', (event) => {
+    (event.currentTarget as HTMLButtonElement).blur();
+    if (sheet.person >= 0) genealogy.show(sheet.person);
+  });
+  element<HTMLButtonElement>('person-relations').addEventListener('click', (event) => {
+    (event.currentTarget as HTMLButtonElement).blur();
+    relations.showPeople();
+  });
   const perfPanel = new PerfPanel(element('perf'));
   const tribe = new TribePanel(element('tribe'), element<HTMLButtonElement>('tribe-toggle'), element('tribe-list'), selectPerson);
   const followBadge = element('follow');
@@ -317,6 +374,7 @@ async function main(): Promise<void> {
         tooltip.hide();
         journal.clear();
         tribes.clear();
+        political.clear();
         groupsPanel.clear();
         ideasPanel.clear();
         camera.stopFollowing();
@@ -332,7 +390,12 @@ async function main(): Promise<void> {
         plants.setSpecies(life.plants, world.size);
         animals.setSpecies(life.animals);
         stats.reset(life.animals, daysPerYear);
+        journal.setDaysPerYear(daysPerYear);
         roster = message.roster;
+        favorites.setWorld(message.seed);
+        favorites.setRoster(roster);
+        genealogy.setRoster(roster);
+        weatherLayer.setWorld(world.size, message.weatherRegionTiles, roster.weatherIds);
         motion = message.motion;
         pace.reset();
         weatherRegionTiles = message.weatherRegionTiles;
@@ -380,9 +443,12 @@ async function main(): Promise<void> {
         return;
       case 'weather':
         weatherRegions = message.regions;
+        weatherLayer.setRegions(message.regions);
         return;
       case 'person':
         if (roster && life) sheet.render(message.details, roster, life);
+        if (roster) relations.setPerson(message.details, roster);
+        showFavorite();
         return;
       case 'brain':
         brainPanel.receive(message.brain);
@@ -402,20 +468,31 @@ async function main(): Promise<void> {
       case 'humanStats':
         stats.addHumans(message.stats);
         return;
+      case 'history':
+        stats.addHistory(message.sample);
+        return;
       case 'groups':
+        lastGroups = message.groups;
         tribes.setGroups(message.groups);
+        political.setGroups(message.groups);
         groupsPanel.setGroups(message.groups);
+        relations.setGroups(message.groups);
+        politicalPanel.setGroups(message.groups);
+        journal.setTribes(message.groups.groups.filter((g) => g.level === 0 && !g.exile).map((g) => ({ id: g.id, name: g.name })));
         return;
       case 'battles':
         tribes.setBattles(message.battles);
         return;
       case 'ideas':
         ideasPanel.setIdeas(message.ideas);
+        politicalPanel.setIdeas(message.ideas);
         return;
       case 'roster':
         roster = message.roster;
         people.updateRoster(roster);
         tribe.setRoster(roster);
+        favorites.setRoster(roster);
+        genealogy.setRoster(roster);
         return;
       case 'inspection':
         if (animalSheet.owns(message.inspection.requestId)) {
@@ -424,6 +501,7 @@ async function main(): Promise<void> {
         return;
       case 'journal':
         journal.add(message.entries);
+        favorites.onEntries(message.entries);
         return;
       case 'status':
         time.setStatus(message.date, message.paused, message.speedIndex);
@@ -532,7 +610,9 @@ async function main(): Promise<void> {
     animals.update(visible, camera.pixelsPerTile, frameAt);
     people.update(visible, camera.pixelsPerTile, frameAt);
     buildings.update(visible);
+    weatherLayer.update(visible, camera.pixelsPerTile, frameAt);
     night.update(climate, hour);
+    political.update();
     const now = performance.now();
     if (now - lastPerfAt > PERF_REFRESH_MS) {
       lastPerfAt = now;

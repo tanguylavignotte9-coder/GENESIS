@@ -36,3 +36,36 @@ export function drawBattleMark(graphics: Graphics, x: number, y: number, fade: n
   graphics.moveTo(x - 0.45, y - 0.45).lineTo(x + 0.45, y + 0.45).stroke({ width: 0.12, color: BLADE_COLOR, alpha });
   graphics.moveTo(x + 0.45, y - 0.45).lineTo(x - 0.45, y + 0.45).stroke({ width: 0.12, color: BLADE_COLOR, alpha });
 }
+
+/** A tribe's land (political view): a soft disc of its colour around its camp (tile units). */
+export function drawTerritory(graphics: Graphics, x: number, y: number, radius: number, color: number, alpha: number): void {
+  graphics.circle(x, y, radius).fill({ color, alpha: alpha * 0.35 });
+  graphics.circle(x, y, radius).stroke({ color, alpha, width: 0.25 });
+}
+
+/** A tie between two camps (political view): alliance, war, truce or tribute (tile units). */
+export function drawCampTie(graphics: Graphics, ax: number, ay: number, bx: number, by: number, color: number, width: number, dashed: boolean): void {
+  if (!dashed) {
+    graphics.moveTo(ax, ay).lineTo(bx, by).stroke({ color, width, alpha: 0.9 });
+    return;
+  }
+  const length = Math.hypot(bx - ax, by - ay);
+  const steps = Math.max(1, Math.floor(length / 2));
+  for (let k = 0; k < steps; k += 2) {
+    const t0 = k / steps;
+    const t1 = Math.min(1, (k + 1) / steps);
+    graphics.moveTo(ax + (bx - ax) * t0, ay + (by - ay) * t0).lineTo(ax + (bx - ax) * t1, ay + (by - ay) * t1);
+  }
+  graphics.stroke({ color, width, alpha: 0.9 });
+}
+
+/** Colour of a shared idea (a culture, a language, a religion), stable from its id. */
+export function ideaColor(id: number): number {
+  const hue = (id * 137.508) % 360;
+  const s = 0.65;
+  const l = 0.55;
+  const k = (n: number): number => (n + hue / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number): number => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return (Math.round(f(0) * 255) << 16) | (Math.round(f(8) * 255) << 8) | Math.round(f(4) * 255);
+}

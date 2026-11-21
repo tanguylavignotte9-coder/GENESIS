@@ -49,7 +49,7 @@ export class TribeLayer {
         this.labels.set(group.id, label);
         this.container.addChild(label);
       }
-      const text = `${group.name.charAt(0).toUpperCase()}${group.name.slice(1)} (${group.members})`;
+      const text = group.exile ? `Camp d’exilé (${group.leaders[0]?.name ?? group.founder})` : `${group.name.charAt(0).toUpperCase()}${group.name.slice(1)} (${group.members})`;
       if (label.text !== text) label.text = text;
       label.scale.set(1 / pixelsPerTile);
       label.position.set(x, y - Math.max(1.3, LABEL_LIFT_PIXELS / pixelsPerTile));

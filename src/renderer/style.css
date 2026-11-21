@@ -389,12 +389,14 @@ body:has(#stats:not([hidden])) #journal {
   vertical-align: middle;
 }
 
-#help {
+#toolbar {
   bottom: 12px;
   left: 12px;
-  max-width: calc(100vw - 560px);
-  color: var(--hud-muted);
-  font-size: 12px;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  max-width: calc(100vw - 620px);
+  flex-wrap: wrap;
 }
 
 #tooltip {
@@ -1273,4 +1275,291 @@ body:has(#stats:not([hidden])) #journal {
 
 .gov-option.chosen {
   color: #ffd36b;
+}
+
+/* ----- Spectator's tools: toolbar windows (genealogy, relations, politics, followed people, help) ----- */
+
+.tool-button,
+.tool-mini,
+.journal-filters button,
+.journal-chain-head button {
+  padding: 3px 9px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tool-button:hover,
+.tool-mini:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.tool-button.active,
+#person-favorite.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.tool-mini {
+  margin-left: 8px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.tool-window {
+  top: 60px;
+  left: 12px;
+  z-index: 5;
+  width: 600px;
+  max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  background: rgba(12, 15, 22, 0.97);
+  font-size: 13px;
+  user-select: text;
+}
+
+.tool-close {
+  border: 0;
+  background: none;
+  color: var(--hud-text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.tool-search,
+.journal-filters input,
+.journal-filters select,
+.history-controls select {
+  padding: 3px 6px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.tool-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 8px;
+}
+
+.tree-generation {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--hud-border);
+}
+
+.tree-label {
+  width: 150px;
+  flex-shrink: 0;
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+.tree-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+
+.tree-self .tree-names {
+  display: block;
+}
+
+.tree-root {
+  font-weight: 600;
+}
+
+.tree-dead {
+  color: #a7adb8;
+}
+
+.tree-extinct {
+  color: var(--error);
+  font-size: 12px;
+}
+
+.tree-list {
+  margin: 2px 0 2px 4px;
+  padding-left: 16px;
+}
+
+.tree-descent {
+  padding: 6px 0;
+}
+
+.tree-row {
+  padding: 2px 0;
+}
+
+.tree-lineages {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--hud-border);
+}
+
+.relation-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.relation-node {
+  cursor: pointer;
+}
+
+.relation-name {
+  fill: #d8dde6;
+  font-size: 12px;
+}
+
+.relation-tie-label {
+  fill: #9aa3b2;
+  font-size: 10px;
+}
+
+.relation-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  color: var(--hud-muted);
+  font-size: 12px;
+}
+
+.relation-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.political-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0;
+}
+
+.political-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.political-table th,
+.political-table td {
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--hud-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.help-keys td {
+  padding: 2px 8px 2px 0;
+}
+
+.help-key {
+  color: #9fd3ff;
+  white-space: nowrap;
+}
+
+.help-panel {
+  margin: 6px 0;
+}
+
+.help-panel-name {
+  font-weight: 600;
+}
+
+.toasts {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toast {
+  position: static;
+  max-width: 480px;
+  font-size: 13px;
+  border-color: var(--accent);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.journal-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.journal-filters input[type='search'] {
+  flex: 1 1 100%;
+}
+
+.journal-filters select {
+  max-width: 160px;
+}
+
+.journal-period input {
+  width: 58px;
+}
+
+.journal-person {
+  color: #9fd3ff;
+  font-size: 12px;
+  align-self: center;
+}
+
+.journal-cause.clickable {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.journal-cause.clickable:hover {
+  color: var(--hud-text);
+}
+
+.journal-chain-head {
+  color: var(--hud-muted);
+}
+
+.journal-chain-cause {
+  border-left: 2px solid var(--accent);
+}
+
+.history-controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.history-chart {
+  display: block;
+  width: 100%;
+  height: 170px;
+}
+
+.history-table {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 6px;
 }

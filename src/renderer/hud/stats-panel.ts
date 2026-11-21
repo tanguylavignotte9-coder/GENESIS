@@ -1,5 +1,6 @@
 import type { AnimalSpecies } from '../../sim/systems/fauna/params';
-import type { HumanStats } from '../../shared/messages';
+import type { HistorySample, HumanStats } from '../../shared/messages';
+import { HistoryView } from './history-view';
 import { HumanStatsView } from './human-stats';
 
 const PADDING = { left: 44, right: 10, top: 10, bottom: 22 };
@@ -18,8 +19,9 @@ export interface HumanStatsElements {
 }
 
 /**
- * Statistics panel, two tabs: the humans (population curve, age pyramid, causes of death) and the
- * animals (population of each species over time, one line per species).
+ * Statistics panel, three tabs: the humans (population curve, age pyramid, causes of death), the
+ * animals (population of each species over time, one line per species), and the world and its
+ * tribes (population, food, knowledge, domestic animals, regimes).
  */
 export class StatsPanel {
   private species: readonly AnimalSpecies[] = [];
@@ -27,6 +29,8 @@ export class StatsPanel {
   private daysPerYear = 1;
   private readonly humans: HumanStatsView;
   private showHumans = true;
+  private readonly history: HistoryView;
+  private tab: 'humans' | 'animals' | 'world' = 'humans';
 
   constructor(
     private readonly panel: HTMLElement,
@@ -35,23 +39,29 @@ export class StatsPanel {
     private readonly legend: HTMLElement,
     private readonly animalTab: { tab: HTMLButtonElement; block: HTMLElement },
     private readonly humanTab: HumanStatsElements,
+    private readonly worldTab: { tab: HTMLButtonElement; block: HTMLElement },
   ) {
+    this.history = new HistoryView(worldTab.block, () => !panel.hidden && this.tab === 'world');
     this.humans = new HumanStatsView(humanTab.curve, humanTab.pyramid, humanTab.causes, () => getComputedStyle(panel).getPropertyValue('--hud-muted') || '#999');
     toggle.addEventListener('click', () => {
       toggle.blur();
       panel.hidden = !panel.hidden;
       this.draw();
     });
-    const choose = (humans: boolean): void => {
-      this.showHumans = humans;
-      humanTab.block.hidden = !humans;
-      animalTab.block.hidden = humans;
-      humanTab.tab.classList.toggle('active', humans);
-      animalTab.tab.classList.toggle('active', !humans);
+    const choose = (tab: 'humans' | 'animals' | 'world'): void => {
+      this.tab = tab;
+      this.showHumans = tab === 'humans';
+      humanTab.block.hidden = tab !== 'humans';
+      animalTab.block.hidden = tab !== 'animals';
+      worldTab.block.hidden = tab !== 'world';
+      humanTab.tab.classList.toggle('active', tab === 'humans');
+      animalTab.tab.classList.toggle('active', tab === 'animals');
+      worldTab.tab.classList.toggle('active', tab === 'world');
       this.draw();
     };
-    humanTab.tab.addEventListener('click', () => choose(true));
-    animalTab.tab.addEventListener('click', () => choose(false));
+    humanTab.tab.addEventListener('click', () => choose('humans'));
+    animalTab.tab.addEventListener('click', () => choose('animals'));
+    worldTab.tab.addEventListener('click', () => choose('world'));
   }
 
   /** New human statistics (once a game day). */
@@ -60,7 +70,13 @@ export class StatsPanel {
     if (!this.panel.hidden && this.showHumans) this.humans.draw();
   }
 
+  /** Statistics of the world and of each tribe at a moment (every few game days). */
+  addHistory(sample: HistorySample): void {
+    this.history.add(sample);
+  }
+
   reset(species: readonly AnimalSpecies[], daysPerYear: number): void {
+    this.history.reset(daysPerYear);
     this.species = species;
     this.daysPerYear = daysPerYear;
     this.humans.reset(daysPerYear);
@@ -92,6 +108,10 @@ export class StatsPanel {
 
   private draw(): void {
     if (this.panel.hidden) return;
+    if (this.tab === 'world') {
+      this.history.draw();
+      return;
+    }
     if (this.showHumans) {
       this.humans.draw();
       return;

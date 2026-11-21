@@ -4,6 +4,7 @@
  * then runs the simulation in real time at the chosen speed, sending the date, the climate of
  * each new day and the new journal events.
  */
+import { sampleHistory } from '../sim/history';
 import { formatDate, dateAtTick } from '../sim/core/calendar';
 import { Simulation } from '../sim/core/simulation';
 import { loadGameData } from '../sim/core/game-data';
@@ -22,7 +23,7 @@ import { STATE_NAMES } from '../sim/systems/fauna/animal-store';
 import { describeBrain } from '../sim/systems/individuals/brain-describe';
 import { describeAnimalBrain } from '../sim/systems/fauna/brain-trace';
 import { describeGovernance } from '../sim/systems/groups/governance';
-import { recentBattles, relationStatus } from '../sim/systems/conflict/describe';
+import { recentBattles, relationState, relationStatus } from '../sim/systems/conflict/describe';
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -61,7 +62,11 @@ let sentEvents = 0;
 let sentFloraDay = -1;
 let sentSamples = 0;
 let sentHumanSamples = 0;
+/** Game days between two samples of the statistics (population, food, knowledge per tribe). */
+const HISTORY_EVERY_DAYS = 10;
 let sentRosterDay = -1;
+/** Day of the last statistics sample sent (curves per tribe), -1 = none yet. */
+let sampledDay = -1;
 let sentRosterCount = 0;
 let sentRosterLiving = 0;
 let sentFaunaStep = -1;
@@ -180,6 +185,7 @@ function begin(created: Simulation, generationMs: number, benchmark: boolean, lo
   sentSamples = 0;
   sentHumanSamples = 0;
   sentRosterDay = -1;
+  sampledDay = -1;
   sentRosterCount = created.humans.people.count;
   pendingTicks = 0;
   lastLoopAt = performance.now();
@@ -283,6 +289,22 @@ function publishBrain(current: Simulation, now: number): void {
   } else post({ type: 'brain', brain: describeAnimalBrain(current.fauna, watched.id, when) });
 }
 
+/** Tribes concerned by an event: the groups named in it, and the tribe of each person named. */
+function tribesOf(current: Simulation, actors: readonly { kind: string; id: number }[]): number[] {
+  const out = new Set<number>();
+  for (const actor of actors) {
+    if (actor.kind === 'group') {
+      let group = current.groups.groups[actor.id];
+      while (group && group.level > 0) group = current.groups.groups[group.parent];
+      if (group) out.add(group.id);
+    } else if (actor.kind === 'human') {
+      const tribe = actor.id < current.groups.grievance.length ? current.groups.tribeOf(actor.id) : null;
+      if (tribe) out.add(tribe.id);
+    }
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
 /** Sends what changed since the last loop: climate (once per day), new events, date. */
 function publishChanges(current: Simulation, now = performance.now()): void {
   const climate = current.climate;
@@ -319,10 +341,19 @@ function publishChanges(current: Simulation, now = performance.now()): void {
     sentRosterDay = day;
     post({ type: 'roster', roster: snapshotRoster(current) });
     const groups = describeGroups(current.groups);
-    for (const group of groups.groups) for (const known of group.known) known.status = relationStatus(current.conflict, group.id, known.group);
+    for (const group of groups.groups) {
+      for (const known of group.known) {
+        known.status = relationStatus(current.conflict, group.id, known.group);
+        known.relation = relationState(current.conflict, group.id, known.group);
+      }
+    }
     post({ type: 'groups', groups });
     post({ type: 'battles', battles: recentBattles(current.conflict, current.data.time.ticksPerDay / 24, 48) });
     post({ type: 'ideas', ideas: describeIdeas(current.ideas) });
+    if (sampledDay < 0 || day - sampledDay >= HISTORY_EVERY_DAYS) {
+      sampledDay = day;
+      post({ type: 'history', sample: sampleHistory(current) });
+    }
     const stats = snapshotHumanStats(current, sentHumanSamples);
     sentHumanSamples += stats.samples.length;
     post({ type: 'humanStats', stats });
@@ -347,6 +378,9 @@ function publishChanges(current: Simulation, now = performance.now()): void {
       place: event.place,
       causes: event.causes,
       people: event.actors.flatMap((actor) => (actor.kind === 'human' ? [actor.id] : [])),
+      type: event.type,
+      day: Math.floor(event.tick / time.ticksPerDay),
+      tribes: tribesOf(current, event.actors),
     }));
     sentEvents = current.journal.size;
     post({ type: 'journal', entries });

@@ -1,3 +1,4 @@
+import type { HistorySample } from '../sim/history';
 /** Typed messages exchanged between the display (renderer) and the simulation worker. */
 import type { EventPlace } from '../sim/core/journal';
 import type { BiomeTable } from '../sim/systems/world/biomes';
@@ -17,6 +18,7 @@ import type { SaveMeta } from '../sim/core/save/save';
 import type { GroupsFacts, MembershipFacts } from '../sim/systems/groups/describe';
 import type { IdeasFacts, PersonIdeasFacts } from '../sim/systems/ideas/describe';
 
+export type { HistorySample, TribeSample } from '../sim/history';
 export type { GroupFacts, GroupsFacts } from '../sim/systems/groups/describe';
 export type { IdeaFacts, IdeasFacts, PersonIdeasFacts } from '../sim/systems/ideas/describe';
 
@@ -206,6 +208,8 @@ export interface Roster {
   professions: string[];
   professionsFemale: string[];
   weatherNames: string[];
+  /** Identifiers of the weather types (« rain », « snow »…), indexed like the names: the map draws rain and snow. */
+  weatherIds: string[];
 }
 
 /** Where everybody is and what they do (sent several times per second). */
@@ -350,6 +354,10 @@ export interface JournalEntry {
   causes: number[];
   /** People named in the event (clickable in the journal). */
   people: number[];
+  /** Kind of event (« life.birth », « conflict.battle »…), absolute game day, tribes concerned. */
+  type: string;
+  day: number;
+  tribes: number[];
 }
 
 /** Simulation -> display. */
@@ -392,6 +400,8 @@ export type FromSimMessage =
   /** The people changed (births, ages, couples): identity and family links again. */
   | { type: 'roster'; roster: Roster }
   | { type: 'humanStats'; stats: HumanStats }
+  /** Statistics of the world and of each tribe at this moment (every few game days). */
+  | { type: 'history'; sample: HistorySample }
   | { type: 'buildings'; buildings: BuildingsSnapshot }
   | { type: 'building'; details: BuildingDetails }
   | { type: 'flora'; flora: FloraSnapshot }

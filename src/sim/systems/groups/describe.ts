@@ -25,8 +25,14 @@ export interface GroupFacts {
   /** Tribes: camp center (tiles), -1 if none. */
   campX: number;
   campY: number;
-  /** Tribes: the other tribes they know. */
-  known: { group: number; name: string; opinion: number; allied: boolean; status: string }[];
+  /** Tribes: the other tribes they know; `relation` is filled by the conflict system (war, truce, tribute). */
+  known: { group: number; name: string; opinion: number; allied: boolean; status: string; relation: { war: boolean; truce: boolean; tribute: number } }[];
+  /** A lone exile living on their own: shown as a camp of an exile, not counted as a tribe. */
+  exile: boolean;
+  /** Tribes: the culture, language and religion most of their adults share (idea id, -1 none). */
+  culture: number;
+  language: number;
+  religion: number;
   /** Day of founding (absolute day) and the founder. */
   foundedDay: number;
   founder: string;
@@ -78,11 +84,20 @@ function facts(sys: GroupsSystem, group: Group): GroupFacts {
     strategy: params.strategies[tribe.strategy]!.name,
     campX: camp ? camp.centerX : -1,
     campY: camp ? camp.centerY : -1,
-    known: [...group.known.entries()].map(([id, view]) => ({ group: id, name: sys.groups[id]!.name, opinion: round(view.opinion), allied: view.allied, status: '' })),
+    known: [...group.known.entries()].map(([id, view]) => ({ group: id, name: sys.groups[id]!.name, opinion: round(view.opinion), allied: view.allied, status: '', relation: { war: false, truce: false, tribute: 0 } })),
+    exile: isExileCamp(group),
+    culture: group.culture,
+    language: group.language,
+    religion: group.religion,
     foundedDay: group.foundedDay,
     founder: people.names[group.founder] ?? '?',
     children: sys.childrenOf(group).filter((child) => child.members.length > 0).map((child) => child.id),
   };
+}
+
+/** A tribe of one person: an exile alone (a camp of an exile, not a people). */
+export function isExileCamp(group: Group): boolean {
+  return group.level === 0 && group.members.length <= 1;
 }
 
 export function describeGroups(sys: GroupsSystem): GroupsFacts {

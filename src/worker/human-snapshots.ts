@@ -31,6 +31,7 @@ export function snapshotRoster(simulation: Simulation): Roster {
     professions: params.skills.map((skill) => skill.profession),
     professionsFemale: params.skills.map((skill) => skill.professionFemale),
     weatherNames: simulation.data.weather.types.map((type) => type.name),
+    weatherIds: simulation.data.weather.types.map((type) => type.id),
   };
 }
 

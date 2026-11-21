@@ -327,8 +327,8 @@ export class FaunaSystem {
 
   /**
    * A tile of the species' habitat. A hunter that needs prey to raise its young settles only where
-   * that much prey lives around (the herds are placed first), and a territorial one not on the
-   * territory of another pack: predators live where their prey is. When no such place is left,
+   * that much prey lives around (the herds are placed first), and not where another pack or pride of
+   * its kind already hunts: predators live where their prey is. When no such place is left,
    * fewer of them are born with the world.
    */
   private pickHabitatTile(weightOf: Float32Array, maxWeight: number, code: number): number {
@@ -342,7 +342,9 @@ export class FaunaSystem {
       const y = (tile - x) / this.size;
       if (!this.isWalkable(x, y) || this.waterPath[tile]! < 0) continue;
       if (this.rng.nextFloat() * maxWeight >= weightOf[this.world.biome[tile]!]!) continue;
-      if (species.territoryTiles > 0 && this.kinWithin(code, x, y, species.territoryTiles)) continue;
+      // Nor where another pack or pride of its kind already hunts (its territory, or its hunting ground).
+      const range = species.territoryTiles > 0 ? species.territoryTiles : species.breedingMinPrey > 0 ? species.preyCheckRadius : 0;
+      if (range > 0 && this.kinWithin(code, x, y, range)) continue;
       if (species.breedingMinPrey > 0 && this.preyWithin(code, x, y, species.preyCheckRadius, species.breedingMinPrey) < species.breedingMinPrey) continue;
       return tile;
     }

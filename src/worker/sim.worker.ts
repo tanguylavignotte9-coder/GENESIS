@@ -441,7 +441,7 @@ self.onmessage = (event: MessageEvent<ToSimMessage>) => {
             simulation.ideas,
             message.tribe,
             recipes.recipes.map((r) => ({ id: r.id, name: r.name, knowledge: r.knowledge ? [r.knowledge] : [] })),
-            buildings.buildings.map((b) => ({ id: b.id, name: b.name, knowledge: b.knowledge })),
+            buildings.buildings.map((b) => ({ id: b.id, name: b.name, knowledge: b.knowledge, requiresReligion: b.requiresReligion })),
           ),
         });
       }

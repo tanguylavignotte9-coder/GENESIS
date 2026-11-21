@@ -32,6 +32,8 @@ interface Craft {
   id: string;
   name: string;
   knowledge: readonly string[];
+  /** A building only a people with a faith builds (a sanctuary). */
+  requiresReligion?: boolean;
 }
 
 const PERCENT = 100;
@@ -89,12 +91,16 @@ function read(sys: IdeasSystem, tribeId: number, tribes: KnowledgeTreeFacts['tri
     else if (state === 'ready') explain.push('Les conditions sont réunies : quelqu’un de curieux, poussé par le besoin, peut s’y mettre.');
     return { id: `k:${item.id}`, kind: 'knowledge', name: item.name, requires: item.requires.map((id) => `k:${id}`), state, explain, ponderers };
   });
+  const believers = members.some((p) => h.religion[p]! >= 0);
   const craftNode = (craft: Craft, kind: 'recipe' | 'building'): TreeNode => {
     const needs = craft.knowledge.filter((id) => id !== '');
-    const ok = needs.length === 0 || needs.some((id) => known(indexOf.get(id) ?? -1));
+    const faithOk = craft.requiresReligion !== true || believers;
+    const ok = faithOk && (needs.length === 0 || needs.some((id) => known(indexOf.get(id) ?? -1)));
     const names = needs.map((id) => catalog[indexOf.get(id) ?? -1]?.name ?? id);
     const what = kind === 'recipe' ? 'Recette' : 'Bâtiment';
-    const explain = [needs.length === 0 ? `${what} sans savoir requis.` : `${what} : il faut savoir ${names.join(' ou ')}.`, ok ? 'La tribu sait le faire.' : 'La tribu ne sait pas encore le faire.'];
+    const explain = [needs.length === 0 ? `${what} sans savoir requis.` : `${what} : il faut savoir ${names.join(' ou ')}.`];
+    if (craft.requiresReligion) explain.push(`Il faut une religion partagée${faithOk ? ' ✓' : ' ✗ (personne n’a de religion dans la tribu)'}.`);
+    explain.push(ok ? 'La tribu sait le faire.' : 'La tribu ne sait pas encore le faire.');
     return { id: `${kind === 'recipe' ? 'r' : 'b'}:${craft.id}`, kind, name: craft.name, requires: needs.map((id) => `k:${id}`), state: ok ? 'known' : 'out', explain, ponderers: [] };
   };
   for (const recipe of recipes) nodes.push(craftNode(recipe, 'recipe'));

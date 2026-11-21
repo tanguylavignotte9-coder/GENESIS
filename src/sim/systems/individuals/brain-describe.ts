@@ -15,6 +15,8 @@ import { INPUTS, type Input } from './params';
 const PERCENT = 100;
 /** Actions drawn in the network (the best ones, plus the chosen one). */
 const SHOWN_ACTIONS = 9;
+/** Longest label of a node of the network (characters). */
+const MAX_LABEL = 34;
 /** A link weaker than this is not drawn. */
 const MIN_LINK = 0.08;
 
@@ -166,10 +168,14 @@ export function describeBrain(sys: IndividualsSystem, person: number, time: Time
 function ponderingNodes(sys: IndividualsSystem, person: number): BrainNode[] {
   const pondering = sys.ideas.pondering(person);
   if (!pondering) return [];
-  const pct = Math.round(pondering.progress * 100);
-  const nodes: BrainNode[] = [{ id: 'ponder', label: `Réfléchit à : ${pondering.knowledge.toLowerCase()} (${pct} %, depuis ${pondering.days} j)`, group: 'Réflexion', value: pondering.progress }];
-  pondering.conditions.forEach((condition, k) => nodes.push({ id: `ponder${k}`, label: `${condition.ok ? '✓' : '✗'} ${condition.label}`, group: 'Réflexion', value: condition.value }));
+  const nodes: BrainNode[] = [{ id: 'ponder', label: `Réfléchit à : ${pondering.knowledge.toLowerCase()}`, group: 'Réflexion', value: pondering.progress }];
+  pondering.conditions.forEach((condition, k) => nodes.push({ id: `ponder${k}`, label: shorten(`${condition.ok ? '✓' : '✗'} ${condition.label}`), group: 'Réflexion', value: condition.value }));
   return nodes;
+}
+
+/** Labels of the brain's nodes are short (the network is narrow). */
+function shorten(label: string): string {
+  return label.length <= MAX_LABEL ? label : `${label.slice(0, MAX_LABEL - 1)}…`;
 }
 
 function nodeFor(sys: IndividualsSystem, factor: FactorTrace, id: string): BrainNode {

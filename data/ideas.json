@@ -15,7 +15,7 @@
     "winterCelsius": 5,
     "famineMembers": 60,
     "prestigeMembers": 80,
-    "ponder": { "startFactor": 3, "practicePerDay": 0.05, "idlePerDay": 0.008, "abandonPerDay": 0.012, "idleAbandonPerDay": 0.008, "milestone": 0.5 }
+    "ponder": { "startFactor": 8, "practicePerDay": 0.05, "idlePerDay": 0.008, "abandonPerDay": 0.012, "idleAbandonPerDay": 0.008, "milestone": 0.5 }
   },
   "values": [
     { "id": "sharing", "name": "Partage", "low": "chacun garde ce qu’il a", "high": "tout se partage", "actions": { "give": 0.6 } },

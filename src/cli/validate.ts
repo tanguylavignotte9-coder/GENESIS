@@ -18,6 +18,26 @@ const report = runHeadless(seed, years, loadGameData(), () => performance.now(),
   onDone: (sim: Simulation) => {
     const discovered = sim.ideas.ideas.filter((idea) => idea.family === Family.Knowledge && idea.founder >= 0);
     extra['discovered'] = [...new Set(discovered.map((idea) => idea.name))];
+    // Faith tribe by tribe: adults, unbelievers who never believed and who lost their faith, faiths held.
+    const h = sim.ideas.holdings;
+    extra['faithByTribe'] = sim.groups.tribes().map((tribe) => {
+      let adults = 0;
+      let never = 0;
+      let lost = 0;
+      const faiths = new Map<string, number>();
+      for (const p of tribe.members) {
+        if (sim.humans.people.alive[p] !== 1 || sim.humans.life.isChild(p) || p >= h.count) continue;
+        adults++;
+        const faith = h.religion[p]!;
+        if (faith < 0) {
+          if (h.lostFaith[p] === 1) lost++;
+          else never++;
+        } else faiths.set(sim.ideas.ideas[faith]!.name, (faiths.get(sim.ideas.ideas[faith]!.name) ?? 0) + 1);
+      }
+      return { tribe: tribe.name, adults, never, lost, faiths: Object.fromEntries(faiths) };
+    });
+    const tally = sim.fauna.domesticTally;
+    extra['domesticFates'] = { deaths: tally.deaths, escaped: tally.escaped, released: tally.released };
     extra['endedTribes'] = sim.groups.groups
       .filter((g) => g.level === 0 && !g.alive)
       .map((g) => ({ name: g.name, members: g.members.length, end: sim.journal.get(g.endEvent)?.text ?? '' }));

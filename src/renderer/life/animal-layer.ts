@@ -19,6 +19,8 @@ const RING_COLOR = 0xffe27a;
 export class AnimalLayer {
   readonly container = new Container();
   private art: AnimalArt[] = [];
+  /** Domestic animals: red collar and pied coat. */
+  private domesticArt: AnimalArt[] = [];
   private readonly pool: Sprite[] = [];
   private fauna: FaunaSnapshot | null = null;
   /** Glide slot of each living animal (by uid); slots of the dead are reused. */
@@ -40,8 +42,9 @@ export class AnimalLayer {
   }
 
   setSpecies(species: readonly AnimalSpecies[]): void {
-    this.art.forEach((entry) => entry.frames.forEach((texture) => texture.destroy(true)));
+    [...this.art, ...this.domesticArt].forEach((entry) => entry.frames.forEach((texture) => texture.destroy(true)));
     this.art = species.map((animal) => drawAnimal(animal));
+    this.domesticArt = species.map((animal) => drawAnimal(animal, true));
     this.fauna = null;
     this.slots.clear();
     this.freeSlots = [];
@@ -124,7 +127,7 @@ export class AnimalLayer {
         const x = fauna.x[k]!;
         const y = fauna.y[k]!;
         if (x < visible.minX - 1 || x > visible.maxX + 1 || y < visible.minY - 1 || y > visible.maxY + 1) continue;
-        const art = this.art[fauna.species[k]!];
+        const art = (fauna.domestic[k] === 1 ? this.domesticArt : this.art)[fauna.species[k]!];
         const uid = fauna.uid[k]!;
         const slot = this.slots.get(uid);
         if (!art || slot === undefined) continue;

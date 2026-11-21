@@ -82,6 +82,8 @@ export interface BuildingDef {
   want: BuildingWant;
   wantPerMember: number;
   sleeps: number;
+  /** Walls and a roof: someone inside is not seen from the outside (display only). */
+  enclosed: boolean;
   warmthCelsius: number;
   warmthTiles: number;
   fuelMaxHours: number;
@@ -259,6 +261,7 @@ export const BUILDINGS_SCHEMA: Schema = {
           want: choice(BUILDING_WANTS, 'Besoin coutumier', 'Quand le camp le veut : fire (pas de feu), shelter (pas assez de places pour dormir), storage (stock à protéger), station (atelier d’une recette voulue), perMember (un pour tant de membres), none (jamais pour l’instant).'),
           wantPerMember: num(0, 5, 'Nombre par membre', 'Pour « perMember » : nombre voulu par membre du camp.', 'bâtiments/personne'),
           sleeps: int(0, 50, 'Places pour dormir', 'Personnes qui peuvent y dormir.', 'personnes'),
+          enclosed: flag('Bâtiment fermé', 'Des murs et un toit : une personne qui s’y tient (pour dormir, travailler…) n’est plus dessinée sur la carte ; la fenêtre du bâtiment dit qui est dedans (affichage seulement).'),
           warmthCelsius: num(0, 40, 'Chaleur', 'Degrés ressentis en plus (dans l’abri pour un abri, autour pour un feu allumé).', '°C'),
           warmthTiles: int(0, 10, 'Portée de la chaleur', 'Distance jusqu’à laquelle un feu réchauffe.', 'tuiles'),
           fuelMaxHours: num(0, 500, 'Réserve de combustible', 'Heures de combustion au maximum (feu).', 'heures'),

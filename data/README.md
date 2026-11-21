@@ -271,6 +271,7 @@ bêtes d'élevage (`livestock`, pas encore possible). `effect` : `fuel` alimente
 
 Chaque bâtiment est une recette de construction : savoir (l'un de ceux listés), matériaux, heures de travail
 (plusieurs personnes peuvent y travailler), fonction (feu, abri, stockage, atelier, champ…), places pour dormir,
+bâtiment fermé (`enclosed` : qui s'y tient n'est plus dessiné sur la carte, la fenêtre du bâtiment le montre),
 chaleur, réserve de combustible, capacité et conservation d'un stock, et **quand le camp le veut** (`want`) :
 pas de feu, pas assez de places pour dormir, provisions à protéger, atelier d'une recette voulue, un pour
 tant de membres, ou jamais pour l'instant (murs, tombes, sanctuaire…).

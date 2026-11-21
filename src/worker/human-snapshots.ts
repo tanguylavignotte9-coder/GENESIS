@@ -8,6 +8,7 @@ import { describeLife } from '../sim/systems/individuals/life/describe';
 import { describeMembership } from '../sim/systems/groups/describe';
 import { HumanFlag, type HumanStats, type HumansSnapshot, type ItemLine, type PersonDetails, type Roster } from '../shared/messages';
 import type { Inventory } from '../sim/systems/production/inventory';
+import { buildingOf, enclosedTiles } from './building-snapshots';
 
 const TOP = 3;
 
@@ -39,7 +40,14 @@ export function snapshotHumans(simulation: Simulation): { snapshot: HumansSnapsh
   const { people } = simulation.humans;
   const flags = new Uint8Array(people.count);
   const conflict = simulation.conflict;
-  for (let p = 0; p < people.count; p++) flags[p] = (people.alive[p] ? HumanFlag.Alive : 0) | (people.working[p] ? HumanFlag.Working : 0) | (conflict.warCall(p) > 0 ? HumanFlag.Fighting : 0);
+  const enclosed = enclosedTiles(simulation);
+  for (let p = 0; p < people.count; p++) {
+    flags[p] =
+      (people.alive[p] ? HumanFlag.Alive : 0) |
+      (people.working[p] ? HumanFlag.Working : 0) |
+      (conflict.warCall(p) > 0 ? HumanFlag.Fighting : 0) |
+      (buildingOf(simulation, enclosed, p) >= 0 ? HumanFlag.Inside : 0);
+  }
   const n = people.count;
   const snapshot: HumansSnapshot = {
     x: people.px.slice(0, n),

@@ -27,6 +27,7 @@ export function snapshotFauna(simulation: Simulation): { snapshot: FaunaSnapshot
     vy: new Float32Array(count),
     gait: new Uint8Array(count),
     state: new Uint8Array(count),
+    domestic: new Uint8Array(count),
   };
   let k = 0;
   for (let slot = 0; slot < store.slots && k < count; slot++) {
@@ -39,10 +40,11 @@ export function snapshotFauna(simulation: Simulation): { snapshot: FaunaSnapshot
     snapshot.vy[k] = store.vy[slot]!;
     snapshot.gait[k] = store.gait[slot]!;
     snapshot.state[k] = store.fleesHuman[slot] === 1 && store.state[slot] === State.Flee ? FLEES_HUMAN_STATE : store.state[slot]!;
+    snapshot.domestic[k] = store.ownerCamp[slot]! >= 0 ? 1 : 0;
     k++;
   }
-  const { uid, species, x, y, vx, vy, gait, state } = snapshot;
-  return { snapshot, transfer: [uid, species, x, y, vx, vy, gait, state].map((array) => array.buffer as ArrayBuffer) };
+  const { uid, species, x, y, vx, vy, gait, state, domestic } = snapshot;
+  return { snapshot, transfer: [uid, species, x, y, vx, vy, gait, state, domestic].map((array) => array.buffer as ArrayBuffer) };
 }
 
 /** Details of a tile and (optionally) of an animal, for the tooltip. */

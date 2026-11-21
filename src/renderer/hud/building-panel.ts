@@ -19,6 +19,8 @@ export class BuildingPanel {
     private readonly body: HTMLElement,
     closeButton: HTMLButtonElement,
     private readonly onClose: () => void,
+    /** A click on someone inside: opens their sheet. */
+    private readonly onPerson: (person: number) => void,
   ) {
     closeButton.addEventListener('click', () => this.close());
   }
@@ -49,6 +51,20 @@ export class BuildingPanel {
     }
     if (details.builders.length > 0) nodes.push(el('div', 'sheet-section', 'Bâti par'), el('div', 'sheet-text', details.builders.join(', ')));
     if (details.residents.length > 0) nodes.push(el('div', 'sheet-section', 'Habitants'), el('div', 'sheet-text', details.residents.join(', ')));
+    if (details.occupants.length > 0 || details.sleeps > 0) {
+      nodes.push(el('div', 'sheet-section', `À l’intérieur (${fr.format(details.occupants.length)})`));
+      if (details.occupants.length === 0) nodes.push(el('div', 'sheet-text muted', 'Personne pour l’instant'));
+      const list = el('ul', 'sheet-list');
+      for (const occupant of details.occupants) {
+        const item = el('li');
+        const link = el('span', 'person-link', occupant.name);
+        link.title = 'Ouvrir sa fiche';
+        link.addEventListener('click', () => this.onPerson(occupant.person));
+        item.append(link, document.createTextNode(` — ${occupant.doing}`));
+        list.append(item);
+      }
+      if (details.occupants.length > 0) nodes.push(list);
+    }
     if (details.stock) {
       const capacity = details.capacity > 0 ? ` — à l’abri : ${fr.format(details.capacity)} de charge en nourriture` : ' — en tas à l’air libre (les bêtes et la pluie l’abîment plus vite)';
       nodes.push(el('div', 'sheet-section', 'Stock commun du camp'), el('div', 'sheet-note', `Biens communs de la tribu${capacity}`));

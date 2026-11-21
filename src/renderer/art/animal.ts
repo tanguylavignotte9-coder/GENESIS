@@ -14,10 +14,16 @@ export interface AnimalArt {
 
 export const ANIMAL_FRAMES = 3;
 
-/** Every frame of an animal (standing, two strides). */
-export function drawAnimal(species: AnimalSpecies): AnimalArt {
+const COLLAR: [number, number, number] = [196, 42, 36];
+const PATCH: [number, number, number] = [236, 230, 218];
+
+/**
+ * Every frame of an animal (standing, two strides). A domestic animal (a herd's ox, goat, dog…) wears
+ * a red collar and a pied coat with pale patches, so that it is told apart from wild ones at a glance.
+ */
+export function drawAnimal(species: AnimalSpecies, domestic = false): AnimalArt {
   const frames: Texture[] = [];
-  for (let stride = 0; stride < ANIMAL_FRAMES; stride++) frames.push(drawAnimalFrame(species, stride));
+  for (let stride = 0; stride < ANIMAL_FRAMES; stride++) frames.push(drawAnimalFrame(species, stride, domestic));
   return { frames, tiles: 0.32 * species.size };
 }
 
@@ -25,7 +31,7 @@ export function drawAnimal(species: AnimalSpecies): AnimalArt {
  * Procedural pixel-art animal seen from the side, facing right. Hunters get pointed ears,
  * small species a rounder body. `stride` 0 = standing, 1 and 2 = legs moving.
  */
-function drawAnimalFrame(species: AnimalSpecies, stride: number): Texture {
+function drawAnimalFrame(species: AnimalSpecies, stride: number, domestic: boolean): Texture {
   const body = color(species.color);
   const hunter = species.prey.length > 0;
   const small = species.size <= 2;
@@ -57,6 +63,15 @@ function drawAnimalFrame(species: AnimalSpecies, stride: number): Texture {
     } else {
       canvas.set(8, 0, body, DARK);
     }
+    if (domestic) {
+      for (const [x, y] of [[2, 3], [3, 3], [3, 4], [5, 2], [6, 3]] as const) canvas.set(x, y, PATCH);
+      canvas.set(7, 2, COLLAR);
+      canvas.set(7, 1, COLLAR, 1.1);
+    }
+  }
+  if (small && domestic) {
+    canvas.set(6, 3, COLLAR);
+    canvas.set(4, 4, PATCH);
   }
   return canvas.toTexture();
 }

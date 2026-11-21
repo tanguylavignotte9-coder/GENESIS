@@ -81,7 +81,8 @@ export class HumanLayer {
     let bestDistance = maxTiles * maxTiles;
     const now = performance.now();
     for (let p = 0; p < humans.x.length; p++) {
-      if ((humans.flags[p]! & HumanFlag.Alive) === 0) continue;
+      // Someone inside a closed building is not on the map (clicking the building shows them).
+      if ((humans.flags[p]! & HumanFlag.Alive) === 0 || (humans.flags[p]! & HumanFlag.Inside) !== 0) continue;
       const spot = this.glide.at(p, now, this.point);
       const d = (spot.x - tileX) ** 2 + (spot.y - tileY) ** 2;
       if (d < bestDistance) {
@@ -101,7 +102,7 @@ export class HumanLayer {
       for (let p = 0; p < humans.x.length; p++) {
         const x = humans.x[p]!;
         const y = humans.y[p]!;
-        if ((humans.flags[p]! & HumanFlag.Alive) === 0) continue;
+        if ((humans.flags[p]! & HumanFlag.Alive) === 0 || (humans.flags[p]! & HumanFlag.Inside) !== 0) continue;
         if (x < visible.minX - 1 || x > visible.maxX + 1 || y < visible.minY - 1 || y > visible.maxY + 1) continue;
         const asleep = humans.action[p] === this.sleepActionCode && (humans.flags[p]! & HumanFlag.Working) !== 0;
         this.glide.at(p, now, point);

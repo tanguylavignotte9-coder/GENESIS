@@ -54,7 +54,7 @@
   },
   "carrion": { "rotPerDay": 0.15, "minimumMeat": 1 },
   "stats": { "intervalDays": 10 },
-  "humanFear": { "warinessSpread": 0.5, "crowdShare": 0.1, "crowdMax": 6, "crowdTiles": 4, "driveOffFactor": 2.5, "tamerShare": 0.3 },
+  "humanFear": { "warinessSpread": 0.5, "crowdShare": 0.1, "crowdMax": 6, "crowdTiles": 4, "driveOffFactor": 2.5, "tamerShare": 0.3, "busyShare": 0.35 },
   "humanPrey": { "hunters": ["wolf", "lion", "bear"], "minHunger": 70, "loneTiles": 6, "attackChancePerStep": 0.6, "attackDamage": 40 },
   "domestic": {
     "pastureTiles": 6,

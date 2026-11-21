@@ -44,6 +44,9 @@ export function scareGame(fauna: FaunaSystem): void {
           if (crowd < 0) crowd = crowdAround(view, person, fear.crowdTiles, fear.crowdMax);
           reach *= 1 + fear.crowdShare * (crowd - 1);
         }
+        // Busy chasing or eating its prey, it only gives way to someone who comes really close.
+        const state = store.state[slot];
+        if (state === State.Hunt || state === State.Eat) reach *= fear.busyShare;
       }
       if (scaring) reach *= fear.driveOffFactor;
       // A herder creeping up slowly, without a weapon, to capture it: noticed only much closer.

@@ -157,7 +157,7 @@ export interface FaunaParams {
    * How wild animals perceive humans: individual wariness; predators keep away from people
    * (even more from a group or a camp) unless they are starving, and from anyone who drives them off.
    */
-  humanFear: { warinessSpread: number; crowdShare: number; crowdMax: number; crowdTiles: number; driveOffFactor: number; tamerShare: number };
+  humanFear: { warinessSpread: number; crowdShare: number; crowdMax: number; crowdTiles: number; driveOffFactor: number; tamerShare: number; busyShare: number };
   /** Predators and humans: who may attack a person walking alone, and how. */
   humanPrey: { hunters: string[]; minHunger: number; loneTiles: number; attackChancePerStep: number; attackDamage: number };
   /** Domestic animals (husbandry): pasture, taming, escapes, how their deaths are told. */
@@ -353,6 +353,7 @@ export const ANIMALS_SCHEMA: Schema = {
         crowdShare: num(0, 2, 'Crainte des groupes', 'Prédateurs : chaque personne de plus autour de celle qu’il voit allonge sa distance de méfiance de cette fraction (un camp, un groupe font plus peur qu’une personne seule).', 'fraction'),
         crowdMax: int(1, 50, 'Taille de groupe la plus effrayante', 'Au-delà de ce nombre de personnes ensemble, un prédateur n’a pas plus peur.', 'personnes'),
         crowdTiles: num(0.5, 20, 'Distance d’un groupe', 'Les personnes à moins de cette distance de celle que voit le prédateur comptent comme son groupe.', 'tuiles'),
+        busyShare: share('Prédateur occupé', 'Un prédateur qui poursuit ou mange sa proie ne lâche prise que devant un humain plus proche : cette part de sa distance de méfiance.'),
         tamerShare: share('Approche de l’éleveur', 'Un éleveur qui s’approche doucement d’une bête sauvage pour la capturer (lentement, sans arme) n’est remarqué qu’à cette part de la distance de méfiance.'),
         driveOffFactor: num(1, 5, 'Chasser un prédateur', 'Une personne qui chasse un prédateur du camp (cris, feu, armes) est remarquée de cette fois plus loin, même par un prédateur affamé.', 'facteur'),
       },

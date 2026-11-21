@@ -783,6 +783,23 @@ body:has(#stats:not([hidden])) #journal {
   color: var(--accent-hover);
 }
 
+.workshop-fold > summary.workshop-section {
+  cursor: pointer;
+  font-weight: 600;
+  margin: 10px 0 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.workshop-fold > summary .workshop-count {
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.workshop-unfold {
+  margin: 4px 0 8px;
+}
+
 .workshop-results {
   margin: 12px 0;
   color: var(--hud-muted);

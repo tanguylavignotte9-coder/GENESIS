@@ -48,6 +48,8 @@ export class WorkshopPage {
   private file = '';
   private query = '';
   private searchIndex: string[] = [];
+  /** Sections unfolded by the spectator (file + section); all are folded at first. */
+  private readonly openSections = new Set<string>();
   private readonly actions: RowActions;
 
   constructor(
@@ -166,17 +168,57 @@ export class WorkshopPage {
       shown = snapshot.variables.filter((_, k) => words.every((word) => this.searchIndex[k]!.includes(word)));
     } else shown = snapshot.variables.filter((v) => v.file === this.file);
     const nodes: HTMLElement[] = [];
-    if (searching) nodes.push(el('div', 'workshop-results', `${shown.length} résultat${shown.length > 1 ? 's' : ''}${shown.length > MAX_RESULTS ? ` (les ${MAX_RESULTS} premiers sont affichés)` : ''}`));
-    let section: string | null = null;
-    for (const variable of shown.slice(0, MAX_RESULTS)) {
-      if (!searching && variable.section !== section) {
-        section = variable.section;
-        nodes.push(el('h3', 'workshop-section', section === '' ? 'Général' : section));
-      }
-      nodes.push(variableRow(variable, this.actions, searching));
-    }
+    if (searching) {
+      nodes.push(el('div', 'workshop-results', `${shown.length} résultat${shown.length > 1 ? 's' : ''}${shown.length > MAX_RESULTS ? ` (les ${MAX_RESULTS} premiers sont affichés)` : ''}`));
+      for (const variable of shown.slice(0, MAX_RESULTS)) nodes.push(variableRow(variable, this.actions, true));
+    } else nodes.push(...this.sections(shown));
     if (shown.length === 0) nodes.push(el('div', 'workshop-results', 'Aucune variable ne correspond à cette recherche.'));
     this.ui.list.replaceChildren(...nodes);
     this.ui.list.scrollTop = toTop ? 0 : scroll;
+  }
+
+  /** The sections of a file, each folded or unfolded (folded at first), and a button to unfold them all. */
+  private sections(shown: readonly WorkshopVariable[]): HTMLElement[] {
+    const groups = new Map<string, WorkshopVariable[]>();
+    for (const variable of shown) {
+      const list = groups.get(variable.section) ?? [];
+      list.push(variable);
+      groups.set(variable.section, list);
+    }
+    const keyOf = (section: string): string => `${this.file}\u0000${section}`;
+    const allOpen = [...groups.keys()].every((section) => this.openSections.has(keyOf(section)));
+    const toggleAll = el('button', 'workshop-unfold', allOpen ? 'Tout replier' : 'Tout déplier');
+    toggleAll.type = 'button';
+    toggleAll.addEventListener('click', () => {
+      const unfold = ![...groups.keys()].every((section) => this.openSections.has(keyOf(section)));
+      for (const section of groups.keys()) {
+        if (!unfold) this.openSections.delete(keyOf(section));
+        else this.openSections.add(keyOf(section));
+      }
+      this.renderList(false);
+    });
+    const nodes: HTMLElement[] = [toggleAll];
+    for (const [section, variables] of groups) {
+      const details = el('details', 'workshop-fold');
+      details.open = this.openSections.has(keyOf(section));
+      const changed = variables.filter((v) => v.value !== v.defaultValue).length;
+      const summary = el('summary', 'workshop-section', section === '' ? 'Général' : section);
+      summary.append(el('span', 'workshop-count', changed > 0 ? `${changed} / ${variables.length}` : String(variables.length)));
+      details.append(summary);
+      // Rows are built only when the section is open (a long file stays quick to show).
+      const fill = (): void => {
+        if (details.childElementCount === 1) details.append(...variables.map((variable) => variableRow(variable, this.actions, false)));
+      };
+      if (details.open) fill();
+      details.addEventListener('toggle', () => {
+        if (details.open) {
+          this.openSections.add(keyOf(section));
+          fill();
+        } else this.openSections.delete(keyOf(section));
+        toggleAll.textContent = [...groups.keys()].every((s) => this.openSections.has(keyOf(s))) ? 'Tout replier' : 'Tout déplier';
+      });
+      nodes.push(details);
+    }
+    return nodes;
   }
 }

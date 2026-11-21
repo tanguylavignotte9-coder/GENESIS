@@ -127,6 +127,8 @@ export interface FloraSnapshot {
   species: Uint8Array;
   /** 0..255 */
   growth: Uint8Array;
+  /** 1 where the plant has something to pick right now (its berries, ears… are drawn). */
+  fruit: Uint8Array;
 }
 
 /** Every living animal, packed (sent several times per second). */

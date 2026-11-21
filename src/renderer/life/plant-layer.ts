@@ -4,7 +4,7 @@ import type { FloraSnapshot } from '../../shared/messages';
 import { tileHash } from '../color';
 import type { TileRect } from '../map/map-view';
 import { VIEW } from '../view-settings';
-import { drawPlant } from '../art/plant';
+import { drawPlant, type PlantArt } from '../art/plant';
 
 const GROWTH_MAX = 255;
 const MIN_SCALE = 0.35;
@@ -23,7 +23,7 @@ interface PlantChunk {
  */
 export class PlantLayer {
   readonly container = new Container({ sortableChildren: true });
-  private textures: { texture: Texture; tiles: number }[] = [];
+  private textures: PlantArt[] = [];
   private flora: FloraSnapshot | null = null;
   private version = 0;
   private chunks: PlantChunk[] = [];
@@ -32,7 +32,10 @@ export class PlantLayer {
 
   setSpecies(species: readonly PlantSpecies[], size: number): void {
     this.clear();
-    this.textures.forEach((entry) => entry.texture.destroy(true));
+    this.textures.forEach((entry) => {
+      entry.bare.destroy(true);
+      if (entry.fruit !== entry.bare) entry.fruit.destroy(true);
+    });
     this.textures = species.map((plant, k) => drawPlant(plant, k + 1));
     this.size = size;
     this.chunksPerSide = Math.ceil(size / VIEW.chunkTiles);
@@ -79,10 +82,12 @@ export class PlantLayer {
         const art = code === 0 ? undefined : this.textures[code - 1];
         if (!art) continue;
         const growth = flora.growth[y * this.size + x]! / GROWTH_MAX;
-        const sprite = new Sprite(art.texture);
+        // Berries, ears… are drawn only when there is something to pick right now.
+        const texture: Texture = flora.fruit[y * this.size + x] === 1 ? art.fruit : art.bare;
+        const sprite = new Sprite(texture);
         const width = art.tiles * (MIN_SCALE + (1 - MIN_SCALE) * growth);
         sprite.anchor.set(0.5, 1);
-        sprite.scale.set(width / art.texture.width);
+        sprite.scale.set(width / texture.width);
         sprite.position.set(x + 0.5 + (tileHash(x, y, 9) - 0.5) * JITTER, y + GROUND_Y + (tileHash(x, y, 11) - 0.5) * JITTER);
         container.addChild(sprite);
       }

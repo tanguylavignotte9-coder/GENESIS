@@ -104,7 +104,9 @@ qui pousse et se fait brouter.
 | `grass.*` | Herbe : quantité maximale, pousse par jour, température minimale, humidité idéale, couverture par biome |
 | `species` | Les espèces (voir ci-dessous) |
 
-Pour chaque espèce : `kind` (tree, shrub, herb), `shape` et `color` / `accentColor` (dessin),
+Pour chaque espèce : `kind` (tree, shrub, herb), `shape` (silhouette propre à l'espèce) et `color` /
+`accentColor` (dessin ; pour une espèce qui a une récolte, l'accent — baies, épis… — n'est dessiné que s'il y a
+vraiment à cueillir), `growsInWater` (plante aquatique ou de berge, qui peut pousser dans le lit d'une rivière),
 `abundance` (fréquence au départ), `temperature` et `humidity` (climat moyen idéal [min, max]),
 `frostCelsius` et `droughtHumidity` (seuils de gel et de sécheresse), `maxAgeYears`, `maturityYears`,
 `growthYears`, `seedsPerYear`, `seedRadius` (distance des graines), `germinationChance`,

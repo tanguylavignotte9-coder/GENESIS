@@ -3,6 +3,7 @@ import { loadGameData } from '../../../src/sim/core/game-data';
 import { Simulation } from '../../../src/sim/core/simulation';
 import { daysPerYear } from '../../../src/sim/core/time-params';
 import { speciesFitness } from '../../../src/sim/systems/flora/fitness';
+import { Water } from '../../../src/sim/systems/world/hydrology';
 import { dataWithSize } from '../world/helpers';
 
 const SIZE = 192;
@@ -35,6 +36,57 @@ describe('plants', () => {
       expect(world.ocean[i]).toBe(0);
     }
     expect(plants).toBeGreaterThan(1000);
+  });
+
+  it('no tree nor land plant in a river bed or a lake; only water plants (reeds) may grow in rivers', () => {
+    const simulation = new Simulation(3, data);
+    const check = (): number => {
+      const { world, flora } = simulation;
+      let rivers = 0;
+      for (let i = 0; i < SIZE * SIZE; i++) {
+        const species = flora.speciesAt(i);
+        if (world.water[i] === Water.Lake) expect(species).toBeUndefined();
+        if (world.water[i] !== Water.River) continue;
+        rivers++;
+        if (species) expect(species.growsInWater).toBe(true);
+      }
+      return rivers;
+    };
+    expect(check()).toBeGreaterThan(0);
+    simulation.step(3 * year(simulation));
+    check();
+    expect(data.flora.species.find((plant) => plant.id === 'reed')?.growsInWater).toBe(true);
+  });
+
+  it('each species has its own drawing; produce is shown only when there is some to pick', () => {
+    const shapes = data.flora.species.map((plant) => plant.shape);
+    expect(new Set(shapes).size).toBe(shapes.length);
+    const simulation = new Simulation(3, data);
+    const { flora } = simulation;
+    const bramble = data.flora.species.findIndex((plant) => plant.id === 'bramble');
+    let tile = -1;
+    for (let i = 0; i < SIZE * SIZE && tile < 0; i++) if (flora.state.species[i] === bramble + 1 && flora.state.ageDays[i]! > 100) tile = i;
+    expect(tile).toBeGreaterThanOrEqual(0);
+    const produce = data.flora.species[bramble]!.produce!;
+    // Out of season: nothing to pick.
+    simulation.climate.dayOfYear = (produce.toDay + 2) % daysPerYear(data.time);
+    const northern = tile < (SIZE * SIZE) / 2;
+    const local = (day: number): number => (northern ? day : (day + daysPerYear(data.time) / 2) % daysPerYear(data.time));
+    for (let day = 0; day < daysPerYear(data.time); day++) {
+      simulation.climate.dayOfYear = day;
+      const inSeason = local(day) >= produce.fromDay && local(day) < produce.toDay;
+      if (!inSeason) expect(flora.hasProduce(tile)).toBe(false);
+    }
+    // In season, until everything has been picked.
+    let day = 0;
+    while (!(local(day) >= produce.fromDay && local(day) < produce.toDay)) day++;
+    simulation.climate.dayOfYear = day;
+    flora.state.eaten[tile] = 0;
+    flora.state.health[tile] = 255;
+    expect(flora.hasProduce(tile)).toBe(true);
+    flora.takeProduce(tile, produce.resource, 1000);
+    expect(flora.hasProduce(tile)).toBe(false);
+    expect(flora.speciesAt(tile)?.id).toBe('bramble');
   });
 
   it('are deterministic: same seed => same plants after a few years', () => {

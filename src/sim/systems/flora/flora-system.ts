@@ -29,6 +29,8 @@ export class FloraSystem {
   private canopyShadeOf: Float32Array;
   /** 1 for tree species, 2 for shrubs (young woody plants can be browsed). */
   private kindOf: Uint8Array;
+  /** 1 for species that may grow in a river bed (reeds…). */
+  private inWaterOf: Uint8Array;
   private readonly around = { canopy: 0, same: 0 };
 
   constructor(
@@ -47,6 +49,7 @@ export class FloraSystem {
     this.grassCompetitionOf = new Float32Array(0);
     this.canopyShadeOf = new Float32Array(0);
     this.kindOf = new Uint8Array(0);
+    this.inWaterOf = new Uint8Array(0);
     this.refreshParams();
     this.populate();
   }
@@ -59,11 +62,24 @@ export class FloraSystem {
     this.grassCompetitionOf = Float32Array.from(params.species, (species) => params.establishment.grassCompetitionByKind[species.kind]);
     this.canopyShadeOf = Float32Array.from(params.species, (species) => params.establishment.canopyShadeByKind[species.kind] * (1 - (species.shadeTolerance ?? 0)));
     this.kindOf = Uint8Array.from(params.species, (species) => (species.kind === 'tree' ? KIND_TREE : species.kind === 'shrub' ? KIND_SHRUB : 0));
+    this.inWaterOf = Uint8Array.from(params.species, (species) => (species.growsInWater === true ? 1 : 0));
   }
 
   /** A plant can only grow on dry land (rivers are fords, lakes are water). */
   isPlantable(index: number): boolean {
     return this.world.ocean[index] === 0 && this.world.water[index] !== Water.Lake;
+  }
+
+  /** Can species `code` (0-based) take root on this tile? Only aquatic or bank plants grow in a river bed. */
+  canGrow(code: number, index: number): boolean {
+    if (!this.isPlantable(index)) return false;
+    return this.world.water[index] !== Water.River || this.inWaterOf[code] === 1;
+  }
+
+  /** Is there something to pick on this plant right now (berries, ears…)? */
+  hasProduce(index: number): boolean {
+    const produce = this.speciesAt(index)?.produce;
+    return produce !== undefined && this.produceAvailable(index, produce.resource) >= 1;
   }
 
   speciesAt(index: number): PlantSpecies | undefined {
@@ -208,7 +224,7 @@ export class FloraSystem {
       const code = this.state.species[index]! - 1;
       this.state.clear(index);
       // An old herb has dropped its seeds at its feet: one of them may take its place.
-      if (tooOld && health > MIN_HEALTH_TO_SEED && species.kind === 'herb' && this.rng.nextFloat() < this.params.establishment.herbReseedChance * fitness * this.establishment(code, index)) {
+      if (tooOld && health > MIN_HEALTH_TO_SEED && species.kind === 'herb' && this.canGrow(code, index) && this.rng.nextFloat() < this.params.establishment.herbReseedChance * fitness * this.establishment(code, index)) {
         this.plant(index, code + 1, 0, this.params.seedlingGrowth, this.params.seedlingHealth);
       }
       return;
@@ -243,7 +259,7 @@ export class FloraSystem {
       const ty = y + this.rng.nextIntInclusive(-r, r);
       if (tx < 0 || ty < 0 || tx >= this.size || ty >= this.size) continue;
       const target = ty * this.size + tx;
-      if (!this.isPlantable(target) || this.state.species[target] !== 0) continue;
+      if (this.state.species[target] !== 0 || !this.canGrow(code, target)) continue;
       if (this.rng.nextFloat() >= species.germinationChance * this.fitness(species, target) * this.establishment(code, target)) continue;
       this.plant(target, this.state.species[index]!, 0, this.params.seedlingGrowth, this.params.seedlingHealth);
     }
@@ -305,7 +321,7 @@ export class FloraSystem {
       if (this.rng.nextFloat() < this.initialCoverOfBiome[this.world.biome[i]!]!) {
         let total = 0;
         for (let k = 0; k < species.length; k++) {
-          weights[k] = species[k]!.abundance * this.fitness(species[k]!, i);
+          weights[k] = this.canGrow(k, i) ? species[k]!.abundance * this.fitness(species[k]!, i) : 0;
           total += weights[k]!;
         }
         if (total > 0) this.plantRandom(i, weights, total);

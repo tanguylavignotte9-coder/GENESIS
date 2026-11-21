@@ -6,8 +6,11 @@ const PERCENT = 100;
 const BYTE_MAX = 255;
 
 export function snapshotFlora(simulation: Simulation): { snapshot: FloraSnapshot; transfer: ArrayBuffer[] } {
-  const snapshot = { species: simulation.flora.state.species.slice(), growth: simulation.flora.state.growth.slice() };
-  return { snapshot, transfer: [snapshot.species.buffer as ArrayBuffer, snapshot.growth.buffer as ArrayBuffer] };
+  const { flora } = simulation;
+  const fruit = new Uint8Array(flora.state.species.length);
+  for (let tile = 0; tile < fruit.length; tile++) if (flora.state.species[tile] !== 0 && flora.hasProduce(tile)) fruit[tile] = 1;
+  const snapshot = { species: flora.state.species.slice(), growth: flora.state.growth.slice(), fruit };
+  return { snapshot, transfer: [snapshot.species.buffer as ArrayBuffer, snapshot.growth.buffer as ArrayBuffer, fruit.buffer as ArrayBuffer] };
 }
 
 /** Living animals only, packed in compact arrays. */

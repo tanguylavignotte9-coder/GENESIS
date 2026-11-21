@@ -1,4 +1,4 @@
-import { choice, color, DataFileError, identifier, int, num, pair, text, validateData, type Schema } from '../../core/data-validation';
+import { choice, color, DataFileError, flag, identifier, int, num, pair, text, validateData, type Schema } from '../../core/data-validation';
 import { unknownResources, type ResourceCatalog } from '../../core/resources';
 import type { BiomeTable } from '../world/biomes';
 
@@ -26,8 +26,10 @@ export interface PlantSpecies {
   kind: PlantKind;
   color: string;
   /** Display only: how the plant is drawn, and an optional accent color (berries, flowers, birch bark). */
-  shape: 'round' | 'conifer' | 'umbrella' | 'bush' | 'grass';
+  shape: 'round' | 'slender' | 'conifer' | 'broad' | 'umbrella' | 'bush' | 'bramble' | 'berry_bush' | 'fig' | 'feathery' | 'creeping' | 'umbel' | 'vine' | 'rosette' | 'nettle' | 'reed' | 'ears' | 'flax' | 'grass';
   accentColor?: string;
+  /** May grow in a river bed (aquatic or bank plants such as reeds); others only on dry land. */
+  growsInWater?: boolean;
   /** Relative frequency when the map is first populated. */
   abundance: number;
   /** Comfortable range of the ANNUAL MEAN temperature (°C) and humidity (0..1). */
@@ -181,8 +183,9 @@ export const PLANTS_SCHEMA: Schema = {
           name: text('Nom', 'Nom affiché de l’espèce.'),
           kind: choice(['tree', 'shrub', 'herb'], 'Port', 'tree = arbre, shrub = arbuste, herb = plante basse (ombre, bois, coût de marche).'),
           color: color('Couleur', 'Couleur principale du dessin.'),
-          shape: choice(['round', 'conifer', 'umbrella', 'bush', 'grass'], 'Forme du dessin', 'Silhouette dessinée sur la carte (affichage seulement).'),
-          accentColor: color('Couleur secondaire', 'Baies, fleurs, écorce… (affichage seulement).'),
+          shape: choice(['round', 'slender', 'conifer', 'broad', 'umbrella', 'bush', 'bramble', 'berry_bush', 'fig', 'feathery', 'creeping', 'umbel', 'vine', 'rosette', 'nettle', 'reed', 'ears', 'flax', 'grass'], 'Forme du dessin', 'Silhouette dessinée sur la carte (affichage seulement) : chaque espèce a la sienne.'),
+          accentColor: color('Couleur secondaire', 'Baies, épis, fleurs, écorce… (affichage seulement). Pour une espèce qui a une récolte, cette couleur n’est dessinée que quand il y a vraiment quelque chose à cueillir.'),
+          growsInWater: flag('Pousse dans l’eau', 'Plante aquatique ou de berge (roseau…) : elle peut pousser dans le lit d’une rivière. Les autres espèces ne poussent que sur la terre ferme (les plantes déjà dans l’eau y restent jusqu’à leur mort).'),
           abundance: num(0, 100, 'Abondance de départ', 'Fréquence relative de l’espèce quand la carte est peuplée au début du monde.', 'poids', 'newWorld'),
           temperature: pair(num(-60, 60, 'Température idéale [min, max]', 'Plage de température MOYENNE annuelle où l’espèce est à l’aise.', '°C')),
           humidity: pair(num(0, 1, 'Humidité idéale [min, max]', 'Plage d’humidité MOYENNE annuelle où l’espèce est à l’aise.', 'fraction')),
@@ -206,7 +209,7 @@ export const PLANTS_SCHEMA: Schema = {
           },
           materials: AMOUNTS,
         },
-        optional: ['produce', 'materials', 'accentColor', 'shadeTolerance'],
+        optional: ['produce', 'materials', 'accentColor', 'shadeTolerance', 'growsInWater'],
       },
     },
   },

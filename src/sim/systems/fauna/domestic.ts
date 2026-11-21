@@ -37,8 +37,9 @@ export function herdKey(camp: number, species: number): number {
 }
 
 /** The animal becomes domestic: kept by `camp`, owned by `owner` (-1: in common), living at (homeX, homeY). */
-export function domesticate(fauna: FaunaSystem, slot: number, camp: number, owner: number, homeX: number, homeY: number, penned: boolean, event: number): void {
+export function domesticate(fauna: FaunaSystem, slot: number, camp: number, owner: number, homeX: number, homeY: number, penned: boolean, event: number, tame?: number): void {
   const { store, groups } = fauna;
+  if (tame !== undefined) store.tame[slot] = tame;
   store.ownerCamp[slot] = camp;
   store.ownerPerson[slot] = owner;
   store.homeX[slot] = homeX;

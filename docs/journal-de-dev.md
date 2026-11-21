@@ -123,6 +123,11 @@ avant d'être apprivoisées (une bête jeune l'est déjà à moitié).
   un pays riche en loups et en lions (histoire du lieu ; 1 à 14 ailleurs). Bien d'échange : silex (5), panier (1).
   Fusions : toujours de petites tribus en difficulté qui rejoignent une voisine.
 - **Calcul** pendant la validation (4 en parallèle) : 109 à 231 ms par jour de jeu selon la taille du monde.
+- **Calcul (machine au repos, `tsx`)** : tribu de 30 → **111 ms** par jour de jeu (87 ms au lot 11) ; **1 020 humains
+  (34 camps) → 797 ms** par jour (611 ms au lot 11 ; élevage, historique des statistiques et force en plus) ; 120 →
+  211 ms, 510 → 444 ms, 2 010 → 1 450 ms, 5 010 → 4 514 ms. Plafond conseillé en x500 : environ 840 humains. À
+  confirmer sur le PC de Tanguy (le banc d'essai fait foi).
+- Tests rapides : 589 en ~65 s. **Tests longs : 13/13** (8 fichiers, 28 min).
 ---
 
 ## Préalable (croire ou ne pas croire), étape 10.5 · Cerveau visuel et étape 11 · Conflit — 20-21 nov. 2026

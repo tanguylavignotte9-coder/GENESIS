@@ -368,9 +368,8 @@ function tryCapture(sys: ProductionSystem, person: number, job: Job, recipe: Rec
     causes: [],
     details: { camp, species: species.id, young: adult ? 0 : 1 },
   });
-  domesticate(fauna, slot, camp, sys.people.propertyOwner(person), home.x, home.y, home.penned, event);
   // A young animal raised among people is already half tame.
-  fauna.store.tame[slot] = adult ? 0 : h.youngTame;
+  domesticate(fauna, slot, camp, sys.people.propertyOwner(person), home.x, home.y, home.penned, event, adult ? 0 : h.youngTame);
   sys.herdsHour = -1;
   out.status = 'done';
 }

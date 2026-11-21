@@ -71,6 +71,9 @@ describe('the brain', () => {
     humans.people.hunger[p] = 0;
     humans.people.cold[p] = 0;
     humans.people.fatigue[p] = 80;
+    // Nothing in hand to put in the stock first.
+    const hands = simulation.production.carried[p]!;
+    for (const pile of [...hands.piles]) hands.take(pile.item, pile.qty);
     humans.think(p);
     expect(humans.people.action[p]).toBe(actionIndex(simulation, 'sleep'));
   });

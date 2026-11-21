@@ -89,7 +89,7 @@ async function main(): Promise<void> {
   let speedsKey = '';
   let lastPerfAt = 0;
   const pace = new SimPace();
-  let motion: MotionInfo = { ticksPerHumanStep: 1, ticksPerAnimalStep: 1, hoursPerHumanStep: 1, hoursPerAnimalStep: 1 };
+  let motion: MotionInfo = { ticksPerHumanStep: 1, ticksPerAnimalStep: 1, hoursPerHumanStep: 1, hoursPerAnimalStep: 1, ticksPerRealSecond: 10 };
 
   const sim = new SimClient((message: FromSimMessage) => onMessage(message));
   const hover = new Hover(sim, animals, people, buildings);
@@ -167,7 +167,13 @@ async function main(): Promise<void> {
   });
   const animalSheet = new AnimalSheet(element('animal'), element('animal-body'), element<HTMLButtonElement>('animal-close'), element<HTMLButtonElement>('animal-brain'), (uid) => brainPanel.open('animal', uid));
   let lastAnimalRequest = 0;
-  const buildingPanel = new BuildingPanel(element('building'), element('building-body'), element<HTMLButtonElement>('building-close'), () => (buildings.selected = -1));
+  const buildingPanel = new BuildingPanel(
+    element('building'),
+    element('building-body'),
+    element<HTMLButtonElement>('building-close'),
+    () => (buildings.selected = -1),
+    (person) => selectPerson(person),
+  );
   let buildingRequest = 0;
   let lastBuildingRequest = 0;
   let followingPerson = false;
@@ -505,7 +511,7 @@ async function main(): Promise<void> {
         return;
       case 'status':
         time.setStatus(message.date, message.paused, message.speedIndex);
-        pace.observe(message.tick, performance.now(), message.paused);
+        pace.observe(message.tick, performance.now(), message.paused, 1000 / (motion.ticksPerRealSecond * (knownSpeeds[message.speedIndex] ?? 1)));
         hour = message.hour;
         return;
       case 'error':

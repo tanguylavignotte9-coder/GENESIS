@@ -169,6 +169,7 @@ function begin(created: Simulation, generationMs: number, benchmark: boolean, lo
         ticksPerAnimalStep: created.ticksPerStep,
         hoursPerHumanStep: 1 / created.data.humans.stepsPerHour,
         hoursPerAnimalStep: created.fauna.hoursPerStep,
+        ticksPerRealSecond: created.data.time.ticksPerRealSecond,
       },
       benchmark,
       loadedFrom,

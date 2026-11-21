@@ -138,6 +138,8 @@ export interface MotionInfo {
   ticksPerAnimalStep: number;
   hoursPerHumanStep: number;
   hoursPerAnimalStep: number;
+  /** Game ticks per real second at speed x1 (the display knows each speed's pace at once). */
+  ticksPerRealSecond: number;
 }
 
 export interface FaunaSnapshot {
@@ -152,6 +154,8 @@ export interface FaunaSnapshot {
   /** 0 still, 1 walking, 2 running (Gait of sim/core/motion). */
   gait: Uint8Array;
   state: Uint8Array;
+  /** 1 for a domestic animal (drawn with a collar and a pied coat). */
+  domestic: Uint8Array;
 }
 
 export interface AnimalDetails {
@@ -278,6 +282,8 @@ export interface BuildingDetails {
   workNeeded: number;
   builders: string[];
   residents: string[];
+  /** Who is inside right now (closed building), with what they do. */
+  occupants: { person: number; name: string; doing: string }[];
   sleeps: number;
   quality: number;
   /** Fire: hours left out of max. */
@@ -290,7 +296,8 @@ export interface BuildingDetails {
   crop: { sown: number; growth: number; growthDays: number; grain: number } | null;
 }
 
-export const HumanFlag = { Alive: 1, Working: 2, Fighting: 4 } as const;
+/** Inside: in a closed building (hut, granary, workshop…), not drawn on the map. */
+export const HumanFlag = { Alive: 1, Working: 2, Fighting: 4, Inside: 8 } as const;
 
 /** Character sheet of a person. */
 export interface PersonDetails {

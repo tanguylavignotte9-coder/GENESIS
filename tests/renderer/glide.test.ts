@@ -53,12 +53,36 @@ describe('smooth movement on screen', () => {
     expect(glide.at(0, 2000, point()).x).toBe(1 + VIEW.glideMaxTiles + 1);
   });
 
-  it('measures the real pace of the simulation from the reported game time', () => {
+  it('measures the real pace of the simulation: the requested speed at once, slower if the computer cannot keep up', () => {
     const pace = new SimPace();
-    pace.observe(0, 0, false);
-    pace.observe(100, 1000, false);
-    expect(pace.msFor(50)).toBeCloseTo(500);
-    pace.observe(100, 2000, true);
-    expect(pace.msFor(50)).toBe(VIEW.glideMaxStepMs);
+    pace.observe(0, 0, false, 10);
+    expect(pace.msFor(50)).toBe(500);
+    // The computer only manages half the requested speed: the pace follows, little by little.
+    for (let k = 1; k <= 40; k++) pace.observe(k * 100, k * 2000, false, 10);
+    expect(pace.msFor(50)).toBeCloseTo(1000, 0);
+    // A pause keeps the pace (no endless glide when the game resumes).
+    pace.observe(4000, 90_000, true, 10);
+    expect(pace.msFor(50)).toBeCloseTo(1000, 0);
+    // A new speed is known at once.
+    pace.observe(4000, 91_000, false, 2);
+    expect(pace.msFor(50)).toBe(100);
+  });
+
+  it('after a change of pace the sprite catches up smoothly instead of jumping', () => {
+    const glide = new Glide(4);
+    glide.set(0, 0, 0, 0, 0, 0, 0, 1000, 1);
+    // A long curve (slow pace), then faster steps arrive before it is over: the sprite lags...
+    glide.set(0, 1, 0, 1, 0, WALK, 0, 20_000, 1);
+    let shown = 0;
+    for (let k = 2; k <= 8; k++) {
+      glide.set(0, k, 0, 1, 0, WALK, (k - 1) * 200, 200, 1);
+      // ...but never jumps: it moves on a little at each frame (60 frames a second).
+      for (let frame = 0; frame < 12; frame++) {
+        const x = glide.at(0, (k - 1) * 200 + frame * 16, point()).x;
+        expect(Math.abs(x - shown)).toBeLessThan(0.5);
+        shown = x;
+      }
+    }
+    expect(glide.at(0, 5000, point()).x).toBe(8);
   });
 });

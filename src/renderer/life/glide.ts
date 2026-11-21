@@ -75,7 +75,9 @@ export class Glide {
     }
     if (x === this.toX[slot] && y === this.toY[slot]) return;
     const shown = this.curve(slot, now, SCRATCH);
-    const jump = Math.max(Math.abs(x - shown.x), Math.abs(y - shown.y));
+    // A jump is a long move of the being itself in one step (a birth, a load), not the sprite lagging
+    // behind after a change of pace: then it simply catches up along the curve.
+    const jump = Math.max(Math.abs(x - this.toX[slot]!), Math.abs(y - this.toY[slot]!));
     if (stepMs < VIEW.glideMinStepMs || jump > VIEW.glideMaxTiles) {
       this.place(slot, x, y, now);
       return;
@@ -173,30 +175,43 @@ const SCRATCH_SLOPE = { x: 0, y: 0 };
 const SCRATCH = { x: 0, y: 0 };
 
 /**
- * Real speed of the simulation, measured from the game clock the worker reports (it accounts for
- * pauses and for a computer that cannot keep up): how many real milliseconds one tick takes.
+ * Real speed of the simulation: how many real milliseconds one tick takes. It starts from the
+ * requested speed (known at once when the spectator changes it, so movements stay fluid right after
+ * a change), and follows the game clock the worker reports when the computer cannot keep up (never
+ * faster than requested). A pause keeps the pace: on resuming, beings go on at the same rhythm.
  */
 export class SimPace {
   private lastTick = -1;
   private lastAt = 0;
   private msPerTick = Infinity;
+  private nominal = -1;
 
   reset(): void {
     this.lastTick = -1;
     this.msPerTick = Infinity;
+    this.nominal = -1;
   }
 
-  /** A new game time `tick` was reported at real time `now`. */
-  observe(tick: number, now: number, paused: boolean): void {
-    if (paused) {
-      this.msPerTick = Infinity;
+  /**
+   * A new game time `tick` was reported at real time `now`; `nominalMsPerTick` is the pace of the
+   * requested speed.
+   */
+  observe(tick: number, now: number, paused: boolean, nominalMsPerTick: number): void {
+    if (nominalMsPerTick !== this.nominal) {
+      // A new speed: its pace is known, the measure starts over from here.
+      this.nominal = nominalMsPerTick;
+      this.msPerTick = nominalMsPerTick;
+      this.lastTick = -1;
+    }
+    if (paused || this.lastTick < 0) {
       this.lastTick = tick;
       this.lastAt = now;
       return;
     }
-    if (this.lastTick >= 0 && tick > this.lastTick && now > this.lastAt) {
+    if (tick > this.lastTick && now > this.lastAt) {
       const measured = (now - this.lastAt) / (tick - this.lastTick);
-      this.msPerTick = Number.isFinite(this.msPerTick) ? this.msPerTick + (measured - this.msPerTick) * VIEW.paceSmoothing : measured;
+      const smoothed = this.msPerTick + (measured - this.msPerTick) * VIEW.paceSmoothing;
+      this.msPerTick = Math.max(this.nominal, smoothed);
     }
     if (tick !== this.lastTick) {
       this.lastTick = tick;

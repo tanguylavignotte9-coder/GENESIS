@@ -250,9 +250,12 @@ export class IndividualsSystem {
       knowledge: (p) => this.ideas.knowledge(p),
       skill: (p, s) => people.skill(p, s),
       ageYears: (p) => people.ageYears[p]!,
-      vigor: (p) => {
+      vigor: (p, skill) => {
         const share = life().params.aging.workEffect;
-        return 1 - share + share * life().vigor(p);
+        const id = skill !== undefined && skill >= 0 ? this.params.skills[skill]?.id : undefined;
+        // Physical work follows strength (build, sex, training); other work only the body's vigour.
+        const body = id !== undefined && life().physicalSkill(id) ? life().strength(p) : life().vigor(p);
+        return 1 - share + share * body;
       },
       name: (p) => people.names[p]!,
       female: (p) => people.female[p] === 1,
@@ -277,6 +280,8 @@ export class IndividualsSystem {
     people.skills[at] = Math.min(1, level + this.params.skillLearning.learnPerHour * hours * (1 - level));
     if (!practice) return;
     people.practice[at] = people.practice[at]! + hours;
+    const id = this.params.skills[skill]?.id;
+    if (id !== undefined && this.life.physicalSkill(id)) this.life.train(person, hours);
     this.life.state.lastSkill[person] = skill;
     this.life.state.lastSkillStep[person] = this.step;
   }
@@ -582,6 +587,7 @@ export class IndividualsSystem {
     people.camp[child] = camp;
     // Knowledge is not inborn: it is taught and watched (ideas system).
     inheritTraits(this.life, child, mother, father);
+    this.life.inheritBuild(child, mother, father);
     people.health[child] = this.life.params.birth.newbornHealth;
     this.setPosition(child, people.px[mother]!, people.py[mother]!);
     people.nextThink[child] = this.step;

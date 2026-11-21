@@ -9,8 +9,6 @@ import { CONFLICT_EVENTS } from './texts';
  * apply the wound (health, crippling) or the death (journal), the conflict system only aims.
  */
 
-const FULL = 100;
-
 export interface Fighter {
   person: number;
   strength: number;
@@ -81,12 +79,12 @@ export function stockWeapons(sys: ConflictSystem, camp: number): Map<number, num
   return out;
 }
 
-/** How hard a person hits: vigour (age, illness, a crippling wound), health, the hunter's experience, the weapon. */
+/** How hard a person hits: their own strength (build, sex, training, age, illness, wounds, health), the hunter's experience, the weapon. */
 export function strengthOf(sys: ConflictSystem, person: number, weapon: number): number {
   const humans = sys.humans;
   const hunting = humans.params.skills.findIndex((skill) => skill.id === 'hunting');
   const skill = hunting >= 0 ? humans.people.skill(person, hunting) : 0;
-  return humans.life.vigor(person) * (humans.people.health[person]! / FULL) * (1 + sys.params.combat.skillWeight * skill) * weapon;
+  return humans.life.strength(person) * (1 + sys.params.combat.skillWeight * skill) * weapon;
 }
 
 /** Part of the blows that gets through the person's clothing. */
@@ -204,6 +202,9 @@ export function battle(sys: ConflictSystem, sides: [Fighter[], Fighter[]], conte
     }
   }
   if (result.winner >= 0) pursue(sys, sides, result, context, causes, capture);
+  // A battle trains the body of its survivors.
+  const weight = sys.humans.life.params.strength.fightWeight;
+  for (const side of sides) for (const f of side) if (sys.humans.people.alive[f.person] === 1) sys.humans.life.train(f.person, 1, weight);
   return result;
 }
 

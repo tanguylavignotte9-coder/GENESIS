@@ -6,6 +6,7 @@ import { describeLocation } from '../../world/places';
 import type { IndividualsSystem } from '../individuals-system';
 import { DeathCause, type People } from '../people';
 import { appetiteAt, oldAgeDeathPerDay, vigorAt } from './aging';
+import { inheritedBuild, isPhysical, restTraining, startingBuild, strengthNow, train } from './strength';
 import { considerConception, livePregnancy } from './birth';
 import { catchDiseases, diseaseDamagePerHour, endEpidemics, healDiseases, onDiseaseDeath, spreadDisease } from './disease';
 import { bequeath, findBelongings } from './heritage';
@@ -76,11 +77,42 @@ export class LifeCycle {
       state.nourishment[p] = people.hunger[p]!;
       if (people.ageYears[p]! < params.stages.adultAge) state.guardian[p] = people.mother[p]! >= 0 ? people.mother[p]! : people.father[p]!;
     }
+    // Builds of the starting tribe, eldest first: a child takes after its parents.
+    const byAge = Array.from({ length: people.count }, (_, p) => p).sort((a, b) => people.ageYears[b]! - people.ageYears[a]! || a - b);
+    const s = params.strength;
+    for (const p of byAge) {
+      const mother = people.mother[p]!;
+      const father = people.father[p]!;
+      state.build[p] = mother < 0 && father < 0 ? startingBuild(params, rng) : inheritedBuild(params, rng, mother >= 0 ? state.build[mother]! : -1, father >= 0 ? state.build[father]! : -1);
+      state.training[p] = people.ageYears[p]! >= params.stages.adultAge ? s.restTraining + rng.nextFloat() * Math.max(0, s.startTrainingMax - s.restTraining) : s.restTraining;
+    }
     // A mother of a small child of the starting tribe is still nursing it.
     for (let p = 0; p < people.count; p++) {
       const mother = people.mother[p]!;
       if (mother >= 0) state.lastBirthDay[mother] = Math.max(state.lastBirthDay[mother]!, state.birthDay[p]!);
     }
+  }
+
+  /** A newborn's build, from its parents'. */
+  inheritBuild(child: number, mother: number, father: number): void {
+    const { state } = this;
+    this.state.build[child] = inheritedBuild(this.params, this.rng, mother >= 0 ? state.build[mother]! : -1, father >= 0 ? state.build[father]! : -1);
+    state.training[child] = this.params.strength.restTraining;
+  }
+
+  /** Strength now (build, sex, training, age, health…): what weighs in a fight and in physical work. */
+  strength(person: number): number {
+    return strengthNow(this, person);
+  }
+
+  /** Effort builds up the body: `hours` of physical work, weighted (`weight`, a fight weighs more). */
+  train(person: number, hours: number, weight = 1): void {
+    train(this, person, hours, weight);
+  }
+
+  /** Whether a skill trains the body (physical work). */
+  physicalSkill(skillId: string): boolean {
+    return isPhysical(this.params, skillId);
   }
 
   refreshParams(params: LifeParams): void {
@@ -191,6 +223,7 @@ export class LifeCycle {
       }
       healDiseases(this, p);
       catchDiseases(this, p);
+      restTraining(this, p);
     }
     endEpidemics(this);
     lookForGuardians(this);

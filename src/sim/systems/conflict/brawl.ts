@@ -60,7 +60,7 @@ function fight(sys: ConflictSystem, a: number, b: number): boolean {
       if (people.alive[hitter] !== 1 || people.alive[target] !== 1) continue;
       if (sys.rng.nextFloat() >= sys.params.combat.hitChance) continue;
       const heavy = sys.rng.nextFloat() < p.heavyBlowChance ? p.heavyBlowFactor : 1;
-      const damage = p.fistDamage * heavy * humans.life.vigor(hitter) * (0.5 + sys.rng.nextFloat());
+      const damage = p.fistDamage * heavy * humans.life.strength(hitter) * (0.5 + sys.rng.nextFloat());
       const outcome = humans.interactions.attack({ attacker: { kind: 'human', id: hitter }, target: { kind: 'human', id: target }, damage, attackerName: people.names[hitter]!, tick: sys.tick, motive: 'fight', context, causes });
       if (target === a) hurtA += outcome.damage ?? 0;
       else hurtB += outcome.damage ?? 0;
@@ -73,6 +73,8 @@ function fight(sys: ConflictSystem, a: number, b: number): boolean {
     // The one more hurt gives up.
     if (Math.max(hurtA, hurtB) > p.fistDamage * 2) break;
   }
+  // A fight trains the body (of those still standing).
+  for (const fighter of [a, b]) if (people.alive[fighter] === 1) humans.life.train(fighter, 1, humans.life.params.strength.fightWeight);
   // Grudges: one does not forget who hit them.
   for (const [victim, hitter, hurt] of [
     [b, a, hurtB],

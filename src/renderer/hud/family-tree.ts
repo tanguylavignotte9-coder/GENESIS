@@ -23,6 +23,28 @@ function line(parts: (string | number)[], roster: Roster, onPerson: (person: num
   return node;
 }
 
+/** Strength in words (100 = an average man in his prime, untrained). */
+function strengthWord(now: number): string {
+  if (now >= 1.2) return 'bien au-dessus de la moyenne';
+  if (now >= 1.05) return 'au-dessus de la moyenne';
+  if (now >= 0.9) return 'dans la moyenne';
+  if (now >= 0.7) return 'en dessous de la moyenne';
+  return 'bien en dessous de la moyenne';
+}
+
+function buildWord(build: number): string {
+  if (build >= 1.15) return 'robuste';
+  if (build <= 0.85) return 'frêle';
+  return 'moyenne';
+}
+
+function trainingWord(training: number, female: boolean): string {
+  const e = female ? 'e' : '';
+  if (training >= 0.6) return `très entraîné${e}`;
+  if (training >= 0.35) return `entraîné${e}`;
+  return 'peu entraîné' + e;
+}
+
 /** Health, disease, pregnancy, nursing and who takes care of a child, in plain French. */
 export function lifeLines(details: PersonDetails, roster: Roster, onPerson: (person: number) => void): HTMLElement[] {
   const life = details.life;
@@ -38,6 +60,7 @@ export function lifeLines(details: PersonDetails, roster: Roster, onPerson: (per
     lines.push(line(parts, roster, onPerson, 'sheet-text sheet-warning'));
   } else lines.push(el('div', 'sheet-text', `En bonne santé`));
   lines.push(el('div', 'sheet-text muted', `Forces : ${Math.round(life.vigor * PERCENT)} % de celles d’un adulte dans la force de l’âge`));
+  lines.push(el('div', 'sheet-text', `Force : ${Math.round(life.strength.now * PERCENT)} (${strengthWord(life.strength.now)}) · carrure ${buildWord(life.strength.build)} · ${trainingWord(life.strength.training, female)}`));
   if (life.pregnancy) {
     const parts: (string | number)[] = [`Enceinte depuis ${life.pregnancy.days} jour(s) sur ${life.pregnancy.total}`];
     if (life.pregnancy.father >= 0) parts.push(' (père : ', life.pregnancy.father, ')');

@@ -181,6 +181,21 @@
     "crippleChance": 0.35,
     "crippleVigor": 0.6
   },
+  "strength": {
+    "spread": 0.15,
+    "heritability": 0.5,
+    "minBuild": 0.55,
+    "maxBuild": 1.5,
+    "femaleGap": 0.1,
+    "healthEffect": 0.5,
+    "trainingEffect": 0.25,
+    "restTraining": 0.2,
+    "startTrainingMax": 0.6,
+    "trainingPerHour": 0.003,
+    "fightWeight": 6,
+    "fadePerDay": 0.004,
+    "physicalSkills": ["hunting", "butchery", "construction", "woodcutting", "farming", "fishing"]
+  },
   "texts": {
     "birth": "{mere} met au monde {enfant}, {nom} (père : {pere}).",
     "stillbirth": "{mere} met au monde un enfant mort-né (père : {pere}).",

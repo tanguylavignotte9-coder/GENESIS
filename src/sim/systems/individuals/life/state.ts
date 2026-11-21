@@ -39,6 +39,9 @@ export class LifeState {
   /** 1 once a wound left the person crippled for life, and the journal event that tells it (-1). */
   readonly crippled: Uint8Array;
   readonly crippledEvent: Int32Array;
+  /** Build at birth (1 = average, inherited in part) and training of the body (0..1), see life/strength. */
+  readonly build: Float32Array;
+  readonly training: Float32Array;
 
   constructor(count: number, diseaseCount: number) {
     this.diseaseCount = diseaseCount;
@@ -61,6 +64,8 @@ export class LifeState {
     this.adoptionEvent = new Int32Array(count).fill(-1);
     this.crippled = new Uint8Array(count);
     this.crippledEvent = new Int32Array(count).fill(-1);
+    this.build = new Float32Array(count).fill(1);
+    this.training = new Float32Array(count);
   }
 
   get capacity(): number {

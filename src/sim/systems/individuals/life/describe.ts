@@ -15,6 +15,8 @@ export interface LifeFacts {
   adopted: boolean;
   orphan: boolean;
   vigor: number;
+  /** Strength now (1 = an average man in his prime), build at birth (1 = average) and training (0..1). */
+  strength: { now: number; build: number; training: number };
   stage: 'baby' | 'child' | 'adult' | 'elder';
 }
 
@@ -46,6 +48,7 @@ export function describeLife(life: LifeCycle, person: number): LifeFacts {
     adopted: state.adoptionEvent[person]! >= 0,
     orphan: alive && life.orphans.some((orphan) => orphan.child === person) && !life.alive(state.guardian[person]!),
     vigor: life.vigor(person),
+    strength: { now: life.strength(person), build: state.build[person]!, training: state.training[person]! },
     stage: life.isInfant(person) ? 'baby' : life.isChild(person) ? 'child' : age >= params.stages.elderAge ? 'elder' : 'adult',
   };
 }

@@ -151,7 +151,7 @@ function claim(sys: ProductionSystem, job: Job, material: number, qty: number): 
 /** Work speed: an expert works up to (1 + skillSpeedBonus) times faster. */
 export function speed(sys: ProductionSystem, person: number, recipe: Recipe | null): number {
   const skill = recipe && recipe.skill >= 0 ? sys.people.skill(person, recipe.skill) : 0;
-  return (1 + sys.params.work.skillSpeedBonus * skill) * sys.people.vigor(person);
+  return (1 + sys.params.work.skillSpeedBonus * skill) * sys.people.vigor(person, recipe?.skill);
 }
 
 /** Quality of a product: the worker's skill and tools, and a little chance. */
@@ -682,7 +682,7 @@ function build(sys: ProductionSystem, person: number, job: Job, hours: number, o
   }
   const skill = sys.body.skillIds.indexOf('construction');
   const level = skill >= 0 ? sys.people.skill(person, skill) : 0;
-  const worked = hours * (1 + sys.params.work.skillSpeedBonus * level) * sys.people.vigor(person);
+  const worked = hours * (1 + sys.params.work.skillSpeedBonus * level) * sys.people.vigor(person, skill);
   const { quality } = sys.params;
   const made = Math.min(1, quality.base + quality.skillWeight * level + quality.toolWeight * 0.5);
   site.quality = site.work + worked > 0 ? (site.quality * site.work + made * worked) / (site.work + worked) : made;

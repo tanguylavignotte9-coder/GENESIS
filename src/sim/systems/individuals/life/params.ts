@@ -82,6 +82,22 @@ export interface LifeParams {
   census: { everyDays: number };
   /** Wounds of a fight or of an animal that fought back: a heavy one may leave someone crippled for life. */
   wounds: { crippleDamage: number; crippleChance: number; crippleVigor: number };
+  /** Individual strength: inherited build, gap between the sexes, training (see life/strength). */
+  strength: {
+    spread: number;
+    heritability: number;
+    minBuild: number;
+    maxBuild: number;
+    femaleGap: number;
+    healthEffect: number;
+    trainingEffect: number;
+    restTraining: number;
+    startTrainingMax: number;
+    trainingPerHour: number;
+    fightWeight: number;
+    fadePerDay: number;
+    physicalSkills: string[];
+  };
   texts: {
     birth: string;
     stillbirth: string;
@@ -318,6 +334,24 @@ export const LIFE_SCHEMA: Schema = {
         crippleDamage: num(1, 100, 'Blessure grave', 'Une blessure qui enlève au moins ces points de santé peut laisser estropié.', 'points de santé'),
         crippleChance: num(0, 1, 'Estropié', 'Chance qu’une blessure grave laisse la personne estropiée à vie (proportionnelle à la gravité).', 'chance'),
         crippleVigor: num(0, 1, 'Vigueur d’un estropié', 'Part de sa vigueur (travail, marche, combat) que garde une personne estropiée.', 'fraction'),
+      },
+    },
+    strength: {
+      kind: 'object',
+      fields: {
+        spread: num(0, 0.5, 'Écart de carrure', 'Écart type de la carrure de naissance entre les personnes (1 = carrure moyenne) : plus il est grand, plus les forces diffèrent.', 'fraction', 'newWorld'),
+        heritability: num(0, 1, 'Carrure héritée', 'Part de la carrure de naissance venue de la moyenne des parents (le reste est propre à l’enfant).', 'fraction'),
+        minBuild: num(0.1, 1, 'Carrure minimale', 'Carrure la plus frêle possible à la naissance.', 'facteur'),
+        maxBuild: num(1, 3, 'Carrure maximale', 'Carrure la plus robuste possible à la naissance.', 'facteur'),
+        femaleGap: num(0, 0.5, 'Écart entre les sexes', 'Force moyenne des femmes en moins par rapport aux hommes (0 = aucun écart). L’écart entre les personnes reste bien plus grand : une femme forte bat souvent un homme moyen.', 'fraction'),
+        healthEffect: num(0, 1, 'Santé et force', 'Part de la force perdue par une personne à bout de santé (proportionnellement à la santé perdue).', 'fraction'),
+        trainingEffect: num(0, 1, 'Effet de l’entraînement', 'Force gagnée par une personne entraînée au maximum par rapport à une personne de vie ordinaire.', 'fraction'),
+        restTraining: num(0, 1, 'Entraînement de la vie ordinaire', 'Niveau d’entraînement (0..1) de qui ne fait aucun effort particulier : l’entraînement redescend jusqu’ici.', 'fraction'),
+        startTrainingMax: num(0, 1, 'Entraînement au départ', 'Les adultes de la tribu de départ ont un entraînement tiré entre le niveau ordinaire et ceci.', 'fraction', 'newWorld'),
+        trainingPerHour: num(0, 0.1, 'Entraînement par heure', 'Entraînement gagné par heure de travail physique (chasse, bois, construction, champs…), plus lent près du maximum.', 'par heure'),
+        fightWeight: num(0, 50, 'Entraînement du combat', 'Un combat ou une rixe entraîne comme ce nombre d’heures de travail physique.', 'heures'),
+        fadePerDay: num(0, 0.1, 'Perte d’entraînement', 'Entraînement perdu par jour sans effort.', 'par jour'),
+        physicalSkills: { kind: 'array', minLength: 0, items: identifier('Travaux physiques', 'Compétences dont la pratique entraîne le corps (et que la force rend plus rapides).') },
       },
     },
     census: {

@@ -6,6 +6,8 @@ import type { IdeasSystem } from './ideas-system';
 /** Journal event types of the ideas system. */
 export const IDEA_EVENTS = {
   discovery: 'ideas.discovery',
+  breakthrough: 'ideas.breakthrough',
+  giveUp: 'ideas.giveUp',
   learnedAbroad: 'ideas.learnedAbroad',
   lost: 'ideas.lost',
   culture: 'ideas.culture',

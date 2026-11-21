@@ -1,3 +1,4 @@
+import type { PonderingFacts } from '../individuals/idea-view';
 import type { IdeasSystem } from './ideas-system';
 import { LANGUAGE_SLOTS } from './holdings';
 import { Family, type Idea } from './idea';
@@ -47,6 +48,8 @@ export interface PersonIdeasFacts {
   faithNote: string;
   token: string;
   tokenTrust: number;
+  /** The discovery the person is working out, if any. */
+  pondering: PonderingFacts | null;
 }
 
 const PERCENT = 100;
@@ -179,6 +182,7 @@ export function describePersonIdeas(sys: IdeasSystem, person: number): PersonIde
     faithNote: faithNote(sys, person),
     token: token >= 0 ? sys.humans.production.catalog.items[token]!.name : '',
     tokenTrust: Math.round(h.tokenTrust[person]! * PERCENT),
+    pondering: sys.pondering(person),
   };
 }
 

@@ -47,6 +47,8 @@ export interface IdeasParams {
     winterCelsius: number;
     famineMembers: number;
     prestigeMembers: number;
+    /** Discoveries are worked out step by step (see knowledge.ts). */
+    ponder: { startFactor: number; practicePerDay: number; idlePerDay: number; abandonPerDay: number; idleAbandonPerDay: number; milestone: number };
   };
   values: ValueDef[];
   culture: DriftParams & { experiencePerYear: number; startSpread: number; personSpread: number };
@@ -122,6 +124,8 @@ export type EnvironmentId = (typeof ENVIRONMENTS)[number];
 const TEXT_KEYS = [
   'discovery',
   'discoveryAgain',
+  'breakthrough',
+  'giveUp',
   'learnedAbroad',
   'lost',
   'lostHere',
@@ -189,6 +193,17 @@ export const IDEAS_SCHEMA: Schema = {
         winterCelsius: num(-40, 30, 'Hiver qu’on redoute', 'Température moyenne du mois le plus froid en dessous de laquelle on a besoin de conserver pour l’hiver.', '°C', 'live'),
         famineMembers: int(5, 1000, 'Tribu à l’étroit', 'Taille de tribu à partir de laquelle la nourriture sauvage ne suffit plus (besoin de cultiver).', 'personnes'),
         prestigeMembers: int(5, 1000, 'Tribu puissante', 'Taille de tribu à partir de laquelle on veut impressionner (monuments).', 'personnes'),
+        ponder: {
+          kind: 'object',
+          fields: {
+            startFactor: num(0, 100, 'Se mettre à chercher', 'Une découverte ne tombe pas du ciel : une personne qui réunit les conditions (besoin, milieu, aptitude) se met d’abord à y réfléchir. Facteur sur la « chance de découverte » pour qu’elle s’y mette un jour donné.', 'facteur'),
+            practicePerDay: share('Progrès en expérimentant', 'Avancée par jour (sur 1 = découvert) quand la personne a exercé ce jour-là le métier lié au savoir (multipliée par son aptitude et par l’urgence du besoin).'),
+            idlePerDay: share('Progrès en y songeant', 'Avancée par jour les jours où elle n’a pas exercé le métier lié (elle y pense seulement).'),
+            abandonPerDay: share('Découragement', 'Chance par jour d’abandonner quand le besoin ne presse pas du tout (moins quand il presse).'),
+            idleAbandonPerDay: share('Découragement sans pratique', 'Chance par jour en plus d’abandonner les jours où l’on n’a pas pu expérimenter.'),
+            milestone: share('Grande avancée', 'Part du chemin à partir de laquelle l’essai est assez prometteur pour que le journal le raconte.'),
+          },
+        },
       },
     },
     values: { kind: 'array', minLength: 1, items: VALUE_SCHEMA },

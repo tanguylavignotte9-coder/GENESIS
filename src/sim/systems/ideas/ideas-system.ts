@@ -9,7 +9,8 @@ import type { IndividualsSystem } from '../individuals/individuals-system';
 import { LANGUAGE_SLOTS, PersonIdeas } from './holdings';
 import { Family, Idea, type FamilyId } from './idea';
 import { ENVIRONMENTS, type IdeasParams } from './params';
-import { discoveries, learning, readDeaths } from './knowledge';
+import { discoveries, learning, ponderingFacts, readDeaths } from './knowledge';
+import type { PonderingFacts } from '../individuals/idea-view';
 import { cultureDay, cultureFamily, cultureSplits, startCulture, inheritCulture, valueIndex } from './culture';
 import { languageDay, languageFamily, languageSplits, nameNewPlaces, newLanguage, personNameIn, peopleNameIn, startLanguageOf, understanding, inheritLanguage, tribeUnderstanding } from './language';
 import { readSorrows, religionDay, religionFamily, religionSplits, religionTalk, inheritReligion, clergyCheck, worshipWanted } from './religion';
@@ -59,6 +60,11 @@ export class IdeasSystem implements IdeaView {
   readonly shareToday = new Map<number, number>();
   journalRead = 0;
   lastHumanStep = 0;
+  /**
+   * True while the display reads (a sheet, the knowledge tree): the daily caches are then neither
+   * filled nor changed, so that looking never changes the history (same world at any speed).
+   */
+  displayRead = false;
   lastEncounter = -1;
   day = 0;
   tick = 0;
@@ -213,6 +219,10 @@ export class IdeasSystem implements IdeaView {
 
   startingName(camp: number, female: boolean): string {
     return personNameIn(this, this.startingLanguage(camp), female);
+  }
+
+  pondering(person: number): PonderingFacts | null {
+    return ponderingFacts(this, person);
   }
 
   childName(mother: number, female: boolean): string {
@@ -432,7 +442,7 @@ export class IdeasSystem implements IdeaView {
     let hungry = 0;
     for (const p of members) if (this.humans.people.hunger[p]! >= HUNGRY) hungry++;
     const share = members.length > 0 ? hungry / members.length : 0;
-    this.hungerToday.set(camp, share);
+    if (!this.displayRead) this.hungerToday.set(camp, share);
     return share;
   }
 

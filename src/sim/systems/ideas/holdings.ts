@@ -45,6 +45,11 @@ export class PersonIdeas {
   readonly tokenTrust: Float32Array;
   /** 1 once the person's ideas were set (at birth or at the start). */
   readonly ready: Uint8Array;
+  /** Knowledge the person is trying to work out (-1 none), how far she got (0..1), since which day, and the journal event of her breakthrough (-1 none). */
+  readonly ponder: Int16Array;
+  readonly ponderProgress: Float32Array;
+  readonly ponderSince: Int32Array;
+  readonly ponderLead: Int32Array;
 
   constructor(count: number, knowledgeCount: number, valueCount: number, dialectCount: number, beliefCount: number) {
     this.count = count;
@@ -70,6 +75,10 @@ export class PersonIdeas {
     this.token = new Int32Array(count).fill(-1);
     this.tokenTrust = new Float32Array(count);
     this.ready = new Uint8Array(count);
+    this.ponder = new Int16Array(count).fill(-1);
+    this.ponderProgress = new Float32Array(count);
+    this.ponderSince = new Int32Array(count);
+    this.ponderLead = new Int32Array(count).fill(-1);
   }
 
   /** Room for `capacity` people (new rows hold the defaults). */

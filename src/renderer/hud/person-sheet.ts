@@ -83,6 +83,17 @@ function ideaNodes(details: PersonDetails): HTMLElement[] {
   for (const line of ideas.knowledge) known.append(el('li', '', `${line.name} (${line.origin})`));
   nodes.push(known);
   if (ideas.learning.length > 0) nodes.push(el('div', 'sheet-text muted', `Apprend : ${ideas.learning.map((line) => `${line.name} ${line.progress} %`).join(', ')}`));
+  const pondering = ideas.pondering;
+  if (pondering) {
+    nodes.push(el('div', 'sheet-section', `Réfléchit à : ${pondering.knowledge.toLowerCase()}`));
+    nodes.push(bar(`Progression (depuis ${fr.format(pondering.days)} j)`, Math.round(pondering.progress * PERCENT), 'good'));
+    const conditions = el('ul', 'sheet-list');
+    for (const condition of pondering.conditions) {
+      const value = condition.value >= 0 ? ` (${fr.format(condition.value * PERCENT)} %)` : '';
+      conditions.append(el('li', condition.ok ? '' : 'muted', `${condition.ok ? '✓' : '✗'} ${condition.label}${value}`));
+    }
+    nodes.push(conditions);
+  }
   nodes.push(el('div', 'sheet-section', `Culture : ${ideas.culture || 'aucune'}`));
   for (const value of ideas.values) {
     const row = bar(value.name, value.value, 'good');

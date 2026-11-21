@@ -12,4 +12,14 @@ export interface IdeaView {
   startingName(camp: number, female: boolean): string;
   /** Name of a newborn, in its mother's language. */
   childName(mother: number, female: boolean): string;
+  /** What the person is trying to discover, or null (shown in her sheet and her brain). */
+  pondering(person: number): PonderingFacts | null;
+}
+
+/** A discovery in progress: the knowledge, how far (0..1), for how many days, and each condition (value 0..1, -1 = a fact). */
+export interface PonderingFacts {
+  knowledge: string;
+  progress: number;
+  days: number;
+  conditions: { label: string; ok: boolean; value: number }[];
 }

@@ -9,6 +9,7 @@ import { cultureSplits } from '../../../src/sim/systems/ideas/culture';
 import { barter } from '../../../src/sim/systems/ideas/trade';
 import { religionTalk } from '../../../src/sim/systems/ideas/religion';
 import { scission } from '../../../src/sim/systems/groups/tribes';
+import { discoveries } from '../../../src/sim/systems/ideas/knowledge';
 import { dataWithSize } from '../world/helpers';
 import { describeIdeas, describePersonIdeas } from '../../../src/sim/systems/ideas/describe';
 
@@ -83,18 +84,70 @@ describe('knowledge', () => {
     expect(h.teacher[child * h.knowledgeCount + fire]).toBeGreaterThanOrEqual(0);
   });
 
-  it('with the need and an able mind, someone discovers a new piece of knowledge (journal with its cause)', () => {
+  it('with the need and an able mind, someone works a new piece of knowledge out step by step (journal: the breakthrough, then the discovery it caused)', () => {
     const simulation = world(3, (data) => {
       data.ideas.knowledge.discoveryPerDay = 0.05;
+      data.ideas.knowledge.ponder.abandonPerDay = 0;
+      data.ideas.knowledge.ponder.idleAbandonPerDay = 0;
     });
-    day(simulation, 20);
+    const h = simulation.ideas.holdings;
+    let seenPondering = false;
+    for (let d = 0; d < 200 && !simulation.journal.all().some((event) => event.type === IDEA_EVENTS.discovery); d++) {
+      day(simulation, 1);
+      for (let p = 0; p < simulation.humans.people.count && !seenPondering; p++) {
+        if (h.ponder[p]! < 0) continue;
+        seenPondering = true;
+        const facts = describePersonIdeas(simulation.ideas, p)!.pondering!;
+        expect(facts.knowledge.length).toBeGreaterThan(0);
+        expect(facts.conditions.some((c) => c.label.startsWith('Besoin'))).toBe(true);
+      }
+    }
+    expect(seenPondering).toBe(true);
     const discovery = simulation.journal.all().find((event) => event.type === IDEA_EVENTS.discovery);
     expect(discovery).toBeDefined();
     expect(discovery!.text).toMatch(/découvre/);
+    const lead = simulation.journal.get(discovery!.causes[0]!)!;
+    expect(lead.type).toBe(IDEA_EVENTS.breakthrough);
+    expect(lead.actors[0]).toEqual(discovery!.actors[0]);
+    expect(lead.tick).toBeLessThan(discovery!.tick);
     const idea = simulation.ideas.ideas.find((other) => other.event === discovery!.id)!;
     expect(idea.family).toBe(Family.Knowledge);
-    expect(idea.founder).toBeGreaterThanOrEqual(0);
     expect(simulation.ideas.holdings.knows(idea.founder, idea.knowledge)).toBe(true);
+    expect(h.ponder[idea.founder]).toBe(-1);
+  });
+
+  it('one gets closer faster on the days one practises the craft; one may give up', () => {
+    const simulation = world(3, (data) => {
+      data.ideas.knowledge.discoveryPerDay = 0;
+      data.ideas.knowledge.ponder.abandonPerDay = 0;
+      data.ideas.knowledge.ponder.idleAbandonPerDay = 0;
+    });
+    day(simulation, 1);
+    const { ideas, humans } = simulation;
+    const h = ideas.holdings;
+    const k = knowledgeIndex(simulation, 'pottery');
+    const person = [...Array(humans.people.count).keys()].find((p) => humans.people.ageYears[p]! >= 20 && humans.people.alive[p] === 1)!;
+    const skill = ideas.skillOf[k]!;
+    // Pottery needs what the camp may lack: here only the effect of practice is measured.
+    ideas.environmentMask[k] = 0;
+    ideas.requiredMask[k] = 0;
+    const progressOneDay = (practise: boolean): number => {
+      h.ponder[person] = k;
+      h.ponderProgress[person] = 0;
+      h.ponderLead[person] = -1;
+      humans.life.state.lastSkill[person] = practise ? skill : -1;
+      humans.life.state.lastSkillStep[person] = practise ? ideas.lastHumanStep : -1;
+      discoveries(ideas);
+      return h.ponderProgress[person]!;
+    };
+    const idle = progressOneDay(false);
+    const working = progressOneDay(true);
+    expect(idle).toBeGreaterThan(0);
+    expect(working).toBeGreaterThan(3 * idle);
+    // Discouraged for sure: the search stops.
+    simulation.data.ideas.knowledge.ponder.idleAbandonPerDay = 1;
+    progressOneDay(false);
+    expect(h.ponder[person]).toBe(-1);
   });
 
   it('knowledge whose last holder dies without a pupil is lost', () => {
@@ -330,5 +383,37 @@ describe('legibility and determinism', () => {
       ]);
     };
     expect(run()).toBe(run());
+  });
+});
+
+describe('the knowledge tree (view K)', () => {
+  it('shows, for a tribe, what it knows, what someone is working out (and who), what is within reach and what is not', async () => {
+    const { describeKnowledgeTree } = await import('../../../src/sim/systems/ideas/knowledge-tree');
+    const simulation = world(3);
+    day(simulation, 1);
+    const { ideas, humans, data } = simulation;
+    const pottery = knowledgeIndex(simulation, 'pottery');
+    const person = [...Array(humans.people.count).keys()].find((p) => humans.people.ageYears[p]! >= 20)!;
+    ideas.holdings.ponder[person] = pottery;
+    ideas.holdings.ponderProgress[person] = 0.3;
+    const recipes = data.recipes.recipes.map((r) => ({ id: r.id, name: r.name, knowledge: r.knowledge ? [r.knowledge] : [] }));
+    const buildings = data.buildings.buildings.map((b) => ({ id: b.id, name: b.name, knowledge: b.knowledge }));
+    const before = simulation.journal.size;
+    const tree = describeKnowledgeTree(ideas, -1, recipes, buildings)!;
+    const node = (id: string) => tree.nodes.find((n) => n.id === id)!;
+    expect(node('k:gathering').state).toBe('known');
+    expect(node('k:pottery').state).toBe('pondering');
+    expect(node('k:pottery').ponderers).toEqual([{ person, name: humans.people.names[person], progress: 30 }]);
+    expect(node('k:pottery').explain.some((line) => line.startsWith('Besoin'))).toBe(true);
+    // A recipe or a building is linked to its knowledge.
+    const fired = tree.nodes.find((n) => n.kind === 'recipe' && n.requires.includes('k:pottery'));
+    expect(fired?.state).toBe('out');
+    expect(node('b:hut').requires.length).toBeGreaterThan(0);
+    // Something needing a knowledge nobody has is out of reach, and says what is missing.
+    const far = tree.nodes.find((n) => n.kind === 'knowledge' && n.requires.some((r) => node(r).state !== 'known'))!;
+    expect(far.state).toBe('out');
+    expect(far.explain.some((line) => line.includes('✗'))).toBe(true);
+    // Looking changes nothing.
+    expect(simulation.journal.size).toBe(before);
   });
 });

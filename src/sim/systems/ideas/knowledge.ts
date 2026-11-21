@@ -3,6 +3,7 @@ import type { IdeasSystem } from './ideas-system';
 import { Family, Idea } from './idea';
 import { ENVIRONMENTS, type EnvironmentId, type NeedId } from './params';
 import { IDEA_EVENTS, listWords, publishIdeaEvent } from './texts';
+import type { PonderingFacts } from '../individuals/idea-view';
 
 const FULL = 100;
 /** Species a hunter can approach and tame (for husbandry), and big trees (for a canoe). */
@@ -84,7 +85,7 @@ export function surveyCamp(sys: IdeasSystem, camp: number): number {
     for (const id of ['hide', 'leather']) if (stock.count(items.get(id) ?? -1) > 0) set('hides');
     if (stock.count(items.get('sinew') ?? -1) > 0) set('sinew');
   }
-  sys.environment.set(camp, { day: sys.day, mask });
+  if (!sys.displayRead) sys.environment.set(camp, { day: sys.day, mask });
   return mask;
 }
 
@@ -146,7 +147,14 @@ function aptitude(sys: IdeasSystem, person: number, skill: number): number {
   return traits * (0.2 + params.skillWeight * practice);
 }
 
-/** Every day, every adult may discover something they lack, if need, surroundings and character meet. */
+/**
+ * Discoveries are worked out step by step (design: « Découvertes progressives et visibles »). An
+ * adult who has the need, the surroundings and the bent for a piece of knowledge her people lack may
+ * start to think about it (one thing at a time). She then gets closer day after day, faster on the
+ * days she practised the craft it belongs to (experimenting while she works) and the more pressing
+ * the need; she may lose heart (more when the need is slight, or when she cannot experiment), or
+ * succeed. A promising attempt (half way) is told in the journal; so is giving it up after that.
+ */
 export function discoveries(sys: IdeasSystem): void {
   const { humans, holdings, rng } = sys;
   const people = humans.people;
@@ -154,31 +162,150 @@ export function discoveries(sys: IdeasSystem): void {
   const catalog = sys.catalog.knowledge;
   for (let p = 0; p < people.count; p++) {
     if (people.alive[p] === 0 || people.ageYears[p]! < params.minDiscoverAge) continue;
+    if (holdings.ponder[p]! >= 0) {
+      ponderDay(sys, p);
+      continue;
+    }
     const known = holdings.known[p]!;
     for (let k = 0; k < catalog.length; k++) {
       if ((known & (1 << k)) !== 0 || (sys.requiredMask[k]! & known) !== sys.requiredMask[k]) continue;
       const def = catalog[k]!;
-      const chance = params.discoveryPerDay * def.discovery.chance;
+      const chance = params.discoveryPerDay * params.ponder.startFactor * def.discovery.chance;
       // Cheap draw first: most days nothing happens.
       if (rng.nextFloat() >= chance * 2) continue;
-      const env = sys.environmentMask[k]!;
-      if (env !== 0 && (surveyCamp(sys, people.camp[p]!) & env) !== env) continue;
+      if (!surroundingsAllow(sys, p, k)) continue;
       // What one's own people already know is learnt from them, not discovered again.
       if (campKnows(sys, people.camp[p]!, k)) continue;
       const need = needOf(sys, p, def.discovery.need);
-      const odds = need * aptitude(sys, p, sys.skillOf[k]!) / 2;
+      const odds = (need * aptitude(sys, p, sys.skillOf[k]!)) / 2;
       if (rng.nextFloat() >= odds) continue;
-      discover(sys, p, k, need);
+      holdings.ponder[p] = k;
+      holdings.ponderProgress[p] = 0;
+      holdings.ponderSince[p] = sys.day;
+      holdings.ponderLead[p] = -1;
+      break;
     }
   }
+}
+
+function surroundingsAllow(sys: IdeasSystem, person: number, k: number): boolean {
+  const env = sys.environmentMask[k]!;
+  return env === 0 || (surveyCamp(sys, sys.humans.people.camp[person]!) & env) === env;
+}
+
+/** Did the person work at the craft of knowledge `k` since yesterday (any work, for knowledge without a craft)? */
+function practised(sys: IdeasSystem, person: number, k: number): boolean {
+  const state = sys.humans.life.state;
+  const skill = state.lastSkill[person]!;
+  if (skill < 0 || state.lastSkillStep[person]! < sys.lastHumanStep) return false;
+  const wanted = sys.skillOf[k]!;
+  return wanted < 0 || skill === wanted;
+}
+
+/** One more day of trying to work knowledge out: progress, success, or giving up. */
+function ponderDay(sys: IdeasSystem, person: number): void {
+  const h = sys.holdings;
+  const k = h.ponder[person]!;
+  const params = sys.params.knowledge.ponder;
+  const def = sys.catalog.knowledge[k]!;
+  const camp = sys.humans.people.camp[person]!;
+  // Learnt meanwhile, or someone of the camp found it or brought it: no need to search any more.
+  if (h.knows(person, k) || campKnows(sys, camp, k)) {
+    stopPondering(sys, person);
+    return;
+  }
+  // Moved away from what made it possible (the clay, the game…): one cannot go on.
+  if (!surroundingsAllow(sys, person, k)) {
+    giveUp(sys, person, sys.params.texts.giveUp, 'loin de ce qui le rendait possible');
+    return;
+  }
+  const need = needOf(sys, person, def.discovery.need);
+  const working = practised(sys, person, k);
+  const pace = (working ? params.practicePerDay : params.idlePerDay) * aptitude(sys, person, sys.skillOf[k]!) * (0.5 + need);
+  h.ponderProgress[person] = Math.min(1, h.ponderProgress[person]! + pace);
+  if (h.ponderProgress[person]! >= params.milestone && h.ponderLead[person]! < 0) {
+    h.ponderLead[person] = publishIdeaEvent(
+      sys,
+      IDEA_EVENTS.breakthrough,
+      sys.params.texts.breakthrough,
+      { nom: sys.humans.people.names[person]!, savoir: def.the, pronom: sys.humans.people.female[person] === 1 ? 'elle' : 'il', besoin: sys.params.needTexts[def.discovery.need], milieu: envText(sys, k) },
+      person,
+      [],
+      { knowledge: def.id },
+    );
+  }
+  if (h.ponderProgress[person]! >= 1) {
+    const lead = h.ponderLead[person]!;
+    stopPondering(sys, person);
+    discover(sys, person, k, need, lead >= 0 ? [lead] : []);
+    return;
+  }
+  const abandon = params.abandonPerDay * (1 - Math.min(1, need)) + (working ? 0 : params.idleAbandonPerDay);
+  if (sys.rng.nextFloat() < abandon) giveUp(sys, person, sys.params.texts.giveUp, need < 0.3 ? 'le besoin ne se faisait plus sentir' : 'découragé' + (sys.humans.people.female[person] === 1 ? 'e' : ''));
+}
+
+/** Gives up the search; told in the journal only after a promising attempt. */
+function giveUp(sys: IdeasSystem, person: number, template: string, reason: string): void {
+  const h = sys.holdings;
+  const lead = h.ponderLead[person]!;
+  const k = h.ponder[person]!;
+  if (lead >= 0) {
+    publishIdeaEvent(sys, IDEA_EVENTS.giveUp, template, { nom: sys.humans.people.names[person]!, savoir: sys.catalog.knowledge[k]!.the, jours: String(sys.day - h.ponderSince[person]!), raison: reason }, person, [lead], {
+      knowledge: sys.catalog.knowledge[k]!.id,
+    });
+  }
+  stopPondering(sys, person);
+}
+
+function stopPondering(sys: IdeasSystem, person: number): void {
+  const h = sys.holdings;
+  h.ponder[person] = -1;
+  h.ponderProgress[person] = 0;
+  h.ponderLead[person] = -1;
+}
+
+function envText(sys: IdeasSystem, k: number): string {
+  return sys.catalog.knowledge[k]!.discovery.environment.map((env) => sys.params.environmentTexts[env]).join('');
+}
+
+/** What the person is working out, with the state of each condition, for her sheet and her brain. */
+export function ponderingFacts(sys: IdeasSystem, person: number): PonderingFacts | null {
+  const h = sys.holdings;
+  if (person < 0 || person >= h.count || h.ponder[person]! < 0) return null;
+  sys.displayRead = true;
+  try {
+    return readPondering(sys, person);
+  } finally {
+    sys.displayRead = false;
+  }
+}
+
+function readPondering(sys: IdeasSystem, person: number): PonderingFacts {
+  const h = sys.holdings;
+  const k = h.ponder[person]!;
+  const def = sys.catalog.knowledge[k]!;
+  const need = Math.min(1, needOf(sys, person, def.discovery.need));
+  const skill = sys.skillOf[k]!;
+  const conditions: PonderingFacts['conditions'] = [];
+  const required = def.requires.map((id) => sys.catalog.knowledge.find((item) => item.id === id)?.name ?? id);
+  if (required.length > 0) conditions.push({ label: `Sait déjà : ${required.join(', ')}`, ok: true, value: -1 });
+  conditions.push({ label: `Besoin : ${sys.params.needTexts[def.discovery.need]}`, ok: need > 0, value: need });
+  const mask = surveyCamp(sys, sys.humans.people.camp[person]!);
+  for (const env of def.discovery.environment) {
+    const text = sys.params.environmentTexts[env].replace(/^,\s*(et\s+)?/, '');
+    conditions.push({ label: `Milieu : ${text}`, ok: (mask & (1 << ENVIRONMENTS.indexOf(env))) !== 0, value: -1 });
+  }
+  conditions.push({ label: 'Aptitude (curiosité, application, savoir-faire)', ok: true, value: Math.min(1, aptitude(sys, person, skill) / 2) });
+  const craft = skill >= 0 ? sys.humans.params.skills[skill]!.name.toLowerCase() : 'ses travaux';
+  conditions.push({ label: `A expérimenté aujourd’hui (${craft})`, ok: practised(sys, person, k), value: -1 });
+  return { knowledge: def.name, progress: h.ponderProgress[person]!, days: sys.day - h.ponderSince[person]!, conditions };
 }
 
 function campKnows(sys: IdeasSystem, camp: number, k: number): boolean {
   for (const p of sys.humans.campMembers(camp)) if (sys.holdings.knows(p, k)) return true;
   return false;
 }
-
-function discover(sys: IdeasSystem, person: number, k: number, need: number): void {
+function discover(sys: IdeasSystem, person: number, k: number, need: number, causes: readonly number[]): void {
   const def = sys.catalog.knowledge[k]!;
   const people = sys.humans.people;
   const tribe = sys.groups?.tribeOf(person) ?? null;
@@ -191,7 +318,7 @@ function discover(sys: IdeasSystem, person: number, k: number, need: number): vo
     elsewhere ? sys.params.texts.discoveryAgain : sys.params.texts.discovery,
     { nom: people.names[person]!, savoir: def.the, besoin: needText, milieu: envText },
     person,
-    [],
+    causes,
     { knowledge: def.id },
   );
   const idea = sys.addIdea(Family.Knowledge, def.name, -1, person, event, tribe?.id ?? -1);

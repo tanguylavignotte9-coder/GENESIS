@@ -153,13 +153,23 @@ export function describeBrain(sys: IndividualsSystem, person: number, time: Time
     }
   }
   // What one feels and knows, even when it weighs on no action shown: needs and emotions.
-  for (const input of ['hunger', 'thirst', 'fatigue', 'cold', 'anger', 'fear', 'sadness'] as const) {
+  for (const input of ['hunger', 'thirst', 'fatigue', 'cold', 'danger', 'anger', 'fear', 'sadness'] as const) {
     const index = INPUTS.indexOf(input);
     const node = `i${index}`;
     if (!used.has(node)) used.set(node, { id: node, label: inputLabel(index), group: inputGroup(index), value: trace.inputs[index]! });
   }
-  facts.nodes = [...used.values(), { id: 'season', label: `Saison : ${seasonName}`, group: 'Situation', value: -1 }];
+  facts.nodes = [...used.values(), { id: 'season', label: `Saison : ${seasonName}`, group: 'Situation', value: -1 }, ...ponderingNodes(sys, person)];
   return facts;
+}
+
+/** A discovery in progress: what one is thinking about, how far, and the state of each condition. */
+function ponderingNodes(sys: IndividualsSystem, person: number): BrainNode[] {
+  const pondering = sys.ideas.pondering(person);
+  if (!pondering) return [];
+  const pct = Math.round(pondering.progress * 100);
+  const nodes: BrainNode[] = [{ id: 'ponder', label: `Réfléchit à : ${pondering.knowledge.toLowerCase()} (${pct} %, depuis ${pondering.days} j)`, group: 'Réflexion', value: pondering.progress }];
+  pondering.conditions.forEach((condition, k) => nodes.push({ id: `ponder${k}`, label: `${condition.ok ? '✓' : '✗'} ${condition.label}`, group: 'Réflexion', value: condition.value }));
+  return nodes;
 }
 
 function nodeFor(sys: IndividualsSystem, factor: FactorTrace, id: string): BrainNode {

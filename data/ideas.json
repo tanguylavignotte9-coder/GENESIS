@@ -14,7 +14,8 @@
     "childLearning": 1.5,
     "winterCelsius": 5,
     "famineMembers": 60,
-    "prestigeMembers": 80
+    "prestigeMembers": 80,
+    "ponder": { "startFactor": 3, "practicePerDay": 0.05, "idlePerDay": 0.008, "abandonPerDay": 0.012, "idleAbandonPerDay": 0.008, "milestone": 0.5 }
   },
   "values": [
     { "id": "sharing", "name": "Partage", "low": "chacun garde ce qu’il a", "high": "tout se partage", "actions": { "give": 0.6 } },
@@ -106,6 +107,8 @@
   "texts": {
     "discovery": "{nom} découvre {savoir} : {besoin}{milieu}.",
     "discoveryAgain": "{nom} découvre {savoir}, sans rien savoir de ceux qui l’ont trouvé ailleurs : {besoin}{milieu}.",
+    "breakthrough": "{nom} tient une piste vers {savoir} : à force d’essais, {pronom} y est presque ({besoin}{milieu}).",
+    "giveUp": "{nom} renonce à chercher {savoir} après {jours} jours d’essais, {raison}.",
     "learnedAbroad": "{nom} apprend {savoir} auprès de {maitre}, de {autre} : c’est nouveau pour {tribu}.",
     "lost": "Plus personne ne connaît {savoirs} : {nom}, qui en était le dernier détenteur, est mort{e} sans élève.",
     "lostHere": "{tribu} perd {savoirs} : {nom}, qui en était le dernier détenteur chez eux, est mort{e} sans élève.",

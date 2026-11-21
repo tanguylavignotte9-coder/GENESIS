@@ -20,6 +20,21 @@ function tileAway(simulation: Simulation, away: number): number {
   return -1;
 }
 
+/** A tile at least `away` tiles east of (x, y) with no river nor obstacle on the way. */
+function dryWayAway(simulation: Simulation, away: number, x: number, y: number): number {
+  const { humans, world } = simulation;
+  const row = Math.floor(y);
+  for (let d = away; d < away + 60; d++) {
+    let clear = true;
+    for (let k = -2; k <= d && clear; k++) {
+      const tile = row * SIZE + Math.floor(x) + k;
+      clear = humans.terrain.walkable(tile) && world.water[tile] === 0;
+    }
+    if (clear) return row * SIZE + Math.floor(x) + d;
+  }
+  return tileAway(simulation, away);
+}
+
 describe('people walk freely, off the grid', () => {
   it('a walker follows a path drawn in straight lines, at decimal positions, and stops on her own spot', () => {
     const simulation = new Simulation(42, data);
@@ -87,11 +102,14 @@ describe('people walk freely, off the grid', () => {
     let a = -1;
     for (let p = 0; p < people.count && a < 0; p++) if (people.spouse[p]! >= 0) a = p;
     const b = people.spouse[a]!;
-    const target = tileAway(simulation, 30);
+    // A straight way across dry ground (a ford slows one of them down and parts them).
+    // Away from the rest of the tribe (gathered at the camp), so that nobody stands in their way.
+    const start = tileAway(simulation, 8);
+    people.placeAt(a, (start % SIZE) + 0.5, Math.floor(start / SIZE) + 0.5);
+    people.placeAt(b, people.px[a]! - 1.5, people.py[a]!);
+    const target = dryWayAway(simulation, 30, people.px[a]!, people.py[a]!);
     const tx = (target % SIZE) + 0.5;
     const ty = Math.floor(target / SIZE) + 0.5;
-    people.placeAt(a, people.px[a]!, people.py[a]!);
-    people.placeAt(b, people.px[a]! - 1.5, people.py[a]!);
     for (let k = 0; k < 16; k++) {
       humans.moveStep(a, tx, ty, false, HOURS);
       humans.moveStep(b, tx, ty, false, HOURS);

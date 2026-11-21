@@ -492,7 +492,8 @@ export class IndividualsSystem {
       this.social.onAttacked(person);
       // A heavy wound (a fight, an animal fighting back) may leave one crippled.
       if (attack.motive === 'fight' || attack.motive === 'defense') {
-        const cause = human ? `d’un coup de ${attack.attackerName}${attack.context ? ` ${attack.context}` : ''}` : `de sa lutte contre un ${attack.attackerName}`;
+        const by = /^[aeiouyhâéèêîôûAEIOUYHÂÉÈÊÎÔÛ]/.test(attack.attackerName) ? `d’${attack.attackerName}` : `de ${attack.attackerName}`;
+        const cause = human ? `d’un coup ${by}${attack.context ? ` ${attack.context}` : ''}` : `de sa lutte contre un ${attack.attackerName}`;
         this.life.onWounded(person, attack.damage, cause, attack.causes?.[0] ?? -1);
       }
       return outcome;

@@ -121,7 +121,8 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 | `thinkEverySteps` | Un animal réfléchit (choisit quoi faire) une fois tous les N pas, chacun à son rythme |
 | `gridCellTiles` | Taille des cases de la grille qui sert à trouver les voisins (technique) |
 | `needs.*` | Seuils de faim et de soif, dégâts de la faim, de la soif, du froid et de la vieillesse |
-| `behavior.*` | Rayons de recherche de nourriture, de cohésion du groupe, de fuite, de recherche de partenaire… |
+| `behavior.*` | Rayons de recherche de nourriture, de cohésion du groupe, de fuite, de recherche de partenaire, distance à laquelle un chasseur affamé part battre la campagne (`huntSearchTiles`)… |
+| `species[].riposteChance`, `riposteDamage` | Chance qu'un animal chassé par un humain se défende, et force de son coup (aurochs, sanglier, ours…) |
 | `fish.*` | Poisson par tuile d'eau (rivière, lac, côte, haute mer) et sa vitesse de renouvellement |
 | `carrion.*` | Carcasses laissées par les chasseurs : part qui pourrit chaque jour |
 | `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
@@ -226,9 +227,22 @@ parlent plus et disparaît quand plus personne ne la porte.
 | `values` | Les valeurs d'une culture (partage, hiérarchie, hospitalité, bravoure, place des anciens) et leur effet sur l'envie de faire certaines actions (`actions`) ; les groupes en tiennent compte (régimes, règles, accueil) |
 | `culture` | Dérive des valeurs, influence des conversations, poids du vécu, écart à partir duquel une nouvelle culture est reconnue |
 | `language` | Sons dans lesquels les langues puisent, nombre de syllabes des noms, finales des noms de femmes et de peuples, dérive de la prononciation, écart qui fait naître une langue fille, apprentissage d'une langue étrangère (au foyer, au contact), compréhension entre langues sœurs |
-| `religion` | Croyances possibles et leurs rites, chances de naissance (deuil, catastrophe, révélation), conversion, ferveur des enfants, tiédeur, chaman et prêtre, lieu de culte, liens de la foi |
+| `religion` | Croyances possibles et leurs rites, chances de naissance (deuil, catastrophe, révélation), conversion, ferveur des enfants, tiédeur, chaman et prêtre, lieu de culte, liens de la foi ; croire ou ne pas croire : doute (esprit critique, curiosité), perte de foi par le doute, soutien de l'entourage, pression des cultures hiérarchiques et des théocraties, tolérance des cultures hospitalières, méfiance envers l'incroyant, attachement à sa foi, deuil ou catastrophe qui éloignent du sacré |
 | `trade` | Rencontres entre tribus, envie d'échanger (opinion, hospitalité), malentendus (langue), objets qui peuvent devenir un bien d'échange et part des adultes qui doivent l'accepter |
 | `texts`, `needTexts`, `environmentTexts` | Phrases du journal |
+
+## `conflict.json` — conflit et diplomatie (étape 11)
+
+| Clé | Rôle |
+| --- | --- |
+| `brawl` | Quand une dispute tourne aux coups (colère, colère facile, rancune, prudence, faim), coups échangés, coups mal placés, rancune d'un coup reçu, qui veut l'exil d'un meurtrier |
+| `feud` | Vendetta : désir de vengeance des proches d'une victime, passage à l'acte, délai après une tentative ratée, âge où un enfant reprend la vengeance de sa famille, oubli après des années sans sang |
+| `combat` | Force d'un coup, poids de l'expérience, armes (objet → facteur), protections, remparts (bâtiment → facteur), avantage de combattre chez soi, moral (départ, culture, caractère, blessures, pertes), seuil de fuite et débandade, poursuite et captifs |
+| `raid` | Rythme des décisions, motifs d'un raid (faim, envie, prestige, haine), distance maximale, taille de la troupe, âges des combattants, envie de répondre à l'appel, rassemblement, provisions, usure du moral en marche, pillage |
+| `war` | Déclaration de guerre (haine, autre religion, ambition, rapport de force), expéditions, lassitude, conquête, tribut |
+| `diplomacy` | Trêve, compréhension sans langue commune, trahisons, mariage diplomatique, durée d'une menace (qui pousse à bâtir une palissade) |
+| `civilWar` | Quand une contestation ratée tourne à la guerre civile (camp rebelle, légitimité effondrée, caractère du prétendant) |
+| `texts` | Phrases du journal |
 
 ## `items.json` — les objets
 

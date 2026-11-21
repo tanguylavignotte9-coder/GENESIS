@@ -191,7 +191,7 @@ function launch(sys: ConflictSystem, tribe: Group, target: Group, kind: 'raid' |
     groups.shiftOpinion(target, tribe, -RAIDED_OPINION);
   } else {
     if (kind === 'raid') sys.counts.raids++;
-    event = publish(sys, CONFLICT_EVENTS.raid, params.texts.raidDecided, { tribu: tribe.name, cible: target.name, raison: reason, chef: people.names[leader]!, n: String(members.length) }, place, [leader], causes, { other: target.id }, [tribe.id, target.id]);
+    event = publish(sys, CONFLICT_EVENTS.raid, kind === 'war' ? params.texts.warParty : params.texts.raidDecided, { tribu: tribe.name, cible: target.name, raison: reason, chef: people.names[leader]!, n: String(members.length) }, place, [leader], causes, { other: target.id }, [tribe.id, target.id]);
   }
   const expedition = new Expedition(sys.expeditions.length, kind, tribe.id, target.id, leader, sys.day, event);
   sys.expeditions.push(expedition);
@@ -318,19 +318,18 @@ function afterBattle(sys: ConflictSystem, expedition: Expedition, tribe: Group, 
   const people = humans.people;
   const names: [string, string] = [tribe.name, target.name];
   let issue: string;
-  const extra: string[] = [];
+  // The winners take their captives home, whoever they are.
+  const captors = result.winner === 0 ? tribe : target;
+  const captives = result.winner === 0 ? target : tribe;
+  for (const p of result.captured) groups.capture(p, captors, CAPTIVE_APPROVAL);
+  sys.counts.captives += result.captured.length;
   if (result.winner === 0) {
     const goods = humans.production.shareStock(target.camp, tribe.camp, params.raid.lootShare);
     issue = `${capitalize(tribe.name)} l’emporte et pille les réserves (${goods.length > 0 ? goods.slice(0, 4).join(', ').toLowerCase() : 'presque rien'})`;
-    for (const p of result.captured) groups.capture(p, tribe, CAPTIVE_APPROVAL);
-    if (result.captured.length > 0) {
-      sys.counts.captives += result.captured.length;
-      extra.push(`captives:${result.captured.length}`);
-    }
   } else if (result.winner === 1) issue = `${capitalize(target.name)} repousse les assaillants${walls ? ' derrière ses remparts' : ''}`;
   else issue = 'Personne ne cède, chacun se retire';
   const event = publish(sys, CONFLICT_EVENTS.battle, params.texts.battle, { cible: target.name, attaquants: tribe.name, defenseurs: target.name, issue, bilan: `${toll(result, names)}` }, place, [expedition.leader, ...target.leaders], [expedition.event], { attackers: tribe.id, defenders: target.id, winner: result.winner }, [tribe.id, target.id]);
-  if (result.captured.length > 0) publish(sys, CONFLICT_EVENTS.captives, params.texts.captives, { tribu: tribe.name, n: String(result.captured.length), s: plural(result.captured.length), cible: target.name, noms: listNames(result.captured.map((p) => people.names[p]!)) }, place, result.captured, [event], {}, [tribe.id, target.id]);
+  if (result.captured.length > 0) publish(sys, CONFLICT_EVENTS.captives, params.texts.captives, { tribu: capitalize(captors.name), n: String(result.captured.length), s: plural(result.captured.length), cible: captives.name, noms: listNames(result.captured.map((p) => people.names[p]!)) }, place, result.captured, [event], {}, [tribe.id, target.id]);
   // War weariness: losses for the size of each tribe.
   const losses = [result.killed[0]!.length, result.killed[1]!.length + result.captured.length];
   relation.weariness[side] = relation.weariness[side]! + (losses[0]! * params.war.wearinessPerLoss * FULL) / Math.max(10, tribe.members.length);

@@ -8,6 +8,169 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Préalable (croire ou ne pas croire), étape 10.5 · Cerveau visuel et étape 11 · Conflit — 20-21 nov. 2026
+
+**Fait (préalable, `ideas/religion.ts`, `data/ideas.json → religion`) :**
+- Nouveau trait **« Esprit critique »** (`independence`). Le **doute** d'une personne vient de son esprit critique, de sa
+  curiosité et d'une faible spiritualité (`doubt()`). Il freine la conversion, use la ferveur (`doubtPerYear`), et un
+  deuil ou une catastrophe peuvent éloigner du sacré (`griefDoubtChance`, `catastropheDoubtChance`) au lieu d'en
+  rapprocher (réconfort de la foi chez ceux qui ne doutent pas).
+- **Pression de l'entourage** (`faithPressure`) : plus forte dans une culture hiérarchique, plus faible dans une culture
+  hospitalière, multipliée sous une théocratie. Elle aide les conversions par conformisme et **retient** les douteurs
+  dans la foi (jamais au-delà) ; un fervent d'une société intolérante se méfie d'un incroyant (raison « impiety »).
+- On tient à sa foi (`switchResistance`) : changer de religion est plus rare qu'en adopter une, et qui a perdu la foi
+  se laisse moins facilement reconvertir (`lostFaith`).
+- Journal : pertes de foi avec leur raison (deuil, catastrophe, doute ; un chef ou un chaman toujours), conversions
+  d'une religion à une autre, retours à la foi, chefs qui se mettent à croire. Fiche : « Sans religion », « a perdu la
+  foi », « doute du sacré ». `npm run sim` compte les adultes sans religion.
+
+**Fait (étape 10.5, cerveau visuel) :**
+- Humains (`individuals/brain-trace.ts`, `brain-describe.ts`) : la décision de la personne regardée est reconstituée
+  avec les mêmes entrées et les **mêmes tirages** que la décision elle-même (stockés à chaque décision dans un tableau),
+  sans rien tirer ni modifier : chaque action, chaque facteur (importance, entrées, traits, culture, ambition, hasard,
+  habitude), voulue mais impossible, ou bloquée (savoir, âge). Un **historique des 20 derniers changements d'activité**
+  est gardé pour chacun (`People.hist*`, quelques octets par personne) avec la raison (fini, dépassé, danger).
+- Animaux (`fauna/brain-trace.ts`) : les règles de priorité (fuir, chasser, boire, manger, migrer, suivre, se
+  promener, se reposer) avec ce qui pousse et retient ; historique des changements tenu pour l'animal regardé seulement.
+- Gouvernance (`groups/decisions.ts`, `governance.ts`) : chaque décision des dirigeants est gardée (12 par groupe) avec
+  les options pesées, ce qui a pesé (caractère du chef, situation) et la note quand l'option la mieux notée n'est pas
+  retenue (inertie) : stratégie, propriété, héritage, régime, déplacement du camp, raids et guerres. Carte du soutien :
+  chaque adulte et chaque clan colorés selon leur soutien, avec les raisons ; sources de mécontentement.
+- Affichage : bouton « Afficher le cerveau » dans la fiche d'un humain et dans la nouvelle **fiche animal** (clic sur
+  un animal), panneau en réseau SVG (survol = liens d'une action), détail des scores dépliable, historique ; bouton
+  « Afficher la gouvernance » dans le panneau Groupes. Mise à jour 4 fois par seconde en direct.
+- Test : même graine, cerveau d'une personne et d'un animal regardés ou non → même histoire (journal, positions,
+  actions, faim, tirages suivants).
+
+**Fait (étape 11, `src/sim/systems/conflict/`, `data/conflict.json`, système « Conflit » de l'Atelier) :**
+- Mécanisme commun : chaque coup passe par `Interactions.attack` (motif `fight`, `defense` ou `predation`, contexte et
+  causes) ; les individus appliquent la blessure ou la mort (nouvelle cause **« violence »**, tueur dans le journal),
+  la vie (life) décide d'un handicap à vie (`wounds` : **estropié**, vigueur réduite, journal).
+- **Rixe** (`brawl.ts`) : la vie sociale note les disputes (`quarrelLog`) ; une dispute tourne aux coups selon la colère,
+  la colère facile, la prudence, la faim et la rancune ; coups échangés (rarement un coup mal placé) ; rancune durable
+  (raison « assaulted »). Un meurtre est jugé par le groupe selon son régime : **exil** (vers une tribu qui accepte, ou
+  fonder un camp avec les siens) ou pardon (un chef protège sa famille).
+- **Vendetta** (`feud.ts`) : un meurtre crée ou nourrit une vendetta entre deux familles (proches et descendants) ; les
+  proches peuvent jurer vengeance (nouvelle ambition « Venger un proche ») ; les enfants qui grandissent reprennent la
+  vengeance de leur famille ; délai après un échec ; une vendetta sans sang depuis des années s'éteint.
+- **Raid et guerre** (`war.ts`) : tous les 10 jours, les dirigeants pèsent faim, envie, prestige du chef, haine, autre
+  religion, rapport de force, bravoure de la culture (décision notée dans la gouvernance, selon le régime) ; trahir
+  une trêve, une alliance ou un tribut est possible mais rare et mémorisé. Chaque appelé décide de partir (obéissance,
+  caractère, bravoure) ; la troupe emporte des provisions, se rassemble, marche (nouvelle action « Partir au combat »,
+  entrée `warCall` du cerveau ; on dort sur place), le moral s'use et certains désertent ; bataille au camp ennemi avec
+  ceux qui sont là pour le défendre.
+- **Combat** (`combat.ts`) : vigueur, santé, compétence de chasse, meilleure arme portée ou prise dans le stock (lance,
+  hache polie, arc, couteau), vêtement de cuir, palissade ou mur, combattre chez soi, nombre ; volée des archers
+  d'abord ; le moral (culture, caractère, blessures, pertes) fait fuir bien avant l'anéantissement ; débandade ;
+  poursuite (morts et captifs). Pillage d'une part des réserves ; captifs intégrés au vainqueur avec une loyauté faible ;
+  conquête d'un vaincu écrasé (il devient un clan, `GroupsSystem.conquer`) ; effondrement d'une tribu sans adultes.
+- **Diplomatie** (`diplomacy.ts`) : une tribu lasse de la guerre envoie un **émissaire** (sociable, qui parle la langue
+  de l'autre) qui marche jusqu'à l'ennemi (action « Porter un message ») ; il peut ne pas être compris ; l'offre (paix,
+  trêve, tribut si l'on est le plus faible) est acceptée selon la lassitude de l'autre et les trahisons passées ; mariage
+  diplomatique possible ; une troupe déjà en route n'apprend la paix qu'en rentrant (« la nouvelle n'était pas encore
+  arrivée »). Tribut versé chaque année pendant 10 ans.
+- **Guerre civile** (`civil-war.ts`) : une contestation ratée (le groupe publie maintenant le prétendant et ses soutiens)
+  dans une tribu sans légitimité peut tourner à la bataille ; vainqueur au pouvoir, prétendant battu chassé.
+- **Palissades et murs** : une menace connue (guerre, raid récent, vendetta) fait vouloir un bâtiment de défense
+  (`production/plans.ts`, `custom.urgency.defense`) ; la guerre pèse sur les régimes (facteur « war » : chefferie,
+  dictature possibles).
+- **Chasse risquée** : aurochs, sanglier, ours (désormais chassable) et autres peuvent riposter (`riposteChance`,
+  `riposteDamage` dans `animals.json`) ; moins de risque à l'arc et avec de l'expérience ; « tué par un aurochs qu'il
+  chassait », « estropié de sa lutte contre un aurochs ».
+- Lisibilité : journal (rixes, meurtres, exils, vendettas, vengeances, raids, déclarations de guerre, batailles avec leur
+  bilan, captifs, tributs, trêves, paix, émissaires, trahisons, guerres civiles, conquêtes) avec leurs causes ; carte
+  (combattants avec bandeau rouge et lance, batailles marquées de lames croisées pendant 48 h) ; fiche (mission,
+  estropié, victimes, ennemis personnels) ; panneau Groupes (guerre, trêve, tribut, trahisons entre tribus).
+- `npm run sim` : compteurs du conflit, morts violentes, tribus en guerre, loups et lions en vie, récits (sans les rixes).
+
+**Loups et lions (dette de l'étape 7.6) :** le cerveau visuel d'un loup mort de faim montre qu'il restait « se reposer »
+ou « suivre son groupe » à 100 % de faim, faute de proie à portée, son meneur rentrant à la tanière, alors que les cerfs
+et les chevaux étaient nombreux plus loin. Corrigé au niveau de l'animal : un chasseur affamé sans proie à portée **bat
+la campagne** (`behavior.huntSearchTiles`, le meneur emmène sa meute). Mesures : sur 30 ans avec humains, les loups ne
+déclinent plus vers zéro (graine 1 : 26 loups à l'an 30 contre 7 à l'an 25 avant ; graine 5 : 48 contre 22) ; mais en
+100 ans les loups s'éteignent encore dans 8 mondes sur 10 (les lions dans 1 sur 10). Autre constat : **avec ou sans
+humains, la moitié des loups de départ meurent de faim dans les 5 premières années** (population de départ trop forte
+pour les territoires : 80 → 40), ce qui laisse peu de meutes, fragiles. Non conclu dans le temps de ce lot.
+
+**Défauts trouvés et corrigés pendant le lot (au niveau des individus) :**
+- Les troupes ne marchaient pas : elles allaient manger au camp, dormir dans leur lit, rentrer à la nuit tombée.
+  Désormais chacun emporte des provisions (`raid.rationDays`, `ProductionSystem.takeRations`), dort où la nuit le
+  surprend et ne « rentre au camp » pas en mission ; l'appel aux armes pèse plus, sauf la nuit.
+- Conversions en va-et-vient (une même personne changeait six fois de religion en dix ans) : attachement à sa foi.
+- Pertes de foi puis retour à la foi le lendemain : qui a perdu la foi résiste aux conversions.
+- Un vengeur frappait sa cible tous les quelques jours (36 attaques pour une vendetta) : délai après un échec
+  (`feud.cooldownDays`), coups plus dangereux (armes), nom du bon mort de la famille.
+- Les captifs pris par les défenseurs vainqueurs étaient donnés aux assaillants vaincus (corrigé après la validation),
+  et une expédition de guerre était racontée comme un raid (texte `warParty`).
+- Élision des noms dans les blessures : « d’un coup d’Oudé » (et non « de Oudé »).
+
+**Décisions et écarts (à valider) :**
+- Le détail des scores n'est calculé que pour l'être regardé ; l'**historique des 20 derniers changements** est gardé
+  pour chaque humain (quelques octets, aucun calcul) pour qu'il soit visible dès l'ouverture du cerveau. Pour les
+  animaux, l'historique commence quand on ouvre leur cerveau. Si le jeu est en pause à l'ouverture, le réseau apparaît à
+  la prochaine décision (il suffit de relancer le temps un instant) : une décision ne peut pas être recalculée en pause
+  sans tirer au hasard.
+- Le cerveau d'un animal montre ses **règles de priorité** (il n'a pas de scores comme les humains) : score = urgence
+  quand la règle s'applique, 0 sinon.
+- La fiche d'un animal est un petit panneau (clic sur un animal, qui reste suivi par la caméra).
+- Une rixe ou une vengeance mortelle entre membres d'une même tribu est jugée (exil ou pardon) ; une mort au combat
+  (raid, guerre, guerre civile) ne l'est pas et ne lance pas de vendetta : elle laisse des ennemis personnels et de la
+  lassitude de guerre.
+- Sexes : aucun avantage de force selon le sexe dans le combat (choix neutre et simple) ; les appelés sont les adultes
+  vigoureux de 16 à 50 ans, sauf les femmes enceintes.
+- Le pillage prend une part de **tout** le stock (comme une scission) ; le tribut aussi.
+- Mariage diplomatique : un célibataire de chaque tribu (d'abord la famille des chefs) ; celui de la plus petite tribu
+  rejoint l'autre.
+- La guerre civile naît d'une contestation ratée lue dans le journal (le groupe y écrit le prétendant et ses soutiens).
+- Ours ajouté au gibier (il riposte fort). Nouvelle cause de mort « violence » (9 causes) ; le texte « tué par un
+  fauve » accepte un contexte (« qu’il chassait »).
+- Sauvegardes : format 4 (les anciennes sont refusées).
+
+**Dette technique :**
+- **Loups** : éteints dans 8 mondes sur 10 en 100 ans (lions 1 sur 10). Pistes : population de départ trop forte pour
+  les territoires (la moitié meurt de faim les 5 premières années, avec ou sans humains), partage des proies dans la
+  meute, meutes qui ne quittent pas un territoire vide. → étape d'équilibrage de l'écosystème.
+- **Bien d'échange** encore présent dans 7 mondes sur 10 (silex, os) : pas rare. → à rediscuter (est-ce souhaité ?).
+- **Soif** : 27 % des morts dans un monde sur 10 (graine 10, tribu qui migre plusieurs fois dans un pays sec) ; 2 à
+  10 % ailleurs. → à surveiller.
+- Aucune conquête, aucune guerre civile en 10 × 100 ans : elles exigent des tribus voisines nombreuses et une
+  légitimité effondrée (testées en scénarios). Les captifs n'apparaissent qu'à la poursuite de fuyards blessés.
+- Les combattants de nuit dorment sur place sans abri (pas de froid pris en compte pour une troupe).
+- Le cerveau visuel ne montre pas encore les « plans » d'ambition (le design en prévoit plus tard).
+- Exil : quand aucune tribu n'accueille, l'exilé fonde un camp ; une personne seule compte alors comme une tribu.
+
+**Dettes résolues :** chasse sans risque (étape 6) ; « rencontres entre tribus » et conflits (étape 9 : raids, guerres,
+paix) ; palissades et murs jamais voulus ; régimes « guerre » impossibles (le facteur « war » existe maintenant) ;
+loups et lions partiellement (les lions tiennent dans 9 mondes sur 10).
+
+**Mesures (serveurs de Claude Code) :**
+- **Validation, 10 graines × 100 ans** (4 calculs en parallèle, **29 min**) :
+
+| Graine | Hab. fin | Décès | Morts violentes | Rixes | Meurtres | Vendettas | Raids | Guerres | Batailles | Traités | Tribus fin | Loups | Lions | Sans religion |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 163 | 122 | 22 (18 %) | 585 | 4 | 2 | 19 | 2 | 23 | 1 trêve | 3 | 0 | 114 | 1 / 94 |
+| 2 | 164 | 177 | 3 (2 %) | 561 | 3 | 2 | 3 | 0 | 3 | — | 2 | 35 | 43 | 4 / 105 |
+| 3 | 0 | 50 | 1 (2 %) | 212 | 1 | 0 | 0 | 0 | 0 | — | 0 | 0 | 61 | — |
+| 4 | 103 | 129 | 0 | 333 | 0 | 0 | 1 | 0 | 1 | — | 2 | 0 | 0 | 1 / 72 |
+| 5 | 142 | 117 | 17 (15 %) | 340 | 12 | 3 | 7 | 1 | 8 | 1 tribut | 2 | 45 | 39 | 0 / 84 |
+| 6 | 91 | 85 | 4 (5 %) | 272 | 4 | 0 | 0 | 0 | 0 | — | 1 | 0 | 39 | 1 / 55 |
+| 7 | 180 | 158 | 2 (1 %) | 395 | 2 | 1 | 1 | 0 | 1 | — | 2 | 0 | 67 | 0 / 112 |
+| 8 | 176 | 130 | 3 (2 %) | 482 | 3 | 2 | 1 | 0 | 0 | — | 2 | 0 | 20 | 2 / 124 |
+| 9 | 124 | 156 | 4 (3 %) | 441 | 4 | 0 | 0 | 0 | 0 | — | 2 | 0 | 30 | 0 / 78 |
+| 10 | 83 | 104 | 4 (4 %) | 233 | 2 | 1 | 1 | 1 | 5 | 1 paix | 1 | 0 | 65 | 1 / 50 |
+
+  Graine 3 : la tribu s'éteint dans un pays froid (16 morts de froid, 13 tués par des bêtes, 9 déplacements de camp) :
+  histoire légitime (même région froide qu'aux étapes précédentes). Exils : 0 à 2 par monde ; vengeances (tentatives) :
+  0 à 41 (deux longues vendettas, graines 5 et 9) ; déserteurs : 0 à 49 (graine 1, nombreux raids) ; trahisons 0 à 2.
+  Aucune conquête ni guerre civile. Cultures (vivantes/apparues) : 1/1 dans 6 mondes, 4/4, 2/3, 1/2, 0/1 ; langues :
+  1 à 2 vivantes (2/3, 2/2, 1/2). Morts de soif : 2 à 10 % (27 % graine 10). Bien d'échange : silex (4), os (3), aucun (3).
+- **Calcul (machine au repos, `tsx`)** : tribu de 30 → **87 ms** par jour de jeu ; **1 020 humains (34 camps) → 611 ms**
+  par jour (étape 10 : 114 et 868 ms, mesurées dans d'autres conditions). Pendant la validation (4 calculs en parallèle) :
+  70 à 300 ms par jour pour des tribus de 30 à 180 personnes.
+- Tests rapides : 563 en ~45 s. **Tests longs : 13/13** (8 fichiers, 25 min ; dont le nouveau test long du conflit).
+
+---
+
 ## Préalables (vie politique, soif) et étape 10 · Idées — 20 nov. 2026
 
 **Fait (préalable soif) :**

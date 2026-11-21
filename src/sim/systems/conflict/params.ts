@@ -112,6 +112,7 @@ export const TEXT_KEYS = [
   'revengeFailed',
   'feudEnds',
   'raidDecided',
+  'warParty',
   'warDeclared',
   'battle',
   'battleDefense',

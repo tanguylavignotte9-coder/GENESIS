@@ -339,7 +339,8 @@ function summarizeConflict(simulation: Simulation): HeadlessReport['conflict'] {
     atWar: [...conflict.relations.values()].filter((relation) => relation.state === 'war').length,
     events: journal
       .all()
-      .filter((event) => event.type.startsWith('conflict.') || event.type === 'life.crippled')
+      // Brawls are counted, not listed (there are hundreds): murders, feuds, raids, wars, treaties.
+      .filter((event) => event.type.startsWith('conflict.') && event.type !== 'conflict.brawl')
       .map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
   };
 }

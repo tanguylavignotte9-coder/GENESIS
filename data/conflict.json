@@ -100,6 +100,7 @@
     "revengeFailed": "{a} renonce à venger {victime} : {raison}.",
     "feudEnds": "La vendetta entre les familles de {a} et de {b} s’éteint après {ans} ans sans nouveau sang.",
     "raidDecided": "{tribu} part razzier {cible} : {raison} ({chef} mène {n} combattants).",
+    "warParty": "{tribu} part en guerre contre {cible} : {raison} ({chef} mène {n} combattants).",
     "warDeclared": "{tribu} déclare la guerre à {cible} : {raison}.",
     "battle": "Bataille près du camp de {cible} : {attaquants} contre {defenseurs}. {issue} ({bilan}).",
     "battleDefense": "{attaquants} trouve le camp de {cible} sans défenseurs et le pille.",

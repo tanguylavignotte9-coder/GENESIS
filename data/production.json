@@ -32,6 +32,7 @@
     "captureChance": 0.12,
     "skillBonus": 0.4,
     "youngFactor": 3,
+    "youngTame": 0.6,
     "adultRiposte": 0.5,
     "giveUpHours": 6,
     "penCapacity": 20,

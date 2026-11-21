@@ -29,7 +29,10 @@ export function animalLines(animal: AnimalDetails, life: LifeTables, daysPerYear
   ];
   if (animal.groupSize > 1) lines.push(`Groupe : ${fr.format(animal.groupSize)} animaux`);
   lines.push(`Fournit : ${resourceNames(life, species.carcass.map((item) => item.resource))}`);
-  if (species.domesticable) lines.push('Domesticable');
+  if (animal.domestic) {
+    const d = animal.domestic;
+    lines.push(`Bête domestique (${d.name}) ${d.keeper}${d.tame < 1 ? ` · apprivoisée à ${fr.format(Math.round(d.tame * 100))} %` : ''}`);
+  } else if (species.domesticable) lines.push('Domesticable');
   lines.push('Clic : suivre cet animal');
   return lines;
 }

@@ -133,6 +133,7 @@ export interface ProductionParams {
     captureChance: number;
     skillBonus: number;
     youngFactor: number;
+    youngTame: number;
     adultRiposte: number;
     giveUpHours: number;
     penCapacity: number;
@@ -362,6 +363,7 @@ export const PRODUCTION_SCHEMA: Schema = {
         captureChance: num(0, 1, 'Capture', 'Chance par heure, au contact, qu’un débutant attrape une bête adulte.', 'probabilité'),
         skillBonus: num(0, 1, 'Effet de l’expérience', 'Chance de capture ajoutée par une compétence d’élevage parfaite.', 'probabilité'),
         youngFactor: num(1, 10, 'Jeunes bêtes', 'Un jeune animal est ce nombre de fois plus facile à capturer (et on le préfère).', 'facteur'),
+        youngTame: num(0, 1, 'Jeune apprivoisé', 'Docilité (0..1) d’une bête capturée jeune, dès sa capture (un adulte part de 0).', 'fraction'),
         adultRiposte: num(0, 1, 'Bête qui se débat', 'Part du risque de riposte de l’espèce quand on tente de capturer un adulte.', 'fraction'),
         giveUpHours: num(0.5, 48, 'Patience', 'Heures sans succès avant de renoncer à une capture.', 'heures'),
         penCapacity: int(1, 200, 'Taille d’un enclos', 'Bêtes qu’un camp garde au plus par enclos : au-delà, on ne capture plus et l’on abat le surplus.', 'bêtes'),

@@ -164,6 +164,8 @@ export interface AnimalDetails {
   state: number;
   pregnant: boolean;
   groupSize: number;
+  /** A domestic animal: who keeps it (« de la tribu des Tamuki »), its owner if a person, how tame (0..1). Null if wild. */
+  domestic: { keeper: string; owner: number; tame: number; name: string } | null;
 }
 
 export interface PlantDetails {

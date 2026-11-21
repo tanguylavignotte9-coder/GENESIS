@@ -81,6 +81,10 @@ export function inspect(simulation: Simulation, requestId: number, tile: number,
       state: store.fleesHuman[slot] === 1 && store.state[slot] === State.Flee ? FLEES_HUMAN_STATE : store.state[slot]!,
       pregnant: store.pregnancy[slot]! > 0,
       groupSize: fauna.groups.size[store.group[slot]!]!,
+      domestic:
+        store.ownerCamp[slot]! >= 0
+          ? { keeper: fauna.keeperName(store.ownerCamp[slot]!), owner: store.ownerPerson[slot]!, tame: Math.round(store.tame[slot]! * PERCENT) / PERCENT, name: fauna.speciesOf(slot).tameName }
+          : null,
     };
     break;
   }

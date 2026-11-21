@@ -128,6 +128,8 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 | `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
 | `humanPrey.*` | Prédateurs et humains : espèces qui peuvent attaquer une personne seule, faim minimale, distance en dessous de laquelle une personne n'est pas « seule », chance d'attaque par pas, blessure |
 | `events.*` | Seuils et phrases du journal (migrations, disparitions, effondrements) |
+| `domestic.*` | Bêtes domestiques (étape 12) : pâture autour de l'enclos, apprivoisement par jour, fuite (moins apprivoisée, affamée, sans enclos), phrases du journal |
+| `behavior.spawnSiteAttempts` | Création du monde : lieux essayés pour chaque meute de départ (un chasseur ne s'installe que là où vit assez de gibier, hors du territoire d'une autre meute) |
 | `sickness.*` | Maladies des animaux (étape 7.5) : chance par jour de tomber malade de soi-même, distance et chance de contagion entre animaux de la même espèce, durée, gravité (santé perdue par jour), durée de l'immunité après guérison |
 | `movement.*` | Déplacement naturel (étape 7.5) : accélération (virages plus ou moins larges), course de panique, allure de promenade, distance d'arrivée, espace personnel et évitement, espacement et souplesse des troupeaux, encerclement d'une proie par la meute, distance de contact pour la terrasser |
 
@@ -138,7 +140,9 @@ Pour chaque espèce : `diet` (herbe, viande, poisson ou une récolte de plante, 
 territoire (`crowdingRadius`, `crowdingMax` : une femelle ne met pas bas si trop d'animaux de son espèce
 l'entourent), pour les chasseurs `preyCheckRadius` / `breedingMinPrey` (assez de gibier autour pour élever
 des petits), faim et soif par jour, nourriture nécessaire, température minimale, vitesse, rayons de fuite et
-de chasse, `migratory` / `migrationTiles`, `domesticable` (pour l'élevage plus tard) et `carcass`
+de chasse, `migratory` / `migrationTiles`, `domesticable` (capturable par les éleveurs), `milk` / `wool` (lait d'une
+femelle qui allaite à chaque traite, laine à chaque tonte), `tameName` / `tameFeminine` (nom de la bête apprivoisée :
+« chèvre », « bœuf », « chien ») et `carcass`
 (ce que l'animal fournit à sa mort). Vitesses en tuiles par heure : `walkTilesPerHour` (marche),
 `fleeSprintTiles` (fuite devant un humain), `sprintTiles` (poursuite d'un chasseur).
 `birthIntervalDays` : une mère ne conçoit pas de nouveau tant qu'elle élève ses petits.
@@ -277,7 +281,9 @@ collectif), qualité des produits (compétence, outils, hasard), travail (rapidi
 matériaux, goût pour la nourriture qui se garde, emplacement des constructions), chasse (repérage, portée de la
 lance et de l'arc, réussite, taille d'une carcasse, patience), champs (croissance, rendement), sources de terrain
 (où trouver pierres, silex, argile, eau) et phrases du journal. `ground.findTiles` : les affaires d'une personne
-morte loin du camp restent au sol ; qui passe à cette distance les ramasse (étape 7.5).
+morte loin du camp restent au sol ; qui passe à cette distance les ramasse (étape 7.5). `husbandry` (étape 12) :
+capture (repérage, chance, jeunes plus faciles, adulte qui se débat), taille d'un enclos, traite (lactation,
+fréquence), tonte, fourrage donné aux bêtes affamées, abattage (surplus, disette, bêtes gardées), envie de chaque tâche.
 
 ## `social.json` — la vie sociale (étape 7)
 
@@ -312,6 +318,7 @@ Aucune règle ne limite ni ne soutient la population : naissances et morts vienn
 | `infancy` | Allaitement (ce qu'il coûte à la mère, lait tari par la faim), bébé non allaité nourri par son porteur ou au stock |
 | `childhood` | L'enfant suit son parent, reste près du camp, cherche près de lui, apprend en regardant les adultes travailler, joue ; l'enfance marque davantage la personnalité |
 | `aging` | Forces du corps selon l'âge (vitesse, endurance, travail physique), respect qui grandit pour les anciens |
+| `strength` | Force individuelle (étape 12) : carrure de naissance (écart entre les personnes, part héritée), écart moyen entre les sexes (réglable), effet de la santé, entraînement (gagné par le travail physique et les combats, perdu sans effort), travaux physiques |
 | `oldAge` | Mort de vieillesse : chance qui double tous les quelques ans (loi de Gompertz), plus forte chez un corps affaibli |
 | `diseases` | Maladies : apparition (froid et faim la favorisent), contagion par la proximité, durée, gravité (aggravée par la faim et le froid), immunité, faiblesse du malade |
 | `frailty`, `ageVulnerability` | Faim et froid qui affaiblissent face aux maladies ; fragilité des tout-petits et des vieillards |

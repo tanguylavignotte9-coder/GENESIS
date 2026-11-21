@@ -128,6 +128,7 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 | `fish.*` | Poisson par tuile d'eau (rivière, lac, côte, haute mer) et sa vitesse de renouvellement |
 | `carrion.*` | Carcasses laissées par les chasseurs : part qui pourrit chaque jour |
 | `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
+| `humanFear.*` | Crainte des humains : écart de prudence d'un animal à l'autre ; chaque bête sauvage fuit tout humain (chasseur ou passant) à la distance `humanFleeTiles` de son espèce ; un prédateur craint plus un groupe ou un camp (`crowdShare` par personne en plus, jusqu'à `crowdMax` personnes à moins de `crowdTiles`), sauf s'il est affamé ; quelqu'un qui le chasse du camp (`driveOffFactor`) le fait fuir de plus loin, même affamé ; un éleveur qui approche doucement une bête pour la capturer n'est remarqué qu'à `tamerShare` de la distance |
 | `humanPrey.*` | Prédateurs et humains : espèces qui peuvent attaquer une personne seule, faim minimale, distance en dessous de laquelle une personne n'est pas « seule », chance d'attaque par pas, blessure |
 | `events.*` | Seuils et phrases du journal (migrations, disparitions, effondrements) |
 | `domestic.*` | Bêtes domestiques (étape 12) : pâture autour de l'enclos, apprivoisement par jour, fuite (moins apprivoisée, affamée, sans enclos), phrases du journal |
@@ -189,7 +190,7 @@ par les humains et leur vitesse de marche.
 | `movement` | Déplacement naturel (étape 7.5) : accélération et virages, arrivée, lignes droites des chemins, espace personnel et évitement, place de chacun sur un lieu et cercle autour du feu, ralentissements (marais, neige, pente, fatigue, charge), essoufflement de la course, marche côte à côte d'un couple, enfant qui suit son parent, distance de conversation, chemin bloqué |
 | `camp` | Chaleur maximale d'un abri ou d'un feu, territoire connu autour du camp (le feu et les huttes sont des bâtiments : `buildings.json`) |
 | `memory` | Nombre de points d'eau et de coins de cueillette retenus, durée avant l'oubli |
-| `danger` | Animaux redoutés, vigilance, isolement, peur en groupe, viande laissée par un corps (les attaques elles-mêmes se règlent dans `animals.json` → `humanPrey`) |
+| `danger` | Animaux redoutés, vigilance, isolement, peur en groupe, frayeur (l'émotion « peur » qui monte tant qu'un prédateur est en vue), distance du camp à laquelle les adultes chassent un prédateur (action « Chasser un prédateur »), viande laissée par un corps (les attaques elles-mêmes se règlent dans `animals.json` → `humanPrey`) |
 | `terrain` | Coûts de marche (forêt, broussailles, gué, pente) pour la recherche de chemin |
 | `decision` | Part de hasard, persévérance, envie de déposer au stock en passant, ouvrage en cours qu'on finit |
 | `actions` | Les actions du cerveau (voir ci-dessous) |
@@ -229,7 +230,7 @@ parlent plus et disparaît quand plus personne ne la porte.
 | Clé | Rôle |
 | --- | --- |
 | `everyDays` | Rythme des examens (écarts entre populations, chamans, biens d'échange, noms de lieux) |
-| `knowledge` | Découverte (chance par jour, traits et pratique qui aident, milieu observé autour du camp), apprentissage (enseignement par un parent ou quelqu'un à qui l'on parle, observation du travail, observation d'étrangers, enfants plus rapides) |
+| `knowledge` | Découverte (chance par jour, traits et pratique qui aident, milieu observé autour du camp ; `ponder` : on se met à chercher, on avance plus vite les jours où l'on pratique le métier lié, on peut se décourager, la « grande avancée » est racontée au journal), apprentissage (enseignement par un parent ou quelqu'un à qui l'on parle, observation du travail, observation d'étrangers, enfants plus rapides) |
 | `values` | Les valeurs d'une culture (partage, hiérarchie, hospitalité, bravoure, place des anciens) et leur effet sur l'envie de faire certaines actions (`actions`) ; les groupes en tiennent compte (régimes, règles, accueil) |
 | `culture` | Dérive des valeurs, influence des conversations, poids du vécu, écart à partir duquel une nouvelle culture est reconnue |
 | `language` | Sons dans lesquels les langues puisent, nombre de syllabes des noms, finales des noms de femmes et de peuples, dérive de la prononciation, écart qui fait naître une langue fille, apprentissage d'une langue étrangère (au foyer, au contact), compréhension entre langues sœurs |

@@ -263,8 +263,10 @@ describe('believing or not (the choice of each person)', () => {
   }
 
   it('a critical mind among believers loses faith in the end, and the journal says why', () => {
-    // (In some worlds the believers around hold the doubter longer than the test waits: seed chosen.)
-    const { simulation, doubter } = faithful(24);
+    // The hold of the believers around is measured by the next test: here, a tolerant culture.
+    const { simulation, doubter } = faithful(24, (data) => {
+      data.ideas.religion.pressurePerYear = 0;
+    });
     const h = simulation.ideas.holdings;
     day(simulation, 110);
     expect(h.religion[doubter]).toBe(-1);

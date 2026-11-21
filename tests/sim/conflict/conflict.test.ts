@@ -8,6 +8,7 @@ import { DeathCause } from '../../../src/sim/systems/individuals/people';
 import { battle, muster } from '../../../src/sim/systems/conflict/combat';
 import { GROUP_EVENTS } from '../../../src/sim/systems/groups/texts';
 import { civilWars } from '../../../src/sim/systems/conflict/civil-war';
+import { fightersOf } from '../../../src/sim/systems/conflict/war';
 import { ambitionTarget } from '../../../src/sim/systems/individuals/social/ambitions';
 import { feel } from '../../../src/sim/systems/individuals/social/relations';
 import { dataWithSize } from '../world/helpers';
@@ -177,6 +178,36 @@ describe('raids, wars and diplomacy', () => {
     expect(battle).toBe(true);
     const event = simulation.journal.all().find((e) => e.type === CONFLICT_EVENTS.raid)!;
     expect(event.text).toMatch(/part razzier/);
+  });
+
+  it('the strongest are called to fight first (strength, not only vigour)', () => {
+    const simulation = world(19, (data) => {
+      data.groups.scission.minMembers = 2;
+      data.conflict.raid.baseChance = 1;
+      data.conflict.raid.everyDays = 1;
+      data.conflict.raid.minParty = 2;
+      data.conflict.raid.joinChance = 1;
+      data.conflict.war.declareChance = 0;
+    });
+    const { groups, conflict, humans } = simulation;
+    day(simulation, 1);
+    splitOff(simulation, 4);
+    day(simulation, 1);
+    const [big, small] = groups.tribes();
+    big!.known.get(small!.id)!.opinion = -60;
+    small!.known.get(big!.id)!.opinion = -60;
+    // The most vigorous half of the fighters are frail of build: vigour alone would call them first.
+    const fighters = fightersOf(conflict, big!).sort((a, b) => humans.life.vigor(b) - humans.life.vigor(a) || a - b);
+    const frail = new Set(fighters.slice(0, Math.floor(fighters.length / 2)).filter((p) => !big!.leaders.includes(p)));
+    for (const p of frail) humans.life.state.build[p] = 0.4;
+    const ours = () => conflict.expeditions.find((x) => x.tribe === big!.id);
+    for (let d = 0; d < 30 && !ours(); d++) day(simulation, 1);
+    const party = ours()!;
+    expect(party).toBeDefined();
+    const sturdy = fighters.length - frail.size;
+    const called = party.members.filter((p) => p !== party.leader);
+    expect(called.length).toBeGreaterThan(0);
+    if (called.length < sturdy) for (const p of called) expect(frail.has(p)).toBe(false);
   });
 
   it('a tribe weary of war sends an emissary who walks to the enemy; the war goes on until an answer', () => {

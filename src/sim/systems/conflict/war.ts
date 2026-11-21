@@ -165,7 +165,9 @@ function launch(sys: ConflictSystem, tribe: Group, target: Group, kind: 'raid' |
   const social = humans.social;
   const relation = sys.relation(tribe.id, target.id);
   const side = sys.side(relation, tribe.id);
-  const fighters = fightersOf(sys, tribe).sort((a, b) => humans.life.vigor(b) - humans.life.vigor(a) || a - b);
+  // The strongest are called first: their strength of the moment (build, sex, training, vigour, health).
+  const strength = new Map(fightersOf(sys, tribe).map((p) => [p, humans.life.strength(p)] as const));
+  const fighters = [...strength.keys()].sort((a, b) => strength.get(b)! - strength.get(a)! || a - b);
   const wanted = Math.max(params.raid.minParty, Math.round(fighters.length * Math.min(1, params.raid.partyShare * (kind === 'war' ? 1.6 : 1))));
   const leader = tribe.leaders.find((p) => sys.isFighter(p)) ?? fighters[0]!;
   const called = [leader, ...fighters.filter((p) => p !== leader)].slice(0, wanted);

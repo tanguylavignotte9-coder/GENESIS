@@ -25,7 +25,8 @@ function nearestPrey(sys: ProductionSystem, x: number, y: number, recipe: Recipe
   let best = -1;
   let bestDistance = radius;
   fauna.grid.forEachNear(x, y, radius, (slot) => {
-    if (fauna.store.alive[slot] !== 1 || !recipe.prey.includes(fauna.store.species[slot]!)) return;
+    // Game is wild: a domestic animal is not hunted (it is slaughtered by its keepers).
+    if (fauna.store.alive[slot] !== 1 || fauna.store.ownerCamp[slot]! >= 0 || !recipe.prey.includes(fauna.store.species[slot]!)) return;
     const d = distance(fauna.store.px[slot]!, fauna.store.py[slot]!, x, y);
     if (d < bestDistance || (d === bestDistance && slot < best)) {
       best = slot;

@@ -16,6 +16,7 @@ const JOBS: Partial<Record<CompiledAction['def']['behavior'], JobKind>> = {
   tend_fire: 'fuel',
   build: 'build',
   craft: 'craft',
+  herd: 'herd',
 };
 
 /** Chooses the target of an action and the way there. False if the action is impossible now. */
@@ -206,7 +207,7 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
   const { people, params, production } = sys;
   const body = params.body;
   const behavior = action.def.behavior;
-  if (behavior === 'harvest' && production.isHunting(person)) {
+  if ((behavior === 'harvest' || behavior === 'herd') && production.isHunting(person)) {
     // Game in sight: the hunter runs straight at it (no path to plan) and strikes when in reach.
     const prey = production.preyPosition(person);
     if (prey && people.distanceTo(person, prey.x, prey.y) <= params.movement.followNearTiles) return work(sys, person, hours, prey);

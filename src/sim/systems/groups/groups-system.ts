@@ -99,6 +99,17 @@ export class GroupsSystem implements GroupView {
     if (day % this.params.clans.everyDays === 0) formClans(this);
     adoptIdeas(this);
     runPolitics(this);
+    this.nameKeepers();
+  }
+
+  /** Who keeps each camp's animals, for the journal of the fauna (« de la tribu des Tamuki »). */
+  private nameKeepers(): void {
+    const names = this.humans.fauna.keeperNames;
+    for (const tribe of this.tribes()) {
+      if (tribe.camp < 0) continue;
+      const name = tribe.name;
+      names[tribe.camp] = name.startsWith('le ') ? `du ${name.slice(3)}` : name.startsWith('les ') ? `des ${name.slice(4)}` : `de ${name}`;
+    }
   }
 
   // ----- reading -----------------------------------------------------------------------------
@@ -152,6 +163,12 @@ export class GroupsSystem implements GroupView {
   inheritanceRule(person: number): string {
     const tribe = person < this.grievance.length ? this.tribeOf(person) : null;
     return tribe ? this.params.inheritance[tribe.inheritance]!.id : 'spouseChildren';
+  }
+
+  /** Id of the property rule of the person's tribe ("common" when none). */
+  propertyRule(person: number): string {
+    const tribe = person < this.grievance.length ? this.tribeOf(person) : null;
+    return tribe ? this.params.property[tribe.property]!.id : 'common';
   }
 
   stillWants(person: number, ambition: string): boolean {

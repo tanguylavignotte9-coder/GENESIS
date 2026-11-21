@@ -1,3 +1,4 @@
+import { husbandryDay, stealAnimals } from './husbandry';
 import { terrainGives } from './sources';
 import { distance } from '../../core/motion';
 import { grownTo } from '../../core/columns';
@@ -88,6 +89,9 @@ export class ProductionSystem {
   bedOf = new Int32Array(0);
   /** Plants someone is heading to pick, and how many pickers (the others look for another plant). */
   readonly pickers = new Map<number, number>();
+  /** Each camp's domestic animals (fauna slots), recounted once an hour (husbandry). */
+  readonly herds = new Map<number, number[]>();
+  herdsHour = -1;
   /** Remarkable objects (none yet: the structure is ready). */
   readonly remarkable: RemarkableItem[] = [];
   people!: WorkerView;
@@ -799,8 +803,20 @@ export class ProductionSystem {
     for (const building of this.buildings) if (building.fuel > 0) building.fuel = Math.max(0, building.fuel - hours);
   }
 
-  /** Every day: food spoils (faster when warm, slower in a cache), sown fields grow. */
+  /** A raid drives off part of a camp's animals to the raiders' camp; returns how many (told in the journal). */
+  stealAnimals(from: number, to: number, share: number, raiders: string, causes: readonly number[]): number {
+    return stealAnimals(this, from, to, share, raiders, causes);
+  }
+
+  /** Does anyone still live in the camp? */
+  campAlive(camp: number): boolean {
+    for (let person = 0; person < this.people.count; person++) if (this.people.alive(person) && this.people.camp(person) === camp) return true;
+    return false;
+  }
+
+  /** Every day: food spoils (faster when warm, slower in a cache), sown fields grow, the herds are kept. */
   dailyUpdate(): void {
+    husbandryDay(this);
     const { params, catalog } = this;
     const spoilage = params.spoilage;
     for (let person = 0; person < this.carried.length; person++) {

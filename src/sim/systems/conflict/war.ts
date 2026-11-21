@@ -296,7 +296,8 @@ function fightAt(sys: ConflictSystem, expedition: Expedition, attackers: number[
   if (defenders.length === 0) {
     const goods = humans.production.shareStock(target.camp, tribe.camp, params.raid.lootShare);
     groups.shiftOpinion(target, tribe, -RAIDED_OPINION);
-    publish(sys, CONFLICT_EVENTS.battle, params.texts.battleDefense, { attaquants: tribe.name, cible: target.name }, place, attackers, causes, { attackers: tribe.id, defenders: target.id, loot: goods.join(', ') }, [tribe.id, target.id]);
+    const event = publish(sys, CONFLICT_EVENTS.battle, params.texts.battleDefense, { attaquants: tribe.name, cible: target.name }, place, attackers, causes, { attackers: tribe.id, defenders: target.id, loot: goods.join(', ') }, [tribe.id, target.id]);
+    sys.counts.animalsStolen += humans.production.stealAnimals(target.camp, tribe.camp, params.raid.lootShare, capitalize(tribe.name), [event]);
     return;
   }
   let defense = 1;
@@ -329,6 +330,7 @@ function afterBattle(sys: ConflictSystem, expedition: Expedition, tribe: Group, 
   } else if (result.winner === 1) issue = `${capitalize(target.name)} repousse les assaillants${walls ? ' derrière ses remparts' : ''}`;
   else issue = 'Personne ne cède, chacun se retire';
   const event = publish(sys, CONFLICT_EVENTS.battle, params.texts.battle, { cible: target.name, attaquants: tribe.name, defenseurs: target.name, issue, bilan: `${toll(result, names)}` }, place, [expedition.leader, ...target.leaders], [expedition.event], { attackers: tribe.id, defenders: target.id, winner: result.winner }, [tribe.id, target.id]);
+  if (result.winner === 0) sys.counts.animalsStolen += humans.production.stealAnimals(target.camp, tribe.camp, params.raid.lootShare, capitalize(tribe.name), [event]);
   if (result.captured.length > 0) publish(sys, CONFLICT_EVENTS.captives, params.texts.captives, { tribu: capitalize(captors.name), n: String(result.captured.length), s: plural(result.captured.length), cible: captives.name, noms: listNames(result.captured.map((p) => people.names[p]!)) }, place, result.captured, [event], {}, [tribe.id, target.id]);
   // War weariness: losses for the size of each tribe.
   const losses = [result.killed[0]!.length, result.killed[1]!.length + result.captured.length];

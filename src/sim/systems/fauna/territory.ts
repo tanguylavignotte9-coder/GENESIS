@@ -24,7 +24,10 @@ export function holdTerritories(fauna: FaunaSystem): void {
       groups.denX[group] = store.x[leader]!;
       groups.denY[group] = store.y[leader]!;
     }
-    if (groups.denX[group]! >= 0) packs.push(group);
+    if (groups.denX[group]! >= 0) {
+      followTheGame(fauna, group);
+      packs.push(group);
+    }
   }
   for (let i = 0; i < packs.length; i++) {
     for (let j = i + 1; j < packs.length; j++) {
@@ -41,6 +44,28 @@ export function holdTerritories(fauna: FaunaSystem): void {
       yieldDen(fauna, weaker, stronger, radius);
     }
   }
+}
+
+/**
+ * A hungry pack whose territory has been emptied of game does not starve by its den: when its
+ * leader, roaming in search of prey, stands among enough game (as much as it takes to raise young)
+ * far from a den around which there is too little, the pack settles its den there.
+ */
+function followTheGame(fauna: FaunaSystem, group: number): void {
+  const { groups, store, params } = fauna;
+  const leader = groups.leader[group]!;
+  if (leader < 0 || store.alive[leader] !== 1 || store.hunger[leader]! <= params.needs.seekFoodAbove) return;
+  const species = fauna.params.species[groups.species[group]!]!;
+  const need = species.breedingMinPrey;
+  if (need <= 0) return;
+  const x = store.x[leader]!;
+  const y = store.y[leader]!;
+  if (distance(x, y, groups.denX[group]!, groups.denY[group]!) <= species.territoryTiles) return;
+  const code = groups.species[group]!;
+  if (fauna.preyWithin(code, x, y, species.preyCheckRadius, need) < need) return;
+  if (fauna.preyWithin(code, groups.denX[group]!, groups.denY[group]!, species.preyCheckRadius, need) >= need) return;
+  groups.denX[group] = x;
+  groups.denY[group] = y;
 }
 
 /** The weaker pack picks a new den beyond the stronger pack's territory, on walkable land. */

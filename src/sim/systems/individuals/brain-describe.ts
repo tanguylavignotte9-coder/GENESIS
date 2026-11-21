@@ -36,6 +36,7 @@ const INPUT_LABELS: Partial<Record<Input, [string, string]>> = {
   woodLow: ['Réserves de bois à faire', 'Obligations'],
   buildNeed: ['Chantier à mener', 'Obligations'],
   craftNeed: ['Objets à fabriquer', 'Obligations'],
+  herdNeed: ['Bêtes à soigner', 'Obligations'],
   fireLow: ['Le feu baisse', 'Obligations'],
   depositUrge: ['Rapporter au camp', 'Obligations'],
   wantsFriends: ['Se faire des amis', 'Ambitions'],

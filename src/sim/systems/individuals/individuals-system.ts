@@ -33,6 +33,7 @@ import { LifeCycle } from './life/life-cycle';
 import type { LifeParams } from './life/params';
 import { diseaseDeathInfo, weakenedInfo } from './life/disease';
 import { inheritTraits } from './life/birth';
+import { heirsOf } from './life/heritage';
 import { SOCIAL_INPUTS } from './social/inputs';
 import type { TimeParams } from '../../core/time-params';
 
@@ -259,6 +260,8 @@ export class IndividualsSystem {
       },
       name: (p) => people.names[p]!,
       female: (p) => people.female[p] === 1,
+      propertyOwner: (p) => (this.groups && this.groups.propertyRule(p) !== 'common' ? p : -1),
+      heirOf: (p) => heirsOf(life(), p)[0] ?? -1,
       family: (p) => {
         const family: number[] = [];
         if (people.spouse[p]! >= 0) family.push(people.spouse[p]!);
@@ -441,6 +444,7 @@ export class IndividualsSystem {
     input[k++] = groups ? Math.min(1, reserves.wood * groups.dutyFactor(person, 1)) : reserves.wood;
     input[k++] = groups ? Math.min(1, needs.build * groups.dutyFactor(person, 2)) : needs.build;
     input[k++] = groups ? Math.min(1, needs.craft * groups.dutyFactor(person, 3)) : needs.craft;
+    input[k++] = needs.herd;
     input[k++] = 1;
     input[k++] = this.conflict ? this.conflict.warCall(person) : 0;
     input[k++] = this.conflict ? this.conflict.envoyCall(person) : 0;

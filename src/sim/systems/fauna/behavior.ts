@@ -5,6 +5,7 @@ import { State as States } from './animal-store';
 import { humanTargetValid, huntHuman, nearestLoneHuman } from './human-prey';
 import { feastOnKill } from './kill';
 import { denTarget } from './territory';
+import { thinkDomestic, troughHere } from './domestic';
 import type { AnimalSpecies } from './params';
 import type { SpatialGrid } from '../../core/spatial-grid';
 import { advance, DIRECTION_COUNT, DIRECTIONS_X, DIRECTIONS_Y, distance, separation, speedOf, steer, stop, updateGait, type SteerGoal } from '../../core/motion';
@@ -73,6 +74,10 @@ export function think(fauna: FaunaSystem, slot: number): void {
     }
   }
   if (store.state[slot] === State.Hunt && store.chase[slot]! > 0 && huntTargetAlive(fauna, slot)) return;
+  if (store.ownerCamp[slot]! >= 0) {
+    thinkDomestic(fauna, slot, species);
+    return;
+  }
 
   const tile = store.y[slot]! * fauna.size + store.x[slot]!;
   if (store.thirst[slot]! > params.needs.seekWaterAbove) {
@@ -222,7 +227,7 @@ export function act(fauna: FaunaSystem, slot: number): void {
       return;
     case State.Drink:
       settle(fauna, slot);
-      if (canDrink(fauna.world, store.x[slot]!, store.y[slot]!)) store.thirst[slot] = Math.max(0, store.thirst[slot]! - params.needs.drinkPerStep);
+      if (canDrink(fauna.world, store.x[slot]!, store.y[slot]!) || troughHere(fauna, slot)) store.thirst[slot] = Math.max(0, store.thirst[slot]! - params.needs.drinkPerStep);
       if (store.thirst[slot]! < params.needs.fullBelow) store.state[slot] = State.Rest;
       return;
     case State.Hunt:

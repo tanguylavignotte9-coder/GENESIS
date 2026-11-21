@@ -26,7 +26,7 @@ describe('production data (eras 0 and 1)', () => {
   it('lists every knowledge, recipe and building of the design document', () => {
     expect(data.knowledge.knowledge).toHaveLength(23);
     const recipes = data.recipes.recipes.map((recipe) => recipe.id);
-    for (const id of ['gather', 'collect_branches', 'collect_stones', 'light_fire', 'knap_knife', 'make_spear', 'hunt', 'butcher', 'cook', 'smoke_meat', 'tan', 'sew_clothing', 'weave_basket', 'fish', 'make_bow', 'dig_canoe', 'polish_axe', 'fell_tree', 'sow', 'harvest_field', 'grind', 'bake_bread', 'brew', 'make_jar', 'milk_shear', 'weave_cloth', 'mold_bricks', 'cut_block']) {
+    for (const id of ['gather', 'collect_branches', 'collect_stones', 'light_fire', 'knap_knife', 'make_spear', 'hunt', 'butcher', 'cook', 'smoke_meat', 'tan', 'sew_clothing', 'weave_basket', 'fish', 'make_bow', 'dig_canoe', 'polish_axe', 'fell_tree', 'sow', 'harvest_field', 'grind', 'bake_bread', 'brew', 'make_jar', 'capture_animal', 'milk', 'shear', 'slaughter', 'feed_animals', 'weave_cloth', 'mold_bricks', 'cut_block']) {
       expect(recipes).toContain(id);
     }
     expect(data.buildings.buildings.map((building) => building.id)).toEqual([

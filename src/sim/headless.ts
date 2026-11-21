@@ -1,3 +1,5 @@
+import { DOMESTIC_EVENTS } from './systems/fauna/domestic';
+import { HUSBANDRY_EVENTS } from './systems/production/husbandry';
 import { dateAtTick, formatDate } from './core/calendar';
 import type { GameData } from './core/game-data';
 import { Simulation } from './core/simulation';
@@ -117,6 +119,8 @@ export interface HeadlessReport {
   };
   /** Predators alive at the end (wolves, lions). */
   predators: { name: string; count: number }[];
+  /** Husbandry: domestic animals alive at the end (by species), captures, escapes, animals stolen, first slaughters. */
+  husbandry: { herds: { name: string; count: number }[]; captures: number; escapes: number; stolen: number; slaughters: number };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -175,6 +179,7 @@ export function runHeadless(
     groups: summarizeGroups(simulation),
     ideas: summarizeIdeas(simulation),
     conflict: summarizeConflict(simulation),
+    husbandry: summarizeHusbandry(simulation),
     predators: ['wolf', 'lion'].map((id) => {
       const code = simulation.data.fauna.species.findIndex((species) => species.id === id);
       let count = 0;
@@ -366,6 +371,20 @@ function summarizeAnomalies(simulation: Simulation): AnomalySummary {
       count: starts.filter((event) => event.details['anomaly'] === type.id).length,
     })),
     lines: starts.map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+  };
+}
+
+function summarizeHusbandry(simulation: Simulation): HeadlessReport['husbandry'] {
+  const { store } = simulation.fauna;
+  const counts = new Map<number, number>();
+  for (let slot = 0; slot < store.slots; slot++) if (store.alive[slot] === 1 && store.ownerCamp[slot]! >= 0) counts.set(store.species[slot]!, (counts.get(store.species[slot]!) ?? 0) + 1);
+  const count = (type: string): number => simulation.journal.all().filter((event) => event.type === type).length;
+  return {
+    herds: [...counts.entries()].sort((a, b) => a[0] - b[0]).map(([code, n]) => ({ name: simulation.data.fauna.species[code]!.tameName, count: n })),
+    captures: count(HUSBANDRY_EVENTS.capture),
+    escapes: count(DOMESTIC_EVENTS.escape),
+    stolen: simulation.conflict.counts.animalsStolen,
+    slaughters: count(HUSBANDRY_EVENTS.firstSlaughter),
   };
 }
 

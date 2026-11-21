@@ -27,11 +27,13 @@ export interface ItemDef {
 }
 
 /** Where a harvest takes place. */
-export const SOURCE_KINDS = ['plantProduce', 'plantBranches', 'tree', 'terrain', 'prey', 'fish', 'field', 'livestock'] as const;
+export const SOURCE_KINDS = ['plantProduce', 'plantBranches', 'tree', 'terrain', 'prey', 'fish', 'field', 'livestock', 'wild'] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
-export const RECIPE_EFFECTS = ['none', 'fuel', 'sow'] as const;
+export const RECIPE_EFFECTS = ['none', 'fuel', 'sow', 'capture', 'milk', 'shear', 'slaughter', 'feed'] as const;
 export type RecipeEffect = (typeof RECIPE_EFFECTS)[number];
+/** Effects of the herders' work, done on an animal (no station). */
+export const HUSBANDRY_EFFECTS: readonly RecipeEffect[] = ['capture', 'milk', 'shear', 'slaughter', 'feed'];
 
 /** `qty` units of any one of `items`. */
 export interface Ingredient {
@@ -125,12 +127,32 @@ export interface ProductionParams {
     riposteEscape: number;
   };
   crop: { growthDays: number; minCelsius: number; grainPerSeed: number; strawPerSeed: number };
+  /** Husbandry: capturing and taming, the pen, milking, shearing, feeding and slaughtering the animals. */
+  husbandry: {
+    searchTiles: number;
+    captureChance: number;
+    skillBonus: number;
+    youngFactor: number;
+    adultRiposte: number;
+    giveUpHours: number;
+    penCapacity: number;
+    lactationDays: number;
+    milkEveryDays: number;
+    shearEveryDays: number;
+    feedAboveHunger: number;
+    feedPerItem: number;
+    feedItems: string[];
+    slaughterFoodNeed: number;
+    keepAtLeast: number;
+    urgency: { pen: number; capture: number; milk: number; shear: number; feed: number; slaughter: number };
+    texts: { capture: string; young: string; first: string; slaughter: string; stolen: string };
+  };
   terrainSources: TerrainSource[];
   texts: {
     siteStarted: string;
     buildingDone: string;
     firstItem: string;
-    reasons: { shelter: string; storage: string; fire: string; station: string; perMember: string; worship: string; defense: string };
+    reasons: { shelter: string; storage: string; fire: string; station: string; perMember: string; worship: string; defense: string; livestock: string };
   };
 }
 
@@ -333,6 +355,47 @@ export const PRODUCTION_SCHEMA: Schema = {
         buildRingMax: int(2, 30, 'Distance maximale des constructions', 'Distance maximale entre le feu et un nouveau bâtiment.', 'tuiles'),
       },
     },
+    husbandry: {
+      kind: 'object',
+      fields: {
+        searchTiles: int(2, 80, 'Repérage des bêtes', 'Distance autour du camp où l’on cherche une bête sauvage à capturer.', 'tuiles'),
+        captureChance: num(0, 1, 'Capture', 'Chance par heure, au contact, qu’un débutant attrape une bête adulte.', 'probabilité'),
+        skillBonus: num(0, 1, 'Effet de l’expérience', 'Chance de capture ajoutée par une compétence d’élevage parfaite.', 'probabilité'),
+        youngFactor: num(1, 10, 'Jeunes bêtes', 'Un jeune animal est ce nombre de fois plus facile à capturer (et on le préfère).', 'facteur'),
+        adultRiposte: num(0, 1, 'Bête qui se débat', 'Part du risque de riposte de l’espèce quand on tente de capturer un adulte.', 'fraction'),
+        giveUpHours: num(0.5, 48, 'Patience', 'Heures sans succès avant de renoncer à une capture.', 'heures'),
+        penCapacity: int(1, 200, 'Taille d’un enclos', 'Bêtes qu’un camp garde au plus par enclos : au-delà, on ne capture plus et l’on abat le surplus.', 'bêtes'),
+        lactationDays: int(1, 400, 'Lactation', 'Jours après une mise bas pendant lesquels une femelle donne du lait.', 'jours'),
+        milkEveryDays: int(1, 40, 'Traite', 'Jours entre deux traites d’une même bête.', 'jours'),
+        shearEveryDays: int(1, 400, 'Tonte', 'Jours entre deux tontes d’une même bête.', 'jours'),
+        feedAboveHunger: num(0, 100, 'Bête affamée', 'On nourrit une bête de l’enclos quand sa faim dépasse ceci (la pâture ne suffit plus).', 'points'),
+        feedPerItem: num(0.1, 50, 'Fourrage', 'Nourriture d’animal donnée par une unité de fourrage (céréales, racines…).', 'unités'),
+        feedItems: idList('Fourrage', 'Objets du stock qu’on donne aux bêtes affamées.'),
+        slaughterFoodNeed: num(0, 1, 'Abattre en temps de disette', 'Au-dessus de ce manque de réserves de nourriture du camp, on abat une bête pour sa viande.', 'fraction'),
+        keepAtLeast: int(0, 50, 'Bêtes gardées', 'On n’abat pas (sauf surplus) une bête si le troupeau en compte ce nombre ou moins.', 'bêtes'),
+        urgency: {
+          kind: 'object',
+          fields: {
+            pen: num(0, 1, 'Enclos voulu', 'Urgence de construire un enclos quand on connaît l’élevage et que des bêtes domesticables vivent alentour.', 'fraction'),
+            capture: num(0, 1, 'Capturer', 'Envie d’aller capturer une bête quand l’enclos a de la place.', 'fraction'),
+            milk: num(0, 1, 'Traire', 'Envie d’aller traire quand une femelle a du lait.', 'fraction'),
+            shear: num(0, 1, 'Tondre', 'Envie d’aller tondre quand une bête a de la laine.', 'fraction'),
+            feed: num(0, 1, 'Nourrir', 'Envie de nourrir les bêtes quand certaines ont faim et qu’il y a du fourrage.', 'fraction'),
+            slaughter: num(0, 1, 'Abattre', 'Envie d’abattre une bête (surplus, ou disette).', 'fraction'),
+          },
+        },
+        texts: {
+          kind: 'object',
+          fields: {
+            capture: text('Capture (journal)', '{nom} capture {un_animal} : {jeune}, {peuple}.'),
+            young: text('Jeune bête', 'Précision quand la bête capturée est jeune.'),
+            first: text('Première bête', 'Précision quand c’est la première bête du camp.'),
+            slaughter: text('Abattage (journal, première fois)', '{nom} abat {un_animal}, la première bête abattue {peuple}.'),
+            stolen: text('Bêtes volées (journal)', '{n} bêtes {peuple} emmenées par {pillards}.'),
+          },
+        },
+      },
+    },
     hunting: {
       kind: 'object',
       fields: {
@@ -386,6 +449,7 @@ export const PRODUCTION_SCHEMA: Schema = {
             perMember: text('Raison : coutume', 'Raison d’un chantier voulu par la coutume. Remplacement : {n}.'),
             worship: text('Raison : culte', 'Raison d’un chantier de lieu de culte (sanctuaire, tombe) voulu par les fidèles.'),
             defense: text('Raison : défense', 'Raison d’un chantier de palissade ou de mur quand une menace est connue.'),
+            livestock: text('Raison : bêtes', 'Raison d’un chantier d’enclos (on connaît l’élevage et des bêtes à garder vivent alentour).'),
           },
         },
       },
@@ -419,8 +483,10 @@ export function parseRecipes(raw: unknown): RecipeBook {
   if (new Set(recipes.map((recipe) => recipe.id)).size !== recipes.length) problems.push('deux recettes ont le même « id ».');
   for (const recipe of recipes) {
     if (!recipe.source && recipe.outputs.length === 0 && recipe.effect === 'none') problems.push(`recette « ${recipe.id} » : elle ne produit rien.`);
-    if (recipe.source && recipe.outputs.length === 0) problems.push(`recette « ${recipe.id} » : une récolte doit indiquer ce qu'elle peut donner (« outputs »).`);
-    if (recipe.effect !== 'none' && !recipe.station) problems.push(`recette « ${recipe.id} » : l'effet « ${recipe.effect} » exige un lieu (« station »).`);
+    // Husbandry works on animals (no station; a capture gives the animal itself, no object).
+    const husbandry = HUSBANDRY_EFFECTS.includes(recipe.effect);
+    if (recipe.source && recipe.outputs.length === 0 && recipe.effect !== 'capture') problems.push(`recette « ${recipe.id} » : une récolte doit indiquer ce qu'elle peut donner (« outputs »).`);
+    if (recipe.effect !== 'none' && !husbandry && !recipe.station) problems.push(`recette « ${recipe.id} » : l'effet « ${recipe.effect} » exige un lieu (« station »).`);
   }
   if (problems.length > 0) throw new DataFileError(file, problems);
   return book;

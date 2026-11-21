@@ -62,12 +62,12 @@ function joinLoners(fauna: FaunaSystem): void {
     if (store.alive[slot] === 0) continue;
     const group = store.group[slot]!;
     const species = fauna.speciesOf(slot);
-    if (groups.size[group] !== 1 || species.groupSize[1] <= 1) continue;
+    if (groups.size[group] !== 1 || species.groupSize[1] <= 1 || store.ownerCamp[slot]! >= 0) continue;
     // A lone disperser of a territorial species pairs with another loner, never with a pack.
     const territorial = species.territoryTiles > 0;
     let target = -1;
     fauna.grid.forEachNear(store.x[slot]!, store.y[slot]!, params.behavior.lonerJoinRadius, (other) => {
-      if (target >= 0 || other === slot || store.species[other] !== store.species[slot]) return;
+      if (target >= 0 || other === slot || store.species[other] !== store.species[slot] || store.ownerCamp[other]! >= 0) return;
       const otherGroup = store.group[other]!;
       if (otherGroup !== group && groups.size[otherGroup]! < species.maxGroupSize && (!territorial || groups.size[otherGroup] === 1)) target = otherGroup;
     });
@@ -122,7 +122,7 @@ function updateMigrations(fauna: FaunaSystem, dayOfYear: number): MigrationStart
 function disperse(fauna: FaunaSystem): void {
   const { store, groups } = fauna;
   for (let slot = 0; slot < store.slots; slot++) {
-    if (store.alive[slot] === 0) continue;
+    if (store.alive[slot] === 0 || store.ownerCamp[slot]! >= 0) continue;
     const species = fauna.speciesOf(slot);
     if (species.dispersalPerYear <= 0) continue;
     const group = store.group[slot]!;

@@ -290,6 +290,25 @@
       "skills": ["hunting"]
     },
     {
+      "id": "herd",
+      "behavior": "herd",
+      "recipes": [],
+      "items": [],
+      "name": "S’occuper des bêtes",
+      "label": "S’occupe des bêtes",
+      "weight": 0.7,
+      "reason": "herdNeed",
+      "minAge": 10,
+      "considerations": [
+        { "input": "day", "curve": "linear", "a": 1, "b": 0 },
+        { "input": "load", "curve": "linear", "a": -1, "b": 1 },
+        { "input": "herdNeed", "curve": "linear", "a": 1, "b": 0 }
+      ],
+      "traits": { "diligence": 0.3, "prudence": 0.1 },
+      "requires": "animal_husbandry",
+      "skills": ["herding"]
+    },
+    {
       "id": "fish",
       "behavior": "harvest",
       "recipes": ["fish"],

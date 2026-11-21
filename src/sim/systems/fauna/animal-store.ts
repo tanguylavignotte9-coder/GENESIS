@@ -91,6 +91,21 @@ export class AnimalStore {
   immuneDays = new Int16Array(0);
   /** Spatial grid cell the animal is registered in. */
   cell = new Int32Array(0);
+  /**
+   * Domestic animals (husbandry): the camp that keeps it (-1 = wild), its owner (a person, -1 =
+   * the camp in common), where it lives (the pen, decimal tiles), how tame it is (0..1), the days
+   * it was last milked and shorn, and the journal event of its capture (-1).
+   */
+  ownerCamp = new Int32Array(0);
+  ownerPerson = new Int32Array(0);
+  homeX = new Float32Array(0);
+  homeY = new Float32Array(0);
+  /** 1 when its home is a pen (an animal kept without a pen escapes more easily). */
+  penned = new Uint8Array(0);
+  tame = new Float32Array(0);
+  milkedDay = new Int32Array(0);
+  shornDay = new Int32Array(0);
+  captureEvent = new Int32Array(0);
 
   constructor() {
     this.grow(INITIAL_CAPACITY);
@@ -114,6 +129,13 @@ export class AnimalStore {
     this.lastBirthDay[slot] = NEVER;
     this.sickDays[slot] = 0;
     this.immuneDays[slot] = 0;
+    this.ownerCamp[slot] = -1;
+    this.ownerPerson[slot] = -1;
+    this.penned[slot] = 0;
+    this.tame[slot] = 0;
+    this.milkedDay[slot] = NEVER;
+    this.shornDay[slot] = NEVER;
+    this.captureEvent[slot] = -1;
     this.state[slot] = State.Rest;
     this.vx[slot] = 0;
     this.vy[slot] = 0;
@@ -122,6 +144,11 @@ export class AnimalStore {
     this.pushY[slot] = 0;
     this.living++;
     return slot;
+  }
+
+  /** Kept by humans (a domestic animal)? */
+  isDomestic(slot: number): boolean {
+    return this.ownerCamp[slot]! >= 0;
   }
 
   remove(slot: number): void {
@@ -168,6 +195,15 @@ export class AnimalStore {
     this.sickDays = copy(this.sickDays, (n) => new Uint8Array(n));
     this.immuneDays = copy(this.immuneDays, (n) => new Int16Array(n));
     this.cell = copy(this.cell, (n) => new Int32Array(n));
+    this.ownerCamp = copy(this.ownerCamp, (n) => new Int32Array(n));
+    this.ownerPerson = copy(this.ownerPerson, (n) => new Int32Array(n));
+    this.homeX = copy(this.homeX, (n) => new Float32Array(n));
+    this.homeY = copy(this.homeY, (n) => new Float32Array(n));
+    this.penned = copy(this.penned, (n) => new Uint8Array(n));
+    this.tame = copy(this.tame, (n) => new Float32Array(n));
+    this.milkedDay = copy(this.milkedDay, (n) => new Int32Array(n));
+    this.shornDay = copy(this.shornDay, (n) => new Int32Array(n));
+    this.captureEvent = copy(this.captureEvent, (n) => new Int32Array(n));
     this.capacity = capacity;
   }
 }

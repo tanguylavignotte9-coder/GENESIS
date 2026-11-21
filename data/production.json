@@ -27,6 +27,31 @@
     "riposteEscape": 0.5
   },
   "crop": { "growthDays": 16, "minCelsius": 8, "grainPerSeed": 6, "strawPerSeed": 2 },
+  "husbandry": {
+    "searchTiles": 30,
+    "captureChance": 0.12,
+    "skillBonus": 0.4,
+    "youngFactor": 3,
+    "adultRiposte": 0.5,
+    "giveUpHours": 6,
+    "penCapacity": 20,
+    "lactationDays": 60,
+    "milkEveryDays": 1,
+    "shearEveryDays": 40,
+    "feedAboveHunger": 60,
+    "feedPerItem": 3,
+    "feedItems": ["straw", "wild_cereals", "grain", "roots"],
+    "slaughterFoodNeed": 0.6,
+    "keepAtLeast": 4,
+    "urgency": { "pen": 0.5, "capture": 0.45, "milk": 0.55, "shear": 0.4, "feed": 0.7, "slaughter": 0.6 },
+    "texts": {
+      "capture": "{nom} capture {un_animal}{jeune}{premier}.",
+      "young": " encore jeune",
+      "first": " : la première bête {peuple}",
+      "slaughter": "{nom} abat {un_animal} : la première bête abattue {peuple}, de la viande sans chasser.",
+      "stolen": "{pillards} emmènent {n} bêtes {peuple}."
+    }
+  },
   "terrainSources": [
     { "item": "stone", "river": true, "lakeShore": true, "biomes": ["mountain", "desert", "tundra", "beach"], "minElevation": 900 },
     { "item": "flint", "river": true, "lakeShore": false, "biomes": ["mountain"], "minElevation": 600 },
@@ -46,7 +71,8 @@
       "station": "il en faut un pour « {recette} »",
       "perMember": "la coutume en veut un pour {n} personnes",
       "worship": "les fidèles veulent un lieu pour leur culte",
-      "defense": "une menace pèse sur le camp"
+      "defense": "une menace pèse sur le camp",
+      "livestock": "on veut garder des bêtes"
     }
   }
 }

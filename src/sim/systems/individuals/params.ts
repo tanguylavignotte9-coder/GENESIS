@@ -24,6 +24,7 @@ export const INPUTS = [
   'woodLow',
   'buildNeed',
   'craftNeed',
+  'herdNeed',
   'always',
   'warCall',
   'envoyCall',
@@ -33,7 +34,7 @@ export const INPUTS = [
 export type Input = (typeof INPUTS)[number];
 
 /** Built-in behaviours; each data action names one of them (work behaviours run recipes of data/recipes.json). */
-export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play', 'mission'] as const;
+export const BEHAVIORS = ['drink', 'eat', 'harvest', 'deposit', 'tend_fire', 'build', 'craft', 'warm_up', 'sleep', 'return_camp', 'flee', 'stay_with_group', 'rest', 'converse', 'give', 'carried', 'follow_guardian', 'play', 'mission', 'herd'] as const;
 export type Behavior = (typeof BEHAVIORS)[number];
 
 export interface Consideration {

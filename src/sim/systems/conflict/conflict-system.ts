@@ -44,7 +44,7 @@ export class ConflictSystem implements ConflictView {
   /** Last day each avenger tried their revenge. */
   readonly lastRevenge = new Map<number, number>();
   /** Counters for the summaries (brawls, killings, feuds, raids, wars, battles…). */
-  readonly counts = { brawls: 0, murders: 0, exiles: 0, feuds: 0, revenges: 0, raids: 0, wars: 0, battles: 0, conquests: 0, tributes: 0, peaces: 0, truces: 0, civilWars: 0, captives: 0, deserters: 0, betrayals: 0, marriages: 0 };
+  readonly counts = { brawls: 0, murders: 0, exiles: 0, feuds: 0, revenges: 0, raids: 0, wars: 0, battles: 0, conquests: 0, tributes: 0, peaces: 0, truces: 0, civilWars: 0, captives: 0, deserters: 0, betrayals: 0, marriages: 0, animalsStolen: 0 };
   journalRead = 0;
   day = 0;
   tick = 0;

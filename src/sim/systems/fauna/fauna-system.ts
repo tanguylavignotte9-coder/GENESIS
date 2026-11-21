@@ -1,3 +1,4 @@
+import { herdKey, liveDomesticDay, publishDomesticDeaths, publishEscapes } from './domestic';
 import type { Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
 import type { Rng } from '../../core/rng';
@@ -59,6 +60,13 @@ export class FaunaSystem {
   /** Cumulated deaths per species and cause: deaths[species][cause]. */
   readonly deaths: number[][];
   readonly size: number;
+  /** Herd of each camp's domestic animals of a species (key: `herdKey(camp, species)`). */
+  readonly domesticGroups = new Map<number, number>();
+  /** Escapes and deaths of domestic animals of the day, told in the journal at the end of the day. */
+  readonly escapes: { slot: number; camp: number; species: number; why: string; cause: number }[] = [];
+  readonly domesticDeaths = new Map<number, number[]>();
+  /** Who keeps each camp's animals, as said in the journal (« de la tribu des Tamuki »), kept up to date by the groups. */
+  readonly keeperNames: string[] = [];
   /** Last year each migration (species:landmass:direction) was reported in the journal. */
   readonly migrationReports = new Map<string, number>();
   step = 0;
@@ -196,10 +204,19 @@ export class FaunaSystem {
     this.carrion.rot(this.params.carrion.rotPerDay, this.params.carrion.minimumMeat);
     spreadSickness(this);
     for (let slot = 0; slot < this.store.slots; slot++) {
-      if (this.store.alive[slot] === 1) liveOneDay(this, slot);
+      if (this.store.alive[slot] !== 1) continue;
+      if (this.store.ownerCamp[slot]! >= 0) liveDomesticDay(this, slot);
+      liveOneDay(this, slot);
     }
+    publishEscapes(this, journal, tick);
+    publishDomesticDeaths(this, journal, tick, this.params.domestic.causeNames);
     maintainGroups(this, dayOfYear, journal, tick);
     this.census.onDay(absoluteDay, journal, tick);
+  }
+
+  /** « de la tribu des Tamuki » (« du camp » before the camp's people are named). */
+  keeperName(camp: number): string {
+    return this.keeperNames[camp] || this.params.domestic.texts.unknownKeeper;
   }
 
   /** Puts an animal at a free position (decimal tiles), keeping its tile and the spatial grid up to date. */
@@ -254,6 +271,14 @@ export class FaunaSystem {
     const { store } = this;
     if (store.alive[slot] === 0) return;
     this.deaths[store.species[slot]!]![cause]!++;
+    // A domestic animal's death (but a slaughter, told by its keepers) is told at the end of the day.
+    if (store.ownerCamp[slot]! >= 0 && cause !== DeathCause.Hunted) {
+      const key = herdKey(store.ownerCamp[slot]!, store.species[slot]!);
+      const counts = this.domesticDeaths.get(key) ?? DEATH_CAUSE_NAMES.map(() => 0);
+      counts[cause] = counts[cause]! + 1;
+      this.domesticDeaths.set(key, counts);
+      store.ownerCamp[slot] = -1;
+    }
     this.grid.remove(slot, store.cell[slot]!);
     if (this.isHunter[store.species[slot]!] === 1) this.hunterGrid.remove(slot, store.cell[slot]!);
     const group = store.group[slot]!;
@@ -285,7 +310,7 @@ export class FaunaSystem {
       const target = Math.round((habitat / 1000) * species.populationPer1000Tiles);
       let placed = 0;
       while (placed < target) {
-        const tile = this.pickHabitatTile(weightOf, maxWeight);
+        const tile = this.pickHabitatTile(weightOf, maxWeight, code);
         if (tile < 0) return;
         const members = Math.min(target - placed, this.rng.nextIntInclusive(species.groupSize[0], species.groupSize[1]));
         const group = this.groups.add(code, -1);
@@ -300,15 +325,49 @@ export class FaunaSystem {
     });
   }
 
-  private pickHabitatTile(weightOf: Float32Array, maxWeight: number): number {
+  /**
+   * A tile of the species' habitat. A hunter that needs prey to raise its young settles only where
+   * that much prey lives around (the herds are placed first), and a territorial one not on the
+   * territory of another pack: predators live where their prey is. When no such place is left,
+   * fewer of them are born with the world.
+   */
+  private pickHabitatTile(weightOf: Float32Array, maxWeight: number, code: number): number {
     const tiles = this.size * this.size;
-    const maxAttempts = 100000;
+    const species = this.params.species[code]!;
+    const choosy = species.breedingMinPrey > 0 || species.territoryTiles > 0;
+    const maxAttempts = choosy ? this.params.behavior.spawnSiteAttempts : 100000;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const tile = this.rng.nextIntInclusive(0, tiles - 1);
       const x = tile % this.size;
-      if (!this.isWalkable(x, (tile - x) / this.size) || this.waterPath[tile]! < 0) continue;
-      if (this.rng.nextFloat() * maxWeight < weightOf[this.world.biome[tile]!]!) return tile;
+      const y = (tile - x) / this.size;
+      if (!this.isWalkable(x, y) || this.waterPath[tile]! < 0) continue;
+      if (this.rng.nextFloat() * maxWeight >= weightOf[this.world.biome[tile]!]!) continue;
+      if (species.territoryTiles > 0 && this.kinWithin(code, x, y, species.territoryTiles)) continue;
+      if (species.breedingMinPrey > 0 && this.preyWithin(code, x, y, species.preyCheckRadius, species.breedingMinPrey) < species.breedingMinPrey) continue;
+      return tile;
     }
     return -1;
+  }
+
+  /** Prey of the hunter species within `radius` tiles (counting stops at `max`). */
+  preyWithin(hunter: number, x: number, y: number, radius: number, max: number): number {
+    const { store } = this;
+    const n = this.params.species.length;
+    let seen = 0;
+    this.grid.forEachNear(x, y, radius, (other) => {
+      if (seen >= max || this.hunts[hunter * n + store.species[other]!] !== 1) return;
+      if (Math.abs(store.x[other]! - x) <= radius && Math.abs(store.y[other]! - y) <= radius) seen++;
+    });
+    return seen;
+  }
+
+  /** Whether an animal of the species already lives within `radius` tiles. */
+  private kinWithin(code: number, x: number, y: number, radius: number): boolean {
+    const { store } = this;
+    let found = false;
+    this.grid.forEachNear(x, y, radius, (other) => {
+      if (!found && store.species[other] === code) found = Math.abs(store.x[other]! - x) <= radius && Math.abs(store.y[other]! - y) <= radius;
+    });
+    return found;
   }
 }

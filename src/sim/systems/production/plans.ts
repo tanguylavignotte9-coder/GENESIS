@@ -1,3 +1,4 @@
+import { herdNeed, penWanted } from './husbandry';
 import { satisfies } from '../../core/knowledge';
 import { BuildState } from './buildings';
 import type { BuildPlan, CampNeeds, CampState, CraftPlan, WantReason } from './camps';
@@ -24,7 +25,7 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
     members.push(person);
     knowledge = (knowledge | sys.people.knowledge(person)) >>> 0;
   }
-  const needs: CampNeeds = { food: 0, wood: 0, build: 0, craft: 0, buildPlan: null, craftPlan: null, foodReserve: 0, foodHave: 0, woodReserve: 0, woodHave: 0, members, knowledge };
+  const needs: CampNeeds = { food: 0, wood: 0, build: 0, craft: 0, herd: 0, buildPlan: null, craftPlan: null, foodReserve: 0, foodHave: 0, woodReserve: 0, woodHave: 0, members, knowledge };
   camp.needs = needs;
   if (members.length === 0) return;
 
@@ -67,6 +68,7 @@ export function computeNeeds(sys: ProductionSystem, camp: CampState): void {
     needs.buildPlan = build.plan;
     needs.build = clamp01(build.urgency * policy.build);
   }
+  needs.herd = clamp01(herdNeed(sys, camp));
 }
 
 function clamp01(value: number): number {
@@ -165,7 +167,7 @@ function carriedByMembers(sys: ProductionSystem, camp: CampState, item: number):
 /** Can a harvest happen at all here (its source kind exists for this camp)? */
 export function harvestPossible(sys: ProductionSystem, camp: number, recipe: Recipe): boolean {
   const kind = recipe.def.source?.kind;
-  if (kind === 'livestock') return false; // no domestic animals yet
+  if (kind === 'livestock' || kind === 'wild') return false; // husbandry: the herders' own work (husbandry.ts)
   if (kind === 'field') return sys.campBuildings(camp).some((b) => b.state === BuildState.Done && b.grain >= 1);
   return true;
 }
@@ -327,6 +329,11 @@ function chooseBuild(sys: ProductionSystem, camp: CampState, knowledge: number, 
       if (!defense || type.def.workHours > defense.def.workHours) defense = type;
     }
     if (defense) return fresh(defense, 'defense', Math.min(1, urgency.defense * camp.threat));
+  }
+  // Knowing husbandry, with animals to keep around: a pen.
+  if (penWanted(sys, camp)) {
+    const pen = sys.catalog.buildings.find((type) => type.def.function === 'pen' && satisfies(knowledge, type.knowledgeMask) && type.materials.every((need) => obtainable(sys, camp, knowledge, need)));
+    if (pen) return fresh(pen, 'livestock', sys.params.husbandry.urgency.pen);
   }
   // The faithful of a religion want a place of worship (a sanctuary, or a tomb for their ancestors).
   const worship = sys.faith?.worshipWanted(camp.id) ?? null;

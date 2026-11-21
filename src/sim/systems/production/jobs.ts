@@ -7,8 +7,9 @@ import { harvestPossible, stationOf } from './plans';
 import type { ProductionSystem } from './production-system';
 import { findSource, takeFromSource, yieldAt } from './sources';
 import { goHunting, huntStep } from './hunting';
+import { herdStep, startHerd } from './husbandry';
 
-export type JobKind = 'harvest' | 'craft' | 'build' | 'deposit' | 'fuel';
+export type JobKind = 'harvest' | 'craft' | 'build' | 'deposit' | 'fuel' | 'herd';
 
 /** What the brain asks for: a kind of work, the recipes it may use, the items it is after. */
 export interface JobSpec {
@@ -230,6 +231,13 @@ function createJob(sys: ProductionSystem, person: number, spec: JobSpec): number
       break;
     case 'build':
       job = startBuild(sys, person);
+      break;
+    case 'herd':
+      job = startHerd(sys, person, (recipe, target) => {
+        const herdJob = newJob('herd', Stage.Hunt, recipe, target);
+        herdJob.station = -1;
+        return herdJob;
+      });
       break;
   }
   sys.jobs[person] = job;
@@ -467,6 +475,12 @@ export function workAt(sys: ProductionSystem, person: number, hours: number): Wo
   const job = sys.jobs[person];
   if (!job) {
     out.status = 'failed';
+    return out;
+  }
+  if (job.kind === 'herd') {
+    herdStep(sys, person, job, hours, out);
+    if (out.status === 'done' || out.status === 'failed') sys.endJob(person);
+    else if (out.status === 'move') job.target = out.tile;
     return out;
   }
   switch (job.stage) {

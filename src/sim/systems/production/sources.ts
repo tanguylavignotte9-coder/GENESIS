@@ -138,7 +138,7 @@ export function findSourceFrom(sys: ProductionSystem, x0: number, y0: number, ca
     }
     return best;
   }
-  if (kind === 'livestock' || kind === 'prey' || kind === undefined) return -1;
+  if (kind === 'livestock' || kind === 'wild' || kind === 'prey' || kind === undefined) return -1;
   const size = sys.size;
   const mask = wantedMask(sys, wanted);
   let best = -1;

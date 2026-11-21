@@ -80,8 +80,14 @@ export interface AnimalSpecies {
   migratory: boolean;
   /** Distance of the seasonal migration toward the equator (autumn) and back (spring). */
   migrationTiles: number;
-  /** Can be tamed later (herding). */
+  /** Can be captured and tamed by people who know husbandry. */
   domesticable: boolean;
+  /** Domestic animals: milk given by a nursing female at each milking, wool by an adult at each shearing (0 = none). */
+  milk: number;
+  wool: number;
+  /** Name of the tamed animal (« chèvre », « chien ») and whether it is feminine (journal). */
+  tameName: string;
+  tameFeminine: boolean;
   /** What the animal provides when it dies (for the hunters of later steps). */
   carcass: ResourceAmount[];
 }
@@ -115,6 +121,7 @@ export interface FaunaParams {
     packShareRadius: number;
     lonerJoinRadius: number;
     waterSearchTiles: number;
+    spawnSiteAttempts: number;
     migrationMaxDays: number;
     breedingMinHealth: number;
     breedingMaxHunger: number;
@@ -150,6 +157,17 @@ export interface FaunaParams {
   /** How game perceives humans: individual wariness, people who are not hunting. */
   humanFear: { warinessSpread: number; calmShare: number };
   humanPrey: { hunters: string[]; minHunger: number; loneTiles: number; attackChancePerStep: number; attackDamage: number };
+  /** Domestic animals (husbandry): pasture, taming, escapes, how their deaths are told. */
+  domestic: {
+    pastureTiles: number;
+    tamePerDay: number;
+    escapePerDay: number;
+    hungerEscape: number;
+    noPenEscape: number;
+    starvingEscape: number;
+    causeNames: string[];
+    texts: { escape: string; wild: string; noPen: string; starving: string; deathsOne: string; deathsMany: string; unknownKeeper: string };
+  };
   events: {
     collapseShare: number;
     collapseMinPopulation: number;
@@ -213,7 +231,11 @@ const SPECIES_SCHEMA: Schema = {
     meat: num(0, 1000, 'Viande', 'Unités de nourriture que donne le corps d’un adulte à ses chasseurs (moitié pour un petit).', 'unités'),
     migratory: flag('Migrateur', 'Les troupeaux partent vers l’équateur en automne et reviennent au printemps.'),
     migrationTiles: int(0, 1000, 'Distance de migration', 'Distance du voyage saisonnier.', 'tuiles'),
-    domesticable: flag('Domesticable', 'Pourra être apprivoisé quand l’élevage existera (sans effet pour l’instant).'),
+    domesticable: flag('Domesticable', 'Peut être capturé et apprivoisé par ceux qui connaissent l’élevage.'),
+    milk: num(0, 20, 'Lait', 'Bête domestique : lait donné à chaque traite par une femelle qui allaite (0 = on ne la trait pas).', 'unités'),
+    tameName: text('Nom domestique', 'Nom de la bête apprivoisée (« chèvre », « bœuf », « chien »), au journal.'),
+    tameFeminine: flag('Nom féminin', 'Le nom domestique est féminin (« une chèvre »).'),
+    wool: num(0, 20, 'Laine', 'Bête domestique : laine donnée par un adulte à chaque tonte (0 = on ne la tond pas).', 'unités'),
     carcass: {
       kind: 'array',
       items: {
@@ -262,6 +284,7 @@ export const ANIMALS_SCHEMA: Schema = {
         packShareRadius: int(0, 64, 'Partage de la proie', 'Les membres de la meute dans quatre fois ce rayon viennent manger la proie.', 'tuiles'),
         lonerJoinRadius: int(0, 200, 'Recherche d’un groupe', 'Distance à laquelle un animal seul trouve un groupe de son espèce.', 'tuiles'),
         waterSearchTiles: int(1, 2000, 'Recherche de l’eau', 'Distance maximale du chemin connu vers l’eau douce.', 'tuiles', NEW_WORLD),
+        spawnSiteAttempts: int(1, 1000000, 'Recherche d’un territoire', 'Lieux essayés pour chaque meute de départ (un chasseur ne s’installe que là où vit assez de gibier, hors du territoire d’une autre meute) ; faute de lieu, il y a moins de chasseurs au départ.', 'essais', NEW_WORLD),
         migrationMaxDays: int(1, 200, 'Durée maximale d’une migration', 'Une migration s’arrête au plus tard après ce nombre de jours.', 'jours'),
         breedingMinHealth: num(0, 100, 'Santé pour se reproduire', 'Santé minimale d’une femelle pour concevoir.', 'points'),
         breedingMaxHunger: num(0, 100, 'Faim pour se reproduire', 'Au-dessus de cette faim, une femelle ne conçoit pas.', 'points'),
@@ -335,6 +358,30 @@ export const ANIMALS_SCHEMA: Schema = {
         loneTiles: int(1, 30, 'Personne seule', 'Une personne sans personne d’autre à cette distance est une proie possible ; un prédateur n’attaque pas un groupe.', 'tuiles'),
         attackChancePerStep: share('Attaque', 'Chance par pas (une heure de jeu) qu’un prédateur au contact d’une personne seule l’attaque.'),
         attackDamage: num(1, 100, 'Blessure', 'Santé perdue par la personne à chaque attaque.', 'points'),
+      },
+    },
+    domestic: {
+      kind: 'object',
+      fields: {
+        pastureTiles: num(1, 30, 'Pâture', 'Une bête domestique broute et vit à cette distance de son enclos (ou du camp sans enclos), et y boit à l’abreuvoir.', 'tuiles'),
+        tamePerDay: num(0, 1, 'Apprivoisement', 'Ce qu’une bête capturée gagne chaque jour en docilité (1 = apprivoisée ; ses petits naissent apprivoisés).', 'par jour'),
+        escapePerDay: num(0, 1, 'Fuite', 'Chance par jour qu’une bête tout juste capturée s’échappe (diminue à mesure qu’elle s’apprivoise).', 'chance/jour'),
+        hungerEscape: num(0, 20, 'Faim et fuite', 'Une bête affamée s’échappe jusqu’à (1 + ceci) fois plus souvent.', 'facteur'),
+        noPenEscape: num(1, 20, 'Sans enclos', 'Une bête gardée sans enclos s’échappe ce nombre de fois plus souvent.', 'facteur'),
+        starvingEscape: num(0, 1, 'Faim extrême', 'Chance par jour, en plus, qu’une bête à bout de faim s’échappe même apprivoisée.', 'chance/jour'),
+        causeNames: { kind: 'array', minLength: 7, maxLength: 7, items: text('Cause de mort', 'Comment on dit la mort d’une bête domestique au journal (vieillesse, faim, soif, froid, prédateurs, abattage, maladie).') },
+        texts: {
+          kind: 'object',
+          fields: {
+            escape: text('Fuite (journal)', 'Une bête domestique s’échappe : {animal}, {peuple}, {raison}, {lieu}.'),
+            wild: text('Raison : encore sauvage', 'Raison d’une fuite d’une bête peu apprivoisée.'),
+            noPen: text('Raison : pas d’enclos', 'Raison d’une fuite d’une bête gardée sans enclos.'),
+            starving: text('Raison : faim', 'Raison d’une fuite d’une bête affamée.'),
+            deathsOne: text('Mort d’une bête (journal)', 'Une bête domestique est morte : {animal}, {peuple}, {causes}.'),
+            unknownKeeper: text('Propriétaire inconnu', 'Dit à la place du peuple tant que les gardiens n’ont pas de nom (« du camp »).'),
+            deathsMany: text('Morts de bêtes (journal)', 'Plusieurs bêtes domestiques sont mortes le même jour : {n}, {animaux}, {peuple}, {causes}.'),
+          },
+        },
       },
     },
     events: {

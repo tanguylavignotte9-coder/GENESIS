@@ -1,3 +1,4 @@
+import type { Group } from '../../../src/sim/systems/groups/group';
 import { describe, expect, it } from 'vitest';
 import { Simulation } from '../../../src/sim/core/simulation';
 import type { GameData } from '../../../src/sim/core/game-data';
@@ -87,7 +88,12 @@ describe('group life', () => {
     day(simulation, 1);
     const tribe = groups.tribes()[0]!;
     // A clan of a few households (as if it had formed over the generations).
-    const families = groups.childrenOf(tribe).filter((group) => group.level === 2).slice(0, 3);
+    // Households until the clan is big enough to leave (their sizes vary from world to world).
+    const families: Group[] = [];
+    for (const family of groups.childrenOf(tribe).filter((group) => group.level === 2)) {
+      if (families.reduce((n, f) => n + f.members.length, 0) >= 8) break;
+      families.push(family);
+    }
     const founder = families[0]!.members[0]!;
     const clan = groups.addGroup(1, tribe.id, founder, 0, -1);
     for (const family of families) {

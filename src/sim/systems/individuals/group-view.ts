@@ -11,5 +11,7 @@ export interface GroupView {
   dutyFactor(person: number, duty: number): number;
   /** Inheritance rule of the person's tribe: "spouseChildren", "childrenEqual", "eldestChild" or "group". */
   inheritanceRule(person: number): string;
+  /** Id of the property rule of the person's tribe (common, family, private). */
+  propertyRule(person: number): string;
   stillWants(person: number, ambition: string): boolean;
 }

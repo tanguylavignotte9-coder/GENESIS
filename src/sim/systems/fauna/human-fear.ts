@@ -27,7 +27,8 @@ export function scareGame(fauna: FaunaSystem): void {
     const look = hunting ? hunterReach : passerReach;
     fauna.grid.forEachNear(px, py, look, (slot) => {
       const distance = realDistance(store.px[slot]!, store.py[slot]!, px, py);
-      if (distance >= look || store.state[slot] === State.Flee) return;
+      // Domestic animals are used to people: they do not run from them.
+      if (distance >= look || store.state[slot] === State.Flee || store.ownerCamp[slot]! >= 0) return;
       const tiles = fleeTiles[store.species[slot]!]!;
       if (tiles <= 0) return;
       const radius = tiles * store.wariness[slot]!;

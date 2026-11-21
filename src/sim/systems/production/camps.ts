@@ -11,6 +11,8 @@ export interface CampNeeds {
   build: number;
   /** An object wanted by custom is missing and can be made. */
   craft: number;
+  /** The camp's animals need their herders (to feed, milk, shear, slaughter) or there is room to capture one. */
+  herd: number;
   /** What to build: an existing site (id) or a new building type and why. */
   buildPlan: BuildPlan | null;
   craftPlan: CraftPlan | null;
@@ -24,7 +26,7 @@ export interface CampNeeds {
   knowledge: number;
 }
 
-export type WantReason = 'fire' | 'shelter' | 'storage' | 'station' | 'perMember' | 'worship' | 'defense';
+export type WantReason = 'fire' | 'shelter' | 'storage' | 'station' | 'perMember' | 'worship' | 'defense' | 'livestock';
 
 export interface BuildPlan {
   /** Existing site to work on (-1: start a new one of `type`). */
@@ -83,7 +85,7 @@ export class CampState {
   policy: CampPolicy = { food: 1, wood: 1, build: 1, craft: 1 };
   /** How threatened the camp feels (0..1: a war, a recent raid, a feud known to its people), set by the conflict system. */
   threat = 0;
-  needs: CampNeeds = { food: 0, wood: 0, build: 0, craft: 0, buildPlan: null, craftPlan: null, foodReserve: 0, foodHave: 0, woodReserve: 0, woodHave: 0, members: [], knowledge: 0 };
+  needs: CampNeeds = { food: 0, wood: 0, build: 0, craft: 0, herd: 0, buildPlan: null, craftPlan: null, foodReserve: 0, foodHave: 0, woodReserve: 0, woodHave: 0, members: [], knowledge: 0 };
 
   constructor(
     readonly id: number,

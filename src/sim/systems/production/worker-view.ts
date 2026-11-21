@@ -25,6 +25,10 @@ export interface WorkerView {
   vigor(person: number, skill?: number): number;
   name(person: number): string;
   female(person: number): boolean;
+  /** Who owns what the person catches, by the property rule of the tribe: the person, or -1 (in common). */
+  propertyOwner(person: number): number;
+  /** Who inherits the possessions of a dead person (the first heir), or -1 (the camp in common). */
+  heirOf(person: number): number;
   /** Spouse, parents and children (living or not). */
   family(person: number): number[];
 }

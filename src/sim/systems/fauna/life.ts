@@ -117,5 +117,15 @@ function giveBirth(fauna: FaunaSystem, mother: number): void {
     const child = fauna.spawn(store.species[mother]!, store.px[mother]!, store.py[mother]!, store.group[mother]!, 0);
     store.hunger[child] = 0;
     store.thirst[child] = 0;
+    // Born among its keepers: domestic and tame, with its mother's owner and home.
+    if (store.ownerCamp[mother]! >= 0) {
+      store.ownerCamp[child] = store.ownerCamp[mother]!;
+      store.ownerPerson[child] = store.ownerPerson[mother]!;
+      store.homeX[child] = store.homeX[mother]!;
+      store.homeY[child] = store.homeY[mother]!;
+      store.penned[child] = store.penned[mother]!;
+      store.tame[child] = 1;
+      store.captureEvent[child] = store.captureEvent[mother]!;
+    }
   }
 }

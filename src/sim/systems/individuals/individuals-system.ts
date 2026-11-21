@@ -190,8 +190,9 @@ export class IndividualsSystem {
         x: (person) => this.people.px[person]!,
         y: (person) => this.people.py[person]!,
         alive: (person) => this.people.alive[person] === 1,
-        hunting: (person) => this.production.isHunting(person),
+        hunting: (person) => this.production.isHunting(person) && !this.production.isTaming(person),
         scaring: (person) => this.behavior(person) === 'drive_off',
+        taming: (person) => this.production.isTaming(person),
       },
       { sufferAttack: (person, attack, journal) => this.sufferAttack(person, attack, journal) },
     );

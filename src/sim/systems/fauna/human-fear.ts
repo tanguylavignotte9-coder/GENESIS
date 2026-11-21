@@ -26,6 +26,7 @@ export function scareGame(fauna: FaunaSystem): void {
     const px = view.x(person);
     const py = view.y(person);
     const scaring = view.scaring?.(person) === true;
+    const taming = view.taming?.(person) === true;
     let crowd = -1;
     fauna.grid.forEachNear(px, py, look, (slot) => {
       const distance = realDistance(store.px[slot]!, store.py[slot]!, px, py);
@@ -45,6 +46,8 @@ export function scareGame(fauna: FaunaSystem): void {
         }
       }
       if (scaring) reach *= fear.driveOffFactor;
+      // A herder creeping up slowly, without a weapon, to capture it: noticed only much closer.
+      else if (taming) reach *= fear.tamerShare;
       if (distance >= reach || fauna.rng.nextFloat() >= 1 - distance / reach) return;
       fleeFrom(fauna, slot, px, py);
       store.fleesHuman[slot] = 1;

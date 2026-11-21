@@ -140,7 +140,7 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   console.log(`  Conflit               : ${k['brawls']} rixe(s), ${k['murders']} meurtre(s), ${k['exiles']} exil(s), ${k['feuds']} vendetta(s), ${k['revenges']} vengeance(s), ${k['raids']} raid(s), ${k['wars']} guerre(s), ${k['battles']} bataille(s), ${k['conquests']} conquête(s), ${k['tributes']} tribut(s), ${k['peaces']} paix, ${k['truces']} trêve(s), ${k['civilWars']} guerre(s) civile(s), ${k['captives']} captif(s), ${k['deserters']} déserteur(s), ${k['betrayals']} trahison(s) ; ${report.conflict.violentDeaths} mort(s) violente(s) ; ${report.conflict.tribesAlive} tribu(s) à la fin, ${report.conflict.atWar} guerre(s) en cours`);
   console.log(`  Prédateurs            : ${report.predators.map((line) => `${line.name} ${line.count}`).join(', ')}`);
   const herds = report.husbandry.herds.map((line) => `${line.name} ${line.count}`).join(', ');
-  console.log(`  Élevage               : bêtes ${herds || 'aucune'} · captures ${report.husbandry.captures}, fuites ${report.husbandry.escapes}, volées ${report.husbandry.stolen}, premiers abattages ${report.husbandry.slaughters}`);
+  console.log(`  Élevage               : bêtes ${herds || 'aucune'} · captures ${report.husbandry.captures}, abattues ${report.husbandry.slaughters}, échappées ${report.husbandry.escapes}, mortes autrement ${report.husbandry.otherDeaths}, volées ${report.husbandry.stolen}, rendues à la nature ${report.husbandry.released}`);
   if (report.conflict.events.length > 0) {
     console.log('  Violence et diplomatie :');
     for (const line of report.conflict.events.slice(0, 60)) console.log(`    ${line}`);

@@ -1,7 +1,7 @@
 import { distance } from '../../core/motion';
 import { satisfies } from '../../core/knowledge';
 import { fillTemplate } from '../../core/text';
-import { domesticate, genderOf, releaseToWild } from '../fauna/domestic';
+import { abandonToWild, domesticate, genderOf } from '../fauna/domestic';
 import { feed } from '../fauna/food';
 import { BuildState } from './buildings';
 import type { Recipe } from './catalog';
@@ -442,7 +442,7 @@ export function husbandryDay(sys: ProductionSystem): void {
     }
     const home = homeFor(store.ownerCamp[slot]!);
     if (!home) {
-      releaseToWild(sys.fauna, slot);
+      abandonToWild(sys.fauna, slot);
       continue;
     }
     store.homeX[slot] = home.x;

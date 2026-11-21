@@ -17,6 +17,7 @@ import type { AnimalSpecies } from './params';
 export const DOMESTIC_EVENTS = {
   escape: 'fauna.domestic.escape',
   deaths: 'fauna.domestic.deaths',
+  released: 'fauna.domestic.released',
 } as const;
 
 /** Words for a tamed animal in a sentence: « Une chèvre … échappée », « Un chien … échappé ». */
@@ -174,6 +175,7 @@ export function liveDomesticDay(fauna: FaunaSystem, slot: number): boolean {
   const camp = store.ownerCamp[slot]!;
   const why = hunger >= 1 ? d.texts.starving : store.penned[slot] === 1 ? d.texts.wild : d.texts.noPen;
   fauna.escapes.push({ slot, camp, species: store.species[slot]!, why, cause: store.captureEvent[slot]! });
+  fauna.domesticTally.escaped++;
   releaseToWild(fauna, slot);
   return true;
 }
@@ -197,6 +199,33 @@ export function publishEscapes(fauna: FaunaSystem, journal: Journal, tick: numbe
     });
   }
   fauna.escapes.length = 0;
+}
+
+/** The animals of a camp that is no more go back to the wild: counted, and told at the end of the day. */
+export function abandonToWild(fauna: FaunaSystem, slot: number): void {
+  const key = herdKey(fauna.store.ownerCamp[slot]!, fauna.store.species[slot]!);
+  fauna.domesticReleases.set(key, (fauna.domesticReleases.get(key) ?? 0) + 1);
+  fauna.domesticTally.released++;
+  releaseToWild(fauna, slot);
+}
+
+/** Herds left behind by a camp that is no more, told together. */
+export function publishReleases(fauna: FaunaSystem, journal: Journal, tick: number): void {
+  const d = fauna.params.domestic;
+  for (const [key, n] of fauna.domesticReleases) {
+    const camp = Math.floor(key / 256);
+    const species = fauna.params.species[key % 256]!;
+    journal.publish({
+      tick,
+      type: DOMESTIC_EVENTS.released,
+      text: fillTemplate(n > 1 ? d.texts.releasedMany : d.texts.releasedOne, { ...genderOf(species), n: String(n), animaux: plural(species.tameName), peuple: fauna.keeperName(camp) }),
+      place: null,
+      actors: [],
+      causes: [],
+      details: { camp, species: species.id },
+    });
+  }
+  fauna.domesticReleases.clear();
 }
 
 /** Deaths of the day among a camp's animals, told together (cause names in French). */

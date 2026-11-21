@@ -54,7 +54,7 @@
   },
   "carrion": { "rotPerDay": 0.15, "minimumMeat": 1 },
   "stats": { "intervalDays": 10 },
-  "humanFear": { "warinessSpread": 0.5, "crowdShare": 0.35, "crowdMax": 8, "crowdTiles": 4, "driveOffFactor": 2.5 },
+  "humanFear": { "warinessSpread": 0.5, "crowdShare": 0.35, "crowdMax": 8, "crowdTiles": 4, "driveOffFactor": 2.5, "tamerShare": 0.3 },
   "humanPrey": { "hunters": ["wolf", "lion", "bear"], "minHunger": 70, "loneTiles": 6, "attackChancePerStep": 0.6, "attackDamage": 40 },
   "domestic": {
     "pastureTiles": 6,
@@ -71,6 +71,8 @@
       "starving": "(affamé{e})",
       "deathsOne": "{Un} {animal} {peuple} est mort{e} ({causes}).",
       "deathsMany": "{n} {animaux} {peuple} sont mort{e}s ({causes}).",
+      "releasedOne": "{Un} {animal} {peuple}, dont le camp n’existe plus, retourne à l’état sauvage.",
+      "releasedMany": "{n} {animaux} {peuple}, dont le camp n’existe plus, retournent à l’état sauvage.",
       "unknownKeeper": "du camp"
     }
   },

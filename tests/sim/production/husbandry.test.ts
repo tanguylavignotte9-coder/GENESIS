@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { GameData } from '../../../src/sim/core/game-data';
 import { Simulation } from '../../../src/sim/core/simulation';
-import { DOMESTIC_EVENTS, domesticate } from '../../../src/sim/systems/fauna/domestic';
+import { DOMESTIC_EVENTS, domesticate, publishReleases } from '../../../src/sim/systems/fauna/domestic';
 import { BuildState } from '../../../src/sim/systems/production/buildings';
 import { FIRST_ITEM } from '../../../src/sim/systems/production/events';
-import { herdOf, HUSBANDRY_EVENTS, penOf } from '../../../src/sim/systems/production/husbandry';
+import { herdOf, husbandryDay, HUSBANDRY_EVENTS, penOf } from '../../../src/sim/systems/production/husbandry';
 import { preyNear } from '../../../src/sim/systems/production/hunting';
 import { dataWithSize } from '../world/helpers';
 
@@ -169,6 +169,34 @@ describe('husbandry (capturing, keeping, breeding, milking, slaughtering)', () =
     days(sim, 8);
     expect(herdOf(sim.production, 0).length).toBeLessThan(5);
     expect(sim.journal.all().some((e) => e.type === HUSBANDRY_EVENTS.firstSlaughter)).toBe(true);
+    // Every slaughter is told with the herd's deaths of the day, not only the first one.
+    const slaughtered = sim.fauna.domesticTally.deaths[5]!;
+    expect(slaughtered).toBe(5 - herdOf(sim.production, 0).length - sim.fauna.domesticTally.escaped);
+    const told = sim.journal.all().filter((e) => e.type === DOMESTIC_EVENTS.deaths && /abattu/.test(e.text));
+    expect(told.length).toBeGreaterThan(0);
+  });
+
+  it('every captured animal is accounted for: in the herd, slaughtered, dead, escaped, or back to the wild when its camp is no more', () => {
+    const sim = world(7);
+    buildPen(sim);
+    const c = center(sim);
+    for (let k = 0; k < 8; k++) wild(sim, 'goat', c.x + 6 + k, c.y - 5, k % 2 === 0 ? 0.3 : 4);
+    days(sim, 30);
+    const captures = sim.journal.all().filter((e) => e.type === HUSBANDRY_EVENTS.capture).length;
+    expect(captures).toBeGreaterThan(0);
+    const tally = sim.fauna.domesticTally;
+    const dead = tally.deaths.reduce((a, b) => a + b, 0);
+    expect(herdOf(sim.production, 0).length + dead + tally.escaped + tally.released).toBe(captures);
+    // The camp is gone: its animals go back to the wild, and the journal says so.
+    const herd = herdOf(sim.production, 0).filter((slot) => sim.fauna.store.ownerPerson[slot]! < 0).length;
+    const releasedBefore = tally.released;
+    const other = sim.production.camps.length;
+    sim.production.openCamp(other, sim.production.camps[0]!.center + 40, -1);
+    for (const p of sim.humans.campMembers(0)) sim.humans.people.camp[p] = other;
+    husbandryDay(sim.production);
+    expect(tally.released - releasedBefore).toBe(herd);
+    publishReleases(sim.fauna, sim.journal, sim.clock.tick);
+    if (herd > 0) expect(sim.journal.all().some((e) => e.type === DOMESTIC_EVENTS.released)).toBe(true);
   });
 
   it('raiders drive off part of the herd to their own camp', () => {

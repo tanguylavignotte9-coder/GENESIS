@@ -761,6 +761,11 @@ export class ProductionSystem {
   }
 
   /** Is the person out hunting game (what the animals see of her)? */
+  /** A herder trying to capture a wild animal (she approaches it gently, unlike a hunter). */
+  isTaming(person: number): boolean {
+    return this.jobs[person]?.recipe?.def.effect === 'capture';
+  }
+
   isHunting(person: number): boolean {
     const recipe = this.jobs[person]?.recipe;
     return recipe !== null && recipe !== undefined && recipe.prey.length > 0;

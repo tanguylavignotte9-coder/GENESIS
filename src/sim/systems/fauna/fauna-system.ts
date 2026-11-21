@@ -1,4 +1,4 @@
-import { herdKey, liveDomesticDay, publishDomesticDeaths, publishEscapes } from './domestic';
+import { herdKey, liveDomesticDay, publishDomesticDeaths, publishEscapes, publishReleases } from './domestic';
 import type { Interactions } from '../../core/interactions';
 import type { Journal } from '../../core/journal';
 import type { Rng } from '../../core/rng';
@@ -65,6 +65,10 @@ export class FaunaSystem {
   /** Escapes and deaths of domestic animals of the day, told in the journal at the end of the day. */
   readonly escapes: { slot: number; camp: number; species: number; why: string; cause: number }[] = [];
   readonly domesticDeaths = new Map<number, number[]>();
+  /** Animals of a camp gone back to the wild because their camp is no more (camp × 256 + species → count), told at the end of the day. */
+  readonly domesticReleases = new Map<number, number>();
+  /** What became of the domestic animals since the world began (for the reports): deaths by cause, escapes, back to the wild. */
+  readonly domesticTally = { deaths: DEATH_CAUSE_NAMES.map(() => 0), escaped: 0, released: 0 };
   /** Who keeps each camp's animals, as said in the journal (« de la tribu des Tamuki »), kept up to date by the groups. */
   readonly keeperNames: string[] = [];
   /** Last year each migration (species:landmass:direction) was reported in the journal. */
@@ -210,6 +214,7 @@ export class FaunaSystem {
     }
     publishEscapes(this, journal, tick);
     publishDomesticDeaths(this, journal, tick, this.params.domestic.causeNames);
+    publishReleases(this, journal, tick);
     maintainGroups(this, dayOfYear, journal, tick);
     this.census.onDay(absoluteDay, journal, tick);
   }
@@ -271,8 +276,9 @@ export class FaunaSystem {
     const { store } = this;
     if (store.alive[slot] === 0) return;
     this.deaths[store.species[slot]!]![cause]!++;
-    // A domestic animal's death (but a slaughter, told by its keepers) is told at the end of the day.
-    if (store.ownerCamp[slot]! >= 0 && cause !== DeathCause.Hunted) {
+    // A domestic animal's death (a slaughter too) is told at the end of the day, with its herd's.
+    if (store.ownerCamp[slot]! >= 0) {
+      this.domesticTally.deaths[cause] = this.domesticTally.deaths[cause]! + 1;
       const key = herdKey(store.ownerCamp[slot]!, store.species[slot]!);
       const counts = this.domesticDeaths.get(key) ?? DEATH_CAUSE_NAMES.map(() => 0);
       counts[cause] = counts[cause]! + 1;

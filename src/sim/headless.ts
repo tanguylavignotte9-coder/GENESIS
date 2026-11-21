@@ -1,6 +1,7 @@
 import { isExileCamp } from './systems/groups/describe';
 import { DOMESTIC_EVENTS } from './systems/fauna/domestic';
 import { HUSBANDRY_EVENTS } from './systems/production/husbandry';
+import { DeathCause as FaunaDeath } from './systems/fauna/fauna-system';
 import { dateAtTick, formatDate } from './core/calendar';
 import type { GameData } from './core/game-data';
 import { Simulation } from './core/simulation';
@@ -122,7 +123,16 @@ export interface HeadlessReport {
   /** Predators alive at the end (wolves, lions). */
   predators: { name: string; count: number }[];
   /** Husbandry: domestic animals alive at the end (by species), captures, escapes, animals stolen, first slaughters. */
-  husbandry: { herds: { name: string; count: number }[]; captures: number; escapes: number; stolen: number; slaughters: number };
+  husbandry: {
+    herds: { name: string; count: number }[];
+    captures: number;
+    escapes: number;
+    stolen: number;
+    slaughters: number;
+    /** Other deaths of domestic animals (age, hunger, predators, disease…) and herds left behind by a camp that is no more. */
+    otherDeaths: number;
+    released: number;
+  };
   /** Mean computation time of one game day, in ms (world generation excluded). */
   msPerDay: number;
   /** First draws of the seeded generator after the run: identical for identical seeds. */
@@ -386,9 +396,11 @@ function summarizeHusbandry(simulation: Simulation): HeadlessReport['husbandry']
   return {
     herds: [...counts.entries()].sort((a, b) => a[0] - b[0]).map(([code, n]) => ({ name: simulation.data.fauna.species[code]!.tameName, count: n })),
     captures: count(HUSBANDRY_EVENTS.capture),
-    escapes: count(DOMESTIC_EVENTS.escape),
+    escapes: simulation.fauna.domesticTally.escaped,
     stolen: simulation.conflict.counts.animalsStolen,
-    slaughters: count(HUSBANDRY_EVENTS.firstSlaughter),
+    slaughters: simulation.fauna.domesticTally.deaths[FaunaDeath.Hunted]!,
+    otherDeaths: simulation.fauna.domesticTally.deaths.reduce((sum, n, cause) => sum + (cause === FaunaDeath.Hunted ? 0 : n), 0),
+    released: simulation.fauna.domesticTally.released,
   };
 }
 

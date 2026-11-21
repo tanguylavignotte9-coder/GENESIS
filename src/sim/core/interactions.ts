@@ -31,6 +31,8 @@ export interface BodyView {
   hunting(id: number): boolean;
   /** True while the being drives a predator off (shouts, fire, weapons): even a starving predator runs. */
   scaring?(id: number): boolean;
+  /** True while the being approaches an animal gently to capture it (noticed much closer). */
+  taming?(id: number): boolean;
 }
 
 export interface Attack {

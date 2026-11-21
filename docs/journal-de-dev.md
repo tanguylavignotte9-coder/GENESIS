@@ -8,6 +8,123 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## Étape 12 · Force individuelle, loups, élevage, HUD complet et validation de la v1 — 21 nov. 2026
+
+**Fait (préalable force, `individuals/life/strength.ts`, `data/life.json → strength`) :**
+- Chaque personne naît avec une **carrure** (1 = moyenne, écart type 0,15) héritée pour moitié de ses parents.
+  Sa **force du moment** = carrure × sexe × entraînement × vigueur (âge, maladie, grossesse, estropié) × santé.
+- Écart moyen entre les sexes réglable (`femaleGap`, 10 %) : l'écart entre les personnes est plus grand (une femme
+  du quart le plus fort bat l'homme moyen, testé). **Entraînement** (0..1) : gagné par les heures de travail
+  physique (chasse, dépeçage, construction, bûcheronnage, champs, pêche) et par les combats, perdu sans effort.
+- La force pèse dans les coups (rixes, batailles) et dans la vitesse des travaux physiques ; la fiche l'affiche
+  (« Force : 104 (dans la moyenne) · carrure robuste · entraînée »). Sauvegardes : **format 5**.
+
+**Fait (partie 1, loups, `fauna/fauna-system.ts`, `fauna/territory.ts`) :**
+- Diagnostic (script de suivi de chaque meute de départ) : les meutes placées avec peu de gibier dans un rayon de
+  48 tuiles mouraient presque toutes ; celles près des troupeaux survivaient. **Correction à la création du monde** :
+  une meute ne s'installe que là où vit assez de gibier pour élever ses petits (`breedingMinPrey` dans
+  `preyCheckRadius`, les herbivores sont placés avant) et pas sur le territoire d'une autre (`spawnSiteAttempts`).
+  Sans humains : 86 loups à l'an 5 au lieu de 48, morts de faim divisées par 3 sur 5 ans.
+- Mais les loups s'effondraient encore vers l'an 10-15 (cycle prédateur-proie : à 58 % de faim alors que le gibier
+  abonde ailleurs). **Une meute affamée dont le territoire est vidé de gibier déplace sa tanière** là où son meneur a
+  trouvé des proies (`followTheGame`). Essais rejetés (aucun effet net) : ours privés de charogne ; viande qui pourrit
+  3 fois moins vite (aide un peu, mais même effondrement).
+- Les troupes de lions ne se tassent plus au même endroit au départ (pas là où une autre de leur espèce chasse).
+
+**Fait (partie 2, élevage, `fauna/domestic.ts`, `production/husbandry.ts`) :**
+- Les bêtes domestiques restent des animaux de la faune (`AnimalStore.ownerCamp`, `ownerPerson`, `homeX/Y`,
+  `penned`, `tame`, traite et tonte) avec un propriétaire : le camp, ou la personne qui l'a capturée sous propriété
+  familiale ou privée, puis son héritier ; elles suivent leur propriétaire s'il change de camp, retournent à l'état
+  sauvage si leur camp n'existe plus.
+- Avec le savoir « Élevage » et des bêtes domesticables autour (aurochs → bœuf, cheval, chèvre, sanglier → porc,
+  loup → chien), le camp veut un **enclos** ; action « S'occuper des bêtes » (entrée `herdNeed` du cerveau) :
+  **capturer** (jeunes de préférence, ×3 plus faciles et déjà à moitié apprivoisés ; un adulte peut se débattre),
+  **nourrir** de fourrage (paille, céréales, racines) quand la pâture est rase, **traire** les femelles qui
+  allaitent, **tondre** les chèvres, **abattre** le surplus (enclos plein) ou en temps de disette (vieux mâles
+  d'abord) : viande, peau, os sans chasse. Les bêtes paissent autour de l'enclos, boivent à l'abreuvoir, ne fuient
+  plus les humains, ne sont pas chassées, se reproduisent (petits nés apprivoisés), tombent malades, peuvent être
+  tuées par un prédateur, **s'échapper** (peu apprivoisées, affamées, sans enclos) ou être **emmenées par des pillards**.
+- Recettes « Traire », « Tondre », « Capturer une bête », « Abattre une bête », « Nourrir les bêtes » (remplacent
+  « Traire, tondre »). Journal : captures, première bête abattue, fuites (causées par la capture), morts groupées par
+  jour, bêtes volées (causées par la bataille). Fiche d'un animal : « Bête domestique (chèvre) de la tribu des … ».
+
+**Fait (partie 3, HUD, `renderer/hud/`, `renderer/map/`) :**
+- **Journal** : recherche, filtres par tribu, par personne (la fiche ouverte), par type d'événement, par période ;
+  « Cause » cliquable : la **chaîne des causes** jusqu'aux origines. Les entrées portent leur type, leur jour et les
+  tribus concernées (`JournalEntry`).
+- Barre d'outils en bas à gauche (fenêtres `Overlay`, une seule ouverte) : **Généalogie** (T : aïeux sur 3
+  générations, frères et sœurs, descendance sur 4, morts †, lignées éteintes, lignées des fondateurs), **Relations**
+  (R : graphe des liens d'une personne et graphe des tribus : alliances, guerres, trêves, tributs), **Politique** (P :
+  calques territoires, cultures, langues, religions, alliances et guerres, et tableau), **Suivis** (F : favoris
+  marqués ☆ dans la fiche, gardés par monde, notifications de naissance d'un enfant, blessure, prise de pouvoir,
+  mort), **Aide** (H ou F1), **Météo** (M : pluie et neige, 320 gouttes au plus, rien en dessous d'un zoom de 3 px).
+- Statistiques : onglet **« Monde et tribus »** (`sim/history.ts`, un échantillon tous les 10 jours : population,
+  réserves, savoirs, bêtes, régime ; courbes par tribu ou pour le monde, tableau).
+- Un **exilé seul** est affiché « Camp d'exilé » et n'est plus compté comme une tribu (panneau, statistiques,
+  `npm run sim`).
+- Vérifié dans Chromium (Playwright, affichage compilé avec un faux pont Electron) : barre, journal, généalogie,
+  politique, statistiques, aide s'affichent ; pas d'erreur dans la console.
+
+**Défauts trouvés et corrigés pendant le lot :** un test de religion et un test de scission dépendaient d'un tirage
+au hasard (graine choisie, familles prises jusqu'à 8 personnes) ; 63 % des bêtes capturées se seraient échappées
+avant d'être apprivoisées (une bête jeune l'est déjà à moitié).
+
+**Décisions et écarts (à valider) :**
+- Force : 1 = homme moyen de 20-40 ans non entraîné ; la carrure est tirée sans tenir compte du sexe, le sexe est un
+  facteur ; le choix des appelés à la guerre reste par vigueur.
+- Bêtes domestiques : elles boivent « à l'abreuvoir » près de l'enclos (les éleveurs ne vont pas chercher l'eau) ;
+  une bête sans enclos vit au cœur du camp ; le loup domestiqué devient un chien (sans produit pour l'instant) ;
+  l'aurochs domestiqué est appelé bœuf, le sanglier porc. Le lait et la laine ne viennent que des espèces qui en
+  donnent (`milk`, `wool` dans `animals.json`).
+- Touches choisies selon le caractère tapé (AZERTY et QWERTY) ; « A » est déjà pris par la caméra (Q en AZERTY) :
+  l'arbre est sur **T**.
+- Les favoris sont gardés dans le stockage du navigateur d'Electron, par graine.
+- `src/cli/validate.ts` : outil de validation (JSON des mesures d'un monde).
+
+**Dette technique :**
+- **Prédateurs, non conclu** : loups vivants à l'an 100 dans 3 mondes sur 10 (2 avant), mais **lions éteints dans 5
+  mondes sur 10** (1 avant). Comparaison sans humains, graine 4 : lions vivants avec l'ancien code, éteints avec le
+  nouveau ; graine 2 : bien mieux avec le nouveau. Piste : loups et lions se disputent les mêmes proies (cerf,
+  cheval, aurochs, sanglier, chèvre) et des loups plus nombreux affament les lions là où les deux vivent ; autre
+  piste : la viande pourrit vite (15 %/jour) quel que soit le climat. → équilibrage de l'écosystème après la v1.
+- **Sans religion** : 38 %, 48 % et 93 % des adultes dans 3 mondes (0 à 3 % ailleurs, 0 à 4 % au lot précédent).
+  Le système des religions n'a pas changé : à examiner (tribus fusionnées sans religion ? religion qui s'éteint ?).
+- **Élevage rare** : découvert dans 2 mondes sur 10, bêtes vivantes à l'an 100 dans 1 seul (graine 4 : 86 captures,
+  18 fuites, 3 bœufs à la fin ; le devenir des autres — abattage, prédateurs, maladie — reste à analyser) ; graine 5 :
+  savoir connu sans aucune capture.
+- **Soif** : 21 et 27 % des morts dans 2 mondes (0 à 13 % ailleurs). → à surveiller.
+- Les bêtes domestiques ne sont pas dessinées autrement que les sauvages sur la carte.
+- Validation faite sur 100 ans et non 200 (budget).
+
+**Dettes résolues :** loups (en partie : placement de départ et tanière qui suit le gibier) ; élevage sans effet
+(étape 10) ; météo invisible sur la carte (étape 4) ; personne seule comptée comme une tribu (étape 11) ;
+« personnes cliquables dans le journal » (étape 4, fait depuis, causes maintenant navigables).
+
+**Mesures (serveurs de Claude Code) :**
+- **Validation, 10 graines × 100 ans** (4 calculs en parallèle, **33 min** ; 200 ans auraient pris ~1 h 30) :
+
+| Graine | Hab. fin (pic) | Décès | Soif | Morts violentes | Tribus | Scissions | Fusions | Guerres | Captifs | Découvertes | Agriculture | Élevage | Bêtes | Cultures | Langues | Religions | Sans religion | Loups | Lions |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 257 (257) | 113 | 4 % | 3 | 2 | 2 | 1 | 0 | 1 | 13 | oui | non | — | 1/1 | 1/1 | 1/1 | 2/163 | 33 | 43 |
+| 2 | 163 (163) | 115 | 4 % | 8 | 2 | 6 | 5 | 0 | 0 | 11 | non | non | — | 2/3 | 2/3 | 2/2 | 0/103 | 42 | 0 |
+| 3 | 40 (40) | 70 | 27 % | 4 | 1 | 5 | 4 | 0 | 0 | 7 | non | non | — | 1/2 | 1/1 | 0/0 | 0/23 | 7 | 0 |
+| 4 | 173 (173) | 120 | 13 % | 3 | 2 | 7 | 6 | 0 | 0 | 19 | oui | oui | 3 bœufs | 5/6 | 3/4 | 1/2 | 1/105 | 0 | 0 |
+| 5 | 86 (94) | 142 | 9 % | 2 | 1 | 11 | 11 | 1 | 2 | 13 | non | oui | — | 6/7 | 1/1 | 2/2 | 64/69 | 0 | 45 |
+| 6 | 13 (31) | 67 | 0 % | 1 | 2 | 1 | 0 | 0 | 0 | 7 | non | non | — | 2/2 | 2/2 | 0/0 | 0/9 | 0 | 38 |
+| 7 | 174 (176) | 115 | 10 % | 1 | 2 | 2 | 1 | 0 | 0 | 12 | non | non | — | 2/2 | 1/1 | 1/1 | 46/121 | 0 | 51 |
+| 8 | 102 (103) | 111 | 21 % | 3 | 2 | 3 | 2 | 0 | 1 | 11 | oui | non | — | 1/1 | 2/2 | 2/4 | 0/63 | 0 | 66 |
+| 9 | 102 (127) | 144 | 5 % | 3 | 1 | 3 | 4 | 0 | 3 | 13 | non | non | — | 2/4 | 2/4 | 1/1 | 1/76 | 0 | 0 |
+| 10 | 165 (179) | 195 | 13 % | 0 | 3 | 5 | 3 | 0 | 0 | 13 | non | non | — | 4/4 | 1/1 | 3/5 | 48/101 | 0 | 0 |
+
+  Aucune extinction humaine ; aucun camp d'exilé à la fin ; aucune conquête ni guerre civile ; raids dans 8 mondes
+  (1 à 11). Régimes : bande égalitaire, conseil des anciens et chefferie partout, théocratie dans 6 mondes. Graine 6 :
+  la tribu passe de 31 à 13 dans un pays froid sans jamais découvrir la chasse (40 morts de froid sur 67) : histoire
+  légitime (même région qu'aux lots précédents). Graine 1 : 18 morts par prédateur sur 113, toutes avant l'an 40, dans
+  un pays riche en loups et en lions (histoire du lieu ; 1 à 14 ailleurs). Bien d'échange : silex (5), panier (1).
+  Fusions : toujours de petites tribus en difficulté qui rejoignent une voisine.
+- **Calcul** pendant la validation (4 en parallèle) : 109 à 231 ms par jour de jeu selon la taille du monde.
+---
+
 ## Préalable (croire ou ne pas croire), étape 10.5 · Cerveau visuel et étape 11 · Conflit — 20-21 nov. 2026
 
 **Fait (préalable, `ideas/religion.ts`, `data/ideas.json → religion`) :**

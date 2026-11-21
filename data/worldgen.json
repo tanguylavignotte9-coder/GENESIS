@@ -68,7 +68,7 @@
   "hydrology": {
     "fillEpsilonMeters": 0.01,
     "runoffPerKmOfAltitude": 6,
-    "riverMinFlow": 400,
+    "riverMinFlow": 500,
     "lakeMinDepthMeters": 3,
     "lakeMinInflow": 150
   },

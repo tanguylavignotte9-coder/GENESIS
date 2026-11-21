@@ -1,4 +1,4 @@
-import { ALL_NEIGHBORS_COUNT, NEIGHBOR_DX, NEIGHBOR_DY, ORTHOGONAL_COUNT } from './grid';
+import { NEIGHBOR_DX, NEIGHBOR_DY, ORTHOGONAL_COUNT } from './grid';
 import { MinHeap } from './min-heap';
 import type { HydrologyParams } from './params';
 
@@ -48,7 +48,8 @@ export function computeDrainage(elevation: Float32Array, ocean: Uint8Array, size
     const level = (filled[index] ?? 0) + epsilon;
     const x = index % size;
     const y = (index - x) / size;
-    for (let n = 0; n < ALL_NEIGHBORS_COUNT; n++) {
+    // Water only flows through the 4 sides of a tile (never diagonally): rivers go in steps.
+    for (let n = 0; n < ORTHOGONAL_COUNT; n++) {
       const nx = x + (NEIGHBOR_DX[n] ?? 0);
       const ny = y + (NEIGHBOR_DY[n] ?? 0);
       if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
@@ -64,7 +65,7 @@ export function computeDrainage(elevation: Float32Array, ocean: Uint8Array, size
 }
 
 function touchesLand(ocean: Uint8Array, size: number, x: number, y: number): boolean {
-  for (let n = 0; n < ALL_NEIGHBORS_COUNT; n++) {
+  for (let n = 0; n < ORTHOGONAL_COUNT; n++) {
     const nx = x + (NEIGHBOR_DX[n] ?? 0);
     const ny = y + (NEIGHBOR_DY[n] ?? 0);
     if (nx >= 0 && ny >= 0 && nx < size && ny < size && ocean[ny * size + nx] === 0) return true;

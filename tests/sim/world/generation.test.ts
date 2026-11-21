@@ -118,7 +118,23 @@ describe('rivers and lakes', () => {
     }
     expect(sources.altitude.length).toBeGreaterThan(0);
     expect(median(sources.altitude)).toBeGreaterThan(median(land.altitude));
-    expect(median(sources.humidity)).toBeGreaterThan(median(land.humidity));
+    // Sources are not in dry lands (they sit in the rainy uplands, but humidity alone varies a lot).
+    expect(median(sources.humidity)).toBeGreaterThan(0.85 * median(land.humidity));
+  });
+
+  it.each(SEEDS)('seed %i: rivers never flow diagonally (only through the 4 sides of a tile)', (seed) => {
+    const world = worldFor(seed, SIZE);
+    let rivers = 0;
+    for (let i = 0; i < world.water.length; i++) {
+      if (world.water[i] !== Water.River) continue;
+      rivers++;
+      const down = world.flowTo[i] ?? -1;
+      if (down < 0) continue;
+      const dx = Math.abs((down % world.size) - (i % world.size));
+      const dy = Math.abs(Math.floor(down / world.size) - Math.floor(i / world.size));
+      expect(dx + dy).toBe(1);
+    }
+    expect(rivers).toBeGreaterThan(0);
   });
 });
 

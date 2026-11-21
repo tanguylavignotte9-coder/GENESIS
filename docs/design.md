@@ -363,7 +363,7 @@ La violence suit la même logique que le reste : ce sont des individus qui déci
 
 ### Le combat
 
-- Modèle simple en première version : force, compétence, arme, armure, moral, terrain et nombre.
+- Modèle simple en première version : force, compétence, arme, armure, moral, terrain et nombre. La force est propre à chaque individu : héritée, elle varie avec l'âge, la santé et l'entraînement, avec un léger écart moyen entre les sexes et beaucoup de chevauchement (une femme forte bat souvent un homme moyen).
 - Les blessures passent par le système de santé : un guerrier peut survivre estropié, et cela change sa vie.
 - Le **moral** est central : une troupe fuit bien avant d'être anéantie, et chaque soldat est un individu qui peut déserter.
 - Les armes et tactiques dépendent des savoirs (lances, arcs, bronze, fer, chevaux, poudre…).
@@ -669,6 +669,7 @@ Chaque étape est livrée jouable : on peut lancer le jeu et voir le résultat. 
 
 | Décision | Date |
 | --- | --- |
+| Bien d'échange accepté tel quel (né de vrais trocs, silex ou os, 7 mondes sur 10). Force individuelle héritée et variable, avec un léger écart moyen entre les sexes et beaucoup de chevauchement | 21 nov. 2026 |
 | Attirance : 5 % de personnes attirées par le même sexe (réglable dans l'Atelier). Performance : on est dans les clous, ajustements éventuels après la v1 | 19 nov. 2026 |
 | Visuels : pixel art généré par le code pendant le prototype ; de vrais sprites seront envisagés quand la simulation sera solide | 17 nov. 2026 |
 | Stack TypeScript + Electron + PixiJS, lanceur Windows .bat, pas de moteur externe ni de compilation GitHub ; prototype limité aux ères 0 et 1 | 17 nov. 2026 |

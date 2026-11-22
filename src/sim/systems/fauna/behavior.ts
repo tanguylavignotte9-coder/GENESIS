@@ -102,7 +102,7 @@ export function think(fauna: FaunaSystem, slot: number): void {
       // It follows the trail of the nearest game it can scent; with none, it roams at random.
       const n = params.species.length;
       const hunter = store.species[slot]!;
-      const trail = params.behavior.trackTiles > species.huntRadius ? nearestAnimal(fauna, fauna.grid, slot, params.behavior.trackTiles, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1 && store.ownerCamp[other]! < 0) : -1;
+      const trail = params.behavior.trackTiles > species.huntRadius ? nearestAnimal(fauna, fauna.grid, slot, params.behavior.trackTiles, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1 && store.ownerCamp[other]! < 0 && straightWay(fauna, slot, store.px[other]!, store.py[other]!)) : -1;
       if (trail >= 0) {
         setTarget(fauna, slot, State.Wander, store.px[trail]!, store.py[trail]!);
         return;
@@ -148,7 +148,7 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   const x = store.x[slot]!;
   const y = store.y[slot]!;
   if ('meat' in species.diet) {
-    const carcass = fauna.carrion.nearest(x, y, params.behavior.forageRadius, fauna.size);
+    const carcass = reachableCarcass(fauna, slot, params.behavior.forageRadius);
     if (carcass >= 0) {
       setTarget(fauna, slot, State.Forage, (carcass % fauna.size) + 0.5, Math.floor(carcass / fauna.size) + 0.5);
       return true;
@@ -187,7 +187,7 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   for (let s = 0; s < params.behavior.forageSamples; s++) {
     const tx = x + fauna.rng.nextIntInclusive(-r, r);
     const ty = y + fauna.rng.nextIntInclusive(-r, r);
-    if (!fauna.isWalkable(tx, ty)) continue;
+    if (!fauna.isWalkable(tx, ty) || !straightWay(fauna, slot, tx + 0.5, ty + 0.5)) continue;
     const value = foodValueAt(fauna, code, tx, ty);
     if (value > bestValue) {
       bestValue = value;
@@ -200,6 +200,36 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   const k = (store.uid[slot]! * 3) % DIRECTION_COUNT;
   setTarget(fauna, slot, State.Forage, bestX + 0.5 + DIRECTIONS_X[k]! * 0.3, bestY + 0.5 + DIRECTIONS_Y[k]! * 0.3);
   return true;
+}
+
+/** Can the animal walk straight from where it is to (tx, ty) without crossing water? (Half-tile samples.) */
+function straightWay(fauna: FaunaSystem, slot: number, tx: number, ty: number): boolean {
+  const { store } = fauna;
+  const x = store.px[slot]!;
+  const y = store.py[slot]!;
+  const samples = Math.ceil(distance(x, y, tx, ty) * 2);
+  for (let k = 1; k <= samples; k++) {
+    if (!fauna.isWalkable(Math.floor(x + ((tx - x) * k) / samples), Math.floor(y + ((ty - y) * k) / samples))) return false;
+  }
+  return true;
+}
+
+/** Nearest carcass within `radius` the animal can walk to (one across a river or a lake is out of reach), or -1. */
+function reachableCarcass(fauna: FaunaSystem, slot: number, radius: number): number {
+  const { store } = fauna;
+  const x = store.x[slot]!;
+  const y = store.y[slot]!;
+  let best = -1;
+  let bestDistance = radius + 1;
+  for (const tile of fauna.carrion.tiles) {
+    const tx = tile % fauna.size;
+    const d = Math.max(Math.abs(tx - x), Math.abs((tile - tx) / fauna.size - y));
+    if (d < bestDistance && straightWay(fauna, slot, tx + 0.5, (tile - tx) / fauna.size + 0.5)) {
+      best = tile;
+      bestDistance = d;
+    }
+  }
+  return best;
 }
 
 /** Is this animal an easy prey: young, old, sick or weakened? */
@@ -227,7 +257,8 @@ function easiestPrey(fauna: FaunaSystem, slot: number, radius: number, accept: (
     const d = distance(x, y, store.px[other]!, store.py[other]!);
     if (d > radius || !accept(other)) return;
     const score = weakPrey(fauna, other) ? d / params.behavior.weakPreyFactor : d;
-    if (score < bestScore) {
+    // A prey on the other side of a river or a lake cannot be run down.
+    if (score < bestScore && straightWay(fauna, slot, store.px[other]!, store.py[other]!)) {
       best = other;
       bestScore = score;
     }

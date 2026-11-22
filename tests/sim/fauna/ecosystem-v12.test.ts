@@ -79,6 +79,30 @@ describe('predators and prey (v1.2)', () => {
     expect(fauna.store.state[wolf]).toBe(State.Eat);
   });
 
+  it('a carcass across a river or a lake is out of reach: the hungry wolf does not get stuck on the shore', () => {
+    const sim = new Simulation(3, data);
+    const { fauna } = sim;
+    let spot: { x: number; y: number } | null = null;
+    for (let y = 20; y < SIZE - 20 && !spot; y++) {
+      for (let x = 20; x < SIZE - 20 && !spot; x++) {
+        if (fauna.isWalkable(x, y) && !fauna.isWalkable(x, y - 1) && !fauna.isWalkable(x, y - 2) && fauna.isWalkable(x, y - 3)) spot = { x, y };
+      }
+    }
+    expect(spot).not.toBeNull();
+    const { x, y } = spot!;
+    clearAround(sim, x + 0.5, y + 0.5, data.fauna.behavior.trackTiles + 2, []);
+    fauna.carrion.tiles.length = 0;
+    fauna.carrion.meat.length = 0;
+    const wolf = fauna.spawn(code('wolf'), x + 0.5, y + 0.5, fauna.groups.add(code('wolf'), -1), 4 * fauna.daysPerYear);
+    fauna.groups.leader[fauna.store.group[wolf]!] = wolf;
+    fauna.carrion.add((y - 3) * SIZE + x, 30);
+    fauna.store.hunger[wolf] = 80;
+    fauna.store.thirst[wolf] = 0;
+    think(fauna, wolf);
+    const aimsAtIt = fauna.store.state[wolf] === State.Forage && Math.floor(fauna.store.targetY[wolf]!) === y - 3 && Math.floor(fauna.store.targetX[wolf]!) === x;
+    expect(aimsAtIt).toBe(false);
+  });
+
   it('a carcass rots fast in the heat and hardly in the frost', () => {
     const rot = data.fauna.carrion;
     const left = (celsius: number): number => {

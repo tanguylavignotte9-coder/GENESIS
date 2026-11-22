@@ -185,7 +185,7 @@ par les humains et leur vitesse de marche.
 | `traits` | Traits de caractère (prudence, sociabilité, curiosité, ardeur au travail, générosité, colère, ambition, spiritualité) ; les noms des personnes viennent de leur langue (`ideas.json`) |
 | `skills`, `skillLearning` | Compétences (cueillette, artisanat, chasse…), le métier affiché pour chacune, vitesse d'apprentissage par la pratique |
 | `stepsPerHour`, `thinkEveryMinutes` | Rythme d'action et de réflexion de chaque personne |
-| `needs` | Vitesse de la faim (moins vite en dormant), de la soif, de la fatigue, du froid ; dégâts et guérison (un jeûne tue en plusieurs semaines) |
+| `needs` | Vitesse de la faim (moins vite en dormant), de la soif (et `thirstAnticipation` : on part boire assez tôt quand l'eau connue est loin), de la fatigue, du froid ; dégâts et guérison (un jeûne tue en plusieurs semaines) |
 | `body` | Vitesse de marche, course (fuir, chasser), perception, charge qu'on peut porter (`carryCapacity`), vitesse des repas |
 | `movement` | Déplacement naturel (étape 7.5) : accélération et virages, arrivée, lignes droites des chemins, espace personnel et évitement, place de chacun sur un lieu et cercle autour du feu, ralentissements (marais, neige, pente, fatigue, charge), essoufflement de la course, marche côte à côte d'un couple, enfant qui suit son parent, distance de conversation, chemin bloqué |
 | `camp` | Chaleur maximale d'un abri ou d'un feu, territoire connu autour du camp (le feu et les huttes sont des bâtiments : `buildings.json`) |

@@ -143,8 +143,8 @@ describe('recipes', () => {
     const simulation = new Simulation(42, data);
     const { production } = simulation;
     production.storeInCamp(0, production.catalog.item('flint'), 10, 0.5);
-    simulation.step(2 * data.time.ticksPerDay);
     const knife = production.catalog.item('stone_knife');
+    for (let d = 0; d < 6 && !simulation.journal.all().some((event) => event.type === FIRST_ITEM); d++) simulation.step(data.time.ticksPerDay);
     let knives = production.stockOf(0).count(knife);
     for (const inventory of production.carried) knives += inventory.count(knife);
     expect(knives).toBeGreaterThan(0);

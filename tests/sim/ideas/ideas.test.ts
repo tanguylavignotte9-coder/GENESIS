@@ -135,8 +135,8 @@ describe('knowledge', () => {
       h.ponder[person] = k;
       h.ponderProgress[person] = 0;
       h.ponderLead[person] = -1;
-      humans.life.state.lastSkill[person] = practise ? skill : -1;
-      humans.life.state.lastSkillStep[person] = practise ? ideas.lastHumanStep : -1;
+      humans.life.state.skillsToday[person] = practise ? 1 << skill : 0;
+      humans.life.state.skillsDay[person] = practise ? ideas.day : -1;
       discoveries(ideas);
       return h.ponderProgress[person]!;
     };
@@ -452,3 +452,36 @@ describe('measuring faith (v1.2)', () => {
   }, 120_000);
 });
 
+
+describe('experimenting toward a discovery (v1.2)', () => {
+  it('every craft of the day counts, and before its craft is open to anyone, any work is a way to experiment', () => {
+    const simulation = world(3, (data) => {
+      data.ideas.knowledge.discoveryPerDay = 0;
+      data.ideas.knowledge.ponder.abandonPerDay = 0;
+      data.ideas.knowledge.ponder.idleAbandonPerDay = 0;
+    });
+    day(simulation, 1);
+    const { ideas, humans } = simulation;
+    const h = ideas.holdings;
+    const knapping = knowledgeIndex(simulation, 'stone_knapping');
+    const person = [...Array(humans.people.count).keys()].find((p) => humans.people.ageYears[p]! >= 20 && !h.knows(p, knapping))!;
+    ideas.environmentMask[knapping] = 0;
+    const gathering = humans.params.skills.findIndex((skill) => skill.id === 'gathering');
+    const crafting = ideas.skillOf[knapping]!;
+    const oneDay = (mask: number): number => {
+      h.ponder[person] = knapping;
+      h.ponderProgress[person] = 0;
+      h.ponderLead[person] = -1;
+      humans.life.state.skillsToday[person] = mask;
+      humans.life.state.skillsDay[person] = ideas.day;
+      discoveries(ideas);
+      return h.ponderProgress[person]!;
+    };
+    const idle = oneDay(0);
+    // Nobody can make stone tools before knowing how: gathering stones and plants is how one tries.
+    const gatheringOnly = oneDay(1 << gathering);
+    const both = oneDay((1 << gathering) | (1 << crafting));
+    expect(gatheringOnly).toBeGreaterThan(3 * idle);
+    expect(both).toBeCloseTo(gatheringOnly, 6);
+  });
+});

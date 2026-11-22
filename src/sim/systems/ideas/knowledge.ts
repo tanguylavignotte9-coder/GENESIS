@@ -193,13 +193,26 @@ function surroundingsAllow(sys: IdeasSystem, person: number, k: number): boolean
   return env === 0 || (surveyCamp(sys, sys.humans.people.camp[person]!) & env) === env;
 }
 
-/** Did the person work at the craft of knowledge `k` since yesterday (any work, for knowledge without a craft)? */
+/**
+ * Did the person experiment yesterday toward knowledge `k`: she worked at its craft (at any time of
+ * the day), or, when no work of that craft is open to her yet (nobody makes pots before pottery),
+ * at any work at all (handling clay, stones, plants as she goes about her tasks)?
+ */
 function practised(sys: IdeasSystem, person: number, k: number): boolean {
   const state = sys.humans.life.state;
-  const skill = state.lastSkill[person]!;
-  if (skill < 0 || state.lastSkillStep[person]! < sys.lastHumanStep) return false;
+  if (state.skillsDay[person]! < sys.day - 1) return false;
+  const done = state.skillsToday[person]!;
+  if (done === 0) return false;
   const wanted = sys.skillOf[k]!;
-  return wanted < 0 || skill === wanted;
+  if (wanted < 0 || (done & (1 << wanted)) !== 0) return true;
+  return !craftOpen(sys, person, wanted);
+}
+
+/** Does the person know at least one recipe of this craft (skill)? */
+function craftOpen(sys: IdeasSystem, person: number, skill: number): boolean {
+  const known = sys.holdings.known[person]!;
+  for (const recipe of sys.humans.production.catalog.recipes) if (recipe.skill === skill && (recipe.knowledgeMask & known) === recipe.knowledgeMask) return true;
+  return false;
 }
 
 /** One more day of trying to work knowledge out: progress, success, or giving up. */

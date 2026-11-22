@@ -94,6 +94,8 @@ export interface HumanParams {
     hungerPerHour: number;
     sleepHungerFactor: number;
     thirstPerHour: number;
+    /** Share of the walk to the nearest known water counted in the urge to drink (one leaves in time). */
+    thirstAnticipation: number;
     fatiguePerHour: number;
     restPerHour: number;
     comfortCelsius: number;
@@ -245,6 +247,7 @@ export const HUMANS_SCHEMA: Schema = {
         hungerPerHour: v('number', 0, 20, 'Faim', 'Points de faim gagnés par heure par un adulte éveillé (100 = affamé).', 'points/heure'),
         sleepHungerFactor: v('number', 0, 1, 'Faim pendant le sommeil', 'Un corps endormi brûle moins : la faim monte à cette part de sa vitesse d’éveil.', 'fraction'),
         thirstPerHour: v('number', 0, 30, 'Soif', 'Points de soif gagnés par heure (100 = assoiffé).', 'points/heure'),
+        thirstAnticipation: v('number', 0, 10, 'Prévoir le chemin de l’eau', 'L’envie de boire compte la soif qui viendra pendant la marche jusqu’à l’eau connue la plus proche : facteur sur le temps de marche à pleine allure (0 = on n’y pense pas ; 3 = on prévoit large, car fatigue, charge, terrain et faim ralentissent).', 'facteur'),
         fatiguePerHour: v('number', 0, 20, 'Fatigue', 'Points de fatigue gagnés par heure d’éveil.', 'points/heure'),
         restPerHour: v('number', 0, 50, 'Récupération', 'Points de fatigue perdus par heure de sommeil.', 'points/heure'),
         comfortCelsius: v('number', -10, 30, 'Température de confort', 'En dessous de cette température ressentie, on a de plus en plus froid.', '°C'),

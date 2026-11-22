@@ -1,4 +1,5 @@
 import type { Attack, AttackOutcome, Interactions } from '../../core/interactions';
+import { canDrink } from '../fauna/fresh-water';
 import type { Journal } from '../../core/journal';
 import type { Rng } from '../../core/rng';
 import { SpatialGrid } from '../../core/spatial-grid';
@@ -287,8 +288,14 @@ export class IndividualsSystem {
     people.practice[at] = people.practice[at]! + hours;
     const id = this.params.skills[skill]?.id;
     if (id !== undefined && this.life.physicalSkill(id)) this.life.train(person, hours);
-    this.life.state.lastSkill[person] = skill;
-    this.life.state.lastSkillStep[person] = this.step;
+    const state = this.life.state;
+    state.lastSkill[person] = skill;
+    state.lastSkillStep[person] = this.step;
+    if (state.skillsDay[person] !== this.absoluteDay) {
+      state.skillsDay[person] = this.absoluteDay;
+      state.skillsToday[person] = 0;
+    }
+    state.skillsToday[person] = state.skillsToday[person]! | (1 << skill);
   }
 
   /** Food found on a tile: remembered, and how far from the camp one has to go counts for moving. */
@@ -419,7 +426,7 @@ export class IndividualsSystem {
     const distance = camp.distanceTo(people.x[person]!, people.y[person]!);
     let k = 0;
     input[k++] = people.hunger[person]! / FULL;
-    input[k++] = people.thirst[person]! / FULL;
+    input[k++] = Math.min(1, (people.thirst[person]! + this.thirstOnTheWay(person)) / FULL);
     input[k++] = people.fatigue[person]! / FULL;
     input[k++] = people.cold[person]! / FULL;
     input[k++] = people.danger[person]! / FULL;
@@ -453,6 +460,22 @@ export class IndividualsSystem {
     input[k++] = this.threatNearCamp(person) ? 1 : 0;
     this.social.fillInputs(person, input, k);
     this.life.fillInputs(person, input, k + SOCIAL_INPUTS.length);
+  }
+
+  /**
+   * Around the camp: the thirst one will gain walking to the nearest water one knows (with a margin).
+   * Where water is far from the camp, one sets off before being parched; by the river, one does not bother.
+   */
+  private thirstOnTheWay(person: number): number {
+    const { people, params } = this;
+    if (params.needs.thirstAnticipation <= 0 || canDrink(this.world, people.x[person]!, people.y[person]!)) return 0;
+    // One thinks of it at home, before setting off; out on the way, one drinks at the water one comes across.
+    const camp = this.camps[people.camp[person]!];
+    if (!camp || camp.distanceTo(people.x[person]!, people.y[person]!) > params.body.perceptionTiles) return 0;
+    const water = this.nearestMemory(person, 'water');
+    if (water < 0) return 0;
+    const hours = people.distanceToTile(person, water, this.size) / params.body.walkTilesPerHour;
+    return hours * params.needs.thirstPerHour * params.needs.thirstAnticipation;
   }
 
   /** Every hour: predators in sight (danger) and whether the person is isolated. */

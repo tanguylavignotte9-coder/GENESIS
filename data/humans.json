@@ -140,6 +140,7 @@
     "hungerPerHour": 2.6,
     "sleepHungerFactor": 0.6,
     "thirstPerHour": 4,
+    "thirstAnticipation": 1,
     "fatiguePerHour": 4,
     "restPerHour": 12,
     "comfortCelsius": 12,

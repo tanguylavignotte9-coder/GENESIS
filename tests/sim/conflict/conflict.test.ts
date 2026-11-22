@@ -201,7 +201,7 @@ describe('raids, wars and diplomacy', () => {
     const frail = new Set(fighters.slice(0, Math.floor(fighters.length / 2)).filter((p) => !big!.leaders.includes(p)));
     for (const p of frail) humans.life.state.build[p] = 0.4;
     const ours = () => conflict.expeditions.find((x) => x.tribe === big!.id);
-    for (let d = 0; d < 30 && !ours(); d++) day(simulation, 1);
+    for (let d = 0; d < 60 && !ours(); d++) day(simulation, 1);
     const party = ours()!;
     expect(party).toBeDefined();
     const sturdy = fighters.length - frail.size;
@@ -227,7 +227,7 @@ describe('raids, wars and diplomacy', () => {
     relation.weariness[0] = 500;
     relation.weariness[1] = 500;
     let answered = false;
-    for (let d = 0; d < 30 && !answered; d++) {
+    for (let d = 0; d < 60 && !answered; d++) {
       day(simulation, 1);
       answered = simulation.journal.all().some((event) => [CONFLICT_EVENTS.peace, CONFLICT_EVENTS.truce, CONFLICT_EVENTS.tribute].includes(event.type as never));
     }

@@ -33,6 +33,9 @@ export class LifeState {
   /** Skill practised at the last work step (-1 none) and the step it was: what children watch. */
   readonly lastSkill: Int8Array;
   readonly lastSkillStep: Int32Array;
+  /** Skills practised on day `skillsDay` (bit k = skill k): every craft of the day counts, not only the last. */
+  readonly skillsToday: Uint32Array;
+  readonly skillsDay: Int32Array;
   /** Journal event of the birth (-1 for the starting tribe) and of being taken in (-1). */
   readonly birthEvent: Int32Array;
   readonly adoptionEvent: Int32Array;
@@ -60,6 +63,8 @@ export class LifeState {
     this.nourishment = new Float32Array(count);
     this.lastSkill = new Int8Array(count).fill(-1);
     this.lastSkillStep = new Int32Array(count).fill(-1);
+    this.skillsToday = new Uint32Array(count);
+    this.skillsDay = new Int32Array(count).fill(-1);
     this.birthEvent = new Int32Array(count).fill(-1);
     this.adoptionEvent = new Int32Array(count).fill(-1);
     this.crippled = new Uint8Array(count);

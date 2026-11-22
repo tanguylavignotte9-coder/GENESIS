@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../../src/sim/core/game-data';
 import { Simulation } from '../../src/sim/core/simulation';
 import { daysPerYear } from '../../src/sim/core/time-params';
+import { machineReferenceMs } from './support/calibration';
 
 const data = loadGameData();
 
@@ -14,8 +15,17 @@ describe.each([42, 7, 123])('the starting tribe (seed %i, full map)', (seed) => 
   });
 });
 
+/**
+ * Budget of a game day with 1 000 humans, relative to the speed of the machine: a multiple of the
+ * reference computation of tests/long/support/calibration.ts. Calibrated on 22 nov. 2026: the
+ * reference took 50 to 52 ms on Claude Code's server, where the x500 budget (960 ms per game day)
+ * is about 18.5 references; a game day with 1 000 humans then took 15 references.
+ */
+const BUDGET_IN_REFERENCES = 18.5;
+
 describe('performance', () => {
-  it('a game day with 1 000 humans, the fauna and the flora fits in the x500 budget', () => {
+  it('a game day with 1 000 humans, the fauna and the flora fits in the x500 budget (relative to this machine)', () => {
+    const before = machineReferenceMs();
     const humans = {
       ...data.humans,
       tribe: { ...data.humans.tribe, count: Math.ceil(1000 / data.humans.tribe.size), campSpacingTiles: 12 },
@@ -26,7 +36,8 @@ describe('performance', () => {
     const started = performance.now();
     simulation.step(3 * data.time.ticksPerDay);
     const msPerDay = (performance.now() - started) / 3;
-    // At x500 a game day lasts 960 ms of real time.
-    expect(msPerDay).toBeLessThan(960);
+    // The machine may be disturbed before or after: its least disturbed measure is kept.
+    const reference = Math.min(before, machineReferenceMs());
+    expect(msPerDay / reference, `${Math.round(msPerDay)} ms par jour, référence ${reference.toFixed(1)} ms`).toBeLessThan(BUDGET_IN_REFERENCES);
   });
 });

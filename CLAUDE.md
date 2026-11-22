@@ -37,6 +37,7 @@ Lancer-GENESIS.bat      lanceur Windows (point d'entrée du joueur)
 CLAUDE.md               ce fichier
 docs/design.md          design doc (référence de conception)
 data/                   fichiers JSON : paramètres, savoirs, recettes, bâtiments…
+data/wiki/              textes du Wiki en jeu (à partir de la v1.3)
 src/
   sim/                  CŒUR DE SIMULATION — TypeScript pur
     core/               graine aléatoire, horloge, état du monde, journal d'événements
@@ -188,6 +189,8 @@ ton compte rendu ce que Tanguy doit vérifier en le lançant.
   déterministe (même graine = même résultat).
 - Le jeu se construit et se lance (`npm start`).
 - `docs/journal-de-dev.md` est complété.
+- **Dès que le Wiki en jeu existe (v1.3) :** tout système, variable ou contenu ajouté ou modifié a sa page de Wiki à jour
+  (page rédigée, ou fiche générée depuis les données), et le test de couverture du Wiki passe.
 - Les commits sont poussés sur `main`.
 - Le compte rendu de fin de tâche contient, en français : ce qui a été fait, **ce que Tanguy doit
   voir en lançant le jeu**, comment le tester, et les écarts ou questions de design.

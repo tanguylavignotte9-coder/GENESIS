@@ -49,8 +49,8 @@ les conversions / pertes de foi par décennie, avec une alerte « ⚠ Saut inexp
 événement de religion dans la décennie. Une religion qui n'a plus aucun fidèle est racontée au journal (« … s'éteint »).
 
 **Fait (partie B, correctifs au niveau de l'individu) :**
-- **Prédateurs** (`fauna/behavior.ts`, `animals.json → behavior`) : un prédateur affamé sans proie à portée **suit la piste
-  du gibier** le plus proche à 60 tuiles (`trackTiles`) ; il **mange dès qu'il est sur la tuile** de la nourriture ; une
+- **Prédateurs** (`fauna/behavior.ts`, `animals.json → behavior`) : le **pistage** du gibier (`trackTiles`) est codé mais
+  désactivé (voir la dette) ; il **mange dès qu'il est sur la tuile** de la nourriture ; une
   **proie faible** (jeune, vieille, malade, santé < 50) est prise 3 fois plus facilement et choisie en priorité, une bête
   adulte en pleine force s'échappe plus souvent (`weakPreyFactor`, `primePreyFactor`, `weakPreyHealth`).
 - **Pourriture** : une carcasse pourrit selon la température (demi-vie 4,3 jours à 15 °C, deux fois plus vite tous les
@@ -90,39 +90,41 @@ les conversions / pertes de foi par décennie, avec une alerte « ⚠ Saut inexp
   pratiquée).
 
 **Mesures (serveurs de Claude Code) :**
-- **Validation, 10 graines × 75 ans** (code final, 4 calculs en parallèle, **18 min**). Elle a été lancée 4 fois : la
-  première a révélé le blocage des découvertes et la soif de la graine 10, la deuxième et la troisième les prédateurs
-  bloqués sur les rives puis l'anéantissement du gibier ; seule la dernière (code commité) est donnée ici.
+- **Validation, 10 graines × 75 ans** (code poussé, pistage désactivé, 4 calculs en parallèle, **21 min**). Lancée 5
+  fois : les précédentes ont révélé le blocage des découvertes, la soif de la graine 10, les prédateurs bloqués sur les
+  rives puis l'anéantissement du gibier par le pistage ; seule la dernière est donnée.
 
 | Graine | Hab. fin (pic) | Morts | Faim | Soif | Froid | Prédateur | Maladie | Vieillesse | Violence | Tribus | Découvertes | Sans religion fin (max par décennie) | Élevage (captures / abattues / échappées) | Loups | Lions | ms/jour |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | 21 (37) | 72 | 25 % | 29 % | 0 % | 0 % | 22 % | 19 % | 4 % | 1 | 8 | 0/15 (89 %) | 0 / 0 / 0 | 84 | 55 | 135 |
-| 2 | 24 (35) | 38 | 5 % | 0 % | 0 % | 11 % | 11 % | 74 % | 0 % | 3 | 6 | 0/23 (48 %) | 0 / 0 / 0 | 0 | 0 | 99 |
-| 3 | 75 (75) | 46 | 4 % | 2 % | 4 % | 4 % | 37 % | 46 % | 0 % | 2 | 7 | 0/49 (0 %) | 0 / 0 / 0 | 0 | 0 | 120 |
-| 4 | 136 (136) | 80 | 20 % | 15 % | 0 % | 1 % | 39 % | 22 % | 0 % | 1 | 8 | 0/91 (0 %) | 100 / 89 / 34 | 0 | 0 | 117 |
-| 5 | 91 (98) | 92 | 20 % | 17 % | 0 % | 0 % | 40 % | 22 % | 0 % | 2 | 8 | 5/64 (95 %) | 0 / 0 / 0 | 1 | 0 | 135 |
-| 6 | 9 (30) | 34 | 0 % | 0 % | 68 % | 0 % | 9 % | 18 % | 6 % | 1 | 6 | 0/9 (0 %) | 0 / 0 / 0 | 35 | 0 | 74 |
-| 7 | 42 (42) | 47 | 6 % | 23 % | 0 % | 4 % | 34 % | 28 % | 4 % | 2 | 3 | 0/25 (58 %) | 0 / 0 / 0 | 0 | 0 | 106 |
-| 8 | 47 (57) | 88 | 5 % | 7 % | 41 % | 0 % | 28 % | 17 % | 1 % | 1 | 3 | 0/29 (0 %) | 0 / 0 / 0 | 0 | 34 | 97 |
-| 9 | 104 (106) | 77 | 13 % | 14 % | 0 % | 0 % | 42 % | 23 % | 1 % | 1 | 3 | 1/67 (42 %) | 0 / 0 / 0 | 0 | 0 | 133 |
-| 10 | 96 (98) | 76 | 11 % | 11 % | 1 % | 1 % | 51 % | 17 % | 1 % | 1 | 2 | 0/64 (67 %) | 0 / 0 / 0 | 0 | 0 | 112 |
+| 1 | 89 (89) | 53 | 9 % | 19 % | 0 % | 0 % | 25 % | 38 % | 6 % | 3 | 4 | 0/62 (0 %) | 0 / 0 / 0 | 8 | 0 | 135 |
+| 2 | 71 (71) | 48 | 2 % | 4 % | 0 % | 0 % | 35 % | 54 % | 2 % | 2 | 5 | 0/47 (0 %) | 0 / 0 / 0 | 0 | 11 | 136 |
+| 3 | 54 (55) | 49 | 6 % | 2 % | 0 % | 0 % | 37 % | 45 % | 4 % | 1 | 3 | 0/38 (0 %) | 0 / 0 / 0 | 0 | 24 | 132 |
+| 4 | 134 (137) | 81 | 10 % | 6 % | 1 % | 11 % | 30 % | 38 % | 1 % | 3 | 9 | 1/84 (66 %) | 0 / 0 / 0 | 0 | 11 | 152 |
+| 5 | 74 (74) | 79 | 11 % | 15 % | 0 % | 0 % | 51 % | 19 % | 0 % | 1 | 7 | 42/51 (98 %) | 0 / 0 / 0 | 0 | 0 | 158 |
+| 6 | 0 (30) | 54 | 0 % | 0 % | 91 % | 0 % | 4 % | 4 % | 2 % | 0 | 2 | 0/0 (0 %) | 0 / 0 / 0 | 0 | 0 | 76 |
+| 7 | 90 (94) | 53 | 4 % | 8 % | 2 % | 0 % | 45 % | 40 % | 0 % | 2 | 3 | 29/63 (81 %) | 0 / 0 / 0 | 0 | 0 | 172 |
+| 8 | 72 (74) | 55 | 7 % | 9 % | 2 % | 2 % | 36 % | 35 % | 7 % | 2 | 4 | 0/53 (0 %) | 0 / 0 / 0 | 0 | 0 | 124 |
+| 9 | 95 (103) | 104 | 22 % | 16 % | 0 % | 0 % | 46 % | 12 % | 0 % | 1 | 3 | 1/67 (65 %) | 0 / 0 / 0 | 0 | 25 | 143 |
+| 10 | 9 (69) | 110 | 21 % | 41 % | 0 % | 0 % | 25 % | 12 % | 1 % | 1 | 4 | 0/7 (92 %) | 0 / 0 / 0 | 0 | 0 | 131 |
 
-  Humains : aucune extinction ; graine 6 réduite à 9 personnes par le froid (68 % des morts, pays froid déjà en
-  difficulté à chaque lot) ; graine 8 : 41 % de morts de froid. Soif : 0 à 29 % (graines 1 et 7 au-dessus de 20 %).
-  Découvertes : 2 à 8 ; élevage dans la graine 4 (100 captures, 89 bêtes abattues, 34 évasions). Sans religion à la fin :
-  0 à 8 %, mais 42 à 95 % au pire de la décennie où une religion naît (aucun saut inexpliqué).
-  **Prédateurs : loups vivants dans 2 mondes (plus 1 loup seul dans un troisième), lions dans 2.**
-- Tests rapides : 619. Tests longs : voir ci-dessous.
+  Humains : graine 6 éteinte par le froid (91 % des morts ; ce pays froid perd ses habitants à chaque lot) ; graine 10
+  réduite à 9 personnes, **41 % des morts de soif** (souvent déjà affamées). Ailleurs 54 à 134 habitants. Soif 2 à 19 %
+  dans les 8 autres mondes. Découvertes : 2 à 9. Élevage : aucun monde en 75 ans. Sans religion à la fin : 0 à 2 % dans
+  7 mondes ; graines 5 et 7 : 82 % et 46 % avec une religion née dans la dernière décennie (pas de saut inexpliqué).
+  **Prédateurs : loups vivants dans 1 monde, lions dans 5.**
+- Tests rapides : 619. **Tests longs : 12/13** : la mesure « 1 000 humains en x500 » donne 1 011 à 1 097 ms au lieu de
+  960 ; le code de la v1.1, mesuré le même jour sur la même machine, donne 1 057 ms (serveur plus lent ce jour-là ; le
+  lot coûte environ 4 % de plus). Seuil non modifié.
 
 **Dette technique :**
-- **Prédateurs, non résolu → v1.3** : les correctifs d'individu (pistage, repas sur la tuile, rives, proies faibles)
-  ont supprimé des absurdités réelles, mais la dynamique reste en dents de scie : les prédateurs pullulent les premières
-  années (loups ×1,5 à ×2), épuisent localement le gibier, puis meurent de faim ; selon le monde, une espèce disparaît
-  encore dans 8 mondes sur 10 à 75 ans. Pistes réalistes à examiner une par une : seule la louve dominante de la meute met
-  bas (une portée par an, taille selon l'état), vigilance des troupeaux (une proie avertie fuit plus tôt), densité limitée
-  par les territoires. Le système est très sensible : juger chaque piste sur 10 graines.
-- **Soif** : 23 et 29 % des morts dans 2 mondes sur 10 (souvent des personnes déjà affamées, loin de l'eau).
-- La validation de l'étape 12 sur la religion n'est toujours pas reproduite (mesures en place désormais).
+- **Prédateurs, non résolu → v1.3** : les correctifs d'individu (repas sur la tuile, rives, proies faibles) ont supprimé
+  des absurdités réelles, mais la dynamique reste en dents de scie : un prédateur plus habile épuise localement le gibier
+  puis meurt de faim (le pistage, plus réaliste, faisait s'effondrer toute la faune : désactivé, `trackTiles` = 0). Il
+  manque des freins réalistes, à essayer un par un sur 10 graines : seule la louve dominante met bas (une portée par an,
+  selon son état), vigilance des troupeaux (une proie avertie fuit plus tôt), densité limitée par les territoires.
+- **Soif** : 41 % des morts dans la graine 10 (camp loin de l'eau, gens affamés) ; l'anticipation au camp et le vrai
+  chemin vers l'eau ont supprimé les morts « à deux pas », pas celles-ci.
+- Mesure de performance à reprendre sur le PC de Tanguy (banc d'essai).
 
 **Dettes résolues :** pourriture de la viande indépendante du climat (étape 12) ; morts de soif à quelques pas d'une eau
 connue (v1.1) ; découvertes bloquées par les métiers impossibles à exercer (défaut de la v1.1).

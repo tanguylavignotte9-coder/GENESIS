@@ -51,6 +51,20 @@ function onMission(sys: IndividualsSystem, person: number): boolean {
 }
 
 /** Is there water to drink within sight, on the way down to it? */
+/** The water in sight lies straight ahead over walkable ground: the plain walk toward it will do (no path search). */
+function straightToWater(sys: IndividualsSystem, person: number, tile: number): boolean {
+  const { people } = sys;
+  const x = people.px[person]!;
+  const y = people.py[person]!;
+  const tx = (tile % sys.size) + 0.5;
+  const ty = Math.floor(tile / sys.size) + 0.5;
+  const samples = Math.ceil(Math.hypot(tx - x, ty - y) * 2);
+  for (let k = 1; k <= samples; k++) {
+    if (!sys.terrain.walkable(Math.floor(y + ((ty - y) * k) / samples) * sys.size + Math.floor(x + ((tx - x) * k) / samples))) return false;
+  }
+  return true;
+}
+
 /** The nearest place to drink in sight (a walkable tile by the water), or -1. */
 function waterInSight(sys: IndividualsSystem, from: number): number {
   const path = sys.fauna.waterPath;
@@ -76,7 +90,7 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       // old one may lie a day's walk behind).
       // A real way there (around a lake shore, a thicket): walking straight at it may get one stuck.
       const seen = waterInSight(sys, here);
-      if (seen >= 0) return sys.goTo(person, seen) || true;
+      if (seen >= 0) return straightToWater(sys, person, seen) || sys.goTo(person, seen) || true;
       const remembered = sys.nearestMemory(person, 'water');
       return remembered >= 0 ? sys.goTo(person, remembered) : sys.fauna.waterPath[here]! >= 0;
     }

@@ -10,11 +10,15 @@ import { denTarget, territorySearchSpot } from './territory';
 import { thinkDomestic, troughHere } from './domestic';
 import type { AnimalSpecies } from './params';
 import type { SpatialGrid } from '../../core/spatial-grid';
-import { advance, DIRECTION_COUNT, DIRECTIONS_X, DIRECTIONS_Y, distance, separation, speedOf, steer, stop, updateGait, type SteerGoal } from '../../core/motion';
+import { advance, DIRECTION_COUNT, Gait, DIRECTIONS_X, DIRECTIONS_Y, distance, separation, speedOf, steer, stop, updateGait, type SteerGoal } from '../../core/motion';
 
 /** Local copy: avoids a module lookup per access in hot loops. */
 const State = { ...States };
 
+/** Time allowed to creep up to a prey, against the time it takes at a steady walk. */
+const STALK_SLACK = 1.5;
+/** A prey that got this many times the hunter's sight away is lost. */
+const LOSE_SIGHT = 1.5;
 /** A hunter this close is frightening even when it is not hunting. */
 const CLOSE_DANGER = 2;
 /** Look-ahead on the known way to water (tiles), so the walk is a smooth line. */
@@ -68,9 +72,13 @@ export function think(fauna: FaunaSystem, slot: number): void {
     // Danger = a hunter of this species that is hunting, or one that comes very close. More eyes
     // in the herd see it sooner; thick cover hides it.
     const sight = vigilanceRadius(fauna, slot, species);
+    // A hunter charging is seen as far as the herd watches; one creeping up (or merely there) only
+    // much closer; any hunter at a few steps is a danger.
+    const stalkSight = sight * params.vigilance.stalkShare;
     const threat = nearestAnimal(fauna, fauna.hunterGrid, slot, sight, (other) => {
       if (fauna.hunts[store.species[other]! * n + code] !== 1) return false;
-      return store.state[other] === State.Hunt || distance(x, y, store.px[other]!, store.py[other]!) <= CLOSE_DANGER;
+      const d = distance(x, y, store.px[other]!, store.py[other]!);
+      return (store.state[other] === State.Hunt && store.gait[other] === Gait.Run) || d <= stalkSight || d <= CLOSE_DANGER;
     });
     if (threat >= 0) {
       fleeFrom(fauna, slot, store.px[threat]!, store.py[threat]!);
@@ -78,7 +86,8 @@ export function think(fauna: FaunaSystem, slot: number): void {
       return;
     }
   }
-  if (store.state[slot] === State.Hunt && store.chase[slot]! > 0 && huntTargetAlive(fauna, slot)) return;
+  // A hunt goes on (unless thirst becomes unbearable).
+  if (store.state[slot] === State.Hunt && store.chase[slot]! > 0 && huntTargetAlive(fauna, slot) && store.thirst[slot]! < params.needs.thirstBreaksHunt) return;
   if (store.ownerCamp[slot]! >= 0) {
     thinkDomestic(fauna, slot, species);
     return;
@@ -152,7 +161,11 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   const { store, params } = fauna;
   const x = store.x[slot]!;
   const y = store.y[slot]!;
-  if ('meat' in species.diet) {
+  // A meat eater goes straight for a carcass in reach; an omnivore (a bear) only when meat is what it
+  // prefers, otherwise it weighs it against its other food.
+  const diet = species.diet;
+  const meatFirst = (diet['meat'] ?? 0) > 0 && Object.values(diet).every((weight) => weight <= diet['meat']!);
+  if (meatFirst) {
     const carcass = reachableCarcass(fauna, slot, params.behavior.forageRadius);
     if (carcass >= 0) {
       setTarget(fauna, slot, State.Forage, (carcass % fauna.size) + 0.5, Math.floor(carcass / fauna.size) + 0.5);
@@ -160,7 +173,7 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
     }
   }
   if (species.huntRadius > 0 && store.hunger[slot]! > params.needs.huntAbove) {
-    const prey = choosePrey(fauna, slot, species);
+    const prey = choosePrey(fauna, slot, species, (other) => straightWay(fauna, slot, store.px[other]!, store.py[other]!));
     const preyDistance = prey >= 0 ? distance(store.px[slot]!, store.py[slot]!, store.px[prey]!, store.py[prey]!) : Infinity;
     // A person walking alone is a prey like another for a hungry predator: it goes for the nearest.
     const human = nearestLoneHuman(fauna, slot, species.huntRadius);
@@ -169,7 +182,7 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
       store.state[slot] = State.Hunt;
       store.targetAnimal[slot] = onHuman ? human.id : prey;
       store.huntsHuman[slot] = onHuman ? 1 : 0;
-      store.chase[slot] = species.chaseSteps;
+      store.chase[slot] = huntSteps(species, Math.min(preyDistance, human.distance));
       return true;
     }
   }
@@ -445,7 +458,12 @@ function noticeLoneHuman(fauna: FaunaSystem, slot: number, species: AnimalSpecie
   store.state[slot] = State.Hunt;
   store.targetAnimal[slot] = human.id;
   store.huntsHuman[slot] = 1;
-  store.chase[slot] = species.chaseSteps;
+  store.chase[slot] = huntSteps(species, human.distance);
+}
+
+/** Steps a hunt may last: creeping up to the prey at a walk, then the rush. */
+function huntSteps(species: AnimalSpecies, distanceTiles: number): number {
+  return species.chaseSteps + Math.ceil((STALK_SLACK * Math.max(0, distanceTiles - species.chargeTiles)) / species.walkTilesPerHour);
 }
 
 function huntTargetAlive(fauna: FaunaSystem, slot: number): boolean {
@@ -456,9 +474,10 @@ function huntTargetAlive(fauna: FaunaSystem, slot: number): boolean {
 }
 
 /**
- * Runs at a prey (animal or person) at (px, py). A pack closes in from several sides: while still
- * far, each hunter aims at its own point around the prey; close enough, it rushes. Returns true when
- * the hunter is in contact.
+ * Goes for a prey (animal or person) at (px, py): far off, the hunter creeps up at a walk (it is
+ * seen only close); within its charging distance, it rushes. A pack closes in from several sides:
+ * each hunter aims at its own point around the prey, then rushes. Returns true when the hunter is in
+ * contact.
  */
 export function chase(fauna: FaunaSystem, slot: number, species: AnimalSpecies, px: number, py: number): boolean {
   const { store, params, groups } = fauna;
@@ -467,6 +486,10 @@ export function chase(fauna: FaunaSystem, slot: number, species: AnimalSpecies, 
   if (d <= movement.catchTiles) {
     settle(fauna, slot);
     return true;
+  }
+  if (d > species.chargeTiles) {
+    moveTo(fauna, slot, px, py, species.walkTilesPerHour, false, false);
+    return false;
   }
   let tx = px;
   let ty = py;
@@ -485,8 +508,10 @@ function hunt(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
   const { store } = fauna;
   const prey = store.targetAnimal[slot]!;
   store.chase[slot] = store.chase[slot]! - 1;
+  // A prey gone far out of sight is given up.
+  const lost = store.huntsHuman[slot] === 0 && store.alive[prey] === 1 && distance(store.px[slot]!, store.py[slot]!, store.px[prey]!, store.py[prey]!) > species.huntRadius * LOSE_SIGHT;
   // Out of breath, or the prey is gone: the chase is over.
-  if (store.chase[slot]! <= 0 || !huntTargetAlive(fauna, slot)) {
+  if (store.chase[slot]! <= 0 || lost || !huntTargetAlive(fauna, slot)) {
     store.state[slot] = State.Rest;
     store.huntsHuman[slot] = 0;
     return;

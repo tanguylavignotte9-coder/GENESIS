@@ -149,7 +149,7 @@ export interface GroupsParams {
   fusion: { maxMembers: number; sufferingShare: number; minOpinion: number; despairOpinion: number; sizeRatio: number; chance: number };
   betrayal: { approvalBelow: number; minAffection: number; chance: number };
   contact: { meetTiles: number; opinionRate: number; scissionOpinion: number; allianceOpinion: number; allianceChance: number };
-  moves: { sufferingEffect: number; migrateDeathShare: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number; foresightDays: number };
+  moves: { sufferingEffect: number; migrateDeathShare: number; migrateMinTiles: number; migrateWarmth: number; winterCelsius: number; foresightDays: number; winterQuarterGain: number; winterQuarterMaxTiles: number };
   texts: Record<(typeof TEXT_KEYS)[number], string>;
   factorTexts: Record<Factor, string>;
   featureTexts: Record<PowerFeature, string>;
@@ -158,6 +158,7 @@ export interface GroupsParams {
 }
 
 const CAUSE_KEYS = [
+  'winterQuarters',
   'hunger',
   'cold',
   'disease',
@@ -426,7 +427,9 @@ export const GROUPS_SCHEMA: Schema = {
         migrateDeathShare: share('Migration', 'Part des membres morts de faim, de soif, de froid ou de maladie en un an à partir de laquelle on migre loin plutôt que de se déplacer un peu.'),
         migrateMinTiles: num(5, 500, 'Distance d’une migration', 'Distance à partir de laquelle un lieu connu compte pleinement comme destination de migration (on préfère partir loin).', 'tuiles'),
         foresightDays: int(0, 100, 'Prévoir l’hiver', 'On ne lève pas le camp si le froid est prévisible d’ici ce nombre de jours (par les saisons).', 'jours'),
-        winterCelsius: num(-50, 40, 'Froid qui retient', 'En dessous de cette température au camp, personne ne veut lever le camp : on reste près des huttes et du feu (le froid tue en quelques jours).', '°C'),
+        winterCelsius: num(-50, 40, 'Froid qui retient', 'Pendant la saison froide du lieu, en dessous de cette température au camp, personne ne veut lever le camp : on reste près des huttes et du feu (le froid tue en quelques jours). Dans un pays froid toute l’année, on se déplace pendant les mois les moins froids.', '°C'),
+        winterQuarterGain: num(0, 50, 'Quartiers d’hiver', 'Quand le froid arrive, une tribu dont des adultes connaissent un endroit plus chaud d’au moins ces degrés à cette saison peut aller y passer la mauvaise saison.', '°C'),
+        winterQuarterMaxTiles: num(1, 500, 'Distance des quartiers d’hiver', 'Distance maximale d’un endroit connu où passer la mauvaise saison.', 'tuiles'),
         migrateWarmth: share('Chercher la chaleur', 'Poids de la chaleur dans le choix d’une destination de migration après des morts de froid.'),
       },
     },

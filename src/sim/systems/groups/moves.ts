@@ -45,10 +45,16 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
   const hardship = Math.min(1, sufferings / (params.factors.sufferingShare * Math.max(1, tribe.members.length)));
   const curiosity = humans.params.traits.findIndex((trait) => trait.id === 'curiosity');
   const adults = sys.adults(tribe);
-  // In the cold, nobody wants to leave the huts and the fire: the cold kills in days, hunger in weeks.
-  // …nor when the cold season is coming: one knows the seasons.
+  // In the cold season of the place, nobody wants to leave the huts and the fire: the cold kills in
+  // days, hunger in weeks. But one knows the seasons: before the cold comes, a tribe that knows a
+  // warmer place may go and spend the bad season there (in a land that is cold all year round, the
+  // warmer months are when one moves).
+  const now = humans.climate.temperatureAt(camp.center);
   const coming = humans.climate.temperatureAhead(camp.center, params.moves.foresightDays);
-  if (Math.min(humans.climate.temperatureAt(camp.center), coming) < params.moves.winterCelsius) return;
+  if (Math.min(now, coming) < params.moves.winterCelsius && Math.min(now, coming) < yearMean(sys, camp.center)) {
+    if (coming < now) winterQuarters(sys, tribe, coming);
+    return;
+  }
   const proposals = new Map<number, number>();
   for (const p of adults) {
     const eager = curiosity >= 0 ? 2 * people.trait(p, curiosity) - 1 : 0;
@@ -112,6 +118,83 @@ export function considerMove(sys: GroupsSystem, tribe: Group): void {
     raison: reason,
   });
   humans.moveCampTo(tribe.camp, site, sys.tick, capitalize(text), causes, tribe.leaders);
+  tribe.settledDay = sys.day;
+}
+
+/** Mean temperature of a place over the year (the seasons only). */
+function yearMean(sys: GroupsSystem, tile: number): number {
+  const climate = sys.humans.climate;
+  const days = climate.daysPerYear;
+  let sum = 0;
+  for (let k = 0; k < YEAR_SAMPLES; k++) sum += climate.temperatureAhead(tile, Math.floor((k * days) / YEAR_SAMPLES));
+  return sum / YEAR_SAMPLES;
+}
+const YEAR_SAMPLES = 4;
+
+/**
+ * Winter quarters: the cold season is coming; the adults who know a place clearly warmer at that
+ * time of year (a place where they found food or water), within a few days' walk, want to go and
+ * spend it there. The power decides according to the regime.
+ */
+function winterQuarters(sys: GroupsSystem, tribe: Group, coming: number): void {
+  const { humans, params } = sys;
+  const camp = humans.camps[tribe.camp]!;
+  const people = humans.people;
+  const size = humans.size;
+  const rules = params.moves;
+  const known = new Map<number, number>();
+  for (const person of sys.adults(tribe)) {
+    let best = -1;
+    let bestWarmth = coming + rules.winterQuarterGain;
+    const look = (tile: number): void => {
+      if (tile < 0 || !humans.terrain.walkable(tile) || humans.world.landmasses.idOf[tile] !== humans.world.landmasses.idOf[camp.center]) return;
+      const d = Math.hypot((tile % size) - camp.centerX, Math.floor(tile / size) - camp.centerY);
+      if (d < humans.params.campMove.minMoveTiles || d > rules.winterQuarterMaxTiles) return;
+      const warmth = humans.climate.temperatureAhead(tile, rules.foresightDays);
+      if (warmth >= bestWarmth) {
+        bestWarmth = warmth;
+        best = tile;
+      }
+    };
+    for (let k = person * people.foodSlots; k < (person + 1) * people.foodSlots; k++) look(people.foodMemory[k]!);
+    for (let k = person * people.waterSlots; k < (person + 1) * people.waterSlots; k++) look(people.waterMemory[k]!);
+    if (best >= 0) known.set(person, best);
+  }
+  const adults = sys.adults(tribe);
+  if (adults.length < humans.params.campMove.minAdults || known.size === 0) return;
+  const go = decide(sys, tribe, (p) => known.has(p));
+  recordDecision(tribe, {
+    day: sys.day,
+    title: 'Quartiers d’hiver',
+    chosen: go ? 1 : 0,
+    options: [
+      { name: 'Rester', score: adults.length - known.size, reasons: [`${adults.length - known.size} adulte(s) ne connaissent pas d’endroit plus chaud`] },
+      { name: 'Hiverner au chaud', score: known.size, reasons: [`le froid arrive (${Math.round(coming)} °C prévus au camp)`, `${known.size} adulte(s) connaissent un endroit plus chaud`] },
+    ],
+    decidedBy: deciders(sys, tribe),
+    note: '',
+  });
+  if (!go) return;
+  const site = nearWater(humans, meetingSite(sys, [...known.values()]), humans.params.campMove.waterMaxTiles);
+  if (site < 0) return;
+  const dx = (site % size) - camp.centerX;
+  const dy = Math.floor(site / size) - camp.centerY;
+  const regime = params.regimes[tribe.regime]!;
+  const decision =
+    tribe.leaders.length === 0 || regime.decision === 'consensus'
+      ? params.causeTexts.decisionConsensus
+      : regime.decision === 'council'
+        ? params.causeTexts.decisionCouncil
+        : params.causeTexts.decisionChief.replace('{nom}', listNames(tribe.leaders.map((leader) => nameOf(sys, leader))));
+  const text = fillTemplate(params.texts.move, {
+    decision,
+    groupe: tribe.name,
+    distance: String(Math.round(Math.sqrt(dx * dx + dy * dy))),
+    direction: direction(dx, dy),
+    lieu: describeLocation(humans.world, site % size, Math.floor(site / size)),
+    raison: params.causeTexts.winterQuarters,
+  });
+  humans.moveCampTo(tribe.camp, site, sys.tick, capitalize(text), [tribe.leaderEvent], tribe.leaders);
   tribe.settledDay = sys.day;
 }
 

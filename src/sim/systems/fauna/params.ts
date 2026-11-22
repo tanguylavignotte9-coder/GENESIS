@@ -35,6 +35,9 @@ export interface AnimalSpecies {
   birthIntervalDays: number;
   /** Days the young drink their mother's milk (she pays for it from her reserves). */
   nursingDays: number;
+  /** Breeding sites (burrows, warrens): a female breeds only if fewer than `breedersPerSite` other breeding females of her kind live within `breedingSiteTiles` (0 = no such limit). */
+  breedingSiteTiles: number;
+  breedersPerSite: number;
   /** Adult body mass (kg): metabolism, reserves, meal size, and the strength of a hunter or of a prey. */
   massKg: number;
   /** Largest meal, in days of the animal's basal needs (a wolf gorges, a deer grazes little and often). */
@@ -65,6 +68,8 @@ export interface AnimalSpecies {
   huntSkill: number;
   /** Hunters only: beyond this many hunters on the same prey, more do not help (they let the others do the work). */
   huntGroupCap: number;
+  /** Hunters only: distance from which the hunter stops creeping up and charges its prey. */
+  chargeTiles: number;
   /** Hunters only: steps (hours) a chase can last before the hunter gives up, out of breath. */
   chaseSteps: number;
   /** Prey: share of attacks it escapes by its speed or agility, all else being equal. */
@@ -99,6 +104,7 @@ export interface FaunaParams {
     seekWaterAbove: number;
     seekFoodAbove: number;
     huntAbove: number;
+    thirstBreaksHunt: number;
     fullBelow: number;
     drinkPerStep: number;
     starvationDamagePerDay: number;
@@ -122,6 +128,7 @@ export interface FaunaParams {
     birthMassShare: number;
     startConditionMin: number;
     breedingMinCondition: number;
+    breedingFullCondition: number;
     foodEnergy: { grass: number; meat: number; fish: number; produce: number };
   };
   /** Attacks of animal hunters: what makes them succeed or fail, and what the prey can do. */
@@ -139,7 +146,7 @@ export interface FaunaParams {
     refugeByBiome: Record<string, number>;
   };
   /** Herds: more eyes see a hunter sooner, and an alarm makes the whole herd run. */
-  vigilance: { perMate: number; maxMates: number; alarmTiles: number; coverShare: number };
+  vigilance: { perMate: number; maxMates: number; alarmTiles: number; coverShare: number; stalkShare: number };
   /** Territories of the social hunters: sized by the game, defended, intruders at risk; groups that split and gather. */
   territory: {
     preyKgPerPredatorKg: number;
@@ -256,6 +263,8 @@ const SPECIES_SCHEMA: Schema = {
     conceptionChance: share('Chance de conception', 'Chance par jour, pour une femelle fertile pendant la saison des amours.'),
     birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas.', 'jours'),
     nursingDays: int(0, 400, 'Allaitement', 'Jours pendant lesquels les petits boivent le lait de leur mère : elle le paie sur ses réserves, et s’il n’y en a plus, les petits jeûnent.', 'jours'),
+    breedingSiteTiles: num(0, 50, 'Sites de reproduction', 'Espèces qui mettent bas dans un terrier ou une garenne (0 = aucune limite) : rayon de la garenne. Quand toutes les places sont prises, les femelles dominées ne se reproduisent pas (dans la nature, la densité de lapins est ainsi limitée par l’espace des garennes).', 'tuiles'),
+    breedersPerSite: int(0, 1000, 'Places par garenne', 'Nombre de femelles reproductrices de l’espèce tolérées dans ce rayon.', 'femelles'),
     massKg: num(0.1, 5000, 'Masse adulte', 'Poids d’un adulte. Le métabolisme croît comme la masse à la puissance 0,75 ; les réserves et la taille d’un repas suivent la masse ; à la chasse, la masse fait la force du chasseur et la résistance de la proie.', 'kg'),
     mealDays: num(0.05, 20, 'Plus gros repas', 'Ce que l’animal peut avaler d’un coup, en jours de besoins de base : un loup se gave puis digère, un cerf broute peu et souvent.', 'jours de besoins'),
     territoryMinTiles: int(0, 200, 'Territoire minimal', 'Chasseurs sociaux (0 = pas de territoire) : rayon le plus petit du territoire d’un groupe, quand le gibier abonde.', 'tuiles'),
@@ -272,6 +281,7 @@ const SPECIES_SCHEMA: Schema = {
     huntRadius: int(0, 64, 'Vue du chasseur', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
     huntSkill: share('Adresse à la chasse', 'Chasseurs : chance qu’une attaque d’un adulte seul réussisse contre une proie de son poids, en bonne santé, en terrain découvert. La taille de la proie, celle du groupe de chasseurs, la faiblesse de la proie, sa vivacité, la surprise et le terrain la modifient.'),
     huntGroupCap: int(1, 50, 'Chasseurs utiles', 'Chasseurs : au-delà de ce nombre de chasseurs sur une même proie, les autres n’aident plus (ils laissent faire l’effort).', 'chasseurs'),
+    chargeTiles: num(0.5, 64, 'Charge', 'Chasseurs : le chasseur approche sa proie au pas, en se cachant, puis charge à cette distance (court les derniers mètres).', 'tuiles'),
     chaseSteps: int(1, 200, 'Durée d’une poursuite', 'Chasseurs : au-delà de ce nombre de pas (heures) de poursuite, le chasseur abandonne, à bout de souffle.', 'pas'),
     evasion: share('Vivacité', 'Proies : part des attaques auxquelles l’animal échappe par sa vitesse ou son agilité, toutes choses égales par ailleurs.'),
     riposteChance: share('Riposte', 'Chance que l’animal se défende quand un chasseur, humain ou animal, l’attaque (charge, coups de cornes, de défenses ou de griffes).'),
@@ -310,6 +320,7 @@ export const ANIMALS_SCHEMA: Schema = {
         seekWaterAbove: num(0, 100, 'Seuil de soif', 'Au-dessus de cette soif, l’animal part boire.', 'points'),
         seekFoodAbove: num(0, 100, 'Seuil de faim', 'Au-dessus de cette faim, l’animal cherche à manger (brouter, cueillir, une charogne). La faim est le vide des réserves et de l’estomac : 0 = repu, 100 = plus aucune réserve.', 'points'),
         huntAbove: num(0, 100, 'Faim pour chasser', 'Au-dessus de cette faim, un chasseur part chasser : une chasse coûte cher, on ne la tente que le ventre assez vide.', 'points'),
+        thirstBreaksHunt: num(0, 100, 'Soif qui interrompt la chasse', 'Au-dessus de cette soif, un chasseur lâche sa proie pour aller boire.', 'points'),
         fullBelow: num(0, 100, 'Rassasié', 'En dessous de ce niveau, l’animal a fini de manger ou de boire.', 'points'),
         drinkPerStep: num(0, 100, 'Gorgées', 'Points de soif apaisés par pas passé à boire.', 'points/pas'),
         starvationDamagePerDay: num(0, 100, 'Dégâts de la faim', 'Santé perdue par jour quand les réserves sont épuisées (faim à 100).', 'points/jour'),
@@ -335,6 +346,7 @@ export const ANIMALS_SCHEMA: Schema = {
         birthMassShare: num(0.001, 1, 'Masse à la naissance', 'Part de la masse adulte d’un nouveau-né ; il grandit jusqu’à l’âge adulte.', 'fraction'),
         startConditionMin: share('Réserves au début du monde', 'Au début du monde, chaque animal a des réserves tirées entre cette part et le plein.'),
         breedingMinCondition: share('État pour se reproduire', 'En dessous de cet état de ses réserves, une femelle ne conçoit pas ; au-dessus, sa fertilité et la taille de sa portée croissent avec son état.'),
+        breedingFullCondition: share('Bon état', 'À partir de cet état de ses réserves, une femelle a toute sa fertilité et ses plus grandes portées.'),
         foodEnergy: {
           kind: 'object',
           fields: {
@@ -368,6 +380,7 @@ export const ANIMALS_SCHEMA: Schema = {
         perMate: num(0, 5, 'Yeux du troupeau', 'Chaque compagnon proche allonge de cette part la distance à laquelle une proie remarque un chasseur (plus d’yeux, détection plus tôt).', 'fraction'),
         maxMates: int(0, 100, 'Vigilance maximale', 'Au-delà de ce nombre de compagnons, la vigilance n’augmente plus.', 'animaux'),
         alarmTiles: num(0, 30, 'Alerte', 'Quand une bête fuit un chasseur, ses compagnons à cette distance fuient avec elle.', 'tuiles'),
+        stalkShare: share('Approche discrète', 'Un chasseur qui approche au pas (ou qui passe) n’est remarqué qu’à cette part de la distance de vigilance ; celui qui charge, à toute la distance.'),
         coverShare: share('Effet du couvert', 'Part de la distance de détection perdue dans un couvert épais (couvert du terrain = 1).'),
       },
     },

@@ -15,6 +15,9 @@ import { distance } from '../../core/motion';
  * eat of it) against the cost of the chase and the risk of being hurt.
  */
 
+/** Best prey options checked for a way there (technical: the check is costly). */
+const REACH_CHECKS = 3;
+
 /** Is this animal an easy prey: young, old, sick, wounded or thin? */
 export function weakPrey(fauna: FaunaSystem, prey: number): boolean {
   const { store, params } = fauna;
@@ -70,7 +73,7 @@ export function attackChance(fauna: FaunaSystem, slot: number, species: AnimalSp
  * The prey worth hunting among those in sight, or -1: expected energy (chance × the meat the group
  * can eat, at most the carcass) minus the cost of running to it and the risk of its riposte.
  */
-export function choosePrey(fauna: FaunaSystem, slot: number, species: AnimalSpecies): number {
+export function choosePrey(fauna: FaunaSystem, slot: number, species: AnimalSpecies, reachable: (prey: number) => boolean): number {
   const { store, params } = fauna;
   const n = params.species.length;
   const hunter = store.species[slot]!;
@@ -85,8 +88,7 @@ export function choosePrey(fauna: FaunaSystem, slot: number, species: AnimalSpec
   const runCost = params.energy.walkCostPerKg075Tile * params.energy.runCostFactor * Math.pow(store.mass[slot]!, 0.75);
   // A blow loses health; health is worth, roughly, the energy of the body's reserves.
   const healthValue = store.maxReserve[slot]! / 100;
-  let best = -1;
-  let bestScore = 0;
+  const options: { prey: number; score: number }[] = [];
   fauna.grid.forEachNear(x, y, species.huntRadius, (other) => {
     if (other === slot || fauna.hunts[hunter * n + store.species[other]!] !== 1 || store.ownerCamp[other]! >= 0) return;
     const d = distance(x, y, store.px[other]!, store.py[other]!);
@@ -96,12 +98,12 @@ export function choosePrey(fauna: FaunaSystem, slot: number, species: AnimalSpec
     const preySpecies = fauna.speciesOf(other);
     const risk = (1 - chance) * preySpecies.riposteChance * preySpecies.riposteDamage * params.hunting.riposteShare * healthValue;
     const score = gain - d * runCost - risk;
-    if (score > bestScore) {
-      best = other;
-      bestScore = score;
-    }
+    if (score > 0) options.push({ prey: other, score });
   });
-  return best;
+  // The best one it can run to (not across a river or a lake).
+  options.sort((a, b) => b.score - a.score || a.prey - b.prey);
+  for (let k = 0; k < Math.min(options.length, REACH_CHECKS); k++) if (reachable(options[k]!.prey)) return options[k]!.prey;
+  return -1;
 }
 
 /**

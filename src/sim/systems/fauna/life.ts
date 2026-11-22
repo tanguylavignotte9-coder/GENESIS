@@ -56,10 +56,10 @@ export function liveOneDay(fauna: FaunaSystem, slot: number): void {
  * up to 1 for a female in full condition (a thin female conceives seldom, has small litters).
  */
 export function fertility(fauna: FaunaSystem, slot: number): number {
-  const min = fauna.params.energy.breedingMinCondition;
+  const { breedingMinCondition: min, breedingFullCondition: full } = fauna.params.energy;
   const shape = condition(fauna, slot);
   if (shape < min) return 0;
-  return min >= 1 ? 1 : Math.min(1, (shape - min) / (1 - min));
+  return full <= min ? 1 : Math.min(1, (shape - min) / (full - min));
 }
 
 export function canConceive(fauna: FaunaSystem, slot: number): boolean {
@@ -73,7 +73,24 @@ export function canConceive(fauna: FaunaSystem, slot: number): boolean {
   const day = localDayOfYear(fauna.climate.dayOfYear, northern, fauna.daysPerYear);
   if (day < species.breedingDays[0] || day >= species.breedingDays[1]) return false;
   // Territorial hunters raise young only on the land their group holds (and, for wolves, only the dominant female).
+  if (species.breedingSiteTiles > 0 && sitesTaken(fauna, slot, species.breedingSiteTiles, species.breedersPerSite)) return false;
   return hasMateNearby(fauna, slot, params.behavior.mateRadius) && (species.territoryMaxTiles <= 0 || store.ownerCamp[slot]! >= 0 || holdsTerritory(fauna, slot));
+}
+
+/** All the breeding places around are held by other adult females of her kind (pregnant or nursing). */
+function sitesTaken(fauna: FaunaSystem, slot: number, radius: number, places: number): boolean {
+  const { store } = fauna;
+  const x = store.px[slot]!;
+  const y = store.py[slot]!;
+  const code = store.species[slot]!;
+  const species = fauna.speciesOf(slot);
+  let held = 0;
+  fauna.grid.forEachNear(x, y, radius, (other) => {
+    if (held >= places || other === slot || store.species[other] !== code || store.sex[other] !== Sex.Female) return;
+    const breeding = store.pregnancy[other]! > 0 || fauna.day - store.lastBirthDay[other]! < species.nursingDays;
+    if (breeding && Math.abs(store.px[other]! - x) <= radius && Math.abs(store.py[other]! - y) <= radius) held++;
+  });
+  return held >= places;
 }
 
 /** An adult male of the same species within `radius` tiles (herd mate or a solitary neighbour). */

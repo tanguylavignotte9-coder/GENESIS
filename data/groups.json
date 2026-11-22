@@ -500,7 +500,9 @@
     "migrateMinTiles": 40,
     "migrateWarmth": 0.5,
     "winterCelsius": 8,
-    "foresightDays": 10
+    "foresightDays": 10,
+    "winterQuarterGain": 4,
+    "winterQuarterMaxTiles": 60
   },
   "texts": {
     "founded": "{groupe} se forme : {raison}.",
@@ -565,6 +567,7 @@
     "craft": "fabriquer des outils"
   },
   "causeTexts": {
+    "winterQuarters": "pour passer la mauvaise saison dans un endroit plus chaud qu’ils connaissent",
     "hunger": "famine",
     "cold": "froid",
     "disease": "maladie",

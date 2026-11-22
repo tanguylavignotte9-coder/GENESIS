@@ -55,7 +55,7 @@ export class ClimateState {
   constructor(
     private readonly map: ClimateMap,
     readonly params: ClimateParams,
-    private readonly daysPerYear: number,
+    readonly daysPerYear: number,
   ) {
     const count = map.size * map.size;
     this.anomalyIndex = new Uint8Array(count);

@@ -187,7 +187,7 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
     }
   }
   const code = store.species[slot]!;
-  if (foodValueAt(fauna, code, x, y) >= biteSize(fauna, slot)) {
+  if (foodValueAt(fauna, code, x, y) >= biteSize(fauna, slot) * params.behavior.grazeHereShare) {
     store.state[slot] = State.Eat;
     return true;
   }

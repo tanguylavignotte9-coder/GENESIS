@@ -164,6 +164,8 @@ export interface FaunaParams {
     forageRadius: number;
     forageSamples: number;
     farForageFactor: number;
+    grazeHereShare: number;
+    outsideHabitatShare: number;
     cohesionRadius: number;
     wanderChance: number;
     wanderRadius: number;
@@ -264,7 +266,7 @@ const SPECIES_SCHEMA: Schema = {
     conceptionChance: share('Chance de conception', 'Chance par jour, pour une femelle fertile pendant la saison des amours.'),
     birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas.', 'jours'),
     nursingDays: int(0, 400, 'Allaitement', 'Jours pendant lesquels les petits boivent le lait de leur mère : elle le paie sur ses réserves, et s’il n’y en a plus, les petits jeûnent.', 'jours'),
-    breedingSiteTiles: num(0, 50, 'Sites de reproduction', 'Espèces qui mettent bas dans un terrier ou une garenne (0 = aucune limite) : rayon de la garenne. Quand toutes les places sont prises, les femelles dominées ne se reproduisent pas (dans la nature, la densité de lapins est ainsi limitée par l’espace des garennes).', 'tuiles'),
+    breedingSiteTiles: num(0, 50, 'Domaine des mères', 'Espèces dont chaque mère a besoin d’un domaine pour élever ses petits : garenne du lapin, domaine de l’ourse (0 = aucune limite). Rayon de ce domaine : quand toutes les places y sont prises, les femelles dominées ne se reproduisent pas.', 'tuiles'),
     breedersPerSite: int(0, 1000, 'Places par garenne', 'Nombre de femelles adultes de l’espèce qui peuvent se reproduire dans ce rayon ; les autres, dominées, ne mettent pas bas.', 'femelles'),
     massKg: num(0.1, 5000, 'Masse adulte', 'Poids d’un adulte. Le métabolisme croît comme la masse à la puissance 0,75 ; les réserves et la taille d’un repas suivent la masse ; à la chasse, la masse fait la force du chasseur et la résistance de la proie.', 'kg'),
     mealDays: num(0.05, 20, 'Plus gros repas', 'Ce que l’animal peut avaler d’un coup, en jours de besoins de base : un loup se gave puis digère, un cerf broute peu et souvent.', 'jours de besoins'),
@@ -409,6 +411,8 @@ export const ANIMALS_SCHEMA: Schema = {
         wanderChance: share('Promenade', 'Chance de partir se promener quand l’animal n’a besoin de rien.'),
         wanderRadius: int(1, 64, 'Rayon de promenade', 'Distance maximale d’une promenade.', 'tuiles'),
         huntSearchTiles: num(0, 100, 'Errance d’un solitaire', 'Un chasseur sans territoire (un jeune parti chercher une terre libre) et sans proie en vue part chercher aussi loin. Un groupe qui tient un territoire, lui, le parcourt.', 'tuiles'),
+        grazeHereShare: share('Brouter sur place', 'Un animal mange là où il est s’il y trouve au moins cette part d’une bouchée ; sinon il cherche un meilleur endroit (sur une herbe rase, on broute quand même).'),
+        outsideHabitatShare: share('Hors de son milieu', 'Un animal préfère manger dans son milieu (son habitat) : la nourriture d’un milieu où son espèce ne vit pas compte pour cette part, celle d’un milieu moins favorable en proportion de l’habitat.'),
         farForageFactor: num(1, 20, 'Recherche lointaine de nourriture', 'Un herbivore affamé qui ne trouve rien autour de lui regarde ce nombre de fois plus loin (son troupeau le suit) : déplacement vers l’herbe.', 'facteur'),
         fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),
         packShareRadius: int(0, 64, 'Partage de la proie', 'Les membres de la meute dans quatre fois ce rayon viennent manger la proie.', 'tuiles'),

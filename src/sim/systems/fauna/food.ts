@@ -32,6 +32,8 @@ export function buildDiets(params: FaunaParams): Diet[] {
 export function foodValueAt(fauna: FaunaSystem, code: number, x: number, y: number): number {
   const diet = fauna.diets[code]!;
   const index = y * fauna.size + x;
+  // An animal prefers its own kind of land: a goat its rocks, an aurochs its grassland.
+  const liking = fauna.habitatLiking[code * fauna.biomeCount + fauna.world.biome[index]!]!;
   let value = 0;
   for (let k = 0; k < diet.kinds.length; k++) {
     const kind = diet.kinds[k]!;
@@ -41,7 +43,7 @@ export function foodValueAt(fauna: FaunaSystem, code: number, x: number, y: numb
     else if (kind === Kind.Fish) value += weight * fauna.fish.availableNear(x, y);
     else value += weight * fauna.flora.produceAvailable(index, diet.resources[k]!);
   }
-  return value;
+  return value * liking;
 }
 
 /**

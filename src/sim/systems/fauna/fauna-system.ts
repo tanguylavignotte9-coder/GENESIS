@@ -95,6 +95,9 @@ export class FaunaSystem {
   private digestShare = 0;
   /** Per biome: cover that hides a stalking hunter, and refuge terrain where prey escape more often. */
   coverOfBiome = new Float32Array(0);
+  /** habitatLiking[species × biomes + biome]: how much the species likes to feed there (its habitat, 1 for its best land). */
+  habitatLiking = new Float32Array(0);
+  biomeCount = 0;
   refugeOfBiome = new Float32Array(0);
   /** Attacks of animal hunters since the world began, and those that killed, per hunter species. */
   readonly huntStats: { attempts: number[]; kills: number[] };
@@ -172,6 +175,15 @@ export class FaunaSystem {
     const biomes = this.world.biomes.biomes;
     this.coverOfBiome = Float32Array.from(biomes, (biome) => params.hunting.coverByBiome[biome.id] ?? 0);
     this.refugeOfBiome = Float32Array.from(biomes, (biome) => params.hunting.refugeByBiome[biome.id] ?? 0);
+    this.biomeCount = biomes.length;
+    this.habitatLiking = new Float32Array(params.species.length * biomes.length);
+    params.species.forEach((species, code) => {
+      const best = Math.max(0, ...Object.values(species.habitat));
+      biomes.forEach((biome, b) => {
+        const share = best > 0 ? (species.habitat[biome.id] ?? 0) / best : 1;
+        this.habitatLiking[code * biomes.length + b] = Math.max(params.behavior.outsideHabitatShare, share);
+      });
+    });
     this.thirstPerStep = Float64Array.from(params.species, (species) => species.thirstPerDay / params.stepsPerDay);
     this.humanFleeTiles = Float64Array.from(params.species, (species) => species.humanFleeTiles);
     this.maxHumanFleeTiles = Math.max(0, ...this.humanFleeTiles);

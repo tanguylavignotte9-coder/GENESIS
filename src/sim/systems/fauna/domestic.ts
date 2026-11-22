@@ -124,7 +124,7 @@ export function thinkDomestic(fauna: FaunaSystem, slot: number, species: AnimalS
   }
   if (store.hunger[slot]! > params.needs.seekFoodAbove) {
     const code = store.species[slot]!;
-    if (foodValueAt(fauna, code, store.x[slot]!, store.y[slot]!) >= biteSize(fauna, slot)) {
+    if (foodValueAt(fauna, code, store.x[slot]!, store.y[slot]!) >= biteSize(fauna, slot) * params.behavior.grazeHereShare) {
       store.state[slot] = State.Eat;
       return;
     }

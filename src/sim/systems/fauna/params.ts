@@ -35,7 +35,7 @@ export interface AnimalSpecies {
   birthIntervalDays: number;
   /** Days the young drink their mother's milk (she pays for it from her reserves). */
   nursingDays: number;
-  /** Breeding sites (burrows, warrens): a female breeds only if fewer than `breedersPerSite` other breeding females of her kind live within `breedingSiteTiles` (0 = no such limit). */
+  /** Breeding sites (burrows, warrens): a female breeds only if fewer than `breedersPerSite` other adult females of her kind live within `breedingSiteTiles` (0 = no such limit). */
   breedingSiteTiles: number;
   breedersPerSite: number;
   /** Adult body mass (kg): metabolism, reserves, meal size, and the strength of a hunter or of a prey. */
@@ -175,6 +175,7 @@ export interface FaunaParams {
     waterSearchTiles: number;
     spawnSiteAttempts: number;
     migrationMaxDays: number;
+    migrationCandidates: number;
     breedingMinHealth: number;
     /** A female finds a mate if an adult male of her species is within this distance. */
     mateRadius: number;
@@ -264,7 +265,7 @@ const SPECIES_SCHEMA: Schema = {
     birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas.', 'jours'),
     nursingDays: int(0, 400, 'Allaitement', 'Jours pendant lesquels les petits boivent le lait de leur mère : elle le paie sur ses réserves, et s’il n’y en a plus, les petits jeûnent.', 'jours'),
     breedingSiteTiles: num(0, 50, 'Sites de reproduction', 'Espèces qui mettent bas dans un terrier ou une garenne (0 = aucune limite) : rayon de la garenne. Quand toutes les places sont prises, les femelles dominées ne se reproduisent pas (dans la nature, la densité de lapins est ainsi limitée par l’espace des garennes).', 'tuiles'),
-    breedersPerSite: int(0, 1000, 'Places par garenne', 'Nombre de femelles reproductrices de l’espèce tolérées dans ce rayon.', 'femelles'),
+    breedersPerSite: int(0, 1000, 'Places par garenne', 'Nombre de femelles adultes de l’espèce qui peuvent se reproduire dans ce rayon ; les autres, dominées, ne mettent pas bas.', 'femelles'),
     massKg: num(0.1, 5000, 'Masse adulte', 'Poids d’un adulte. Le métabolisme croît comme la masse à la puissance 0,75 ; les réserves et la taille d’un repas suivent la masse ; à la chasse, la masse fait la force du chasseur et la résistance de la proie.', 'kg'),
     mealDays: num(0.05, 20, 'Plus gros repas', 'Ce que l’animal peut avaler d’un coup, en jours de besoins de base : un loup se gave puis digère, un cerf broute peu et souvent.', 'jours de besoins'),
     territoryMinTiles: int(0, 200, 'Territoire minimal', 'Chasseurs sociaux (0 = pas de territoire) : rayon le plus petit du territoire d’un groupe, quand le gibier abonde.', 'tuiles'),
@@ -414,6 +415,7 @@ export const ANIMALS_SCHEMA: Schema = {
         lonerJoinRadius: int(0, 200, 'Recherche d’un groupe', 'Distance à laquelle un animal seul trouve un groupe de son espèce.', 'tuiles'),
         waterSearchTiles: int(1, 2000, 'Recherche de l’eau', 'Distance maximale du chemin connu vers l’eau douce.', 'tuiles', NEW_WORLD),
         spawnSiteAttempts: int(1, 1000000, 'Recherche d’un territoire', 'Lieux essayés pour chaque meute de départ (un chasseur ne s’installe que là où vit assez de gibier, hors du territoire d’une autre meute) ; faute de lieu, il y a moins de chasseurs au départ.', 'essais', NEW_WORLD),
+        migrationCandidates: int(1, 100, 'Choix de la destination', 'Un troupeau qui migre compare ce nombre d’endroits dans la bonne direction et va vers celui où il y a le plus d’herbe, avec de l’eau à portée.', 'endroits'),
         migrationMaxDays: int(1, 200, 'Durée maximale d’une migration', 'Une migration s’arrête au plus tard après ce nombre de jours.', 'jours'),
         breedingMinHealth: num(0, 100, 'Santé pour se reproduire', 'Santé minimale d’une femelle pour concevoir.', 'points'),
         mateRadius: int(1, 200, 'Recherche d’un partenaire', 'Une femelle trouve un mâle adulte de son espèce dans ce rayon.', 'tuiles'),

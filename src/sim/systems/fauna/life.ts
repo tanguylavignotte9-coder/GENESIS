@@ -77,18 +77,18 @@ export function canConceive(fauna: FaunaSystem, slot: number): boolean {
   return hasMateNearby(fauna, slot, params.behavior.mateRadius) && (species.territoryMaxTiles <= 0 || store.ownerCamp[slot]! >= 0 || holdsTerritory(fauna, slot));
 }
 
-/** All the breeding places around are held by other adult females of her kind (pregnant or nursing). */
+/** All the places of the warren are held: as many other adult females of her kind live around (the dominated ones do not breed). */
 function sitesTaken(fauna: FaunaSystem, slot: number, radius: number, places: number): boolean {
   const { store } = fauna;
   const x = store.px[slot]!;
   const y = store.py[slot]!;
   const code = store.species[slot]!;
-  const species = fauna.speciesOf(slot);
+  const adultDays = fauna.speciesOf(slot).adultAgeYears * fauna.daysPerYear;
   let held = 0;
   fauna.grid.forEachNear(x, y, radius, (other) => {
     if (held >= places || other === slot || store.species[other] !== code || store.sex[other] !== Sex.Female) return;
-    const breeding = store.pregnancy[other]! > 0 || fauna.day - store.lastBirthDay[other]! < species.nursingDays;
-    if (breeding && Math.abs(store.px[other]! - x) <= radius && Math.abs(store.py[other]! - y) <= radius) held++;
+    if (store.ageDays[other]! < adultDays) return;
+    if (Math.abs(store.px[other]! - x) <= radius && Math.abs(store.py[other]! - y) <= radius) held++;
   });
   return held >= places;
 }

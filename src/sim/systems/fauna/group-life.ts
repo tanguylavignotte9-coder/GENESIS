@@ -108,13 +108,39 @@ function updateMigrations(fauna: FaunaSystem, dayOfYear: number): MigrationStart
     if (!(towardEquator && groups.away[group] === 0) && !(day === 0 && groups.away[group] === 1)) continue;
     groups.away[group] = towardEquator ? 1 : 0;
     const step = (northern === towardEquator ? 1 : -1) * species.migrationTiles;
+    const goal = migrationGoal(fauna, x, y, step, species.migrationTiles);
+    if (goal < 0) continue;
     groups.migrating[group] = 1;
-    groups.migrateX[group] = x;
-    groups.migrateY[group] = Math.max(0, Math.min(fauna.size - 1, y + step));
+    groups.migrateX[group] = goal % fauna.size;
+    groups.migrateY[group] = Math.floor(goal / fauna.size);
     groups.migrationDaysLeft[group] = params.behavior.migrationMaxDays;
     starts.push({ group, species: groups.species[group]!, x, y, animals: groups.size[group]!, south: step > 0 });
   }
   return starts;
+}
+
+/**
+ * Where a migrating herd heads: among a few places at about the migration distance toward the
+ * equator (or back), the one with the most grass among those where water can be reached. Herds
+ * follow the grass and the water, not a line on a map. -1 when none (the herd stays).
+ */
+function migrationGoal(fauna: FaunaSystem, x: number, y: number, step: number, tiles: number): number {
+  const { params, rng } = fauna;
+  let best = -1;
+  let bestGrass = -1;
+  for (let k = 0; k < params.behavior.migrationCandidates; k++) {
+    const ty = Math.round(y + step * (0.6 + 0.4 * rng.nextFloat()));
+    const tx = Math.round(x + (rng.nextFloat() * 2 - 1) * tiles * 0.5);
+    if (!fauna.isWalkable(tx, ty)) continue;
+    const tile = ty * fauna.size + tx;
+    if (fauna.waterPath[tile]! < 0) continue;
+    const grass = fauna.flora.grassReachable(tile);
+    if (grass > bestGrass) {
+      bestGrass = grass;
+      best = tile;
+    }
+  }
+  return best;
 }
 
 /**

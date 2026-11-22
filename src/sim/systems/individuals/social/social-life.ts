@@ -240,6 +240,9 @@ export class SocialLife {
 
   /** A death: witnesses learn it at once; the body can be found for a while; talks with the dead end. */
   onDeath(person: number, cause: number, event: number): void {
+    // A death coming from another system this very tick (a predator's attack) is not older than what it causes.
+    const at = this.journal.get(event)?.tick;
+    if (at !== undefined && at > this.tick) this.tick = at;
     const fact = this.news.add('death', person, -1, this.tileOf(person), this.day, event, cause);
     this.news.unfoundDeaths.push(fact);
     witness(this, fact, this.people.px[person]!, this.people.py[person]!);

@@ -169,7 +169,7 @@
     { "id": "rabbit", "name": "Lapin", "plural": "lapins", "color": "#c2a888", "size": 2, "diet": {"grass": 1}, "prey": [],
       "habitat": {"prairie": 3, "temperate_forest": 1, "savanna": 1, "beach": 0.5, "tundra": 0.5}, "populationPer1000Tiles": 8, "groupSize": [2, 5],
       "maxGroupSize": 8, "maxAgeYears": 5, "adultAgeYears": 0.3, "breedingDays": [0, 20],
-      "gestationDays": 3, "litter": [2, 5], "conceptionChance": 0.05, "birthIntervalDays": 8, "breedingSiteTiles": 4, "breedersPerSite": 4, "nursingDays": 3, "massKg": 2, "mealDays": 1, "territoryMinTiles": 0, "territoryMaxTiles": 0, "dominantBreederOnly": false, "splitWhenHungry": false, "dispersalPerYear": 0,
+      "gestationDays": 3, "litter": [2, 5], "conceptionChance": 0.05, "birthIntervalDays": 8, "breedingSiteTiles": 6, "breedersPerSite": 2, "nursingDays": 3, "massKg": 2, "mealDays": 1, "territoryMinTiles": 0, "territoryMaxTiles": 0, "dominantBreederOnly": false, "splitWhenHungry": false, "dispersalPerYear": 0,
       "thirstPerDay": 20, "minCelsius": -30, "walkTilesPerHour": 0.6, "fleeRadius": 5,
       "humanFleeTiles": 4, "fleeSprintTiles": 3,
       "huntRadius": 0, "huntSkill": 0, "huntGroupCap": 1, "chargeTiles": 1, "chaseSteps": 1, "evasion": 0.6, "riposteChance": 0, "riposteDamage": 0, "sprintTiles": 1,

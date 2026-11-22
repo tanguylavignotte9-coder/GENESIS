@@ -42,6 +42,7 @@
     "riposteShare": 0.3,
     "groupTiles": 4,
     "guardTiles": 3,
+    "maxDefenders": 3,
     "maxSuccess": 0.9,
     "coverByBiome": {"temperate_forest": 0.5, "tropical_forest": 0.6, "taiga": 0.4, "marsh": 0.4, "savanna": 0.2, "prairie": 0.1, "mountain": 0.2, "tundra": 0},
     "refugeByBiome": {"mountain": 0.4, "snowy_peak": 0.5, "marsh": 0.2}

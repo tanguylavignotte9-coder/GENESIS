@@ -32,6 +32,21 @@ export function weakPrey(fauna: FaunaSystem, prey: number): boolean {
   );
 }
 
+/** Adults of the prey's herd within the guarding distance of it (the prey itself not counted), up to the cap. */
+function adultsAround(fauna: FaunaSystem, prey: number): number {
+  const { store, params } = fauna;
+  const group = store.group[prey]!;
+  if (fauna.groups.size[group]! <= 1) return 0;
+  const adultDays = fauna.speciesOf(prey).adultAgeYears * fauna.daysPerYear;
+  const r = params.hunting.guardTiles;
+  let count = 0;
+  fauna.grid.forEachNear(store.px[prey]!, store.py[prey]!, r, (other) => {
+    if (count >= params.hunting.maxDefenders || other === prey || store.group[other] !== group || store.ageDays[other]! < adultDays) return;
+    if (distance(store.px[prey]!, store.py[prey]!, store.px[other]!, store.py[other]!) <= r) count++;
+  });
+  return count;
+}
+
 /** A young still at its mother's side (within a few tiles), its mother alive. */
 function guarded(fauna: FaunaSystem, prey: number): boolean {
   const { store } = fauna;
@@ -73,8 +88,10 @@ export function attackChance(fauna: FaunaSystem, slot: number, species: AnimalSp
   const vigor = 0.5 + 0.5 * Math.min(1, store.health[slot]! / 100);
   let chance = species.huntSkill * size * (1 - preySpecies.evasion) * (1 - refuge) * young * vigor;
   if (weakPrey(fauna, prey)) chance *= rules.weakPreyFactor;
-  // A young one by its mother is defended by her (a cow aurochs, a sow): as often as she would fight back.
-  if (guarded(fauna, prey)) chance *= 1 - preySpecies.riposteChance;
+  // The adults of its herd close by stand together (aurochs, boars): each one makes the attack fail as
+  // often as it would fight back; a young one by its mother is defended by her too.
+  const defenders = Math.min(rules.maxDefenders, adultsAround(fauna, prey) + (guarded(fauna, prey) ? 1 : 0));
+  if (defenders > 0 && preySpecies.riposteChance > 0) chance *= Math.pow(1 - preySpecies.riposteChance, defenders);
   if (surprised) chance *= rules.surpriseFactor;
   return Math.min(rules.maxSuccess, chance);
 }

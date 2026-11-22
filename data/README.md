@@ -351,3 +351,25 @@ Un seul concept de groupe pour tous les niveaux : 0 la tribu, 1 les clans, 2 les
 | `scission`, `fusion`, `betrayal`, `contact` | Départ d'un clan pour fonder une tribu, petite tribu en difficulté qui en rejoint une autre, départ d'un individu vers une autre tribu, rencontres, opinions et alliances entre tribus |
 | `moves` | Déplacements du camp et migrations décidés par les dirigeants, selon les souffrances passées |
 | `texts`, `factorTexts`, `featureTexts`, `dutyNames`, `causeTexts` | Phrases du journal et de la fiche personnage |
+
+## `wiki/` — les textes du Wiki en jeu (touche F1 ou H)
+
+Ces fichiers ne contiennent **aucun chiffre de jeu** : ils ne servent qu’au Wiki. Ils sont vérifiés au lancement
+(un message clair en français nomme le fichier et le problème).
+
+| Fichier | Rôle |
+| --- | --- |
+| `sommaire.json` | La page d’accueil (`home`) et les chapitres de l’index (`id`, `title`, `order`, `summary`). Les chapitres `catalogue-…` et `ma-partie` reçoivent les pages générées. |
+| `libelles.json` | Les mots des pages générées (catalogue) et des pages « Ma partie » (`labels`). |
+| Tous les autres | Des pages rédigées : `{ "pages": [ { "id", "title", "chapter", "order", "summary", "keywords", "systems", "dataFiles", "body" } ] }`. |
+
+Dans `body` (une ligne par élément) :
+
+- `## Titre` : un intertitre ; `- texte` : une liste ; `> texte` : un encadré ; `{live:tribus}` seul sur sa ligne : un encadré « Dans ta partie » (lu dans le monde en cours) ;
+- `[[id-de-page]]` ou `[[id-de-page|texte]]` : un lien vers une autre page (pages générées : `animal:wolf`, `savoir:pottery`, `recette:make_spear`, `objet:flint`, `batiment:hut`, `fichier:animals.json`…) ;
+- `{var:fichier.json:clé}` : la **valeur actuelle** d’une variable de l’Atelier, avec son unité (ex. `{var:humans.json:needs.thirstPerHour}`). Ne jamais recopier un chiffre de jeu à la main ;
+- `**texte**` : en gras.
+
+`systems` liste les dossiers de `src/sim/systems/` que la page explique, `dataFiles` les fichiers de données dont elle est le
+« en savoir plus » dans l’Atelier. Un test vérifie que chaque système et chaque fichier de données a sa page, que chaque
+variable apparaît sur une page générée, qu’aucun lien n’est cassé et qu’aucune variable citée n’est inconnue.

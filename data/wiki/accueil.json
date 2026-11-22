@@ -1,0 +1,57 @@
+{
+  "pages": [
+    {
+      "id": "accueil",
+      "title": "Bienvenue dans le Wiki de GENESIS",
+      "chapter": "demarrer",
+      "order": 0,
+      "summary": "La page d’accueil : par où commencer.",
+      "keywords": "accueil sommaire aide",
+      "body": [
+        "GENESIS simule un monde où **chaque individu compte** : chaque humain, chaque animal et chaque plante est simulé un par un. Rien n’est écrit à l’avance : les histoires naissent de leurs besoins, de leurs caractères et de leurs rencontres. Vous êtes spectateur.",
+        "Ce Wiki explique comment tout cela fonctionne, sans lire le code : ce que fait chaque système, selon quelles règles, pourquoi, avec quelles variables, et où le voir dans le jeu.",
+        "## Par où commencer",
+        "- [[demarrer]] : un parcours guidé pour vos premières minutes.",
+        "- [[raccourcis]] et [[legende]] : les touches, les couleurs et les symboles.",
+        "- [[partie]] : ce qui existe dans le monde en cours.",
+        "## Comment le monde fonctionne",
+        "- [[monde]] · [[temps]] · [[plantes-animaux]]",
+        "- [[humain]] · [[cerveau]] · [[mouvement]]",
+        "- [[production]] · [[vie-sociale]] · [[famille]]",
+        "- [[groupes]] · [[ecosysteme]] · [[idees]] · [[conflit]]",
+        "- [[lire-histoire]] : comment remonter les causes d’un événement.",
+        "## Le catalogue",
+        "Une fiche pour chaque espèce, plante, biome, savoir, recette, objet, bâtiment, trait, régime… générée depuis les fichiers de données : elle ne peut pas être fausse. Commencez par [[catalogue-animal]], [[catalogue-savoir]] ou [[catalogue-batiment]], ou cherchez un mot dans le champ de recherche.",
+        "## Repères",
+        "[[pas-encore]] · [[glossaire]]",
+        "> Les nombres en jaune sont lus en direct dans l’Atelier des variables (F2) : si vous changez un réglage, le Wiki suit. Survolez-les pour leur légende. Dans chaque fenêtre du jeu, le bouton « ? » ouvre la page qui l’explique."
+      ]
+    },
+    {
+      "id": "demarrer",
+      "title": "Démarrer en 10 minutes",
+      "chapter": "demarrer",
+      "order": 1,
+      "summary": "Un parcours guidé : regarder une tribu vivre, suivre une personne, comprendre une décision, remonter une histoire.",
+      "keywords": "tutoriel débuter parcours guide premiers pas",
+      "body": [
+        "## 1. Le monde (1 minute)",
+        "Au lancement, un monde est généré à partir d’une graine (tapez un nombre et « Nouveau monde » pour en choisir une). La carte montre les biomes, les rivières et les lacs. La date est en haut ; Espace met en pause, les touches 1 à 5 changent la vitesse. Pour comprendre la carte : [[monde]] et [[legende]].",
+        "## 2. La tribu (2 minutes)",
+        "La caméra est sur la tribu de départ. Zoomez (molette) : vous voyez les gens cueillir, ramasser du bois, entretenir le feu, bavarder. Le bouton « Tribu » liste ses membres. Le soir, ils rentrent dormir dans les huttes.",
+        "## 3. Une personne (2 minutes)",
+        "Cliquez sur quelqu’un : sa [[ecran:fiche|fiche]] s’ouvre. Regardez ses besoins (faim, soif, fatigue, froid), ce qu’elle fait et pourquoi, son caractère, ses relations. Cliquez sur « ☆ Suivre sa vie » : vous serez prévenu de ses grands moments.",
+        "## 4. Pourquoi fait-elle ça ? (2 minutes)",
+        "Mettez le jeu en pause et cliquez sur « Afficher le cerveau ». Vous voyez chaque action possible avec sa note, et ce qui la pousse ou la freine : la faim pousse à manger, la prudence à rester près du groupe. Voir [[cerveau]].",
+        "## 5. Laisser vivre (2 minutes)",
+        "Passez en vitesse x100 ou x500. Les saisons passent ([[temps]]), des enfants naissent, des huttes se construisent, quelqu’un découvre la chasse ou la poterie. Le journal (à droite) raconte tout.",
+        "## 6. Remonter une histoire (1 minute)",
+        "Dans le journal, cliquez sur « Cause » à côté d’un événement : vous remontez la chaîne (une famine, causée par une sécheresse ; une naissance, causée par l’union de ses parents). Voir [[lire-histoire]].",
+        "## Ensuite",
+        "- G : les [[ecran:groupes|groupes]] et leurs chefs. I : les [[ecran:idees|idées]]. K : l’[[ecran:arbre-savoirs|arbre des savoirs]]. P : la [[ecran:politique|vue politique]].",
+        "- F2 : l’[[ecran:atelier|Atelier]] pour changer les règles du monde.",
+        "- [[partie]] : ce qui existe dans votre partie."
+      ]
+    }
+  ]
+}

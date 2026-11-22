@@ -1,0 +1,185 @@
+{
+  "home": "accueil",
+  "chapters": [
+    {
+      "id": "demarrer",
+      "title": "Démarrer",
+      "order": 1,
+      "summary": "Les premiers pas : ce qu’est GENESIS et comment regarder une partie."
+    },
+    {
+      "id": "systemes",
+      "title": "Comment le monde fonctionne",
+      "order": 2,
+      "summary": "Un chapitre par système de la simulation : ce que c’est, ses règles, ses causes, ses variables et où l’observer."
+    },
+    {
+      "id": "ecrans",
+      "title": "Les écrans et les outils",
+      "order": 3,
+      "summary": "Ce que montre chaque fenêtre du jeu, les raccourcis clavier et la légende des couleurs et des symboles."
+    },
+    {
+      "id": "ma-partie",
+      "title": "Ma partie",
+      "order": 4,
+      "summary": "Ce qui existe dans le monde en cours : tribus, idées, savoirs, espèces, avec leurs effectifs."
+    },
+    {
+      "id": "reperes",
+      "title": "Repères",
+      "order": 5,
+      "summary": "Ce qui n’est pas encore simulé, et le glossaire."
+    },
+    {
+      "id": "catalogue-biome",
+      "title": "Catalogue · Biomes",
+      "order": 10,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : biomes."
+    },
+    {
+      "id": "catalogue-ressource",
+      "title": "Catalogue · Ressources du monde",
+      "order": 11,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : ressources du monde."
+    },
+    {
+      "id": "catalogue-meteo",
+      "title": "Catalogue · Types de temps",
+      "order": 12,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : types de temps."
+    },
+    {
+      "id": "catalogue-anomalie",
+      "title": "Catalogue · Années anormales",
+      "order": 13,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : années anormales."
+    },
+    {
+      "id": "catalogue-plante",
+      "title": "Catalogue · Plantes",
+      "order": 14,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : plantes."
+    },
+    {
+      "id": "catalogue-animal",
+      "title": "Catalogue · Animaux",
+      "order": 15,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : animaux."
+    },
+    {
+      "id": "catalogue-trait",
+      "title": "Catalogue · Traits de caractère",
+      "order": 16,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : traits de caractère."
+    },
+    {
+      "id": "catalogue-competence",
+      "title": "Catalogue · Compétences et métiers",
+      "order": 17,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : compétences et métiers."
+    },
+    {
+      "id": "catalogue-action",
+      "title": "Catalogue · Actions humaines",
+      "order": 18,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : actions humaines."
+    },
+    {
+      "id": "catalogue-emotion",
+      "title": "Catalogue · Émotions",
+      "order": 19,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : émotions."
+    },
+    {
+      "id": "catalogue-souvenir",
+      "title": "Catalogue · Souvenirs",
+      "order": 20,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : souvenirs."
+    },
+    {
+      "id": "catalogue-conversation",
+      "title": "Catalogue · Conversations",
+      "order": 21,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : conversations."
+    },
+    {
+      "id": "catalogue-ambition",
+      "title": "Catalogue · Ambitions",
+      "order": 22,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : ambitions."
+    },
+    {
+      "id": "catalogue-maladie",
+      "title": "Catalogue · Maladies",
+      "order": 23,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : maladies."
+    },
+    {
+      "id": "catalogue-regime",
+      "title": "Catalogue · Régimes politiques",
+      "order": 24,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : régimes politiques."
+    },
+    {
+      "id": "catalogue-propriete",
+      "title": "Catalogue · Règles de propriété",
+      "order": 25,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : règles de propriété."
+    },
+    {
+      "id": "catalogue-heritage",
+      "title": "Catalogue · Règles d’héritage",
+      "order": 26,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : règles d’héritage."
+    },
+    {
+      "id": "catalogue-strategie",
+      "title": "Catalogue · Stratégies de tribu",
+      "order": 27,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : stratégies de tribu."
+    },
+    {
+      "id": "catalogue-valeur",
+      "title": "Catalogue · Valeurs culturelles",
+      "order": 28,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : valeurs culturelles."
+    },
+    {
+      "id": "catalogue-croyance",
+      "title": "Catalogue · Croyances religieuses",
+      "order": 29,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : croyances religieuses."
+    },
+    {
+      "id": "catalogue-savoir",
+      "title": "Catalogue · Savoirs",
+      "order": 30,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : savoirs."
+    },
+    {
+      "id": "catalogue-recette",
+      "title": "Catalogue · Recettes",
+      "order": 31,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : recettes."
+    },
+    {
+      "id": "catalogue-objet",
+      "title": "Catalogue · Objets",
+      "order": 32,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : objets."
+    },
+    {
+      "id": "catalogue-batiment",
+      "title": "Catalogue · Bâtiments",
+      "order": 33,
+      "summary": "Une fiche générée depuis les fichiers de données pour chaque élément : bâtiments."
+    },
+    {
+      "id": "catalogue-variables",
+      "title": "Catalogue · Variables par fichier",
+      "order": 40,
+      "summary": "Toutes les variables de l’Atelier, fichier par fichier, avec leur valeur actuelle et leur sens."
+    }
+  ]
+}

@@ -2,7 +2,7 @@ import { Application } from 'pixi.js';
 // Lets PixiJS work under our strict Content-Security-Policy (no eval).
 import 'pixi.js/unsafe-eval';
 import { ClimateState } from '../sim/systems/world/climate-state';
-import type { ClimateYearSnapshot, FromSimMessage, GroupsFacts, LifeTables, MotionInfo, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
+import type { ClimateYearSnapshot, FromSimMessage, GroupsFacts, IdeasFacts, LifeTables, MotionInfo, PerfSnapshot, Roster, WorldSnapshot } from '../shared/messages';
 import { runRenderTest, type RenderTestHost } from './bench/render-test';
 import '../shared/bridge';
 import { Hover } from './hover';
@@ -38,7 +38,11 @@ import { VIEW } from './view-settings';
 import { Favorites } from './hud/favorites';
 import { GenealogyPanel } from './hud/genealogy-panel';
 import { KnowledgeTreePanel } from './hud/knowledge-tree-panel';
-import { HelpPage } from './hud/help-page';
+import { WikiLibrary } from './wiki/library';
+import { parseWikiFiles } from './wiki/content';
+import { WIKI_FILES } from './wiki/wiki-files';
+import { helpButton, WikiWindow } from './wiki/wiki-window';
+import { HELP_PAGES, type HelpScreen } from './wiki/help-targets';
 import { PoliticalPanel } from './hud/political-panel';
 import { RelationsPanel } from './hud/relations-panel';
 import { PoliticalLayer } from './map/political-layer';
@@ -323,7 +327,75 @@ async function main(): Promise<void> {
   const politicalPanel = new PoliticalPanel(toolbar, political);
   const knowledgeTree = new KnowledgeTreePanel(toolbar, (tribe) => sim.inspectKnowledgeTree(tribe), (person) => selectPerson(person));
   const favorites = new Favorites(toolbar, (person) => selectPerson(person));
-  new HelpPage(toolbar);
+  // The in-game Wiki (F1 or H) and its « ? » buttons in the sheets, panels and tools.
+  let lastIdeas: IdeasFacts | null = null;
+  let lastAnimalCounts: number[] = [];
+  let lastDate = '';
+  let personTribe = -1;
+  let wiki: WikiWindow | null = null;
+  try {
+    const library = new WikiLibrary(parseWikiFiles(WIKI_FILES));
+    wiki = new WikiWindow(library, toolbar, {
+      requestVariables: () => sim.workshopGet(),
+      refreshLive: () => {
+        library.live = {
+          date: lastDate,
+          humans: roster ? roster.alive.reduce((sum, alive) => sum + alive, 0) : 0,
+          groups: lastGroups,
+          ideas: lastIdeas,
+          animals: (life?.animals ?? []).map((species, k) => ({ id: species.id, name: species.name, count: lastAnimalCounts[k] ?? 0 })),
+          plants: (() => {
+            const species = life?.plants ?? [];
+            const counts = plants.speciesCounts(species.length);
+            return species.map((plant, k) => ({ id: plant.id, name: plant.name, count: counts[k] ?? 0 }));
+          })(),
+          focusTribe: sheet.isOpen ? personTribe : -1,
+        };
+      },
+      action: (action) => {
+        if (action.kind === 'map') {
+          camera.stopFollowing();
+          camera.focusOn(action.x, action.y);
+        } else if (action.kind === 'journal') journal.showFiltered(action.tribe, action.search);
+      },
+    });
+  } catch (error) {
+    panel.showError(`Le Wiki n’a pas pu être chargé.\n${error instanceof Error ? error.message : String(error)}`);
+  }
+  const addHelp = (screen: HelpScreen, where: Element | null, before: Element | null = null): void => {
+    if (!wiki || !where) return;
+    const button = helpButton(wiki, HELP_PAGES[screen], 'Explications dans le Wiki');
+    if (before) where.insertBefore(button, before);
+    else where.append(button);
+  };
+  addHelp('person', document.querySelector('#person .person-buttons'), element('person-close'));
+  addHelp('animal', document.querySelector('#animal .person-buttons'), element('animal-close'));
+  addHelp('building', document.querySelector('#building .person-buttons'), element('building-close'));
+  addHelp('brain', document.querySelector('#brain .overlay-header'), element('brain-close'));
+  addHelp('governance', document.querySelector('#governance .overlay-header'), element('governance-close'));
+  addHelp('groups', document.querySelector('#groups .stats-title'));
+  addHelp('ideas', document.querySelector('#ideas .stats-title'));
+  addHelp('journal', element('journal'), element('journal-toggle').nextElementSibling);
+  addHelp('stats', document.querySelector('#stats .stats-tabs'));
+  addHelp('saves', document.querySelector('#saves .stats-title'));
+  addHelp('workshop', document.querySelector('#workshop .workshop-header'), element('workshop-close'));
+  for (const [screen, selector] of [
+    ['genealogy', '.genealogy'],
+    ['relations', '.relations'],
+    ['political', '.political'],
+    ['knowledgeTree', '.knowledge-tree'],
+    ['favorites', '.favorites'],
+  ] as const) {
+    const header = document.querySelector(`.tool-window${selector} .overlay-header`);
+    addHelp(screen, header, header?.querySelector('.tool-close') ?? null);
+  }
+  if (wiki) {
+    const open = wiki;
+    workshop.learnMore = (file) => {
+      const page = open.pageForDataFile(file);
+      return page ? { label: page.title, open: () => open.open(page.id) } : null;
+    };
+  }
   const weatherButton = document.createElement('button');
   weatherButton.type = 'button';
   weatherButton.className = 'tool-button active';
@@ -385,6 +457,8 @@ async function main(): Promise<void> {
         political.clear();
         groupsPanel.clear();
         ideasPanel.clear();
+        lastIdeas = null;
+        lastAnimalCounts = [];
         camera.stopFollowing();
         sheet.close();
         return;
@@ -456,6 +530,7 @@ async function main(): Promise<void> {
       case 'person':
         if (roster && life) sheet.render(message.details, roster, life);
         if (roster) relations.setPerson(message.details, roster);
+        personTribe = message.details.groups.levels.find((level) => level.level === 0)?.group ?? -1;
         showFavorite();
         return;
       case 'brain':
@@ -472,6 +547,7 @@ async function main(): Promise<void> {
         return;
       case 'populations':
         stats.add(message.samples);
+        lastAnimalCounts = message.samples.at(-1)?.animals ?? lastAnimalCounts;
         return;
       case 'humanStats':
         stats.addHumans(message.stats);
@@ -492,6 +568,7 @@ async function main(): Promise<void> {
         tribes.setBattles(message.battles);
         return;
       case 'ideas':
+        lastIdeas = message.ideas;
         ideasPanel.setIdeas(message.ideas);
         politicalPanel.setIdeas(message.ideas);
         return;
@@ -516,6 +593,7 @@ async function main(): Promise<void> {
         return;
       case 'status':
         time.setStatus(message.date, message.paused, message.speedIndex);
+        lastDate = message.date;
         pace.observe(message.tick, performance.now(), message.paused, 1000 / (motion.ticksPerRealSecond * (knownSpeeds[message.speedIndex] ?? 1)));
         hour = message.hour;
         return;
@@ -524,6 +602,7 @@ async function main(): Promise<void> {
         return;
       case 'workshop':
         workshop.receive(message.workshop);
+        wiki?.setVariables(message.workshop.variables);
         return;
       case 'workshopPreset':
         void presets.onPreset(message.preset);

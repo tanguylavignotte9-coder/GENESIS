@@ -1,0 +1,42 @@
+{
+  "pages": [
+    {
+      "id": "groupes",
+      "title": "Les groupes et le pouvoir",
+      "chapter": "systemes",
+      "order": 10,
+      "summary": "Tribus, clans et familles ; régimes, chefs, légitimité et mécontentement ; règles, tâches, contestations, scissions, fusions et migrations.",
+      "keywords": "tribu clan famille régime chef conseil bande monarchie théocratie dictature légitimité mécontentement grief obéissance tâche stratégie propriété héritage contestation renversement succession scission fusion alliance migration",
+      "systems": ["groups"],
+      "dataFiles": ["groups.json"],
+      "body": [
+        "## Ce que c’est",
+        "Chaque personne appartient à une **tribu**, au plus à un **clan** et à une **famille** (le foyer). C’est un seul concept à trois niveaux : chaque groupe a un [[catalogue-regime|régime]], des dirigeants, une légitimité, un mécontentement, des règles de [[catalogue-propriete|propriété]] et d’[[catalogue-heritage|héritage]], une [[catalogue-strategie|stratégie]], et la place pour une culture, une langue, une religion et un bien d’échange.",
+        "Les clans se forment tout seuls au fil des générations : les familles liées par le sang se rassemblent autour de l’aîné de leur lignée, ou un ambitieux rallie les familles de ses amis.",
+        "## Qui dirige",
+        "- Le régime dit **qui peut diriger** et **comment on décide** : toute la bande ensemble, un conseil à la majorité, ou un chef seul. Chaque candidat est jugé sur le respect qu’on lui porte, son prestige, son âge, sa lignée, sa force, sa richesse et sa piété, chaque critère pesant selon le régime.",
+        "- Le régime lui-même change quand la situation le favorise : un petit groupe en temps durs préfère une bande égalitaire, une religion dominante favorise la théocratie, une guerre la dictature. Certains régimes ne deviennent possibles que dans une situation précise (une religion, un grand territoire, l’écriture, la guerre…). Le régime en place résiste au changement ({var:groups.json:power.regimeInertia}).",
+        "- Un chef garde le pouvoir jusqu’à sa mort ou son renversement ; une bande ou un conseil est revu tous les {var:groups.json:politics.reviewYears}. À la mort d’un chef, la coutume désigne un héritier, mais chacun suit le prétendant qu’il préfère : la succession peut être disputée.",
+        "## Légitimité et mécontentement",
+        "- Chaque jour, chaque adulte juge ses dirigeants : ce qu’il ressent pour eux (affection, confiance, respect), la parenté, son propre bien-être. La moyenne donne la **légitimité** du pouvoir.",
+        "- Les **griefs** s’accumulent avec la souffrance : la faim ({var:groups.json:opinion.grievanceHunger}), le froid, la maladie, la perte d’un proche ({var:groups.json:opinion.grievanceLoss}), une ambition contrariée. Une mort de faim ou de froid sous l’autorité des chefs leur est reprochée, bien plus si elle suit un déplacement qu’ils ont décidé. Les griefs s’oublient peu à peu.",
+        "## Ce que décident les chefs",
+        "Tous les {var:groups.json:politics.everyDays}, les dirigeants fixent la stratégie (stocker, construire, vivre au jour le jour…), les règles de propriété et d’héritage qui leur conviennent, et répartissent les **tâches** (nourriture, bois, construction, fabrication) selon les besoins du camp, à qui les fait le mieux. Chacun obéit ou non selon la légitimité du pouvoir, ce qu’il pense des chefs et son caractère. Ils décident aussi des déplacements du camp, et, après beaucoup de morts, d’une migration lointaine (vers la chaleur quand le froid a tué).",
+        "## Quand le mécontentement l’emporte",
+        "Quand le mécontentement dépasse la légitimité de {var:groups.json:politics.gap}, un ambitieux peut agir : proposer une réforme, contester le chef, le renverser s’il a assez de soutien ({var:groups.json:politics.supportShare}), ou emmener son clan fonder une nouvelle tribu (une **scission**) à {var:groups.json:scission.distanceTiles.0} – {var:groups.json:scission.distanceTiles.1} de là. Une contestation ratée coûte du respect.",
+        "## Entre tribus",
+        "Les tribus dont les membres se croisent apprennent à se connaître ; leur opinion l’une de l’autre suit les relations entre leurs gens. Au-dessus de {var:groups.json:contact.allianceOpinion}, elles peuvent s’allier. Une petite tribu en détresse peut rejoindre une plus grande dont elle pense du bien et en devenir un clan (une **fusion**). Un adulte qui rejette ses chefs et tient à quelqu’un d’une autre tribu peut partir y vivre. La guerre et la diplomatie sont dans [[conflit]].",
+        "{live:regime}",
+        "{live:tribus}",
+        "## Pourquoi",
+        "Le pouvoir n’est jamais donné : il vient de ce que les gens pensent de leurs chefs, et cela vient de ce qu’ils vivent. Une famine peut faire tomber un chef, une guerre faire naître une dictature, un chef mal aimé perdre la moitié de sa tribu.",
+        "## Où l’observer",
+        "- Le panneau [[ecran:groupes|Groupes]] (G) : tribus, clans, familles, chefs, régime, légitimité, mécontentement, règles.",
+        "- Son bouton « Afficher la gouvernance » : [[ecran:gouvernance]] (décisions des chefs et carte du soutien).",
+        "- La [[ecran:politique|vue politique]] (P) : territoires, alliances, guerres.",
+        "- Le journal (filtre « Pouvoir et groupes ») : chefs choisis, régimes changés, contestations, renversements, scissions, fusions, migrations.",
+        "- [[partie:tribus]] : chaque tribu de ta partie."
+      ]
+    }
+  ]
+}

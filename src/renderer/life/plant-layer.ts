@@ -48,6 +48,15 @@ export class PlantLayer {
     this.version++;
   }
 
+  /** Living plants per species (index of the species table), counted on demand (the Wiki's live pages). */
+  speciesCounts(speciesCount: number): number[] {
+    const counts = new Array<number>(speciesCount).fill(0);
+    const flora = this.flora;
+    if (!flora) return counts;
+    for (const code of flora.species) if (code > 0 && code <= speciesCount) counts[code - 1]!++;
+    return counts;
+  }
+
   update(visible: TileRect, pixelsPerTile: number): void {
     const show = pixelsPerTile >= VIEW.plantMinPixelsPerTile && this.flora !== null;
     this.container.visible = show;

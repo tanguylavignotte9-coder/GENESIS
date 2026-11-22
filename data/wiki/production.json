@@ -1,0 +1,37 @@
+{
+  "pages": [
+    {
+      "id": "production",
+      "title": "La production : recettes, bâtiments, stocks, métiers",
+      "chapter": "systemes",
+      "order": 7,
+      "summary": "Tout ce qui est récolté, fabriqué ou construit passe par une recette réellement faite par quelqu’un, avec ses matériaux, ses outils, son temps et sa compétence.",
+      "keywords": "recette objet bâtiment chantier construction stock réserve coutume métier compétence qualité outil feu hutte cache champ agriculture",
+      "systems": ["production"],
+      "dataFiles": ["items.json", "recipes.json", "buildings.json", "production.json"],
+      "body": [
+        "## Ce que c’est",
+        "Les humains récoltent (cueillir, ramasser du bois ou des pierres, pêcher, chasser, moissonner), fabriquent (une lance, un panier, du pain…) et construisent (huttes, cache, fumoir, enclos…). Chaque opération est une [[catalogue-recette|recette]] : un savoir nécessaire, une compétence, une durée, des ingrédients, des outils, parfois un lieu de travail (le feu, le four…), et des produits.",
+        "## Comment ça marche",
+        "- **Les objets** existent en tas : un type d’objet, une quantité, une qualité et un propriétaire (une personne, ou la communauté du camp). Chaque personne porte une charge limitée ({var:humans.json:body.carryCapacity}, plus avec un panier). Voir [[catalogue-objet]].",
+        "- **Le stock commun** : ce qui est rapporté au camp est déposé dans le stock commun (un tas près du feu, ou une cache ou un grenier une fois construits, où la nourriture se garde mieux). On y prend de quoi manger.",
+        "- **Les besoins du camp, selon la coutume** : chacun voit ce qui manque au camp et décide, selon son caractère, d’y répondre. La coutume veut une réserve de nourriture qui dépend de la saison (de {var:production.json:custom.foodReserveDaysBySeason.0} à {var:production.json:custom.foodReserveDaysBySeason.2} de nourriture), une réserve de bois (jusqu’à {var:production.json:custom.firewoodReserveHoursBySeason.3} en hiver), un feu (urgence {var:production.json:custom.urgency.fire}), un abri pour tous, une cache pour les provisions, et les objets voulus par membre. Les chefs peuvent aussi donner des tâches (voir [[groupes]]).",
+        "- **Construire** : quelqu’un ouvre un chantier pour répondre à un besoin, puis on apporte les matériaux et on y travaille. Le journal dit qui a ouvert le chantier, pourquoi, et qui l’a fini. Voir [[catalogue-batiment]].",
+        "- **Les métiers** : chaque heure passée sur une recette fait progresser la compétence liée ({var:humans.json:skillLearning.learnPerHour}). Le métier d’une personne est sa compétence la plus pratiquée (après au moins {var:humans.json:skillLearning.professionMinHours}). Un expert travaille plus vite (jusqu’à {var:production.json:work.skillSpeedBonus} de plus) et mieux. Voir [[catalogue-competence]].",
+        "- **La qualité** d’un objet fabriqué : une base de {var:production.json:quality.base}, plus l’effet de la compétence ({var:production.json:quality.skillWeight}) et des outils ({var:production.json:quality.toolWeight}), avec un peu de hasard.",
+        "- **Les savoirs** ouvrent les recettes et les bâtiments : sans [[savoir:pottery]], pas de jarres. Les savoirs se découvrent et s’apprennent (voir [[idees]]).",
+        "- **Les champs** (avec [[savoir:agriculture]]) : on sème au-dessus de {var:production.json:crop.minCelsius} pendant la saison de pousse, le grain mûrit en {var:production.json:crop.growthDays} et rend {var:production.json:crop.grainPerSeed} grains par graine semée.",
+        "- **Les affaires d’un mort** loin du camp restent au sol, jusqu’à ce que quelqu’un passe à moins de {var:production.json:ground.findTiles} et les ramasse.",
+        "## Pourquoi",
+        "Rien n’apparaît tout seul : une hutte existe parce que quelqu’un a eu froid, a ouvert un chantier, que d’autres ont apporté des branches. Une famine peut s’expliquer par un stock vide à l’entrée de l’hiver, parce que la tribu a manqué de bras ou de savoir pour faire des réserves.",
+        "{live:savoirs}",
+        "## Où l’observer",
+        "- Cliquer sur un bâtiment : sa fiche ([[ecran:batiment]]) avec le stock du camp, l’avancement d’un chantier, qui est à l’intérieur.",
+        "- La fiche d’une personne : ce qu’elle porte, ses compétences, son métier, ce qu’elle fabrique.",
+        "- L’[[ecran:arbre-savoirs|arbre des savoirs]] (K) : ce que chaque savoir ouvre.",
+        "- Les [[ecran:statistiques|statistiques]] « Monde et tribus » : réserves au fil du temps.",
+        "- Le journal : chantiers ouverts et finis, premiers objets d’une tribu."
+      ]
+    }
+  ]
+}

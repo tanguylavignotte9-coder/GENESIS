@@ -98,7 +98,7 @@ export class GovernancePanel {
       });
       grid.append(chip);
     }
-    nodes.push(grid, el('div', 'sheet-text muted', 'Rouge : ne soutient pas les dirigeants · vert : les soutient. Cliquez sur quelqu’un pour voir ses raisons.'));
+    nodes.push(grid, el('div', 'sheet-text muted', 'Légende des couleurs : bouton « ? » en haut de cette fenêtre.'));
     const chosen = facts.members.find((member) => member.person === this.selected);
     if (chosen) {
       const who = el('div', 'sheet-text');

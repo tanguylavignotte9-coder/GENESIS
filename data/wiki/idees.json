@@ -1,0 +1,47 @@
+{
+  "pages": [
+    {
+      "id": "idees",
+      "title": "Les idées : savoirs, cultures, langues, religions, troc",
+      "chapter": "systemes",
+      "order": 12,
+      "summary": "Un seul mécanisme porte tout ce qui se pense et se transmet : les savoirs se découvrent et s’enseignent, les cultures, langues et religions dérivent et se séparent, les biens d’échange naissent du troc.",
+      "keywords": "idée savoir découverte invention enseignement apprentissage oubli culture valeur langue nom dialecte religion foi doute chaman prêtre schisme troc échange monnaie bien d’échange",
+      "systems": ["ideas"],
+      "dataFiles": ["ideas.json", "knowledge.json"],
+      "body": [
+        "## Ce que c’est",
+        "Une **idée** est portée par des personnes : un savoir, une culture, une langue, une religion ou un bien d’échange. Elle naît de quelqu’un (ou d’une population qui s’est éloignée), passe par les liens (parents, maîtres, conversations, rencontres, mariages) et disparaît quand plus personne ne la porte. Le journal garde son origine : qui, quand, où, pourquoi.",
+        "## Les savoirs",
+        "- **Découvrir** : un adulte (dès {var:ideas.json:knowledge.minDiscoverAge}) peut se mettre à chercher un savoir que son peuple n’a pas, si ses prérequis sont connus, si le **milieu** le permet (du silex pour tailler la pierre, du gibier pour la chasse, de l’argile pour la poterie…), s’il en a le **besoin** (la faim, le froid, la viande…) et s’il a l’esprit à ça (curiosité, ardeur, pratique du métier lié).",
+        "- Il avance jour après jour, beaucoup plus vite les jours où il exerce le métier lié ({var:ideas.json:knowledge.ponder.practicePerDay} au lieu de {var:ideas.json:knowledge.ponder.idlePerDay}). Il peut se décourager, surtout si le besoin ne presse pas. À mi-chemin, le journal dit qu’il « tient une piste » ; puis vient la découverte, ou l’abandon.",
+        "- **Transmettre** : un savoir s’apprend d’un parent ou d’un maître ({var:ideas.json:knowledge.teachPerDay} par jour), en regardant travailler ({var:ideas.json:knowledge.observePerDay}), ou même en observant des étrangers. Les enfants apprennent plus vite.",
+        "- **Perdre** : un savoir dont les derniers porteurs meurent sans élève est perdu, et le journal le dit.",
+        "- Chaque savoir a sa fiche (prérequis, milieu, besoin, ce qu’il ouvre) : [[catalogue-savoir]].",
+        "## Cultures, langues et religions : la dérive",
+        "Ces trois familles partagent un même mécanisme. Chacun porte sa version de l’idée (ses propres valeurs, sa façon de parler, ses croyances). Les enfants partent de celle de leurs parents, avec un petit écart ; chacun dérive un peu au hasard ; parler avec quelqu’un rapproche les deux versions. Une population qui ne parle plus aux autres s’en éloigne, et au-delà d’un seuil (par exemple {var:ideas.json:culture.splitDistance} pour une culture), une nouvelle idée est reconnue : une culture, une langue fille, ou un schisme religieux.",
+        "## Les cultures",
+        "Une culture est un ensemble de valeurs (partage, hiérarchie, hospitalité, courage, place des anciens : voir [[catalogue-valeur]]). Chaque valeur pèse sur certaines actions : le goût du partage pousse à donner, le courage à chasser. Les valeurs suivent aussi ce qu’on vit (les famines, la chasse, la façon dont on est gouverné, les étrangers qu’on croise).",
+        "## Les langues",
+        "Chaque langue a ses sons (entre {var:ideas.json:language.consonantCount.0} et {var:ideas.json:language.consonantCount.1} consonnes) et fabrique les noms des personnes, des peuples et des lieux. Une langue fille garde les sons de sa mère après quelques changements : les langues parentes se ressemblent. Deux tribus de langues différentes se comprennent mal, sauf si quelqu’un parle les deux (enfants de couples mixtes, conjoints, gens qui croisent souvent des étrangers).",
+        "## Les religions",
+        "- Au départ, il n’y a **aucune religion**. Une religion naît quand une personne très spirituelle doit expliquer une mort ({var:ideas.json:religion.griefChance}) ou une catastrophe, ou par une révélation : une croyance (esprits, ancêtres, forces de la nature : voir [[catalogue-croyance]]) avec son rite.",
+        "- Elle se répand par les conversations (les fervents convainquent les spirituels) et des parents aux enfants ; elle tiédit là où personne ne la partage.",
+        "- Chacun peut **douter** : l’esprit critique et la curiosité éloignent du sacré, l’entourage croyant soutient la foi, davantage dans une société hiérarchique ou une théocratie. Un deuil peut rapprocher ou éloigner de la foi.",
+        "- Ses fidèles peuvent avoir un chaman (dès {var:ideas.json:religion.clergyMembers} fidèles), puis un prêtre, et veulent un sanctuaire.",
+        "- Mesure : la part de sans-religion est forte la décennie où une religion naît (presque personne n’y croit encore), puis retombe à mesure des conversions.",
+        "## Le troc et les biens d’échange",
+        "Des gens de tribus différentes qui se croisent peuvent troquer, s’ils se comprennent (la langue, ou un interprète) et se font confiance. Quand ce que l’un veut ne correspond pas à ce que l’autre offre, on peut accepter un objet durable et léger parce que d’autres l’acceptent. Si plus de {var:ideas.json:trade.currencyShare} des adultes d’une tribu acceptent le même objet, il devient son **bien d’échange** (coquillages, perles…), l’ancêtre de la monnaie.",
+        "{live:cultures}",
+        "{live:religions}",
+        "{live:savoirs}",
+        "## Où l’observer",
+        "- Le panneau [[ecran:idees|Idées]] (I) : cultures, langues, religions, savoirs, échanges, lieux nommés.",
+        "- L’[[ecran:arbre-savoirs|arbre des savoirs]] (K) : ce qui est connu, cherché, à portée ou hors de portée, et pourquoi.",
+        "- La fiche d’une personne : ses savoirs (et d’où ils viennent), sa culture, ses langues, sa religion et sa foi, sa réflexion en cours.",
+        "- La [[ecran:politique|vue politique]] (P) : calques des cultures, langues et religions.",
+        "- [[partie:idees]] et [[partie:savoirs]] pour ta partie."
+      ]
+    }
+  ]
+}

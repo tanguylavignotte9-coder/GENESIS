@@ -1,0 +1,91 @@
+{
+  "pages": [
+    {
+      "id": "lire-histoire",
+      "title": "Lire une histoire : journal, causes, fiches, outils",
+      "chapter": "systemes",
+      "order": 14,
+      "summary": "Comment remonter le « pourquoi » d’un événement avec le journal, sa chaîne des causes, les fiches et les outils d’analyse.",
+      "keywords": "journal cause chaîne histoire explication pourquoi enquête",
+      "systems": [],
+      "body": [
+        "## Le principe",
+        "Tout événement notable est écrit dans le journal avec sa date, ses acteurs, son lieu et **les événements qui l’ont causé**. Un résultat doit toujours pouvoir s’expliquer par ses causes (sécheresse, puis famine, puis exode).",
+        "## Remonter une chaîne",
+        "- Dans le [[ecran:journal|journal]], « Cause » mène à l’événement précédent de la chaîne. On peut remonter ainsi plusieurs maillons : une naissance vient d’une union ; la fin d’une sécheresse vient de son début ; un bâtiment fini vient de l’ouverture de son chantier, qui vient d’un besoin du camp ; une vendetta vient d’un meurtre, qui vient d’une rixe, qui vient d’une dispute.",
+        "- Les filtres (tribu, personne, type, période, mot) aident à suivre un fil.",
+        "## Les fiches et les outils",
+        "- La [[ecran:fiche|fiche]] d’une personne dit ce qu’elle sait et ressent **maintenant** : ses souvenirs, ses relations avec leurs raisons, ses griefs.",
+        "- Le [[ecran:cerveau|cerveau]] dit pourquoi elle fait ce qu’elle fait.",
+        "- La [[ecran:gouvernance|gouvernance]] dit pourquoi un chef a décidé, et pourquoi on le soutient ou non.",
+        "- L’[[ecran:arbre-savoirs|arbre des savoirs]] dit pourquoi un savoir est connu, cherché ou hors de portée.",
+        "- La [[ecran:genealogie|généalogie]] et les [[ecran:relations|relations]] montrent les liens.",
+        "- Les [[ecran:statistiques|statistiques]] montrent les tendances (population, réserves, causes de décès).",
+        "## Mal équilibré, ou simplement l’histoire ?",
+        "Une mort peut être logique compte tenu de ce que la personne savait et pouvait faire : elle ne connaissait pas d’eau plus proche, elle était seule face à un loup affamé. Le même résultat dans presque tous les mondes serait un défaut ; un résultat extrême dans un monde, expliqué par ses causes, est une histoire.",
+        "## Où l’observer",
+        "Partout : chaque fenêtre du jeu a un bouton « ? » qui mène à sa page."
+      ]
+    },
+    {
+      "id": "pas-encore",
+      "title": "Ce qui n’est pas encore simulé",
+      "chapter": "reperes",
+      "order": 1,
+      "summary": "Ce que le simulateur ne fait pas (encore), pour ne pas chercher ce qui n’existe pas.",
+      "keywords": "limites futur pas encore manque",
+      "body": [
+        "## Les ères suivantes",
+        "Seules les ères 0 et 1 existent (de la cueillette à la poterie, l’agriculture, l’élevage, le tissage, la brique et le calcul : [[catalogue-savoir]]). Le bronze, la roue, l’**écriture** et la monnaie frappée viendront avec l’ère 2. Sans écriture, une idée ne survit que si des vivants la portent ; le régime de la république, qui demande l’écriture, ne peut pas encore apparaître.",
+        "## Les individus",
+        "- Personne ne **ment** ni ne garde de **secret** : les nouvelles sont vraies (elles perdent seulement des détails). Pas de complots, pas de fausses rumeurs, pas de biais cognitifs.",
+        "- Une personne n’appartient qu’à un seul groupe par niveau (une tribu, un clan, une famille).",
+        "- Les **objets remarquables** (une arme de chef, un objet sacré, avec leur histoire) ont leur place prévue mais n’apparaissent pas encore.",
+        "## La nature",
+        "- Le **poisson** n’est pas fait d’individus : chaque tuile d’eau a un stock qui se renouvelle.",
+        "- L’équilibre des **prédateurs** est encore travaillé : selon les mondes, loups et lions peuvent épuiser leur gibier puis mourir de faim. Le pistage du gibier est désactivé (voir [[ecosysteme]]).",
+        "- La **soif** et le **froid** restent durs dans les pays secs et froids, où des tribus peuvent mourir.",
+        "## Le jeu",
+        "- Le joueur est spectateur : aucune intervention sur le monde (pas de « god game »).",
+        "- Quand la dernière tribu s’éteint, le jeu ne propose pas encore de « faire réapparaître une tribu » : il faut lancer un nouveau monde.",
+        "- Le Wiki n’existe qu’en français et ne se modifie pas depuis le jeu."
+      ]
+    },
+    {
+      "id": "glossaire",
+      "title": "Glossaire",
+      "chapter": "reperes",
+      "order": 2,
+      "summary": "Les mots du simulateur, en une ligne chacun.",
+      "keywords": "glossaire définition vocabulaire mot",
+      "body": [
+        "- **Ambition** : un but qu’une personne se donne (devenir chef, exceller…) ; il favorise les actions qui le servent. [[catalogue-ambition]]",
+        "- **Atelier des variables** : la page (F2) où l’on règle toutes les valeurs du jeu. [[ecran:atelier]]",
+        "- **Biome** : le type de paysage d’une tuile (forêt tempérée, savane, toundra…). [[catalogue-biome]]",
+        "- **Bien d’échange** : un objet que presque toute une tribu accepte en paiement, ancêtre de la monnaie. [[idees]]",
+        "- **Camp** : le lieu de vie d’une tribu, avec son feu, ses huttes et son stock commun. [[humain]]",
+        "- **Cause** : l’événement qui en a provoqué un autre, gardé par le journal. [[lire-histoire]]",
+        "- **Clan** : un groupe de familles au sein d’une tribu, souvent liées par le sang. [[groupes]]",
+        "- **Coutume** : ce que le camp juge nécessaire (réserves, abri, objets par personne), qui donne les besoins collectifs. [[production]]",
+        "- **Culture** : un ensemble de valeurs partagées (partage, hiérarchie, hospitalité, courage, anciens). [[catalogue-valeur]]",
+        "- **Danger** : la peur d’un prédateur en vue ; la fiche affiche la « sécurité » (100 − danger). [[humain]]",
+        "- **Déterminisme** : la même graine et les mêmes réglages donnent toujours la même histoire. [[temps]]",
+        "- **Dérive** : le lent éloignement des cultures, langues et religions de populations qui ne se parlent plus. [[idees]]",
+        "- **Graine** : le nombre qui fabrique un monde et son histoire. [[monde]]",
+        "- **Grief** : ce qu’une personne reproche au pouvoir (faim, froid, deuil). [[groupes]]",
+        "- **Légitimité** : à quel point les membres soutiennent leurs dirigeants. [[groupes]]",
+        "- **Mécontentement** : le poids des griefs ; s’il dépasse la légitimité, un ambitieux peut agir. [[groupes]]",
+        "- **Métier** : la compétence qu’une personne pratique le plus. [[catalogue-competence]]",
+        "- **Recette** : toute récolte, fabrication ou construction, avec ses ingrédients, outils, durée et savoir. [[catalogue-recette]]",
+        "- **Régime** : la façon dont un groupe désigne ses dirigeants et décide. [[catalogue-regime]]",
+        "- **Savoir** : une connaissance (la chasse, la poterie…) découverte par quelqu’un et transmise. [[catalogue-savoir]]",
+        "- **Scission** : un clan qui quitte sa tribu pour en fonder une autre. [[groupes]]",
+        "- **Tic** : le plus petit pas de temps de la simulation. [[temps]]",
+        "- **Trait** : un aspect du caractère (prudence, sociabilité…), de 0 à 1. [[catalogue-trait]]",
+        "- **Tribu** : le plus grand groupe, avec son camp, son régime et ses règles. [[groupes]]",
+        "- **Tuile** : une case de la carte ; les distances se comptent en tuiles. [[monde]]",
+        "- **Vendetta** : une vengeance entre deux familles après un meurtre. [[conflit]]"
+      ]
+    }
+  ]
+}

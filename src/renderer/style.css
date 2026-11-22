@@ -1483,21 +1483,249 @@ body:has(#stats:not([hidden])) #journal {
   vertical-align: top;
 }
 
-.help-keys td {
-  padding: 2px 8px 2px 0;
+/* In-game Wiki (F1 or H) */
+#wiki {
+  position: absolute;
+  inset: 24px 40px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--hud-border);
+  border-radius: 8px;
+  background: var(--background);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  user-select: text;
 }
 
-.help-key {
-  color: #9fd3ff;
-  white-space: nowrap;
+#wiki[hidden] {
+  display: none;
 }
 
-.help-panel {
+.wiki-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--hud-border);
+}
+
+.wiki-header h2 {
+  flex: 1;
+  margin: 0 8px;
+  font-size: 18px;
+}
+
+#wiki button,
+#wiki input {
+  padding: 4px 9px;
+  border: 1px solid var(--hud-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+#wiki button {
+  cursor: pointer;
+}
+
+#wiki button:hover:not(:disabled) {
+  background: var(--accent);
+}
+
+#wiki button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.wiki-search {
+  width: 280px;
+}
+
+.wiki-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.wiki-nav {
+  width: 270px;
+  padding: 10px 12px;
+  overflow-y: auto;
+  border-right: 1px solid var(--hud-border);
+  font-size: 13px;
+}
+
+.wiki-chapter summary {
+  padding: 3px 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wiki-nav-link {
+  display: block;
+  padding: 2px 0 2px 14px;
+  color: var(--hud-text);
+  text-decoration: none;
+}
+
+.wiki-nav-link:hover,
+.wiki-nav-link.active {
+  color: var(--accent-hover);
+}
+
+.wiki-result {
   margin: 6px 0;
 }
 
-.help-panel-name {
+.wiki-result .wiki-nav-link {
+  padding-left: 0;
   font-weight: 600;
+}
+
+.wiki-content {
+  flex: 1;
+  padding: 14px 28px 40px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wiki-title {
+  margin: 2px 0 10px;
+  font-size: 22px;
+}
+
+.wiki-crumb {
+  font-size: 12px;
+}
+
+.wiki-h {
+  margin: 18px 0 6px;
+  font-size: 16px;
+  color: #cfe0ff;
+}
+
+.wiki-p {
+  margin: 6px 0;
+  max-width: 860px;
+}
+
+.wiki-list {
+  margin: 4px 0 8px;
+  padding-left: 22px;
+  max-width: 860px;
+}
+
+.wiki-list li {
+  margin: 2px 0;
+}
+
+.wiki-note {
+  margin: 10px 0;
+  padding: 6px 10px;
+  max-width: 840px;
+  border-left: 3px solid var(--accent);
+  background: rgba(79, 143, 224, 0.08);
+  color: var(--hud-muted);
+  font-size: 13px;
+}
+
+.wiki-link {
+  color: var(--accent-hover);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.wiki-link:hover {
+  text-decoration: underline;
+}
+
+.wiki-broken {
+  color: var(--error);
+}
+
+.wiki-var {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(255, 220, 120, 0.1);
+  color: #ffd98a;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.wiki-var.changed {
+  outline: 1px solid #ffb347;
+}
+
+.wiki-muted {
+  color: var(--hud-muted);
+}
+
+.wiki-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.wiki-table {
+  margin: 6px 0 10px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.wiki-table th,
+.wiki-table td {
+  padding: 3px 10px 3px 0;
+  border-bottom: 1px solid var(--hud-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.wiki-live {
+  margin: 12px 0;
+  padding: 8px 12px;
+  max-width: 860px;
+  border: 1px solid rgba(108, 192, 112, 0.4);
+  border-radius: 6px;
+  background: rgba(108, 192, 112, 0.07);
+}
+
+.wiki-live-title {
+  margin-bottom: 4px;
+  color: #8fd694;
+  font-weight: 600;
+}
+
+.wiki-actions {
+  display: flex;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.help-button {
+  min-width: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--hud-border);
+  border-radius: 11px;
+  background: rgba(79, 143, 224, 0.25);
+  color: var(--hud-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help-button:hover {
+  background: var(--accent);
+}
+
+.stats-title .help-button {
+  float: right;
+}
+
+.workshop-more {
+  margin: 0 0 8px;
 }
 
 .toasts {

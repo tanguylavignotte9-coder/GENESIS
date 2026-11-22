@@ -98,6 +98,6 @@ export class PoliticalPanel {
       row.append(el('td', 'muted', ties.join(' · ') || '—'));
       table.append(row);
     }
-    this.legend.append(table, el('div', 'muted', 'Sur la carte : disque de la couleur de la tribu (territoire), anneaux de la culture, de la langue et de la religion ; traits verts (alliance), rouges (guerre), dorés (tribut), pointillés gris (trêve).'));
+    this.legend.append(table, el('div', 'muted', 'Ce que montrent les disques, anneaux et traits de la carte : bouton « ? » en haut de cette fenêtre.'));
   }
 }

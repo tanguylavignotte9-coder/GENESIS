@@ -193,6 +193,19 @@ export class JournalPanel {
     this.renderToggle();
   }
 
+  /** Shows only the events of a tribe, or those that contain a word (from the Wiki's live pages). */
+  showFiltered(tribe: number, search: string): void {
+    this.filters = { tribe, person: -1, category: '', fromYear: 0, toYear: 0, search: search.toLowerCase() };
+    this.searchInput.value = search;
+    this.tribeSelect.value = String(tribe);
+    this.categorySelect.value = '';
+    this.fromInput.value = '';
+    this.toInput.value = '';
+    this.chain = -1;
+    this.panel.classList.remove('collapsed');
+    this.render();
+  }
+
   /** Shows the chain of causes of an event (the event, what caused it, what caused that…). */
   showChain(id: number): void {
     this.chain = id;

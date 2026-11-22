@@ -1,0 +1,65 @@
+{
+  "pages": [
+    {
+      "id": "monde",
+      "title": "Le monde : relief, climat, biomes, eau",
+      "chapter": "systemes",
+      "order": 1,
+      "summary": "Comment la carte naît d’une graine : continents, montagnes, températures, pluies, rivières, lacs et biomes, puis la météo de chaque jour.",
+      "keywords": "carte graine relief altitude montagne climat température humidité pluie rivière lac biome météo neige année anormale sécheresse",
+      "systems": ["world"],
+      "dataFiles": ["worldgen.json", "biomes.json", "resources.json", "climate.json", "weather.json"],
+      "body": [
+        "## Ce que c’est",
+        "Le monde est une grande carte carrée de {var:worldgen.json:size} de côté. Chaque tuile a une altitude, une température moyenne, une humidité, éventuellement de l’eau (rivière ou lac) et un **biome**. Tout est fabriqué à partir de la **graine** du monde : la même graine donne toujours la même carte, au mètre près.",
+        "Le haut de la carte est le pôle Nord, le bas le pôle Sud, le milieu l’équateur. Les saisons sont inversées entre les deux moitiés.",
+        "## Comment ça marche",
+        "- **Les continents.** On tire entre {var:worldgen.json:elevation.continentCountMin} et {var:worldgen.json:elevation.continentCountMax} continents et entre {var:worldgen.json:elevation.islandCountMin} et {var:worldgen.json:elevation.islandCountMax} îles, aux côtes découpées par un bruit mathématique. Le niveau de la mer est choisi pour que {var:worldgen.json:elevation.oceanFraction} de la carte soit sous l’eau.",
+        "- **Le relief.** Les terres sont faites de plaines douces (jusqu’à {var:worldgen.json:elevation.lowlandMaxMeters}) et de chaînes de montagnes aux crêtes marquées, qui n’existent que dans certaines « ceintures » et peuvent monter jusqu’à {var:worldgen.json:elevation.mountainMaxMeters}.",
+        "- **La température.** Elle va de {var:worldgen.json:temperature.equatorCelsius} à l’équateur à {var:worldgen.json:temperature.poleCelsius} aux pôles, et baisse de {var:worldgen.json:temperature.lapseRateCelsiusPerKm} quand on monte. Une montagne est donc froide même sous les tropiques.",
+        "- **L’humidité.** Des vents dominants soufflent par bandes de latitude (alizés d’est près de l’équateur, vents d’ouest plus loin). L’air se charge d’eau au-dessus de la mer, perd un peu de pluie sur chaque tuile de terre, et beaucoup quand le sol monte. Derrière une chaîne de montagnes, l’air est sec : c’est l’**ombre pluviométrique**, qui crée des déserts.",
+        "- **L’eau.** La pluie de chaque tuile s’écoule vers la tuile voisine la plus basse, uniquement par les quatre côtés (jamais en diagonale : les rivières obliques avancent en escalier). Une tuile qui reçoit assez d’eau de tout ce qui est en amont ({var:worldgen.json:hydrology.riverMinFlow}) devient une rivière. Les creux sont remplis jusqu’à leur point de débordement : un creux assez profond ({var:worldgen.json:hydrology.lakeMinDepthMeters}) et assez alimenté devient un lac.",
+        "- **Les biomes.** Chaque tuile prend le **premier** biome de la liste dont toutes les conditions (altitude, température, humidité, proximité de la mer) sont remplies. L’ordre de la liste compte : voir [[catalogue-biome]].",
+        "- **Les saisons.** Chaque jour, la température de chaque ligne de la carte oscille autour de sa moyenne : l’écart est faible à l’équateur et fort près des pôles. L’humidité varie aussi (saison humide en été local). La neige commence sous {var:climate.json:snow.startCelsius} et couvre tout sous {var:climate.json:snow.fullCelsius}. La durée du jour change avec la saison et la latitude.",
+        "- **Les années anormales.** Au début de chaque année, chaque grande terre tire au sort (une chance de {var:climate.json:anomalies.chancePerRoll} par tirage, un tirage par tranche de {var:climate.json:anomalies.tilesPerRoll}) une sécheresse, une année humide, un hiver rude… sur une région ronde. Elle change la température et l’humidité de cette région pendant un an, puis prend fin. Voir [[catalogue-anomalie]].",
+        "- **La météo du jour.** La carte est découpée en régions de {var:weather.json:regionTiles} de côté. Chaque jour, chaque région tire son temps : il pleut avec une chance égale à l’humidité du moment × {var:weather.json:rainChanceAtFullHumidity} (neige s’il fait moins de {var:weather.json:snowBelowCelsius}) ; par temps sec et froid (moins de {var:weather.json:coldSnapBelowCelsius}), un froid vif s’installe une fois sur {var:weather.json:coldSnapChance}. La pluie et le froid font ressentir plus de froid aux humains et ralentissent leur marche : voir [[catalogue-meteo]].",
+        "## Pourquoi c’est important",
+        "Le monde décide de tout le reste (pilier « un monde cohérent ») : les plantes ne poussent que là où la température et l’humidité leur conviennent, les animaux vivent là où ils trouvent à manger, les humains s’installent près de l’eau et de la nourriture. Une sécheresse fait mourir des plantes, qui affament des herbivores, qui manquent aux chasseurs : la chaîne est écrite dans le journal.",
+        "## Ce qui l’influence",
+        "Tout se règle dans l’Atelier (F2), fichiers [[fichier:worldgen.json]], [[fichier:biomes.json]], [[fichier:climate.json]] et [[fichier:weather.json]]. Les réglages de la génération (relief, biomes, rivières) ne s’appliquent qu’au **prochain monde** ; ceux des saisons et de la météo s’appliquent en direct.",
+        "## Où l’observer",
+        "- La carte elle-même : couleurs des biomes, rivières et lacs, neige qui avance et recule, végétation qui jaunit en saison sèche ([[legende]]).",
+        "- Le survol d’une tuile : biome, altitude, température du moment, météo, année anormale en cours.",
+        "- Le journal : début et fin des années anormales, avec leur lieu.",
+        "- La touche M montre ou cache la pluie et la neige."
+      ]
+    },
+    {
+      "id": "temps",
+      "title": "Le temps et les saisons",
+      "chapter": "systemes",
+      "order": 2,
+      "summary": "Le calendrier compressé, les vitesses, le jour et la nuit, et ce que veut dire « un tic ».",
+      "keywords": "calendrier année saison jour nuit vitesse pause tic x1 x500 sauvegarde automatique",
+      "systems": [],
+      "dataFiles": ["time.json"],
+      "body": [
+        "## Ce que c’est",
+        "Le temps du jeu avance par petits pas appelés **tics**. Une journée de jeu compte {var:time.json:ticksPerDay} ; en vitesse x1, le jeu calcule {var:time.json:ticksPerRealSecond} par seconde réelle.",
+        "## Comment ça marche",
+        "- **Le calendrier est compressé** : une saison dure {var:time.json:daysPerSeason}, une année compte autant de saisons que la liste en contient ({var:time.json:seasons.0}, {var:time.json:seasons.1}, {var:time.json:seasons.2}, {var:time.json:seasons.3}). Une vie humaine tient donc en quelques heures réelles à grande vitesse.",
+        "- **La date affichée suit l’hémisphère nord.** Au sud, quand il est écrit « Été », c’est l’hiver.",
+        "- **Le jour et la nuit** : la durée du jour vaut {var:climate.json:daylight.equinoxHours} aux équinoxes, plus en été et moins en hiver, d’autant plus qu’on est loin de l’équateur. Les humains dorment la nuit, ce qui règle leur rythme.",
+        "- **Les vitesses** : {var:time.json:speeds.0}, {var:time.json:speeds.1}, {var:time.json:speeds.2}, {var:time.json:speeds.3} et {var:time.json:speeds.4} (touches 1 à 5, Espace pour la pause). La vitesse ne change **que la cadence** : le monde calculé est exactement le même à x1 et à x500 (c’est vérifié par un test). En x1, tout est fluide ; aux grandes vitesses, si l’ordinateur ne suit pas, le jeu ralentit et affiche la vitesse réellement atteinte.",
+        "- **Chacun réfléchit à son rythme** : un humain ne redécide pas à chaque tic. Il réfléchit toutes les {var:humans.json:thinkEveryMinutes} de jeu environ, ou plus tôt si quelque chose change (voir [[humain]]). Les animaux font de même.",
+        "- **Sauvegarde automatique** toutes les {var:time.json:autosave.everyMinutes} réelles, sur {var:time.json:autosave.slots} emplacements utilisés à tour de rôle (voir [[ecran:sauvegardes]]).",
+        "## Pourquoi",
+        "Un calendrier court permet de voir des générations se succéder sans attendre des jours. Le découpage en tics réguliers et l’ordre de calcul fixe rendent le monde **déterministe** : la même graine et les mêmes réglages redonnent la même histoire.",
+        "## Où l’observer",
+        "- La date en haut de l’écran et les boutons de vitesse.",
+        "- La nuit qui tombe sur la carte, plus ou moins longue selon la saison et la latitude.",
+        "- L’indicateur de performance (F3) : temps de calcul d’un jour et vitesse réellement atteinte."
+      ]
+    }
+  ]
+}

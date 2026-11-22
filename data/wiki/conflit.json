@@ -1,0 +1,43 @@
+{
+  "pages": [
+    {
+      "id": "conflit",
+      "title": "Conflit et diplomatie",
+      "chapter": "systemes",
+      "order": 13,
+      "summary": "De la dispute à la guerre : rixes, meurtres et exils, vendettas, raids, guerres, combats, trêves, tributs, paix et trahisons.",
+      "keywords": "violence rixe dispute meurtre exil vendetta vengeance raid guerre bataille combat moral arme rempart captif conquête tribut trêve paix émissaire mariage trahison guerre civile",
+      "systems": ["conflict"],
+      "dataFiles": ["conflict.json"],
+      "body": [
+        "## Ce que c’est",
+        "La violence suit la même logique que le reste : ce sont des **personnes** qui décident de se battre, et des **groupes** qui décident de faire la guerre. Chaque coup est appliqué comme une blessure réelle (santé, parfois une infirmité à vie, parfois la mort).",
+        "## Les rixes",
+        "Une dispute (voir [[vie-sociale]]) peut dégénérer ({var:conflict.json:brawl.escalateChance}) selon la colère de celui qui frappe le premier, sa colère facile, sa prudence, sa faim et l’antipathie entre les deux. Ils échangent quelques coups ({var:conflict.json:brawl.blows}) ; un coup mal placé peut tuer. Celui qui est battu garde rancune.",
+        "## Meurtre, exil, vendetta",
+        "- Un meurtre dans une tribu est jugé selon le régime : ceux qui aimaient la victime ou détestent le meurtrier veulent l’exil ; un chef décide seul (et épargne sa famille), un conseil à la majorité, une bande ensemble. L’exilé part vivre chez une tribu qui l’accueille, ou seul dans un « camp d’exilé ».",
+        "- Un meurtre peut lancer une **vendetta** entre deux familles : les proches de la victime peuvent jurer vengeance, les enfants nés dans la famille en héritent en grandissant, et un vengeur qui croise sa cible (à moins de {var:conflict.json:feud.reachTiles}) peut frapper. Sans nouveau sang pendant {var:conflict.json:feud.fadeYears}, la vendetta peut s’éteindre.",
+        "## Raids et guerres",
+        "- Tous les {var:conflict.json:raid.everyDays}, les chefs de chaque tribu se demandent s’ils attaquent une tribu qu’ils connaissent : la **faim** (peu de réserves), l’**envie** d’un voisin plus riche, la soif de **prestige** du chef, la **haine**, une **autre religion** et le **rapport de force** pèsent. La décision suit le régime.",
+        "- Un raid envoie une troupe ({var:conflict.json:raid.partyShare} des combattants) qui marche jusqu’au camp ennemi, se bat, pille ({var:conflict.json:raid.lootShare} des réserves) et ramène parfois des captifs.",
+        "- Une **guerre** déclarée envoie des expéditions tous les {var:conflict.json:war.raidEveryDays}. Chaque mort ou captif accroît la lassitude ; une tribu lasse envoie un émissaire proposer la paix, une trêve, ou un tribut si elle est la plus faible. Une tribu bien plus forte ({var:conflict.json:war.conquestRatio} fois) peut conquérir l’autre, qui devient un de ses clans.",
+        "## Le combat",
+        "Un modèle simple : la force du combattant (vigueur, santé, expérience), son arme (la meilleure qu’il porte ou trouve au camp : lance, hache, arc… voir les fiches d’[[catalogue-objet|objets]]), ses protections, les remparts, le fait de défendre son camp, le nombre, et surtout le **moral** (départ à {var:conflict.json:combat.startMorale}). On fuit bien avant d’être tué : le moral baisse avec les blessures et les camarades tombés, et une troupe se débande quand assez des siens ont fui ou sont tombés ({var:conflict.json:combat.routShare}).",
+        "## La diplomatie",
+        "- Les offres sont portées par des **émissaires** qui marchent (la guerre continue pendant ce temps), peuvent ne pas être compris (langues différentes) ou arriver trop tard.",
+        "- Une trêve dure {var:conflict.json:diplomacy.truceDays} ; un tribut se paie tous les {var:conflict.json:war.tributeEveryDays} pendant {var:conflict.json:war.tributeYears}. Une paix peut être scellée par un mariage.",
+        "- Rompre une trêve, une alliance ou un tribut est une **trahison** que l’autre tribu n’oublie jamais.",
+        "## La guerre civile",
+        "Dans une tribu dont le pouvoir a perdu sa légitimité (sous {var:conflict.json:civilWar.maxLegitimacy}), une contestation ratée peut tourner à la guerre civile si le prétendant a assez de partisans ({var:conflict.json:civilWar.minShare}). Les vainqueurs gardent le pouvoir ; un prétendant battu est chassé.",
+        "{live:relations}",
+        "## Pourquoi",
+        "Aucune guerre n’est programmée : elle naît de la faim, de l’envie, de la haine ou de l’ambition d’un chef, et le journal relie chaque bataille à sa déclaration, chaque vendetta au meurtre d’origine.",
+        "## Où l’observer",
+        "- Le journal (filtre « Conflits et diplomatie »), avec la chaîne des causes.",
+        "- La [[ecran:relations|carte des relations]] entre tribus (alliances, guerres, trêves, tributs) et la [[ecran:politique|vue politique]] (traits rouges de guerre).",
+        "- Les batailles récentes sont marquées sur la carte ([[legende]]).",
+        "- La fiche d’une personne : blessures, victimes, ennemis personnels, mission en cours."
+      ]
+    }
+  ]
+}

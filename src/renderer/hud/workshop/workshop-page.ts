@@ -51,6 +51,8 @@ export class WorkshopPage {
   /** Sections unfolded by the spectator (file + section); all are folded at first. */
   private readonly openSections = new Set<string>();
   private readonly actions: RowActions;
+  /** The Wiki page that explains a file (« en savoir plus »), set by the display. */
+  learnMore: (file: string) => { label: string; open: () => void } | null = () => null;
 
   constructor(
     private readonly ui: WorkshopElements,
@@ -171,7 +173,16 @@ export class WorkshopPage {
     if (searching) {
       nodes.push(el('div', 'workshop-results', `${shown.length} résultat${shown.length > 1 ? 's' : ''}${shown.length > MAX_RESULTS ? ` (les ${MAX_RESULTS} premiers sont affichés)` : ''}`));
       for (const variable of shown.slice(0, MAX_RESULTS)) nodes.push(variableRow(variable, this.actions, true));
-    } else nodes.push(...this.sections(shown));
+    } else {
+      const more = this.learnMore(this.file);
+      if (more) {
+        const link = el('button', 'workshop-more', `En savoir plus : ${more.label} (Wiki)`);
+        link.type = 'button';
+        link.addEventListener('click', () => more.open());
+        nodes.push(link);
+      }
+      nodes.push(...this.sections(shown));
+    }
     if (shown.length === 0) nodes.push(el('div', 'workshop-results', 'Aucune variable ne correspond à cette recherche.'));
     this.ui.list.replaceChildren(...nodes);
     this.ui.list.scrollTop = toTop ? 0 : scroll;

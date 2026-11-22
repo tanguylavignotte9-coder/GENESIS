@@ -1,0 +1,70 @@
+{
+  "pages": [
+    {
+      "id": "vie-sociale",
+      "title": "La vie sociale : relations, émotions, conversations",
+      "chapter": "systemes",
+      "order": 8,
+      "summary": "Ce que les gens ressentent les uns pour les autres, pourquoi, ce qu’ils se disent, et comment les nouvelles circulent de bouche à oreille.",
+      "keywords": "relation affection confiance respect ami rival couple séparation deuil émotion joie tristesse colère peur jalousie solitude souvenir conversation nouvelle rumeur partage don ambition",
+      "systems": ["individuals"],
+      "dataFiles": ["social.json"],
+      "body": [
+        "## Les relations",
+        "Chaque personne retient ses liens avec les {var:social.json:relations.slots} personnes qui comptent le plus pour elle. Un lien a trois axes : **affection**, **confiance** et **respect**, et garde ses **raisons** (« Lo a nourri Ka, hiver de l’an 3 »). La famille compte toujours : un conjoint, un parent, un enfant, un frère ou une sœur partent avec une affection de départ (par exemple {var:social.json:relations.kin.child.affection} pour son enfant).",
+        "- Les liens s’usent doucement ({var:social.json:relations.decayPerDay}) s’ils ne sont pas entretenus.",
+        "- Ce qui blesse marque plus que ce qui fait plaisir ({var:social.json:relations.negativityBias} fois plus).",
+        "- Au-dessus de {var:social.json:relations.friendAffection}, c’est un ami ; au-dessus de {var:social.json:relations.greatFriendAffection}, une grande amitié ; sous {var:social.json:relations.rivalAffection}, un rival. Une chute brutale de {var:social.json:relations.fallingOutDrop} est une brouille, racontée au journal avec ses raisons.",
+        "## Les émotions",
+        "Joie, tristesse, colère, peur et jalousie montent avec les événements et retombent à leur rythme (voir [[catalogue-emotion]]). La **solitude** monte de {var:social.json:loneliness.perHour} quand on est seul, plus vite chez les sociables. Les émotions pèsent sur les décisions : un triste cherche à se confier, un fâché à se disputer, un seul à bavarder.",
+        "## Les souvenirs",
+        "Les grands moments (un deuil, une attaque de fauve, une famine, une naissance…) deviennent des souvenirs qui entretiennent une émotion tant qu’ils sont vifs, puis s’effacent. Ils changent aussi **un peu** la personnalité (au plus {var:social.json:memories.maxTraitDrift} depuis la naissance) : une attaque rend plus prudent. Voir [[catalogue-souvenir]].",
+        "## Les conversations",
+        "Quand le cerveau choisit de parler, la personne va vers quelqu’un à moins de {var:social.json:reachTiles} : bavarder, se confier, consoler, séduire, se disputer, se réconcilier (voir [[catalogue-conversation]]). Chaque conversation change ce que chacun ressent pour l’autre, calme ou attise les émotions, et fait passer {var:social.json:conversation.newsPerTalk} nouvelles. Une conversation peut tourner mal ({var:social.json:conversation.frictionChance}, plus souvent entre caractères opposés, gens qui se détestent ou affamés), et une dispute peut dégénérer en rixe (voir [[conflit]]).",
+        "## Les nouvelles",
+        "On ne sait que ce qu’on a vu ou ce qu’on nous a dit : une mort, un nouveau couple, un coin où il y a à manger, un danger. Les nouvelles sont vraies (personne ne ment), mais en passant de bouche en bouche elles perdent des détails ({var:social.json:news.detailLossChance} à chaque fois) : le lieu devient flou, la cause se perd.",
+        "## Couples, partage, ambitions",
+        "- **Couples** : à partir de {var:social.json:couples.minAge}, quelqu’un qui éprouve assez d’affection peut faire la cour ; l’autre accepte si son affection atteint {var:social.json:couples.acceptAffection}. Un couple peut se séparer si l’affection tombe sous {var:social.json:couples.breakupAffection}. Un veuf ne se remet en couple qu’une fois le deuil apaisé.",
+        "- **Partage** : quelqu’un dont la faim se voit (au-dessus de {var:social.json:sharing.askHunger}) peut recevoir de la nourriture d’un proche qui n’a pas trop faim lui-même ; les généreux donnent plus. Donner rend joyeux et crée de l’affection.",
+        "- **Ambitions** : chacun peut avoir jusqu’à {var:social.json:ambitions.max} ambitions (se faire des amis, exceller dans son métier, devenir chef, venger un proche…), choisies selon sa situation et son caractère. Voir [[catalogue-ambition]].",
+        "## Où l’observer",
+        "- La fiche d’une personne : relations avec leurs raisons, émotions, souvenirs, nouvelles connues, ambitions.",
+        "- La [[ecran:relations|carte des relations]] (R) : famille, amour, affection, rivalité.",
+        "- Le journal : couples, grandes amitiés, brouilles, séparations, deuils."
+      ]
+    },
+    {
+      "id": "famille",
+      "title": "La famille et le cycle de la vie",
+      "chapter": "systemes",
+      "order": 9,
+      "summary": "Naissances, enfance, vieillesse, maladies, orphelins et héritage : comment les générations se succèdent.",
+      "keywords": "naissance grossesse enfant bébé allaitement enfance jeu apprentissage vieillesse mort maladie épidémie orphelin héritage force carrure famine",
+      "systems": ["individuals"],
+      "dataFiles": ["life.json"],
+      "body": [
+        "## Avoir un enfant",
+        "Une femme qui vit avec son conjoint peut concevoir quand **le corps** et **l’envie** le permettent. Le corps : les deux à un âge fécond, la femme en bonne santé (au moins {var:life.json:fertility.minHealth}) et assez nourrie (une faim au-dessus de {var:life.json:fertility.hungerNone} rend stérile), moins pendant l’allaitement. L’envie : assez d’affection mutuelle, un goût pour la famille (sociabilité), pas trop de jeunes enfants déjà, pas de souvenir récent de famine.",
+        "La grossesse dure {var:life.json:pregnancy.days} et donne faim. Un enfant peut être perdu, plus souvent si la mère est affamée ou malade. L’accouchement comporte des risques ({var:life.json:birth.motherDeath} de mort en couches, {var:life.json:birth.stillbirth} de mort-né), plus grands pour une mère très jeune, âgée, affaiblie ou affamée.",
+        "## Hériter de ses parents",
+        "Un enfant hérite de la moitié ({var:life.json:heredity.parentShare}) du caractère de ses parents, avec une variation de {var:life.json:heredity.variation}, et en partie de leur carrure. L’enfance façonne ensuite davantage le caractère que l’âge adulte.",
+        "## L’enfance",
+        "- Jusqu’à {var:life.json:stages.carriedUntilAge}, le bébé est porté et tète sa mère jusqu’au sevrage ({var:life.json:stages.weaningAge}).",
+        "- L’enfant suit ses parents, joue avec les autres enfants (ce qui rend joyeux et crée des amitiés) et apprend en regardant les adultes travailler.",
+        "- À {var:life.json:stages.adultAge}, l’enfance est finie.",
+        "## La force et la vieillesse",
+        "La force du corps grandit pendant l’enfance, se maintient puis décline à partir de {var:life.json:aging.declineFromAge}. Elle règle la vitesse, l’endurance et le travail physique, et s’entretient par l’effort (chasse, construction…). La mort de vieillesse suit une loi réaliste : sa probabilité double tous les {var:life.json:oldAge.doublingYears} (environ {var:life.json:oldAge.deathPerYearAtReference} par an à {var:life.json:oldAge.referenceAge}), plus tôt pour un corps fragile.",
+        "## Les maladies",
+        "On peut tomber malade tout seul (plus souvent quand on a froid ou faim), et certaines maladies sont contagieuses : elles passent à ceux qui sont tout proches. Les petits, les vieux, les affamés et les gelés souffrent le plus. Guéri, on est protégé un temps. Quand au moins {var:life.json:epidemic.minCases} malades d’une même maladie sont au camp, le journal parle d’épidémie. Voir [[catalogue-maladie]].",
+        "## Orphelins et héritage",
+        "- Un enfant dont le gardien meurt est recueilli par celui qui le veut le plus : la famille d’abord, puis ceux qui aimaient l’enfant ou son parent mort, les généreux davantage, ceux qui ont déjà beaucoup d’enfants à charge moins. Un bébé qui perd sa mère a besoin d’une nourrice.",
+        "- Les objets personnels d’un mort vont à ses héritiers selon la règle d’héritage de sa tribu ([[catalogue-heritage]]) ; sans héritier, au stock du camp.",
+        "## Où l’observer",
+        "- La fiche d’une personne : âge, force, grossesse, maladie, gardien, enfants.",
+        "- L’[[ecran:genealogie|arbre généalogique]] (T) : lignées, fondateurs, lignées éteintes.",
+        "- Les [[ecran:statistiques|statistiques]] : pyramide des âges, naissances, causes de décès.",
+        "- Le journal : naissances (avec l’union qui les a causées), épidémies, famines, adoptions, héritages."
+      ]
+    }
+  ]
+}

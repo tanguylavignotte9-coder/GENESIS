@@ -1,0 +1,305 @@
+{
+  "pages": [
+    {
+      "id": "raccourcis",
+      "title": "Raccourcis clavier et souris",
+      "chapter": "ecrans",
+      "order": 0,
+      "summary": "Toutes les touches du jeu.",
+      "keywords": "touche clavier raccourci souris zoom pause vitesse aide",
+      "body": [
+        "## La carte",
+        "- **Glisser, ZQSD ou flèches** : déplacer la carte.",
+        "- **Molette** : zoomer.",
+        "- **Clic sur une personne** : sa fiche (Maj + clic : le bâtiment sous les gens).",
+        "- **Clic sur un animal** : sa fiche, et la caméra le suit.",
+        "- **Clic sur un bâtiment** : sa fiche.",
+        "## Le temps",
+        "- **Espace** : pause.",
+        "- **1 à 5** : vitesse du temps (voir [[temps]]).",
+        "## Les fenêtres",
+        "- **F1 ou H** : ce Wiki (Retour arrière : page précédente).",
+        "- **G** : [[ecran:groupes|groupes]] (tribus, clans, familles).",
+        "- **I** : [[ecran:idees|idées]] (cultures, langues, religions, savoirs, échanges).",
+        "- **T** : [[ecran:genealogie|arbre généalogique]].",
+        "- **K** : [[ecran:arbre-savoirs|arbre des savoirs]].",
+        "- **R** : [[ecran:relations|carte des relations]].",
+        "- **P** : [[ecran:politique|vue politique]] (calques de la carte).",
+        "- **F** : [[ecran:suivis|personnages suivis]] et leurs nouvelles.",
+        "- **M** : afficher ou cacher la météo (pluie, neige).",
+        "- **F2** : [[ecran:atelier|atelier des variables]].",
+        "- **F3** : indicateur de performance.",
+        "- **F5** : [[ecran:sauvegardes|sauvegardes]].",
+        "- **Échap** : fermer la fenêtre ouverte."
+      ]
+    },
+    {
+      "id": "legende",
+      "title": "Légende des couleurs et des symboles",
+      "chapter": "ecrans",
+      "order": 1,
+      "summary": "Ce que veulent dire les couleurs et les dessins de la carte et des outils.",
+      "keywords": "légende couleur symbole drapeau bannière collier bataille chantier anneau disque trait vert rouge orange bleu gris",
+      "body": [
+        "## Sur la carte",
+        "- **Couleurs du sol** : le biome de chaque tuile (voir [[catalogue-biome]]), les rivières et les lacs. La **neige** blanchit le sol quand il fait froid ; la végétation **jaunit** en saison sèche.",
+        "- **La nuit** assombrit la carte, plus longtemps en hiver et loin de l’équateur.",
+        "- **Pluie et neige** qui tombent : la météo du jour de chaque région (touche M).",
+        "- **Bannière de couleur et nom** : le cœur du camp d’une tribu (chaque tribu a sa couleur).",
+        "- **Bâtiments** : chacun a son dessin ; un **chantier** montre des piquets, des matériaux et une barre d’avancement ; un bâtiment **abandonné** reste visible. Le **tas** près du feu est le stock commun quand il n’y a pas de cache (il grossit avec les réserves). Un **baluchon** au sol : les affaires d’un mort, loin du camp.",
+        "- **Humains** : un combattant en expédition porte un **bandeau rouge** et une lance. Quelqu’un dans un bâtiment fermé (hutte, tente…) n’est pas dessiné : la fiche du bâtiment le liste.",
+        "- **Animaux** : une bête **domestique** porte un **collier rouge** et une robe pie (taches pâles).",
+        "- **Plantes** : chaque espèce a son dessin ; les baies, épis ou fruits ne sont dessinés que s’il y a vraiment quelque chose à cueillir.",
+        "- **Deux lames croisées sur une marque rouge** : une bataille récente (elle s’efface avec les heures).",
+        "## Vue politique (P)",
+        "- **Disque de la couleur d’une tribu** : son territoire.",
+        "- **Anneaux** autour d’un camp : sa culture, sa langue, sa religion (une couleur par idée : deux camps qui ont le même anneau partagent la même idée).",
+        "- **Traits** entre deux camps : **vert** une alliance, **rouge** une guerre, **doré** un tribut, **pointillés gris** une trêve.",
+        "## Dans les outils",
+        "- **Cerveau** : à gauche ce que la personne ressent et sait, à droite les actions. Un lien **vert** pousse vers l’action, un lien **rouge** la freine ; l’**épaisseur** dit sa force. Survolez une action pour isoler ses liens.",
+        "- **Gouvernance** : chaque membre et chaque clan est coloré selon son soutien aux dirigeants, du **rouge** (ne les soutient pas) au **vert** (les soutient).",
+        "- **Arbre des savoirs** : **vert** connu, **orange** en cours de découverte, **bleu** conditions réunies, **gris** hors de portée.",
+        "- **Relations entre personnes** : **bleu** famille, **rose** amour, **vert** affection, **rouge** rivalité, **gris** simple connaissance. **Entre tribus** : vert alliance, rouge guerre, gris clair trêve, doré tribut (vers qui le reçoit).",
+        "- **Wiki** : une valeur en **jaune** est lue en direct dans l’Atelier ; **encadrée d’orange**, elle a été modifiée. Survolez-la pour sa légende."
+      ]
+    },
+    {
+      "id": "ecran:fiche",
+      "title": "La fiche d’une personne",
+      "chapter": "ecrans",
+      "order": 10,
+      "summary": "Tout ce qu’on sait d’une personne : identité, caractère, besoins, santé, savoirs, relations, groupes.",
+      "keywords": "fiche personnage personne",
+      "body": [
+        "Clic sur une personne de la carte, du journal ou d’un panneau. La fiche se met à jour en direct.",
+        "- **Identité** : nom, âge, sexe, métier, traits de caractère ([[catalogue-trait]]), force du corps.",
+        "- **Ce qu’elle fait** et pourquoi (l’entrée qui a le plus pesé), les trois actions les mieux notées : voir [[cerveau]].",
+        "- **Besoins et santé** : faim, soif, fatigue, froid, sécurité (100 − danger), température ressentie, météo ; voir [[humain]].",
+        "- **Ce qu’elle porte**, ses **compétences** et leur pratique ([[production]]).",
+        "- **Relations** avec leurs raisons, **émotions**, **souvenirs**, **nouvelles** connues, **ambitions** ([[vie-sociale]]).",
+        "- **Vie** : grossesse, maladie, gardien, enfants ([[famille]]).",
+        "- **Groupes** : tribu, clan, famille, rôle, soutien aux chefs, tâche donnée ([[groupes]]).",
+        "- **Idées** : savoirs et leur origine, réflexion en cours, culture, langues, religion et foi, bien d’échange ([[idees]]).",
+        "- **Violence** : blessures, victimes, ennemis, mission ([[conflit]]).",
+        "## Les boutons",
+        "- **☆ Suivre sa vie** : la met dans les [[ecran:suivis|suivis]].",
+        "- **Arbre** : son [[ecran:genealogie|arbre généalogique]]. **Relations** : ses liens en [[ecran:relations|graphe]].",
+        "- **Afficher le cerveau** : [[ecran:cerveau]]. **Suivre** : la caméra la suit."
+      ]
+    },
+    {
+      "id": "ecran:fiche-animal",
+      "title": "La fiche d’un animal",
+      "chapter": "ecrans",
+      "order": 11,
+      "summary": "Espèce, âge, sexe, faim, soif, santé, état, troupeau, et pour une bête domestique son propriétaire.",
+      "keywords": "fiche animal bête",
+      "body": [
+        "Clic sur un animal : sa fiche s’ouvre et la caméra le suit.",
+        "- Espèce (lien vers sa fiche du catalogue : [[catalogue-animal]]), âge, sexe, gestation.",
+        "- Faim, soif, santé, ce qu’il fait (broute, fuit, chasse…), taille de son groupe.",
+        "- Bête domestique : qui la garde, son propriétaire, à quel point elle est apprivoisée ([[ecosysteme]]).",
+        "- **Afficher le cerveau** : ses priorités (fuir, boire, manger, suivre son groupe, rentrer, se promener) et ce qui les déclenche : [[ecran:cerveau]]."
+      ]
+    },
+    {
+      "id": "ecran:batiment",
+      "title": "La fiche d’un bâtiment",
+      "chapter": "ecrans",
+      "order": 12,
+      "summary": "Fonction, état, chantier, qui y dort, qui est à l’intérieur, stock du camp, champ.",
+      "keywords": "bâtiment chantier stock cache feu champ",
+      "body": [
+        "Clic sur un bâtiment (Maj + clic quand des gens sont dessus).",
+        "- Sa fonction et sa description ([[catalogue-batiment]]).",
+        "- Un **chantier** : les matériaux apportés et manquants, le travail fait, ses bâtisseurs.",
+        "- Les **résidents** (qui y dort) et ceux qui sont **à l’intérieur** maintenant, avec ce qu’ils font (clic : leur fiche).",
+        "- Le **feu** : les heures de bois qui restent.",
+        "- Le **stock commun** du camp (dans la cache, ou en tas près du feu) et sa place.",
+        "- Un **champ** : ce qui est semé, la croissance, la récolte qui attend ([[production]])."
+      ]
+    },
+    {
+      "id": "ecran:cerveau",
+      "title": "Le cerveau visuel",
+      "chapter": "ecrans",
+      "order": 13,
+      "summary": "Voir comment une personne ou un animal décide : ce qu’il ressent, les actions et leurs notes, ce qui pousse ou freine.",
+      "keywords": "cerveau décision réseau score",
+      "body": [
+        "Bouton « Afficher le cerveau » dans la fiche d’une personne ou d’un animal. Mettez le jeu en pause pour examiner une décision : l’affichage suit la réflexion en direct.",
+        "- **Le réseau** : à gauche les entrées (besoins, émotions, obligations, ambitions, traits, saison…), à droite les actions avec leur note. Couleurs des liens : voir [[legende]].",
+        "- **Le détail** : pour chaque action, ce qui a fait sa note (« pourquoi cueillir », « pourquoi pas le bois »), y compris le hasard et la persévérance.",
+        "- **L’historique** des dernières décisions, avec la raison de chaque changement d’activité.",
+        "- Pour un animal : ses règles de priorité et laquelle s’applique.",
+        "Observer un cerveau ne change jamais l’histoire. Comment le cerveau fonctionne : [[cerveau]]."
+      ]
+    },
+    {
+      "id": "ecran:gouvernance",
+      "title": "La gouvernance d’une tribu",
+      "chapter": "ecrans",
+      "order": 14,
+      "summary": "Les décisions des chefs, ce qui a pesé, et la carte du soutien de chaque membre et de chaque clan.",
+      "keywords": "gouvernance décision soutien mécontentement",
+      "body": [
+        "Bouton « Afficher la gouvernance » du panneau [[ecran:groupes|Groupes]].",
+        "- **Les décisions** : stratégie, régime, règles, déplacement du camp, guerre… avec les options envisagées, ce qui a pesé sur chacune et pourquoi les autres ont été écartées.",
+        "- **La carte du soutien** : chaque adulte et chaque clan coloré selon son soutien aux dirigeants (voir [[legende]]). Cliquez sur quelqu’un pour voir ses raisons.",
+        "- **Les sources de mécontentement** : faim, froid, deuils, maladies, ambitions contrariées.",
+        "Comment le pouvoir fonctionne : [[groupes]]."
+      ]
+    },
+    {
+      "id": "ecran:groupes",
+      "title": "Le panneau Groupes (G)",
+      "chapter": "ecrans",
+      "order": 15,
+      "summary": "Les tribus, leurs clans et leurs familles : chefs, régime, légitimité, mécontentement, règles, voisins.",
+      "keywords": "groupes tribu clan famille panneau",
+      "body": [
+        "- Chaque tribu, ses clans et ses familles, avec leurs dirigeants (clic : leur fiche), leur [[catalogue-regime|régime]], leur légitimité et leur mécontentement.",
+        "- Les règles de propriété, d’héritage et la stratégie ; les tribus connues et leurs relations.",
+        "- Un bouton centre la carte sur le camp ; « Afficher la gouvernance » ouvre [[ecran:gouvernance]].",
+        "- Un exilé seul vit dans un « camp d’exilé », qui n’est pas compté comme une tribu.",
+        "Comment ça marche : [[groupes]]. Dans ta partie : [[partie:tribus]]."
+      ]
+    },
+    {
+      "id": "ecran:idees",
+      "title": "Le panneau Idées (I)",
+      "chapter": "ecrans",
+      "order": 16,
+      "summary": "Cultures, langues, religions, savoirs, biens d’échange et lieux nommés, avec leur origine.",
+      "keywords": "idées panneau culture langue religion savoir échange lieux",
+      "body": [
+        "- **Cultures** et leurs valeurs, **langues** et leurs sons, **religions** (croyance, rite, chamans et prêtres), **savoirs** (qui les a découverts, quand, pourquoi), **échanges** (biens acceptés), **lieux** nommés par les peuples.",
+        "- Pour chaque idée : combien la portent, dans quelles tribus, d’où elle vient.",
+        "Comment ça marche : [[idees]]. Dans ta partie : [[partie:idees]]."
+      ]
+    },
+    {
+      "id": "ecran:journal",
+      "title": "Le journal",
+      "chapter": "ecrans",
+      "order": 17,
+      "summary": "La chronique des événements avec leurs causes, filtrable par tribu, personne, type et période.",
+      "keywords": "journal chronique événement cause filtre",
+      "body": [
+        "- Du plus récent au plus ancien. Filtres : tribu, type d’événement, période (de l’an… à l’an…), « personne ouverte » (celle dont la fiche est ouverte), recherche d’un mot ; « Tout voir » enlève les filtres.",
+        "- **Cause** : mène à l’événement qui a provoqué celui-ci ; on remonte ainsi toute une chaîne (voir [[lire-histoire]]).",
+        "- Un clic sur un événement centre la carte sur son lieu ; un clic sur un nom ouvre la fiche.",
+        "- Les pages de [[partie:tribus]] ont un bouton « Voir dans le journal » qui filtre sur une tribu."
+      ]
+    },
+    {
+      "id": "ecran:atelier",
+      "title": "L’Atelier des variables (F2)",
+      "chapter": "ecrans",
+      "order": 18,
+      "summary": "Toutes les variables du jeu, modifiables en direct ou pour le prochain monde, avec presets et banc d’essai.",
+      "keywords": "atelier variable réglage preset banc d’essai",
+      "body": [
+        "- Les variables sont rangées par système puis par fichier ; chaque section se déplie. Chaque variable a son libellé, sa légende, son unité, ses bornes et sa valeur par défaut (↺ pour y revenir).",
+        "- Badge **en direct** : la modification s’applique tout de suite. Badge **nouveau monde** : elle s’applique au prochain monde (la ligne rappelle la valeur du monde en cours).",
+        "- Une modification en cours de partie fait diverger le monde de sa graine ; elle est inscrite au journal.",
+        "- **Presets** : enregistrer et recharger un jeu de réglages. Le dernier preset actif est rechargé au démarrage.",
+        "- **Banc d’essai** : mesure les performances de l’ordinateur et enregistre un rapport.",
+        "- En haut de chaque fichier, « En savoir plus » ouvre le chapitre du Wiki qui explique le système. Toutes les valeurs sont aussi dans le catalogue : [[catalogue-variables]].",
+        "- Les valeurs citées dans le Wiki suivent l’Atelier : changez une variable, le Wiki affiche la nouvelle valeur."
+      ]
+    },
+    {
+      "id": "ecran:statistiques",
+      "title": "Les statistiques",
+      "chapter": "ecrans",
+      "order": 19,
+      "summary": "Population humaine, pyramide des âges, causes de décès, populations animales, courbes par tribu.",
+      "keywords": "statistiques courbe population pyramide",
+      "body": [
+        "- **Humains** : courbe de population, pyramide des âges, causes de décès.",
+        "- **Animaux** : une courbe par espèce.",
+        "- **Monde et tribus** : pour le monde ou une tribu, population, réserves, savoirs et bêtes domestiques au fil du temps, avec le régime de chaque tribu.",
+        "Dans ta partie : [[partie:especes]]."
+      ]
+    },
+    {
+      "id": "ecran:genealogie",
+      "title": "L’arbre généalogique (T)",
+      "chapter": "ecrans",
+      "order": 20,
+      "summary": "Plusieurs générations autour d’une personne, les fondateurs et leurs descendants vivants.",
+      "keywords": "généalogie arbre lignée famille fondateur",
+      "body": [
+        "- Aïeux, frères et sœurs, descendance de la personne choisie (celle de la fiche ouverte, sinon un chef).",
+        "- Un clic recentre l’arbre, un double-clic ouvre la fiche. Les morts sont marqués †, les lignées éteintes signalées.",
+        "- La liste des fondateurs dit combien de leurs descendants vivent.",
+        "Voir aussi [[famille]]."
+      ]
+    },
+    {
+      "id": "ecran:relations",
+      "title": "La carte des relations (R)",
+      "chapter": "ecrans",
+      "order": 21,
+      "summary": "Les liens d’une personne en graphe, et les relations entre tribus.",
+      "keywords": "relations graphe lien tribu alliance",
+      "body": [
+        "- **Entre personnes** : les liens de la personne dont la fiche est ouverte (famille, amour, affection, rivalité, connaissance).",
+        "- **Entre tribus** : alliances, guerres, trêves, tributs.",
+        "Couleurs : [[legende]]. Comment naissent les liens : [[vie-sociale]], [[conflit]]."
+      ]
+    },
+    {
+      "id": "ecran:politique",
+      "title": "La vue politique (P)",
+      "chapter": "ecrans",
+      "order": 22,
+      "summary": "Des calques sur la carte : territoires, cultures, langues, religions, alliances et guerres.",
+      "keywords": "politique calque territoire carte",
+      "body": [
+        "- Cochez les calques à afficher ; ils restent sur la carte tant que la fenêtre est ouverte.",
+        "- Le tableau donne, pour chaque tribu, sa culture, sa langue, sa religion et ses relations.",
+        "Ce que montrent les disques, anneaux et traits : [[legende]]."
+      ]
+    },
+    {
+      "id": "ecran:arbre-savoirs",
+      "title": "L’arbre des savoirs (K)",
+      "chapter": "ecrans",
+      "order": 23,
+      "summary": "Les savoirs, recettes et bâtiments reliés à ce qu’ils demandent, vus depuis une tribu.",
+      "keywords": "arbre savoirs technologie recette bâtiment découverte",
+      "body": [
+        "- Un graphe en colonnes : chaque élément est placé après ce dont il a besoin.",
+        "- Pour la tribu choisie : connu, en cours de découverte (par qui, où il en est), conditions réunies, hors de portée (couleurs : [[legende]]).",
+        "- Un clic sur un élément explique pourquoi : prérequis ✓ ou ✗, besoin, milieu, métier, qui l’a découvert, ce qu’il ouvre.",
+        "Les fiches complètes : [[catalogue-savoir]], [[catalogue-recette]], [[catalogue-batiment]]. Comment on découvre : [[idees]]."
+      ]
+    },
+    {
+      "id": "ecran:suivis",
+      "title": "Les personnages suivis (F)",
+      "chapter": "ecrans",
+      "order": 24,
+      "summary": "Les favoris et les dernières nouvelles de leur vie.",
+      "keywords": "suivis favoris notifications",
+      "body": [
+        "Marquez une personne avec ☆ dans sa fiche : vous êtes prévenu (en bas de l’écran) de la naissance de ses enfants, de ses blessures, de ses prises de pouvoir et de sa mort. La fenêtre liste les suivis et leurs dernières nouvelles."
+      ]
+    },
+    {
+      "id": "ecran:sauvegardes",
+      "title": "Les sauvegardes (F5)",
+      "chapter": "ecrans",
+      "order": 25,
+      "summary": "Sauvegarder un monde complet et le recharger exactement tel quel.",
+      "keywords": "sauvegarde charger partage automatique",
+      "body": [
+        "- Une sauvegarde garde tout : l’état de la simulation, le journal, le preset et les variables modifiées. Rechargée, la partie reprend exactement là où elle était.",
+        "- Sauvegarde automatique toutes les {var:time.json:autosave.everyMinutes} réelles sur {var:time.json:autosave.slots} emplacements, et à la fermeture si {var:time.json:autosave.onQuit}.",
+        "- Le dossier sauvegardes/partage/ sert à transmettre un monde (par exemple à Claude Code quand un problème apparaît)."
+      ]
+    }
+  ]
+}

@@ -150,7 +150,7 @@ export class BrainPanel {
       this.hovered = null;
       if (this.last) this.render(this.last);
     });
-    box.append(root, el('div', 'sheet-text muted', 'Vert : pousse vers l’action · rouge : la freine · épaisseur : force. Survolez une action pour isoler ses liens.'));
+    box.append(root, el('div', 'sheet-text muted', 'Légende des couleurs : bouton « ? » en haut de cette fenêtre.'));
     return box;
   }
 

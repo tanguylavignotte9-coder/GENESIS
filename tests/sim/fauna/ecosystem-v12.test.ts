@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Simulation } from '../../../src/sim/core/simulation';
 import { State } from '../../../src/sim/systems/fauna/animal-store';
-import { think } from '../../../src/sim/systems/fauna/behavior';
+import { act, think } from '../../../src/sim/systems/fauna/behavior';
 import { Carrion } from '../../../src/sim/systems/fauna/carrion';
 import { dataWithSize } from '../world/helpers';
 
@@ -45,6 +45,38 @@ describe('predators and prey (v1.2)', () => {
     expect(fauna.store.targetX[wolf]! - spot.x).toBeGreaterThan(20);
     expect(Math.abs(fauna.store.targetY[wolf]! - spot.y)).toBeLessThan(5);
     void deer;
+  });
+
+  it('a hunter singles out the weak: it goes for a fawn rather than a nearer deer in its prime', () => {
+    const sim = new Simulation(3, data);
+    const { fauna } = sim;
+    const spot = openSpot(sim);
+    const wolf = fauna.spawn(code('wolf'), spot.x, spot.y, fauna.groups.add(code('wolf'), -1), 4 * fauna.daysPerYear);
+    fauna.groups.leader[fauna.store.group[wolf]!] = wolf;
+    clearAround(sim, spot.x, spot.y, data.fauna.species[code('wolf')]!.huntRadius + 2, [wolf]);
+    const adult = fauna.spawn(code('deer'), spot.x + 5, spot.y, fauna.groups.add(code('deer'), -1), 4 * fauna.daysPerYear);
+    const fawn = fauna.spawn(code('deer'), spot.x - 8, spot.y, fauna.groups.add(code('deer'), -1), 0.3 * fauna.daysPerYear);
+    fauna.store.hunger[wolf] = 80;
+    fauna.store.thirst[wolf] = 0;
+    fauna.carrion.tiles.length = 0;
+    fauna.carrion.meat.length = 0;
+    think(fauna, wolf);
+    expect(fauna.store.state[wolf]).toBe(State.Hunt);
+    expect(fauna.store.targetAnimal[wolf]).toBe(fawn);
+    void adult;
+  });
+
+  it('an animal on the tile of its food eats, even if its pack mates keep it from the very middle', () => {
+    const sim = new Simulation(3, data);
+    const { fauna } = sim;
+    const spot = openSpot(sim);
+    const wolf = fauna.spawn(code('wolf'), spot.x - 0.4, spot.y + 0.3, fauna.groups.add(code('wolf'), -1), 4 * fauna.daysPerYear);
+    fauna.carrion.add(Math.floor(spot.y) * SIZE + Math.floor(spot.x), 20);
+    fauna.store.state[wolf] = State.Forage;
+    fauna.store.targetX[wolf] = spot.x;
+    fauna.store.targetY[wolf] = spot.y;
+    act(fauna, wolf);
+    expect(fauna.store.state[wolf]).toBe(State.Eat);
   });
 
   it('a carcass rots fast in the heat and hardly in the frost', () => {

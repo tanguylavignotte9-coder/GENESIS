@@ -158,9 +158,10 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
     const n = params.species.length;
     const hunter = store.species[slot]!;
     const isPrey = (other: number): boolean => fauna.hunts[hunter * n + store.species[other]!] === 1;
-    // Big game first; small prey only when no big game is in reach.
-    let prey = species.bigPreyMeat > 0 ? nearestAnimal(fauna, fauna.grid, slot, species.huntRadius, (other) => isPrey(other) && fauna.speciesOf(other).meat >= species.bigPreyMeat) : -1;
-    if (prey < 0) prey = nearestAnimal(fauna, fauna.grid, slot, species.huntRadius, isPrey);
+    // Big game first; small prey only when no big game is in reach. A weak one (young, old, sick,
+    // wounded) counts as nearer: hunters single out the easy prey of a herd.
+    let prey = species.bigPreyMeat > 0 ? easiestPrey(fauna, slot, species.huntRadius, (other) => isPrey(other) && fauna.speciesOf(other).meat >= species.bigPreyMeat) : -1;
+    if (prey < 0) prey = easiestPrey(fauna, slot, species.huntRadius, isPrey);
     const preyDistance = prey >= 0 ? distance(store.px[slot]!, store.py[slot]!, store.px[prey]!, store.py[prey]!) : Infinity;
     // A person walking alone is a prey like another for a hungry predator: it goes for the nearest.
     const human = nearestLoneHuman(fauna, slot, species.huntRadius);
@@ -199,6 +200,39 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   const k = (store.uid[slot]! * 3) % DIRECTION_COUNT;
   setTarget(fauna, slot, State.Forage, bestX + 0.5 + DIRECTIONS_X[k]! * 0.3, bestY + 0.5 + DIRECTIONS_Y[k]! * 0.3);
   return true;
+}
+
+/** Is this animal an easy prey: young, old, sick or weakened? */
+export function weakPrey(fauna: FaunaSystem, prey: number): boolean {
+  const { store, params } = fauna;
+  const species = fauna.speciesOf(prey);
+  const age = store.ageDays[prey]!;
+  return (
+    age < species.adultAgeYears * fauna.daysPerYear ||
+    age > params.needs.oldAgeShare * species.maxAgeYears * fauna.daysPerYear ||
+    store.sickDays[prey]! > 0 ||
+    store.health[prey]! < params.behavior.weakPreyHealth
+  );
+}
+
+/** The prey within `radius` that is easiest to get: the nearest, a weak one counting as much nearer. */
+function easiestPrey(fauna: FaunaSystem, slot: number, radius: number, accept: (other: number) => boolean): number {
+  const { store, params } = fauna;
+  const x = store.px[slot]!;
+  const y = store.py[slot]!;
+  let best = -1;
+  let bestScore = Infinity;
+  fauna.grid.forEachNear(x, y, radius, (other) => {
+    if (other === slot) return;
+    const d = distance(x, y, store.px[other]!, store.py[other]!);
+    if (d > radius || !accept(other)) return;
+    const score = weakPrey(fauna, other) ? d / params.behavior.weakPreyFactor : d;
+    if (score < bestScore) {
+      best = other;
+      bestScore = score;
+    }
+  });
+  return best;
 }
 
 /** Nearest living animal (real distance ≤ radius) passing `accept`, or -1. */
@@ -310,8 +344,10 @@ function travel(fauna: FaunaSystem, slot: number, species: AnimalSpecies, state:
   const tx = store.targetX[slot]!;
   const ty = store.targetY[slot]!;
   const away = distance(store.px[slot]!, store.py[slot]!, tx, ty);
-  // Food is eaten on its own tile: one stops right on the spot.
-  if (away > (state === State.Forage ? FORAGE_ARRIVE_TILES : movement.arriveTiles)) {
+  // Food is eaten on its own tile: one stops right on the spot, or anywhere on that tile (pack
+  // mates around a carcass push each other and could never all reach its very middle).
+  const onFoodTile = state === State.Forage && Math.floor(store.px[slot]!) === Math.floor(tx) && Math.floor(store.py[slot]!) === Math.floor(ty);
+  if (!onFoodTile && away > (state === State.Forage ? FORAGE_ARRIVE_TILES : movement.arriveTiles)) {
     let speed = species.walkTilesPerHour;
     let running = false;
     if (state === State.Flee) {
@@ -416,7 +452,9 @@ function hunt(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
   const px = store.px[prey]!;
   const py = store.py[prey]!;
   if (!chase(fauna, slot, species, px, py)) return;
-  if (fauna.rng.nextFloat() >= species.huntSuccess) return;
+  // A weak prey is caught easily; one in its prime defends itself and often gets away.
+  const behavior = fauna.params.behavior;
+  if (fauna.rng.nextFloat() >= species.huntSuccess * (weakPrey(fauna, prey) ? behavior.weakPreyFactor : behavior.primePreyFactor)) return;
   const preySpecies = fauna.speciesOf(prey);
   const adult = store.ageDays[prey]! >= preySpecies.adultAgeYears * fauna.daysPerYear;
   const tile = store.y[prey]! * fauna.size + store.x[prey]!;

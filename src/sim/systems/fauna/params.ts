@@ -118,6 +118,11 @@ export interface FaunaParams {
     huntSearchTiles: number;
     /** A hungry hunter with no prey in reach follows the trail of the nearest game within this distance. */
     trackTiles: number;
+    /** A weak prey (young, old, sick or wounded) is caught this many times more easily, and preferred when choosing; a prey in its prime this much less. */
+    weakPreyFactor: number;
+    primePreyFactor: number;
+    /** Health below which a prey counts as weak (wounded, starving). */
+    weakPreyHealth: number;
     fleeDistance: number;
     chaseSteps: number;
     packShareRadius: number;
@@ -284,6 +289,9 @@ export const ANIMALS_SCHEMA: Schema = {
         cohesionRadius: int(1, 64, 'Cohésion du groupe', 'Au-delà de cette distance du chef, l’animal rejoint son groupe.', 'tuiles'),
         wanderChance: share('Promenade', 'Chance de partir se promener quand l’animal n’a besoin de rien.'),
         wanderRadius: int(1, 64, 'Rayon de promenade', 'Distance maximale d’une promenade.', 'tuiles'),
+        weakPreyFactor: num(1, 10, 'Proie faible', 'Une proie jeune, vieille, malade ou affaiblie est prise ce nombre de fois plus facilement, et le chasseur la choisit plutôt qu’une bête plus proche en pleine force.', 'facteur'),
+        primePreyFactor: num(0.05, 1, 'Proie en pleine force', 'Facteur sur la réussite de la chasse contre une bête adulte en bonne santé (elle se défend, distance ses poursuivants).', 'facteur'),
+        weakPreyHealth: num(0, 100, 'Santé d’une proie faible', 'En dessous de cette santé, une proie compte comme affaiblie (blessée, affamée).', 'points'),
         trackTiles: num(0, 200, 'Pister le gibier', 'Un chasseur affamé sans proie à portée suit la piste du gibier le plus proche dans ce rayon (odeurs, traces) ; au-delà, il bat la campagne au hasard.', 'tuiles'),
         huntSearchTiles: num(0, 100, 'Battre la campagne', 'Un chasseur affamé sans proie à portée part chercher aussi loin (le meneur emmène sa meute ; il revient vers sa tanière une fois repu).', 'tuiles'),
         fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),

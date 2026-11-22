@@ -71,7 +71,9 @@ export function metabolismStep(fauna: FaunaSystem, slot: number, digestShare: nu
 export function payTravel(fauna: FaunaSystem, slot: number, tiles: number, running: boolean): void {
   if (tiles <= 0) return;
   const { store, params } = fauna;
-  const cost = params.energy.walkCostPerKg075Tile * Math.pow(store.mass[slot]!, KLEIBER) * tiles * (running ? params.energy.runCostFactor : 1);
+  // mass^0.75, read back from the basal cost of a step (no power computed in the hot path).
+  const mass075 = (store.basalStep[slot]! * params.stepsPerDay) / params.energy.basalPerKg075;
+  const cost = params.energy.walkCostPerKg075Tile * mass075 * tiles * (running ? params.energy.runCostFactor : 1);
   store.energy[slot] = Math.max(0, store.energy[slot]! - cost);
   store.spentMoving[slot] = store.spentMoving[slot]! + cost;
 }

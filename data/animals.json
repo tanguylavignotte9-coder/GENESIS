@@ -36,7 +36,7 @@
     "weakPreyFactor": 2.5,
     "weakPreyHealth": 50,
     "weakPreyCondition": 0.25,
-    "sizeResistance": 0.5,
+    "sizeResistance": 1.5,
     "surpriseFactor": 1.5,
     "youngHunterFactor": 0.4,
     "riposteShare": 0.3,

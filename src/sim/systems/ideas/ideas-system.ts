@@ -13,7 +13,7 @@ import { discoveries, learning, ponderingFacts, readDeaths } from './knowledge';
 import type { PonderingFacts } from '../individuals/idea-view';
 import { cultureDay, cultureFamily, cultureSplits, startCulture, inheritCulture, valueIndex } from './culture';
 import { languageDay, languageFamily, languageSplits, nameNewPlaces, newLanguage, personNameIn, peopleNameIn, startLanguageOf, understanding, inheritLanguage, tribeUnderstanding } from './language';
-import { readSorrows, religionDay, religionFamily, religionSplits, religionTalk, inheritReligion, clergyCheck, worshipWanted } from './religion';
+import { readSorrows, religionDay, religionFamily, religionSplits, religionTalk, inheritReligion, clergyCheck, worshipWanted, religionLabel } from './religion';
 import { currencyCheck, encounters, tokenTalk } from './trade';
 import { conform } from './drift';
 import { IDEA_EVENTS, publishIdeaEvent } from './texts';
@@ -379,7 +379,15 @@ export class IdeasSystem implements IdeaView {
         if (source >= 0 && (h.known[p]! & (1 << k)) !== 0) counts[source] = counts[source]! + 1;
       }
     }
-    for (const idea of this.ideas) if (idea.family !== Family.Currency) idea.holders = counts[idea.id]!;
+    for (const idea of this.ideas) {
+      if (idea.family === Family.Currency) continue;
+      // A faith nobody holds any more has died out: told once (the measure, not a rule).
+      if (idea.family === Family.Religion && idea.holders > 0 && counts[idea.id] === 0 && idea.endedDay < 0) {
+        idea.endedDay = this.day;
+        publishIdeaEvent(this, IDEA_EVENTS.religionEnded, this.params.texts.religionEnded, { religion: religionLabel(idea) }, -1, idea.event >= 0 ? [idea.event] : [], { religion: idea.id });
+      }
+      idea.holders = counts[idea.id]!;
+    }
   }
 
   /** Yesterday's conversations: who taught whom, influences of values, words, faith and goods. */

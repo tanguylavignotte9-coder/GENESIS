@@ -112,6 +112,17 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   console.log(`  Épidémies, famines    : ${fr.format(h.epidemics)} épidémie(s), ${fr.format(h.famines)} famine(s), ${fr.format(h.adoptions)} orphelin(s) recueilli(s)`);
   console.log(`  Population (tous les 10 ans) : ${h.timeline.map((point) => `an ${point.year} : ${point.alive}`).join(' · ')}`);
   console.log(`  Calcul par jour (tous les 10 ans) : ${h.timeline.map((point) => `${point.msPerDay.toFixed(0)} ms`).join(' · ')}`);
+  console.log(`  Sans religion (tous les 10 ans) : ${h.timeline.map((point) => `an ${point.year} : ${point.adults > 0 ? Math.round((100 * point.withoutFaith) / point.adults) : 0} % (${point.faiths} religion${point.faiths > 1 ? 's' : ''})`).join(' · ')}`);
+  // A sharp change of the share without religion with no faith born, adopted, split or ended in the decade: to look at.
+  const faithYears = new Set(report.ideas.faith.events.map((line) => Number(/An (\d+)/.exec(line)?.[1] ?? -1)));
+  h.timeline.forEach((point, k) => {
+    const before = h.timeline[k - 1];
+    if (!before || point.adults === 0 || before.adults === 0) return;
+    const jump = Math.abs(point.withoutFaith / point.adults - before.withoutFaith / before.adults);
+    let explained = false;
+    for (let y = before.year + 1; y <= point.year; y++) if (faithYears.has(y)) explained = true;
+    if (jump >= 0.25 && !explained) console.log(`  ⚠ Saut inexpliqué de la part sans religion entre l’an ${before.year} et l’an ${point.year} (${Math.round(jump * 100)} points)`);
+  });
   const lifeShown = h.lifeEvents.length <= MAX_LISTED_ANOMALIES ? h.lifeEvents : [...h.lifeEvents.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...h.lifeEvents.slice(-MAX_LISTED_ANOMALIES / 2)];
   console.log(`  Cycle de vie (journal) : ${fr.format(h.lifeEvents.length)} événement(s) (épidémies, famines, orphelins recueillis)`);
   for (const line of lifeShown) console.log(`    ${line}`);
@@ -135,6 +146,9 @@ function printRun(seed: number, years: number, data: GameData, from?: Simulation
   const politics = g.events.length <= MAX_LISTED_ANOMALIES ? g.events : [...g.events.slice(0, MAX_LISTED_ANOMALIES / 2), '…', ...g.events.slice(-MAX_LISTED_ANOMALIES / 2)];
   for (const line of politics) console.log(`    ${line}`);
   const i = report.ideas;
+  console.log('  Vie des religions :');
+  for (const line of report.ideas.faith.events) console.log(`    ${line}`);
+  console.log(`    Conversions et pertes de foi par décennie : ${report.ideas.faith.decades.map((d) => `an ${d.year} : +${d.conversions} / −${d.faithLost}`).join(' · ') || 'aucune'}`);
   console.log(`  Idées                 : ${i.discoveries} découverte(s), ${i.lost} savoir(s) perdu(s) ; cultures ${i.cultures.alive}/${i.cultures.ever}, langues ${i.languages.alive}/${i.languages.ever}, religions ${i.religions.alive}/${i.religions.ever} (vivantes/apparues) ; sans religion ${i.unbelievers.without}/${i.unbelievers.adults} adultes (dont ${i.unbelievers.lostFaith} ont perdu la foi ; ${i.unbelievers.faithLost} pertes de foi et ${i.unbelievers.conversions} conversions racontées) ; biens d’échange : ${i.currencies.join(', ') || 'aucun'} ; ${i.places} lieu(x) nommé(s)`);
   const k = report.conflict.counts;
   console.log(`  Conflit               : ${k['brawls']} rixe(s), ${k['murders']} meurtre(s), ${k['exiles']} exil(s), ${k['feuds']} vendetta(s), ${k['revenges']} vengeance(s), ${k['raids']} raid(s), ${k['wars']} guerre(s), ${k['battles']} bataille(s), ${k['conquests']} conquête(s), ${k['tributes']} tribut(s), ${k['peaces']} paix, ${k['truces']} trêve(s), ${k['civilWars']} guerre(s) civile(s), ${k['captives']} captif(s), ${k['deserters']} déserteur(s), ${k['betrayals']} trahison(s) ; ${report.conflict.violentDeaths} mort(s) violente(s) ; ${report.conflict.tribesAlive} tribu(s) à la fin, ${report.conflict.atWar} guerre(s) en cours`);

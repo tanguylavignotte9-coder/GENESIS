@@ -22,6 +22,7 @@ export const IDEA_EVENTS = {
   interpreter: 'ideas.interpreter',
   faithLost: 'ideas.faithLost',
   conversion: 'ideas.conversion',
+  religionEnded: 'ideas.religionEnded',
 } as const;
 
 /** Where a person is (their camp). */

@@ -420,3 +420,35 @@ describe('the knowledge tree (view K)', () => {
     expect(simulation.journal.size).toBe(before);
   });
 });
+
+describe('measuring faith (v1.2)', () => {
+  it('a religion nobody holds any more is told as ended, once, caused by its birth', () => {
+    const simulation = world(3);
+    day(simulation, 1);
+    const { ideas } = simulation;
+    const religion = ideas.addIdea(Family.Religion, 'Essai', -1, 0, -1, -1);
+    for (const p of [0, 1]) {
+      ideas.holdings.religion[p] = religion.id;
+      ideas.holdings.piety[p] = 0.8;
+    }
+    day(simulation, 1);
+    expect(religion.holders).toBeGreaterThan(0);
+    for (let p = 0; p < simulation.humans.people.count; p++) if (ideas.holdings.religion[p] === religion.id) ideas.holdings.religion[p] = -1;
+    day(simulation, 2);
+    const ended = simulation.journal.all().filter((event) => event.type === IDEA_EVENTS.religionEnded);
+    expect(ended).toHaveLength(1);
+    expect(ended[0]!.text).toMatch(/s’éteint/);
+    expect(religion.alive).toBe(false);
+  });
+
+  it('the summary gives the share of adults without religion every 10 years', async () => {
+    const { runHeadless } = await import('../../../src/sim/headless');
+    const report = runHeadless(42, 10, dataWithSize(SIZE));
+    expect(report.humans.timeline).toHaveLength(1);
+    const point = report.humans.timeline[0]!;
+    if (point.alive > 0) expect(point.adults).toBeGreaterThan(0);
+    expect(point.withoutFaith).toBeLessThanOrEqual(point.adults);
+    expect(Array.isArray(report.ideas.faith.events)).toBe(true);
+  }, 120_000);
+});
+

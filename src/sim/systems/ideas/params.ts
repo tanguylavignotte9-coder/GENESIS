@@ -133,6 +133,7 @@ const TEXT_KEYS = [
   'languageBorn',
   'religionBorn',
   'religionAdopted',
+  'religionEnded',
   'schism',
   'clergy',
   'currency',

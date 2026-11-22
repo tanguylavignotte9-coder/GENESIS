@@ -6,6 +6,7 @@ import { dateAtTick, formatDate } from './core/calendar';
 import type { GameData } from './core/game-data';
 import { Simulation } from './core/simulation';
 import { ticksPerYear } from './core/time-params';
+import type { JournalEvent } from './core/journal';
 import { MIGRATION_START, POPULATION_COLLAPSE, SPECIES_EXTINCT } from './systems/fauna/fauna-events';
 import { ANOMALY_START } from './systems/world/anomalies';
 import { CAMP_MOVED } from './systems/individuals/camp-move';
@@ -73,7 +74,8 @@ export interface HeadlessReport {
     famines: number;
     adoptions: number;
     /** Every 10 years: year, people alive, ms per game day over the decade. */
-    timeline: { year: number; alive: number; msPerDay: number }[];
+    /** Every 10 years: people alive, computing time, adults without religion (once a religion exists) and faiths held. */
+    timeline: { year: number; alive: number; msPerDay: number; adults: number; withoutFaith: number; faiths: number }[];
     /** Epidemics, famines and orphans taken in, dated. */
     lifeEvents: string[];
   };
@@ -109,6 +111,8 @@ export interface HeadlessReport {
     /** Adults alive at the end without religion, once at least one religion exists in their tribe's world, and those who lost a faith. */
     unbelievers: { adults: number; without: number; lostFaith: number; faithLost: number; conversions: number };
     currencies: string[];
+    /** The life of the faiths: births, adoptions, schisms, ends (dated), and conversions and losses of faith per decade. */
+    faith: { events: string[]; decades: { year: number; conversions: number; faithLost: number }[] };
     places: number;
     events: string[];
   };
@@ -162,7 +166,7 @@ export function runHeadless(
     const span = Math.min(TIMELINE_YEARS, years - year);
     const at = now();
     simulation.step(span * ticksPerYear(data.time));
-    timeline.push({ year: startYear + year + span, alive: simulation.humans.people.living, msPerDay: (now() - at) / (span * yearDays) });
+    timeline.push({ year: startYear + year + span, alive: simulation.humans.people.living, msPerDay: (now() - at) / (span * yearDays), ...faithNow(simulation) });
     if (simulation.humans.people.living === 0 && options.stopWhenExtinct) break;
   }
   const elapsed = now() - startedAt;
@@ -213,6 +217,22 @@ function summarizeAnimals(simulation: Simulation, startCounts: number[]): Popula
 }
 
 const DEATH_CAUSES = ['', 'faim', 'soif', 'froid', 'prédateur', 'vieillesse', 'maladie', 'en couches', 'violence'];
+/** Adults, adults without religion (0 while no religion exists anywhere) and faiths held right now. */
+function faithNow(simulation: Simulation): { adults: number; withoutFaith: number; faiths: number } {
+  const { ideas, humans } = simulation;
+  const h = ideas.holdings;
+  const held = new Set<number>();
+  let adults = 0;
+  let without = 0;
+  for (let p = 0; p < humans.people.count && p < h.count; p++) {
+    if (humans.people.alive[p] === 0 || humans.life.isChild(p)) continue;
+    adults++;
+    if (h.religion[p]! < 0) without++;
+    else held.add(h.religion[p]!);
+  }
+  return { adults, withoutFaith: held.size > 0 ? without : 0, faiths: held.size };
+}
+
 /** Years between two points of the timeline. */
 const TIMELINE_YEARS = 10;
 const LIFE_EVENTS = [EPIDEMIC_START, FAMINE, ADOPTION];
@@ -316,8 +336,30 @@ function summarizeIdeas(simulation: Simulation): HeadlessReport['ideas'] {
     religions: family(Family.Religion),
     unbelievers: countUnbelievers(simulation, events),
     currencies: ideas.ideas.filter((idea) => idea.family === Family.Currency).map((idea) => idea.name),
+    faith: faithChronicle(simulation, events),
     places: ideas.toponyms.names.size,
     events: events.map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+  };
+}
+
+const FAITH_EVENTS: readonly string[] = [IDEA_EVENTS.religion, IDEA_EVENTS.religionAdopted, IDEA_EVENTS.schism, IDEA_EVENTS.religionEnded];
+
+/** Births, adoptions, schisms and ends of religions, and conversions and losses of faith counted per decade. */
+function faithChronicle(simulation: Simulation, events: readonly JournalEvent[]): HeadlessReport['ideas']['faith'] {
+  const time = simulation.data.time;
+  const year = ticksPerYear(time);
+  const decades = new Map<number, { year: number; conversions: number; faithLost: number }>();
+  for (const event of events) {
+    if (event.type !== IDEA_EVENTS.conversion && event.type !== IDEA_EVENTS.faithLost) continue;
+    const decade = (Math.floor(event.tick / year / TIMELINE_YEARS) + 1) * TIMELINE_YEARS;
+    const entry = decades.get(decade) ?? { year: decade, conversions: 0, faithLost: 0 };
+    if (event.type === IDEA_EVENTS.conversion) entry.conversions++;
+    else entry.faithLost++;
+    decades.set(decade, entry);
+  }
+  return {
+    events: events.filter((event) => FAITH_EVENTS.includes(event.type)).map((event) => `${formatDate(dateAtTick(event.tick, time), time)} — ${event.text}`),
+    decades: [...decades.values()].sort((a, b) => a.year - b.year),
   };
 }
 

@@ -115,6 +115,7 @@
     "cultureBorn": "{tribu} ne vit plus comme ses ancêtres de la culture {mere} : une nouvelle culture est née, la culture {nom} ({valeurs}).",
     "languageBorn": "À force de vivre à part, {tribu} ne parle plus tout à fait {mere} : une nouvelle langue est née, le {nom}.",
     "religionBorn": "{nom} se met à vénérer {croyance} ({raison}) : une religion naît, {religion}, avec ses {rite}.",
+    "religionEnded": "Plus personne ne croit à {religion} : la religion s’éteint.",
     "religionAdopted": "{tribu} adopte {religion} : {fideles} de ses {total} adultes y croient.",
     "schism": "Schisme : les fidèles de {religion} de {tribu} ne croient plus comme les autres et fondent {nouvelle} ({croyance}).",
     "clergy": "{nom} devient {titre} du {religion} chez {tribu}, pour sa ferveur et son charisme.",

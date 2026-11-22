@@ -8,6 +8,131 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## v1.4 · Refonte de l'écologie de la faune et pays difficiles — 22 nov. 2026
+
+**Audit (avant de coder, code de la v1.3).** Mécanismes trouvés : faim en points/jour sans réserves ni masse
+(`hungerPerDay`, `foodPerDay`) ; dégâts de faim à 100 ; chasse = proie la plus proche (pondérée « faible »), réussite
+tirée **à chaque pas** au contact (`huntSuccess`) ; un prédateur tue une bête entière, en mange un peu (0,45 unité/jour pour
+un loup), le reste pourrit ; fuite des proies devant tout chasseur « en chasse » dans un rayon fixe ; reproduction
+bloquée par un comptage de voisins (`crowdingRadius/Max`) ou de proies (`breedingMinPrey`) ; territoire fixe des loups
+(20 tuiles), louve dominante, dispersion ; pas de territoire pour les lions ; pistage désactivé ; charogne et pourriture
+(v1.2) ; herbe broutée par tuile ; migrations vers un point fixe à N tuiles vers l'équateur. Mesure de référence
+(4 graines × 60 ans, sans humains) : loups éteints ou mourants dans 4 mondes, lions éteints dans 3, plus de la moitié
+de leurs morts par la faim alors que les herbivores étaient divisés par 2 à 5 en 20 ans.
+
+| Repère réel | Avant (v1.3) |
+| --- | --- |
+| Prédateurs limités par leurs proies, biomasse ≪ proies | Présent mais faux (seuils de comptage, pas d'énergie) |
+| Métabolisme ∝ masse^0,75, réserves, jeûne ∝ réserves, plafond par repas, digestion | Absent |
+| Chasse difficile, succès selon proie (âge, santé, taille, vigilance, couvert) et chasseur (âge, état, groupe plafonné) | Présent mais faux (tirage par pas, seul « faible/fort ») |
+| Proies tuées par prédateur ∝ rencontres, plafonnées (poursuite, digestion) | Absent (aucune satiété : surabattage) |
+| Territoires selon les proies, reproduction des dominants/selon la nourriture, dispersion risquée, groupes qui se scindent | Présent mais faux pour les loups (territoire fixe, comptage), absent pour les lions |
+| Proies régulées par la végétation, vigilance en troupeau, refuges, migrations | Présent mais faux (comptage de voisins ; fuite individuelle ; migration en ligne droite) |
+| Sécheresse et froid réduisent proies puis prédateurs | Présent (climat) |
+| Charognards | Correct (v1.2) ; mais l'ours mangeait d'abord toute charogne |
+
+**Fait (faune, `src/sim/systems/fauna/`, `data/animals.json`) :**
+- **Budget énergétique** (`energy.ts`) : masse adulte par espèce, croissance des jeunes ; dépense de base
+  `basalPerKg075 × masse^0,75` ; réserves `reservePerKg × masse` (jeûne plus long chez les gros) ; estomac plafonné au
+  plus gros repas (`mealDays`), digéré à `digestPerHour` ; coûts de marche et de course ; gestation ; lait payé par la mère
+  (rendement `milkEfficiency`, tari sous `nursingMinCondition`) ; la **faim** affichée = vide des réserves et de
+  l'estomac. Énergie par aliment (herbe, viande, poisson, récoltes).
+- **Chasse** (`hunting.ts`) : seuil de faim pour chasser (`huntAbove`) ; choix de la proie par le rapport (viande que le
+  groupe peut manger × chance) − course − risque ; proie atteignable seulement (pas de l'autre côté de l'eau) ; approche
+  au pas puis charge (`chargeTiles`), poursuite limitée ; **une seule attaque** : adresse × force du groupe (plafonnée à
+  `huntGroupCap`) face à la masse de la proie × (1 − vivacité) × (1 − terrain refuge) × faiblesse × surprise × âge et
+  santé du chasseur ; défense collective du troupeau et de la mère ; riposte qui blesse ou tue (nouvelle cause
+  « blessures »). Une soif extrême interrompt la chasse.
+- **Proies** : vigilance accrue par les compagnons, réduite par le couvert ; chasseur à l'approche vu moins loin ;
+  alerte du troupeau ; fertilité et taille des portées selon l'état des réserves (`breedingMinCondition` →
+  `breedingFullCondition`) ; plus de comptage de voisins ; préférence pour son habitat ; brouter sur place même une herbe
+  rase ; recherche lointaine ; migrations vers l'endroit le plus herbeux avec de l'eau ; domaine des mères (garenne du
+  lapin, domaine de l'ourse : `breedingSiteTiles`, `breedersPerSite`).
+- **Prédateurs sociaux** (`territory.ts`, `group-life.ts`) : territoire dont le rayon suit la masse de proies perçue
+  (`preyKgPerPredatorKg` = 100, bornes par espèce), défendu (le plus faible part), abandonné s'il est vide ; seule la
+  louve dominante met bas, chaque lionne en bon état ; dispersion des jeunes ; intrus tués par un groupe plus fort ;
+  lions qui se scindent affamés et se réunissent repus. Lions désormais territoriaux.
+- **Supprimé** (ne correspondait à rien de réel ou remplacé) : `hungerPerDay`, `foodPerDay`, `crowdingRadius/Max`,
+  `preyCheckRadius`, `breedingMinPrey`, `bigPreyMeat`, `huntSuccess`, `territoryTiles`, `trackTiles` (pistage),
+  `primePreyFactor`, `breedingMaxHunger`, `behavior.chaseSteps`, `followTheGame`. Le pistage n'est pas réintroduit :
+  les meutes parcourent leur territoire.
+- Fiche animale : réserves, masse, rayon du territoire ; cerveau : réserves, estomac, raisons de chasser ou non.
+- Ours : l'ours ne va plus droit à toute charogne (régime surtout végétal) — il volait l'essentiel des proies des loups.
+- Sauvegardes : **format 8**.
+
+**Fait (humains, pays difficiles) :**
+- **Froid (graine 6)** — règle absurde trouvée : « personne ne lève le camp sous 8 °C au camp ». Dans un pays où il fait
+  4 à 6 °C en moyenne, la tribu ne pouvait **jamais** se déplacer. Désormais le blocage ne vaut que pendant la saison
+  froide du lieu ; et quand le froid arrive, une tribu dont des adultes connaissent un endroit plus chaud d'au moins
+  `winterQuarterGain` à cette saison peut y aller (**quartiers d'hiver**, décision selon le régime, au journal).
+  Sonde (25 ans, graine 6) : 7 morts de froid, dont 6 la première année : des gens affamés (faim 100) surpris par l'hiver
+  en allant boire à 3-10 tuiles du camp, sans vêtements (le feu et les huttes existaient). Chaîne : famine du premier
+  hiver → faiblesse → froid ; mort logique compte tenu de ce qu'ils avaient.
+- **Soif** : mémoire des points d'eau gardée des années (`waterForgetDays`, 6 points au lieu de 4 oubliés en 20 jours) ;
+  un point d'eau découvert devient une **nouvelle** racontée (enfants et nouveaux l'apprennent ; un point raconté
+  approximativement est retrouvé en descendant vers l'eau). Sonde graine 10 (25 ans) : 2 morts de soif (deux enfants
+  affamés d'un petit groupe à plus de 40 tuiles du camp, en route vers une eau connue).
+
+**Dette résolue :** libellés français des variables de l'Atelier (biomes, ressources, traits, situations et atouts des
+groupes : plus d'identifiant anglais brut).
+
+**Mesures — faune sans humains** (validation unique : 10 graines nouvelles 11-20 × 80 ans, carte complète, 4 calculs en
+parallèle, ~45 min ; les itérations ont tourné sur 3 à 8 graines × 40-60 ans, 10 itérations au total) :
+
+| Espèce | Vivante à la fin | Commentaire |
+| --- | --- | --- |
+| Loup | 6/10 | cycles (ex. 32 → 297, 9 → 131 → 84, 148 → 8 → 52) ; 3 extinctions pendant le creux initial des grands herbivores (an 10-20), 1 après un cycle (242 → 0) |
+| Lion | 0/10 | effondrement dans les 10-20 premières années partout (voir questions) |
+| Ours | 10/10 | 87 à 355, stables (domaine des ourses) |
+| Aurochs / cheval | 6/10 / 6/10 | chute de 50-90 % les 10 premières années (effectifs de départ calculés pour l'ancien métabolisme), puis dizaines à centaines |
+| Cerf, sanglier, lapin | 10/10 | lapins 400-2 200 (garennes) |
+| Chèvre | 10/10 | 1 900 à 22 000 : population limitée par la seule herbe des montagnes (voir dette) |
+
+Chasses réussies : loups 19-30 %, lions 22-42 % ; proies tuées : 5-7 par loup et par an, 4-9 par lion ; rayon médian des
+territoires 43-75 tuiles ; biomasse prédateurs/proies 1:83 à 1:773 là où des prédateurs vivent. Causes de mort des loups :
+faim 27-74 %, blessures (proies, intrus) 13-45 %, vieillesse 9-28 %.
+
+**Mesures — avec humains** (10 graines × 75 ans, ~75 min : au-delà du budget de 45 min) :
+
+| Graine | Hab. fin (pic) | Morts | Faim | Soif | Froid | Prédateur | Maladie | Vieillesse | Violence | Tribus | Découvertes | Élevage (captures / abattues / échappées) | Loups | Lions | Quartiers d'hiver | ms/jour |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 67 (68) | 79 | 8 % | 30 % | 0 % | 9 % | 14 % | 20 % | 16 % | 2 | 10 | 155 / 121 / 29 | 127 | 0 | 0 | 367 |
+| 2 | 47 (49) | 67 | 24 % | 7 % | 0 % | 0 % | 37 % | 27 % | 3 % | 1 | 3 | 0 / 0 / 0 | 74 | 0 | 0 | 283 |
+| 3 | 69 (69) | 68 | 7 % | 10 % | 31 % | 10 % | 12 % | 22 % | 3 % | 2 | 12 | 0 / 0 / 0 | 37 | 0 | 6 | 274 |
+| 4 | 44 (54) | 78 | 10 % | 26 % | 10 % | 10 % | 23 % | 14 % | 1 % | 1 | 11 | 97 / 128 / 15 | 117 | 0 | 0 | 277 |
+| 5 | 8 (37) | 54 | 33 % | 11 % | 0 % | 0 % | 28 % | 15 % | 13 % | 1 | 3 | 0 / 0 / 0 | 0 | 0 | 0 | 384 |
+| 6 | 49 (51) | 46 | 0 % | 2 % | 61 % | 0 % | 22 % | 7 % | 9 % | 1 | 7 | 0 / 0 / 0 | 14 | 0 | 0 | 202 |
+| 7 | 42 (47) | 69 | 6 % | 17 % | 13 % | 16 % | 22 % | 17 % | 1 % | 1 | 11 | 12 / 32 / 0 | 7 | 0 | 0 | 321 |
+| 8 | 89 (89) | 81 | 10 % | 23 % | 0 % | 0 % | 36 % | 21 % | 7 % | 2 | 3 | 0 / 0 / 0 | 171 | 0 | 0 | 281 |
+| 9 | 97 (97) | 68 | 13 % | 24 % | 0 % | 0 % | 25 % | 34 % | 0 % | 1 | 3 | 0 / 0 / 0 | 0 | 0 | 0 | 354 |
+| 10 | 43 (75) | 95 | 24 % | 20 % | 0 % | 4 % | 31 % | 18 % | 3 % | 1 | 8 | 98 / 122 / 10 | 61 | 0 | 0 | 221 |
+
+Graine 6 : la tribu survit (49 hab.) au lieu de s'éteindre de froid ; graine 5 réduite à 8 personnes (famine). Élevage
+dans 4 mondes (aucun en v1.2). Soif : 2-30 % (v1.2 : 2-41 %), voir dette.
+
+**Dette technique (→ prochaine étape « pays difficiles », à décider avec Tanguy) :**
+- **Lions éteints partout** : leurs seules proies de savane sont le cheval et l'aurochs (aucune antilope dans les données) ;
+  quand ces deux espèces baissent les premières années, les lions meurent de faim. Arrêté après plus de 3 itérations.
+- **Creux initial des grands herbivores** : les effectifs de départ (`populationPer1000Tiles`) datent de l'ancien
+  métabolisme ; aurochs et chevaux tombent de 50-90 % les 10 premières années, et ce creux emporte 3 populations de loups.
+- **Chèvres** : jusqu'à 22 000 dans certains mondes (herbe des montagnes seule limite) ; avec elles, le calcul de la faune
+  seule est passé de ~2-4 s à 6-16 s par an de jeu (carte complète, serveur), et ~200-380 ms par jour avec humains
+  (v1.2 : 124-172). À reprendre (performance et réalisme : neige, hiver, prédateurs de montagne).
+- **Soif dans les petits camps détachés** (sonde graine 1, 40 ans) : les morts de soif surviennent dans des camps
+  d'exilés ou de scission de 5 à 13 personnes, sans feu, chez des gens déjà affamés (faim 100), souvent à 1-5 tuiles d'une
+  eau connue, en train d'aller boire. À suivre heure par heure au cerveau visuel (blocage de déplacement d'une personne
+  épuisée, ou cause « soif » attribuée à une mort surtout due à la faim).
+- Partage de l'eau, scission volontaire des groupes quand les ressources manquent, stockage d'eau en jarre : non faits.
+
+**Tests :** rapides 645 (dont 15 nouveaux ou réécrits pour l'écologie et les territoires : Kleiber, jeûne, repas plafonné, lait, fertilité selon
+l'état, chances d'attaque, choix de la proie, satiété, vigilance, territoires, déterminisme). Longs : le test
+d'équilibre tourne désormais sur l'écosystème seul et vérifie l'absence d'absurdités (pas d'effondrement ni
+d'explosion générale, au moins un prédateur, biomasse des prédateurs < 1/10 des proies) au lieu d'effectifs stables ;
+délais des tests longs allongés (la simulation est environ deux fois plus lente). Défaut révélé par un test long et
+corrigé : un deuil pouvait être daté avant la mort qui le causait (mort venue d'une attaque de prédateur au même instant).
+
+---
+
 ## v1.3 · Le Wiki en jeu — 22 nov. 2026
 
 **Fait (aucun changement de `src/sim/` ni de `data/*.json` : seulement l’affichage, `data/wiki/` et les tests) :**

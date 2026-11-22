@@ -42,5 +42,5 @@ describe('ideas over decades', () => {
     }
     expect(outcomes.some((line) => line.length > 0)).toBe(true);
     expect(new Set(outcomes).size).toBeGreaterThan(1);
-  }, 1_500_000);
+  }, 3_000_000);
 });

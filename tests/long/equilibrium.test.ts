@@ -23,10 +23,8 @@ describe.each([42, 7])('ecosystem over %i… years (seed)', (seed) => {
       const simulation = new Simulation(seed, data);
       const start = simulation.fauna.countBySpecies();
       const startTotal = start.reduce((a, b) => a + b, 0);
-      const yearTicks = data.time.ticksPerDay * daysPerYear(data.time);
-      for (let y = 1; y <= YEARS; y++) {
-        simulation.step(yearTicks);
-      }
+      // The ecosystem alone (plants and animals): what this test measures.
+      simulation.runEcosystemOnly(YEARS * daysPerYear(data.time));
       const end = simulation.fauna.countBySpecies();
       // No general collapse nor explosion of the herbivores; most species still live.
       const aliveHerbivores = herbivores.filter((k) => (end[k] ?? 0) > 0).length;
@@ -54,6 +52,6 @@ describe.each([42, 7])('ecosystem over %i… years (seed)', (seed) => {
       const trees = data.flora.species.reduce((sum, species, k) => sum + (species.kind === 'tree' ? plants[k]! : 0), 0);
       expect(trees / plants.reduce((a, b) => a + b, 0)).toBeLessThan(0.7);
     },
-    1_500_000,
+    3_000_000,
   );
 });

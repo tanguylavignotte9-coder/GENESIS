@@ -20,9 +20,9 @@ const variable = (workshop: Workshop, file: string, key: string) => workshop.var
 describe('variables catalog', () => {
   it('lists every variable with its documentation, value and default, grouped by system and file', () => {
     const workshop = new Workshop();
-    const wolfHunger = variable(workshop, 'animals.json', 'species.wolf.hungerPerDay');
-    expect(wolfHunger).toMatchObject({ system: 'Faune', section: 'Espèces › Loup', label: 'Faim', unit: 'points/jour', apply: 'live', min: 0, max: 100 });
-    expect(wolfHunger.value).toBe(wolfHunger.defaultValue);
+    const wolfMass = variable(workshop, 'animals.json', 'species.wolf.massKg');
+    expect(wolfMass).toMatchObject({ system: 'Faune', section: 'Espèces › Loup', label: 'Masse adulte', unit: 'kg', apply: 'live', min: 0.1, max: 5000 });
+    expect(wolfMass.value).toBe(wolfMass.defaultValue);
     const size = variable(workshop, 'worldgen.json', 'size');
     expect(size).toMatchObject({ system: 'Monde', apply: 'newWorld', kind: 'integer' });
     expect(variable(workshop, 'animals.json', 'species.horse.migratory').kind).toBe('boolean');
@@ -42,10 +42,10 @@ describe('the variables workshop', () => {
   it('applies a live change to the running world and writes it in the journal', () => {
     const { workshop, simulation } = running();
     const wolf = simulation.data.fauna.species.findIndex((species) => species.id === 'wolf');
-    expect(workshop.set('animals.json', 'species.wolf.hungerPerDay', 20).ok).toBe(true);
-    expect(simulation.data.fauna.species[wolf]!.hungerPerDay).toBe(20);
+    expect(workshop.set('animals.json', 'species.wolf.massKg', 45).ok).toBe(true);
+    expect(simulation.data.fauna.species[wolf]!.massKg).toBe(45);
     const event = simulation.journal.all().find((entry) => entry.type === VARIABLE_CHANGED)!;
-    expect(event.text).toBe('Variable modifiée : Faune › Espèces › Loup › Faim : 12 → 20 points/jour.');
+    expect(event.text).toBe('Variable modifiée : Faune › Espèces › Loup › Masse adulte : 40 → 45 kg.');
     simulation.step(hourTicks);
   });
 
@@ -83,12 +83,12 @@ describe('the variables workshop', () => {
 
   it('saves only the differences in a preset and loads it back', () => {
     const { workshop } = running();
-    workshop.set('animals.json', 'species.lion.huntSuccess', 0.2);
+    workshop.set('animals.json', 'species.lion.huntSkill', 0.2);
     workshop.set('climate.json', 'anomalies.chancePerRoll', 0.3);
     const preset = workshop.toPreset('Lions redoutables');
     expect(preset).toEqual({
       nom: 'Lions redoutables',
-      valeurs: { 'worldgen.json': { size: SIZE }, 'climate.json': { 'anomalies.chancePerRoll': 0.3 }, 'animals.json': { 'species.lion.huntSuccess': 0.2 } },
+      valeurs: { 'worldgen.json': { size: SIZE }, 'climate.json': { 'anomalies.chancePerRoll': 0.3 }, 'animals.json': { 'species.lion.huntSkill': 0.2 } },
     });
     workshop.resetAll();
     const result = workshop.loadPreset({ ...preset, valeurs: { ...preset.valeurs, 'animals.json': { ...preset.valeurs['animals.json'], 'species.dragon.size': 3 } } });

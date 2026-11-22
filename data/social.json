@@ -379,6 +379,10 @@
       "danger": {
         "importance": 0.7,
         "forgetDays": 10
+      },
+      "water": {
+        "importance": 0.6,
+        "forgetDays": 200
       }
     }
   },
@@ -605,6 +609,7 @@
     "couple": "{a} et {b} forment un couple",
     "food": "De quoi manger à {distance} tuiles vers {direction}",
     "danger": "Un fauve rôde à {distance} tuiles vers {direction}",
+    "water": "De l’eau à {distance} tuiles vers {direction}",
     "around": "environ {distance}",
     "nearby": "tout près",
     "secondHand": " (entendu dire)",

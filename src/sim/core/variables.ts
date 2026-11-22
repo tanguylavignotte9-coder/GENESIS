@@ -213,6 +213,21 @@ interface Walk {
   info: DataFileInfo;
   defaults: unknown;
   out: VariableInfo[];
+  /** French name of an identifier used as a key (a biome, a resource, a trait…), from the data. */
+  names: Map<string, string>;
+}
+
+/** Keys of records that are not the id of something named in the data. */
+const KEY_NAMES: Record<string, string> = { grass: 'herbe' };
+
+/** id → name of every entry of the data that has both (biomes, resources, species, traits, items…). */
+function namesOf(raw: unknown, out = new Map<string, string>()): Map<string, string> {
+  if (Array.isArray(raw)) for (const item of raw) namesOf(item, out);
+  else if (isRecord(raw)) {
+    if (typeof raw['id'] === 'string' && typeof raw['name'] === 'string' && !out.has(raw['id'])) out.set(raw['id'], raw['name'].toLowerCase());
+    for (const value of Object.values(raw)) if (typeof value === 'object') namesOf(value, out);
+  }
+  return out;
 }
 
 function title(key: string): string {
@@ -250,7 +265,7 @@ function walk(schema: Schema, value: unknown, defaults: unknown, path: PathSegme
       if (!isRecord(value)) return;
       const defaultsRecord = isRecord(defaults) ? defaults : {};
       for (const [key, item] of Object.entries(value)) {
-        walk(schema.values, item, defaultsRecord[key], [...path, key], [...keys, key], sections, ` : ${key}`, ctx);
+        walk(schema.values, item, defaultsRecord[key], [...path, key], [...keys, key], sections, ` : ${ctx.names.get(key) ?? KEY_NAMES[key] ?? key}`, ctx);
       }
       return;
     }
@@ -284,7 +299,8 @@ function walk(schema: Schema, value: unknown, defaults: unknown, path: PathSegme
 /** Every variable of every data file, with its current value (`raw`) and its default value. */
 export function buildCatalog(raw: RawGameData, defaults: RawGameData): VariableInfo[] {
   const out: VariableInfo[] = [];
-  for (const info of DATA_FILES) walk(info.schema, raw[info.key], defaults[info.key], [], [], [], '', { info, defaults: defaults[info.key], out });
+  const names = namesOf(raw);
+  for (const info of DATA_FILES) walk(info.schema, raw[info.key], defaults[info.key], [], [], [], '', { info, defaults: defaults[info.key], out, names });
   return out;
 }
 

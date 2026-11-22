@@ -33,7 +33,7 @@ export type ConversationKind = (typeof CONVERSATIONS)[number];
 export const REASONS = ['chat', 'confided', 'comforted', 'courted', 'quarrel', 'fed', 'gave', 'jealousy', 'kin', 'spouse', 'tribe', 'adopted', 'elder', 'played', 'contested', 'rallied', 'blamed', 'taught', 'traded', 'faith', 'impiety', 'assaulted', 'murdered', 'enemy'] as const;
 export type ReasonId = (typeof REASONS)[number];
 
-export const NEWS_KINDS = ['death', 'couple', 'food', 'danger'] as const;
+export const NEWS_KINDS = ['death', 'couple', 'food', 'danger', 'water'] as const;
 export type NewsKind = (typeof NEWS_KINDS)[number];
 
 /** The last three are political: the groups system offers and judges them (data/groups.json). */
@@ -154,6 +154,7 @@ export interface SocialParams {
     couple: string;
     food: string;
     danger: string;
+    water: string;
     around: string;
     nearby: string;
     secondHand: string;
@@ -360,6 +361,7 @@ export const SOCIAL_SCHEMA: Schema = {
         couple: text('Un couple', 'Nouvelle d’un couple. Remplacements : {a}, {b}.'),
         food: text('Un coin de nourriture', 'Remplacements : {distance}, {direction}.'),
         danger: text('Un danger', 'Remplacements : {distance}, {direction}.'),
+        water: text('Un point d’eau', 'Remplacements : {distance}, {direction}.'),
         around: text('Distance approximative', 'Distance d’un lieu entendu dire. Remplacement : {distance}.'),
         nearby: text('Tout près', 'Un lieu tout proche.'),
         secondHand: text('De deuxième main', 'Ajouté à une nouvelle entendue d’un témoin.'),

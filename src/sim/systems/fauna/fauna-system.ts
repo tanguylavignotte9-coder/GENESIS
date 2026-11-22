@@ -20,6 +20,7 @@ import { pathToFreshWater } from './fresh-water';
 import { maintainGroups } from './group-life';
 import { GroupStore } from './groups';
 import { liveOneDay } from './life';
+import { metabolismStep, refreshBody } from './energy';
 import { spreadSickness } from './sickness';
 import type { AnimalSpecies, FaunaParams } from './params';
 import { SpatialGrid } from '../../core/spatial-grid';
@@ -30,8 +31,8 @@ const HOURS_PER_DAY = 24;
 const SPAWN_SPREAD = 0.4;
 const SPOT = { x: 0, y: 0 };
 
-export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4, Hunted: 5, Disease: 6 } as const;
-export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs', 'chasseurs', 'maladie'] as const;
+export const DeathCause = { Age: 0, Starvation: 1, Thirst: 2, Cold: 3, Predation: 4, Hunted: 5, Disease: 6, Injury: 7 } as const;
+export const DEATH_CAUSE_NAMES = ['vieillesse', 'faim', 'soif', 'froid', 'prédateurs', 'chasseurs', 'maladie', 'blessures'] as const;
 const PERCENT = 100;
 
 /**
@@ -88,9 +89,15 @@ export class FaunaSystem {
   maxHumanFleeTiles = 0;
   /** Wariness distance toward humans of each species. */
   humanFleeTiles = new Float64Array(0);
-  /** Hunger and thirst gained per step, per species. */
-  private hungerPerStep: Float64Array;
+  /** Thirst gained per step, per species. */
   private thirstPerStep: Float64Array;
+  /** Share of the stomach digested in one step. */
+  private digestShare = 0;
+  /** Per biome: cover that hides a stalking hunter, and refuge terrain where prey escape more often. */
+  coverOfBiome = new Float32Array(0);
+  refugeOfBiome = new Float32Array(0);
+  /** Attacks of animal hunters since the world began, and those that killed, per hunter species. */
+  readonly huntStats: { attempts: number[]; kills: number[] };
 
   constructor(
     readonly world: World,
@@ -116,8 +123,8 @@ export class FaunaSystem {
     });
     this.deaths = params.species.map(() => DEATH_CAUSE_NAMES.map(() => 0));
     this.diets = buildDiets(params);
-    this.hungerPerStep = new Float64Array(0);
     this.thirstPerStep = new Float64Array(0);
+    this.huntStats = { attempts: params.species.map(() => 0), kills: params.species.map(() => 0) };
     this.canHuntHumans = new Uint8Array(0);
     this.refreshParams();
     this.census = new Census(this);
@@ -161,7 +168,10 @@ export class FaunaSystem {
   refreshParams(): void {
     const { params } = this;
     this.diets.splice(0, this.diets.length, ...buildDiets(params));
-    this.hungerPerStep = Float64Array.from(params.species, (species) => species.hungerPerDay / params.stepsPerDay);
+    this.digestShare = 1 - Math.pow(1 - params.energy.digestPerHour, this.hoursPerStep);
+    const biomes = this.world.biomes.biomes;
+    this.coverOfBiome = Float32Array.from(biomes, (biome) => params.hunting.coverByBiome[biome.id] ?? 0);
+    this.refugeOfBiome = Float32Array.from(biomes, (biome) => params.hunting.refugeByBiome[biome.id] ?? 0);
     this.thirstPerStep = Float64Array.from(params.species, (species) => species.thirstPerDay / params.stepsPerDay);
     this.humanFleeTiles = Float64Array.from(params.species, (species) => species.humanFleeTiles);
     this.maxHumanFleeTiles = Math.max(0, ...this.humanFleeTiles);
@@ -182,14 +192,15 @@ export class FaunaSystem {
   runStep(tick: number): void {
     this.tick = tick;
     const { store } = this;
-    const { alive, hunger, thirst, species, uid } = store;
+    const { alive, thirst, species, uid } = store;
+    const digest = this.digestShare;
     const every = this.params.thinkEverySteps;
     const phase = this.step % every;
     scareGame(this);
     for (let slot = 0; slot < store.slots; slot++) {
       if (alive[slot] === 0) continue;
       const code = species[slot]!;
-      hunger[slot] = Math.min(PERCENT, hunger[slot]! + this.hungerPerStep[code]!);
+      metabolismStep(this, slot, digest);
       thirst[slot] = Math.min(PERCENT, thirst[slot]! + this.thirstPerStep[code]!);
       if ((uid[slot]! + phase) % every === 0) {
         think(this, slot);
@@ -257,7 +268,11 @@ export class FaunaSystem {
     store.species[slot] = species;
     store.sex[slot] = this.rng.nextFloat() < 0.5 ? Sex.Female : Sex.Male;
     store.ageDays[slot] = ageDays;
-    store.hunger[slot] = this.rng.nextFloat() * 30;
+    refreshBody(this, slot, this.params.species[species]!);
+    const startMin = this.params.energy.startConditionMin;
+    store.energy[slot] = store.maxReserve[slot]! * (startMin + (1 - startMin) * this.rng.nextFloat());
+    store.gut[slot] = 0;
+    store.hunger[slot] = PERCENT * (1 - store.energy[slot]! / Math.max(1e-6, store.maxReserve[slot]!));
     store.thirst[slot] = this.rng.nextFloat() * 30;
     store.health[slot] = PERCENT;
     store.wariness[slot] = 1 + this.params.humanFear.warinessSpread * (this.rng.nextFloat() * 2 - 1);
@@ -326,15 +341,20 @@ export class FaunaSystem {
       const target = Math.round((habitat / 1000) * species.populationPer1000Tiles);
       let placed = 0;
       while (placed < target) {
-        const tile = this.pickHabitatTile(weightOf, maxWeight, code);
-        if (tile < 0) return;
         const members = Math.min(target - placed, this.rng.nextIntInclusive(species.groupSize[0], species.groupSize[1]));
+        const site = this.pickHabitatTile(weightOf, maxWeight, code, members);
+        if (site.tile < 0) return;
         const group = this.groups.add(code, -1);
         for (let m = 0; m < members; m++) {
           const age = this.rng.nextFloat() * species.maxAgeYears * 0.7 * this.daysPerYear;
-          personalSpot(placed + m, tile, this.size, SPAWN_SPREAD, SPOT);
+          personalSpot(placed + m, site.tile, this.size, SPAWN_SPREAD, SPOT);
           const slot = this.spawn(code, SPOT.x, SPOT.y, group, age);
           if (m === 0) this.groups.leader[group] = slot;
+        }
+        if (site.range > 0) {
+          this.groups.denX[group] = site.tile % this.size;
+          this.groups.denY[group] = Math.floor(site.tile / this.size);
+          this.groups.range[group] = site.range;
         }
         placed += members;
       }
@@ -342,50 +362,64 @@ export class FaunaSystem {
   }
 
   /**
-   * A tile of the species' habitat. A hunter that needs prey to raise its young settles only where
-   * that much prey lives around (the herds are placed first), and not where another pack or pride of
-   * its kind already hunts: predators live where their prey is. When no such place is left,
-   * fewer of them are born with the world.
+   * A tile of the species' habitat. A territorial hunter settles only where the land around, within
+   * its largest territory, holds the game its group needs, and outside the land of the groups already
+   * there (the herds are placed first): predators live where their prey is. When no such place is
+   * left, fewer of them are born with the world. Returns the tile and the territory radius (0 if none).
    */
-  private pickHabitatTile(weightOf: Float32Array, maxWeight: number, code: number): number {
+  private pickHabitatTile(weightOf: Float32Array, maxWeight: number, code: number, members: number): { tile: number; range: number } {
     const tiles = this.size * this.size;
     const species = this.params.species[code]!;
-    const choosy = species.breedingMinPrey > 0 || species.territoryTiles > 0;
-    const maxAttempts = choosy ? this.params.behavior.spawnSiteAttempts : 100000;
+    const territorial = species.territoryMaxTiles > 0;
+    const maxAttempts = territorial ? this.params.behavior.spawnSiteAttempts : 100000;
+    const need = members * species.massKg * this.params.territory.preyKgPerPredatorKg;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const tile = this.rng.nextIntInclusive(0, tiles - 1);
       const x = tile % this.size;
       const y = (tile - x) / this.size;
       if (!this.isWalkable(x, y) || this.waterPath[tile]! < 0) continue;
       if (this.rng.nextFloat() * maxWeight >= weightOf[this.world.biome[tile]!]!) continue;
-      // Nor where another pack or pride of its kind already hunts (its territory, or its hunting ground).
-      const range = species.territoryTiles > 0 ? species.territoryTiles : species.breedingMinPrey > 0 ? species.preyCheckRadius : 0;
-      if (range > 0 && this.kinWithin(code, x, y, range)) continue;
-      if (species.breedingMinPrey > 0 && this.preyWithin(code, x, y, species.preyCheckRadius, species.breedingMinPrey) < species.breedingMinPrey) continue;
-      return tile;
+      if (!territorial) return { tile, range: 0 };
+      if (this.insideTerritory(code, x, y)) continue;
+      // The smallest radius around holding the game the group needs.
+      const range = this.radiusHolding(code, x, y, need, species.territoryMinTiles, species.territoryMaxTiles);
+      if (range > 0) return { tile, range };
     }
-    return -1;
+    return { tile: -1, range: 0 };
   }
 
-  /** Prey of the hunter species within `radius` tiles (counting stops at `max`). */
-  preyWithin(hunter: number, x: number, y: number, radius: number, max: number): number {
+  /** Smallest radius (between the bounds) within which the prey weigh at least `need` kg, or 0. */
+  private radiusHolding(hunter: number, x: number, y: number, need: number, min: number, max: number): number {
+    for (let r = Math.max(1, min); r <= max; r += Math.max(1, Math.round(min / 2))) {
+      if (this.preyMassWithin(hunter, x, y, r) >= need) return r;
+    }
+    return 0;
+  }
+
+  /** Whether (x, y) lies on the land of a group of this species. */
+  private insideTerritory(code: number, x: number, y: number): boolean {
+    const { groups } = this;
+    for (let group = 0; group < groups.count; group++) {
+      if (groups.species[group] !== code || groups.denX[group]! < 0) continue;
+      const dx = groups.denX[group]! - x;
+      const dy = groups.denY[group]! - y;
+      if (dx * dx + dy * dy < groups.range[group]! * groups.range[group]!) return true;
+    }
+    return false;
+  }
+
+  /** Mass (kg) of the wild prey of the hunter species within `radius` tiles: what a group perceives of its game. */
+  preyMassWithin(hunter: number, x: number, y: number, radius: number): number {
     const { store } = this;
     const n = this.params.species.length;
-    let seen = 0;
+    const r2 = radius * radius;
+    let mass = 0;
     this.grid.forEachNear(x, y, radius, (other) => {
-      if (seen >= max || this.hunts[hunter * n + store.species[other]!] !== 1) return;
-      if (Math.abs(store.x[other]! - x) <= radius && Math.abs(store.y[other]! - y) <= radius) seen++;
+      if (this.hunts[hunter * n + store.species[other]!] !== 1 || store.ownerCamp[other]! >= 0) return;
+      const dx = store.x[other]! - x;
+      const dy = store.y[other]! - y;
+      if (dx * dx + dy * dy <= r2) mass += store.mass[other]!;
     });
-    return seen;
-  }
-
-  /** Whether an animal of the species already lives within `radius` tiles. */
-  private kinWithin(code: number, x: number, y: number, radius: number): boolean {
-    const { store } = this;
-    let found = false;
-    this.grid.forEachNear(x, y, radius, (other) => {
-      if (!found && store.species[other] === code) found = Math.abs(store.x[other]! - x) <= radius && Math.abs(store.y[other]! - y) <= radius;
-    });
-    return found;
+    return mass;
   }
 }

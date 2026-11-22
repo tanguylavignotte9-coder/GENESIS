@@ -29,53 +29,52 @@ export interface AnimalSpecies {
   breedingDays: [number, number];
   gestationDays: number;
   litter: [number, number];
-  /** Chance per day, for a fertile female during the mating season. */
+  /** Chance per day, for a fertile female in good condition during the mating season. */
   conceptionChance: number;
-  /** A mother does not conceive again for this many days after giving birth (she raises her young). */
+  /** A mother does not conceive again for this many days after giving birth. */
   birthIntervalDays: number;
-  /** Territory: a female does not breed if more than `crowdingMax` animals of her species live within `crowdingRadius` tiles. */
-  crowdingRadius: number;
-  crowdingMax: number;
-  /**
-   * Packs that hold a territory of this radius around their den (0 = none). For them, the pack's
-   * territory replaces the crowding rule: a pack yields to a stronger one and only a pack that
-   * holds its land raises young.
-   */
-  territoryTiles: number;
-  /** Territorial species: chance per year that a young adult (not the dominant one) leaves its pack to found its own. */
+  /** Days the young drink their mother's milk (she pays for it from her reserves). */
+  nursingDays: number;
+  /** Adult body mass (kg): metabolism, reserves, meal size, and the strength of a hunter or of a prey. */
+  massKg: number;
+  /** Largest meal, in days of the animal's basal needs (a wolf gorges, a deer grazes little and often). */
+  mealDays: number;
+  /** Territorial hunters: radius of the land a group holds, between these bounds, by the game it finds there (0 = no territory). */
+  territoryMinTiles: number;
+  territoryMaxTiles: number;
+  /** Territorial species: only the group's dominant female breeds (wolves), or every adult female (lions). */
+  dominantBreederOnly: boolean;
+  /** A hungry group splits into smaller hunting groups, and well fed groups gather again (lions). */
+  splitWhenHungry: boolean;
+  /** Territorial species: chance per year that a young adult (not the leader) leaves its group to look for free land. */
   dispersalPerYear: number;
-  /**
-   * Hunters: prey giving at least this much meat is preferred; smaller prey is hunted only when no
-   * such big game is in reach (0 = the nearest prey, whatever its size).
-   */
-  bigPreyMeat: number;
-  /** Hunters only: a female breeds only if she sees at least `breedingMinPrey` prey within `preyCheckRadius` tiles. */
-  preyCheckRadius: number;
-  breedingMinPrey: number;
-  hungerPerDay: number;
-  /** Food units that cover one day of hunger. */
-  foodPerDay: number;
   thirstPerDay: number;
   /** Below this temperature, the animal suffers from the cold. */
   minCelsius: number;
   /** Walking speed, tiles per hour. */
   walkTilesPerHour: number;
-  /** Prey only: distance (tiles) at which a hunter is noticed. */
+  /** Prey only: distance (tiles) at which a lone animal notices a hunter (a herd sees further). */
   fleeRadius: number;
   /** Distance at which an animal of average wariness notices a hunter and runs away (0 = does not fear humans). */
   humanFleeTiles: number;
   /** Running speed while fleeing a human, tiles per hour. */
   fleeSprintTiles: number;
-  /** Hunters only: distance at which prey is looked for. */
+  /** Hunters only: distance at which prey is seen. */
   huntRadius: number;
-  /** Hunters only: chance per step to bring down an adjacent prey. */
-  huntSuccess: number;
-  /** Chance that the animal fights back when a human hunter strikes it, and the health a blow removes. */
+  /** Hunters only: chance that one attack of a lone adult on a prey of its own weight, healthy and on open ground, succeeds. */
+  huntSkill: number;
+  /** Hunters only: beyond this many hunters on the same prey, more do not help (they let the others do the work). */
+  huntGroupCap: number;
+  /** Hunters only: steps (hours) a chase can last before the hunter gives up, out of breath. */
+  chaseSteps: number;
+  /** Prey: share of attacks it escapes by its speed or agility, all else being equal. */
+  evasion: number;
+  /** Chance that the animal fights back when a hunter (human or animal) strikes it, and the health a blow removes. */
   riposteChance: number;
   riposteDamage: number;
   /** Hunters only: running speed while chasing, tiles per hour. */
   sprintTiles: number;
-  /** Food units its body gives to the hunters who kill it. */
+  /** Food units (kg of meat) its body gives to the hunters who kill it (an adult; a young gives less). */
   meat: number;
   migratory: boolean;
   /** Distance of the seasonal migration toward the equator (autumn) and back (spring). */
@@ -99,6 +98,7 @@ export interface FaunaParams {
   needs: {
     seekWaterAbove: number;
     seekFoodAbove: number;
+    huntAbove: number;
     fullBelow: number;
     drinkPerStep: number;
     starvationDamagePerDay: number;
@@ -108,30 +108,67 @@ export interface FaunaParams {
     oldAgeShare: number;
     oldAgeDamagePerDay: number;
   };
+  /** The body's energy budget: metabolism by mass, reserves, meals and digestion, costs of moving, gestation and nursing. */
+  energy: {
+    basalPerKg075: number;
+    reservePerKg: number;
+    digestPerHour: number;
+    intakePerHour: number;
+    walkCostPerKg075Tile: number;
+    runCostFactor: number;
+    gestationShare: number;
+    milkEfficiency: number;
+    nursingMinCondition: number;
+    birthMassShare: number;
+    startConditionMin: number;
+    breedingMinCondition: number;
+    foodEnergy: { grass: number; meat: number; fish: number; produce: number };
+  };
+  /** Attacks of animal hunters: what makes them succeed or fail, and what the prey can do. */
+  hunting: {
+    weakPreyFactor: number;
+    weakPreyHealth: number;
+    weakPreyCondition: number;
+    sizeResistance: number;
+    surpriseFactor: number;
+    youngHunterFactor: number;
+    riposteShare: number;
+    groupTiles: number;
+    maxSuccess: number;
+    coverByBiome: Record<string, number>;
+    refugeByBiome: Record<string, number>;
+  };
+  /** Herds: more eyes see a hunter sooner, and an alarm makes the whole herd run. */
+  vigilance: { perMate: number; maxMates: number; alarmTiles: number; coverShare: number };
+  /** Territories of the social hunters: sized by the game, defended, intruders at risk; groups that split and gather. */
+  territory: {
+    preyKgPerPredatorKg: number;
+    adjustShare: number;
+    abandonShare: number;
+    overlapShare: number;
+    intruderRiskPerDay: number;
+    fightTiles: number;
+    splitBelowCondition: number;
+    splitMinSize: number;
+    mergeAboveCondition: number;
+    mergeTiles: number;
+  };
   behavior: {
     forageRadius: number;
     forageSamples: number;
+    farForageFactor: number;
     cohesionRadius: number;
     wanderChance: number;
     wanderRadius: number;
-    /** A hungry hunter with no prey in reach goes looking this far (the leader takes its pack along). */
+    /** A hungry hunter without territory (a disperser) and no prey in sight goes looking this far. */
     huntSearchTiles: number;
-    /** A hungry hunter with no prey in reach follows the trail of the nearest game within this distance. */
-    trackTiles: number;
-    /** A weak prey (young, old, sick or wounded) is caught this many times more easily, and preferred when choosing; a prey in its prime this much less. */
-    weakPreyFactor: number;
-    primePreyFactor: number;
-    /** Health below which a prey counts as weak (wounded, starving). */
-    weakPreyHealth: number;
     fleeDistance: number;
-    chaseSteps: number;
     packShareRadius: number;
     lonerJoinRadius: number;
     waterSearchTiles: number;
     spawnSiteAttempts: number;
     migrationMaxDays: number;
     breedingMinHealth: number;
-    breedingMaxHunger: number;
     /** A female finds a mate if an adult male of her species is within this distance. */
     mateRadius: number;
   };
@@ -157,7 +194,6 @@ export interface FaunaParams {
     capacityByWater: { river: number; lake: number; coast: number; openSea: number };
     coastMaxDepthMeters: number;
   };
-  /** Carcasses: share of the meat that rots each day, and scraps below which they vanish. */
   /** Carcasses: days for half the meat to rot at the reference temperature (×2 faster every `doublingCelsius` warmer, within bounds), and scraps below which they vanish. */
   carrion: { halfLifeDays: number; referenceCelsius: number; doublingCelsius: number; minFactor: number; maxFactor: number; minimumMeat: number };
   stats: { intervalDays: number };
@@ -218,28 +254,30 @@ const SPECIES_SCHEMA: Schema = {
     gestationDays: int(1, 400, 'Gestation', 'Durée de la gestation.', 'jours'),
     litter: pair(num(1, 20, 'Portée [min, max]', 'Nombre de petits par mise bas.', 'petits')),
     conceptionChance: share('Chance de conception', 'Chance par jour, pour une femelle fertile pendant la saison des amours.'),
-    birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas : elle élève ses petits.', 'jours'),
-    crowdingRadius: int(1, 64, 'Rayon du territoire', 'Une femelle ne met pas bas si trop d’animaux de son espèce vivent dans ce rayon.', 'tuiles'),
-    crowdingMax: int(1, 10000, 'Voisins tolérés', 'Nombre maximal d’animaux de l’espèce dans le territoire pour qu’une femelle se reproduise.', 'animaux'),
-    territoryTiles: int(0, 200, 'Territoire de meute', 'Meutes territoriales (0 = non) : rayon défendu autour de la tanière. Une meute cède la place à une plus forte, et seule une meute qui tient son territoire élève des petits (au lieu de la règle des voisins tolérés).', 'tuiles'),
-    bigPreyMeat: num(0, 1000, 'Gros gibier préféré', 'Chasseurs : une proie qui donne au moins cette viande est préférée ; les plus petites ne sont chassées que faute de gros gibier à portée (0 = la plus proche, quelle que soit sa taille).', 'viande'),
-    dispersalPerYear: num(0, 1, 'Dispersion des jeunes', 'Espèces territoriales : chance par an qu’un jeune adulte quitte sa meute pour en fonder une avec un autre solitaire, sur une terre libre.', 'probabilité'),
-    preyCheckRadius: int(0, 64, 'Rayon du gibier', 'Chasseurs : rayon où la femelle compte le gibier avant d’élever des petits.', 'tuiles'),
-    breedingMinPrey: int(0, 100000, 'Gibier nécessaire', 'Chasseurs : nombre minimal de proies dans ce rayon pour se reproduire (0 = pas de condition).', 'proies'),
-    hungerPerDay: num(0, 100, 'Faim', 'Points de faim gagnés par jour (100 = affamé).', 'points/jour'),
-    foodPerDay: num(0.01, 100, 'Ration', 'Unités de nourriture qui couvrent une journée de faim.', 'unités/jour'),
+    birthIntervalDays: int(0, 400, 'Intervalle entre portées', 'Une mère ne conçoit pas de nouveau pendant ce nombre de jours après une mise bas.', 'jours'),
+    nursingDays: int(0, 400, 'Allaitement', 'Jours pendant lesquels les petits boivent le lait de leur mère : elle le paie sur ses réserves, et s’il n’y en a plus, les petits jeûnent.', 'jours'),
+    massKg: num(0.1, 5000, 'Masse adulte', 'Poids d’un adulte. Le métabolisme croît comme la masse à la puissance 0,75 ; les réserves et la taille d’un repas suivent la masse ; à la chasse, la masse fait la force du chasseur et la résistance de la proie.', 'kg'),
+    mealDays: num(0.05, 20, 'Plus gros repas', 'Ce que l’animal peut avaler d’un coup, en jours de besoins de base : un loup se gave puis digère, un cerf broute peu et souvent.', 'jours de besoins'),
+    territoryMinTiles: int(0, 200, 'Territoire minimal', 'Chasseurs sociaux (0 = pas de territoire) : rayon le plus petit du territoire d’un groupe, quand le gibier abonde.', 'tuiles'),
+    territoryMaxTiles: int(0, 400, 'Territoire maximal', 'Rayon le plus grand du territoire d’un groupe, quand le gibier est rare.', 'tuiles'),
+    dominantBreederOnly: flag('Seule la dominante se reproduit', 'Espèces territoriales : seule la femelle dominante (la plus âgée) du groupe met bas (loups) ; sinon chaque femelle adulte en bon état peut le faire (lions).'),
+    splitWhenHungry: flag('Groupes qui se scindent', 'Un groupe affamé se divise en petits groupes de chasse, et des groupes bien nourris voisins se réunissent (lions).'),
+    dispersalPerYear: num(0, 1, 'Dispersion des jeunes', 'Espèces territoriales : chance par an qu’un jeune adulte quitte son groupe pour chercher un partenaire et une terre libre (au risque de mourir seul ou sous les crocs des voisins).', 'probabilité'),
     thirstPerDay: num(0, 100, 'Soif', 'Points de soif gagnés par jour (100 = assoiffé).', 'points/jour'),
     minCelsius: num(-80, 40, 'Résistance au froid', 'En dessous de cette température, l’animal souffre du froid.', '°C'),
     walkTilesPerHour: num(0.1, 20, 'Vitesse de marche', 'Distance parcourue en une heure de jeu en marchant.', 'tuiles/heure'),
-    fleeRadius: int(0, 64, 'Distance de fuite', 'Proies : distance à laquelle un chasseur est remarqué (0 = ne fuit jamais).', 'tuiles'),
+    fleeRadius: int(0, 64, 'Vigilance', 'Proies : distance à laquelle un animal seul remarque un chasseur (0 = ne fuit jamais) ; un troupeau le voit plus loin, un couvert épais moins loin.', 'tuiles'),
     humanFleeTiles: int(0, 64, 'Méfiance envers les humains', 'Distance à laquelle un animal sauvage de prudence moyenne remarque un humain (chasseur ou simple passant) et s’enfuit (0 = ne craint pas les humains). Plus l’humain est proche, plus il a de chances d’être remarqué. Un prédateur affamé ne fuit plus. Les bêtes domestiques ne fuient jamais.', 'tuiles'),
     fleeSprintTiles: num(0.1, 20, 'Course de fuite', 'Gibier : vitesse de course en fuyant un humain.', 'tuiles/heure'),
-    huntRadius: int(0, 64, 'Rayon de chasse', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
-    huntSuccess: share('Réussite de la chasse', 'Chasseurs : chance par pas de terrasser une proie à son contact.'),
-    riposteChance: share('Riposte', 'Chance que l’animal se défende quand un chasseur humain le frappe (charge, coups de cornes, de défenses ou de griffes).'),
+    huntRadius: int(0, 64, 'Vue du chasseur', 'Chasseurs : distance à laquelle une proie est repérée.', 'tuiles'),
+    huntSkill: share('Adresse à la chasse', 'Chasseurs : chance qu’une attaque d’un adulte seul réussisse contre une proie de son poids, en bonne santé, en terrain découvert. La taille de la proie, celle du groupe de chasseurs, la faiblesse de la proie, sa vivacité, la surprise et le terrain la modifient.'),
+    huntGroupCap: int(1, 50, 'Chasseurs utiles', 'Chasseurs : au-delà de ce nombre de chasseurs sur une même proie, les autres n’aident plus (ils laissent faire l’effort).', 'chasseurs'),
+    chaseSteps: int(1, 200, 'Durée d’une poursuite', 'Chasseurs : au-delà de ce nombre de pas (heures) de poursuite, le chasseur abandonne, à bout de souffle.', 'pas'),
+    evasion: share('Vivacité', 'Proies : part des attaques auxquelles l’animal échappe par sa vitesse ou son agilité, toutes choses égales par ailleurs.'),
+    riposteChance: share('Riposte', 'Chance que l’animal se défende quand un chasseur, humain ou animal, l’attaque (charge, coups de cornes, de défenses ou de griffes).'),
     riposteDamage: num(0, 200, 'Force de la riposte', 'Santé qu’enlève à un chasseur un coup de l’animal qui se défend (au hasard entre la moitié et une fois et demie).', 'points de santé'),
     sprintTiles: num(0.1, 20, 'Course', 'Chasseurs : vitesse de course pendant la poursuite.', 'tuiles/heure'),
-    meat: num(0, 1000, 'Viande', 'Unités de nourriture que donne le corps d’un adulte à ses chasseurs (moitié pour un petit).', 'unités'),
+    meat: num(0, 1000, 'Viande', 'Viande que donne le corps d’un adulte à ses chasseurs (un petit en donne selon son poids).', 'kg'),
     migratory: flag('Migrateur', 'Les troupeaux partent vers l’équateur en automne et reviennent au printemps.'),
     migrationTiles: int(0, 1000, 'Distance de migration', 'Distance du voyage saisonnier.', 'tuiles'),
     domesticable: flag('Domesticable', 'Peut être capturé et apprivoisé par ceux qui connaissent l’élevage.'),
@@ -270,15 +308,82 @@ export const ANIMALS_SCHEMA: Schema = {
       kind: 'object',
       fields: {
         seekWaterAbove: num(0, 100, 'Seuil de soif', 'Au-dessus de cette soif, l’animal part boire.', 'points'),
-        seekFoodAbove: num(0, 100, 'Seuil de faim', 'Au-dessus de cette faim, l’animal cherche à manger.', 'points'),
+        seekFoodAbove: num(0, 100, 'Seuil de faim', 'Au-dessus de cette faim, l’animal cherche à manger (brouter, cueillir, une charogne). La faim est le vide des réserves et de l’estomac : 0 = repu, 100 = plus aucune réserve.', 'points'),
+        huntAbove: num(0, 100, 'Faim pour chasser', 'Au-dessus de cette faim, un chasseur part chasser : une chasse coûte cher, on ne la tente que le ventre assez vide.', 'points'),
         fullBelow: num(0, 100, 'Rassasié', 'En dessous de ce niveau, l’animal a fini de manger ou de boire.', 'points'),
         drinkPerStep: num(0, 100, 'Gorgées', 'Points de soif apaisés par pas passé à boire.', 'points/pas'),
-        starvationDamagePerDay: num(0, 100, 'Dégâts de la faim', 'Santé perdue par jour quand la faim est à 100.', 'points/jour'),
+        starvationDamagePerDay: num(0, 100, 'Dégâts de la faim', 'Santé perdue par jour quand les réserves sont épuisées (faim à 100).', 'points/jour'),
         thirstDamagePerDay: num(0, 100, 'Dégâts de la soif', 'Santé perdue par jour quand la soif est à 100.', 'points/jour'),
         coldDamagePerDegreeDay: num(0, 20, 'Dégâts du froid', 'Santé perdue par jour et par degré sous la résistance au froid de l’espèce.', 'points/(°C·jour)'),
         regenPerDay: num(0, 100, 'Guérison', 'Santé regagnée par jour quand rien ne nuit à l’animal.', 'points/jour'),
         oldAgeShare: share('Début de la vieillesse', 'Part de la longévité à partir de laquelle l’animal s’affaiblit.'),
         oldAgeDamagePerDay: num(0, 100, 'Dégâts de la vieillesse', 'Santé perdue par jour par un vieil animal.', 'points/jour'),
+      },
+    },
+    energy: {
+      kind: 'object',
+      fields: {
+        basalPerKg075: num(0.01, 100, 'Métabolisme de base', 'Énergie dépensée par jour pour vivre, par kg de masse à la puissance 0,75 (loi de Kleiber : un animal dix fois plus lourd ne dépense que 5,6 fois plus). Le calendrier étant comprimé (une année de 40 jours), un jour de jeu compte pour plusieurs jours de besoins.', 'énergie/jour/kg^0,75'),
+        reservePerKg: num(0.01, 100, 'Réserves', 'Énergie que le corps peut stocker (graisse) par kg de masse : le jeûne tolérable croît avec la taille (masse / masse^0,75).', 'énergie/kg'),
+        digestPerHour: share('Digestion', 'Part du contenu de l’estomac digérée (passée dans les réserves) chaque heure.'),
+        intakePerHour: share('Vitesse d’ingestion', 'Part du plus gros repas qu’un animal avale en une heure.'),
+        walkCostPerKg075Tile: num(0, 10, 'Coût de la marche', 'Énergie dépensée pour parcourir une tuile en marchant, par kg^0,75.', 'énergie/tuile/kg^0,75'),
+        runCostFactor: num(1, 20, 'Coût de la course', 'Une tuile parcourue en courant (poursuite, fuite) coûte ce nombre de fois plus qu’en marchant.', 'facteur'),
+        gestationShare: num(0, 5, 'Coût de la gestation', 'Une femelle pleine dépense en plus cette part de son métabolisme de base.', 'fraction'),
+        milkEfficiency: num(0.05, 1, 'Rendement du lait', 'Part de l’énergie prise sur la mère qui arrive à ses petits (le reste est le coût de l’allaitement).', 'fraction'),
+        nursingMinCondition: share('Lait tari', 'En dessous de cet état de ses réserves, une mère n’a plus de lait : ses petits jeûnent.'),
+        birthMassShare: num(0.001, 1, 'Masse à la naissance', 'Part de la masse adulte d’un nouveau-né ; il grandit jusqu’à l’âge adulte.', 'fraction'),
+        startConditionMin: share('Réserves au début du monde', 'Au début du monde, chaque animal a des réserves tirées entre cette part et le plein.'),
+        breedingMinCondition: share('État pour se reproduire', 'En dessous de cet état de ses réserves, une femelle ne conçoit pas ; au-dessus, sa fertilité et la taille de sa portée croissent avec son état.'),
+        foodEnergy: {
+          kind: 'object',
+          fields: {
+            grass: num(0, 1000, 'Énergie de l’herbe', 'Énergie apportée par une unité d’herbe broutée.', 'énergie/unité'),
+            meat: num(0, 1000, 'Énergie de la viande', 'Énergie apportée par un kg de viande (proie ou charogne).', 'énergie/kg'),
+            fish: num(0, 1000, 'Énergie du poisson', 'Énergie apportée par une unité de poisson.', 'énergie/unité'),
+            produce: num(0, 1000, 'Énergie des récoltes', 'Énergie apportée par une unité de baies, racines ou autre récolte sauvage (et par le fourrage donné aux bêtes domestiques).', 'énergie/unité'),
+          },
+        },
+      },
+    },
+    hunting: {
+      kind: 'object',
+      fields: {
+        weakPreyFactor: num(1, 10, 'Proie faible', 'Une proie jeune, vieille, malade, blessée ou amaigrie est prise ce nombre de fois plus facilement ; le chasseur la repère et la choisit.', 'facteur'),
+        weakPreyHealth: num(0, 100, 'Santé d’une proie faible', 'En dessous de cette santé, une proie compte comme affaiblie.', 'points'),
+        weakPreyCondition: share('Proie amaigrie', 'En dessous de cet état de ses réserves, une proie compte comme affaiblie.'),
+        sizeResistance: num(0, 10, 'Résistance des grosses proies', 'Force des chasseurs (somme de leurs masses) face à la masse de la proie multipliée par ceci : réussite × force / (force + masse × ceci). Un loup seul vient mal à bout d’un aurochs, une meute oui.', 'facteur'),
+        surpriseFactor: num(1, 10, 'Surprise', 'Une proie attaquée avant d’avoir vu le chasseur (elle ne fuyait pas) est prise ce nombre de fois plus facilement.', 'facteur'),
+        youngHunterFactor: share('Jeune chasseur', 'Un chasseur pas encore adulte réussit cette part des attaques d’un adulte.'),
+        riposteShare: share('Blessures des chasseurs', 'Part de la force de riposte d’une proie qu’un prédateur subit quand elle se défend (une attaque ratée sur un aurochs ou un sanglier peut coûter cher).'),
+        groupTiles: num(0.5, 20, 'Chasse en groupe', 'Les chasseurs du même groupe à cette distance de la proie l’attaquent ensemble.', 'tuiles'),
+        maxSuccess: share('Réussite maximale', 'Aucune attaque ne réussit à coup sûr.'),
+        coverByBiome: { kind: 'record', values: share('Couvert du terrain', 'Végétation qui cache un chasseur à l’affût : la proie le voit d’autant moins loin.') },
+        refugeByBiome: { kind: 'record', values: share('Terrain refuge', 'Terrain où une proie échappe plus souvent (rochers, pentes, marais) : part des attaques qui échouent en plus.') },
+      },
+    },
+    vigilance: {
+      kind: 'object',
+      fields: {
+        perMate: num(0, 5, 'Yeux du troupeau', 'Chaque compagnon proche allonge de cette part la distance à laquelle une proie remarque un chasseur (plus d’yeux, détection plus tôt).', 'fraction'),
+        maxMates: int(0, 100, 'Vigilance maximale', 'Au-delà de ce nombre de compagnons, la vigilance n’augmente plus.', 'animaux'),
+        alarmTiles: num(0, 30, 'Alerte', 'Quand une bête fuit un chasseur, ses compagnons à cette distance fuient avec elle.', 'tuiles'),
+        coverShare: share('Effet du couvert', 'Part de la distance de détection perdue dans un couvert épais (couvert du terrain = 1).'),
+      },
+    },
+    territory: {
+      kind: 'object',
+      fields: {
+        preyKgPerPredatorKg: num(1, 10000, 'Gibier par kg de chasseur', 'Un groupe agrandit son territoire jusqu’à y percevoir cette masse de proies par kg de chasseurs, et le réduit quand le gibier abonde (dans la nature : environ 100 kg de proies pour 1 kg de carnivore).', 'kg/kg'),
+        adjustShare: share('Ajustement du territoire', 'Part de l’écart à la bonne taille corrigée chaque jour.'),
+        abandonShare: share('Territoire abandonné', 'Un groupe dont le territoire, à sa taille maximale, ne contient plus que cette part du gibier qu’il lui faut, le quitte et erre jusqu’à s’installer ailleurs.'),
+        overlapShare: num(0, 2, 'Défense du territoire', 'Deux groupes dont les tanières sont plus proches que cette part du plus grand des deux rayons se disputent la place : le plus faible s’en va.', 'fraction'),
+        intruderRiskPerDay: share('Risque des intrus', 'Chance par jour qu’un animal seul ou un petit groupe, sur le territoire d’un groupe plus fort et à portée de ses membres, soit tué par eux.'),
+        fightTiles: num(0.5, 30, 'Portée d’un combat', 'Un intrus est attaqué si un membre du groupe résident est à cette distance.', 'tuiles'),
+        splitBelowCondition: share('Groupe affamé', 'Espèces dont les groupes se scindent : en dessous de cet état moyen des réserves, un groupe se divise en deux.'),
+        splitMinSize: int(2, 100, 'Taille pour se scinder', 'Un groupe plus petit ne se divise pas.', 'animaux'),
+        mergeAboveCondition: share('Groupe repu', 'Au-dessus de cet état moyen, deux groupes voisins de la même espèce peuvent se réunir.'),
+        mergeTiles: num(1, 100, 'Distance pour se réunir', 'Deux groupes plus proches que ceci peuvent se réunir.', 'tuiles'),
       },
     },
     behavior: {
@@ -289,20 +394,15 @@ export const ANIMALS_SCHEMA: Schema = {
         cohesionRadius: int(1, 64, 'Cohésion du groupe', 'Au-delà de cette distance du chef, l’animal rejoint son groupe.', 'tuiles'),
         wanderChance: share('Promenade', 'Chance de partir se promener quand l’animal n’a besoin de rien.'),
         wanderRadius: int(1, 64, 'Rayon de promenade', 'Distance maximale d’une promenade.', 'tuiles'),
-        weakPreyFactor: num(1, 10, 'Proie faible', 'Une proie jeune, vieille, malade ou affaiblie est prise ce nombre de fois plus facilement, et le chasseur la choisit plutôt qu’une bête plus proche en pleine force.', 'facteur'),
-        primePreyFactor: num(0.05, 1, 'Proie en pleine force', 'Facteur sur la réussite de la chasse contre une bête adulte en bonne santé (elle se défend, distance ses poursuivants).', 'facteur'),
-        weakPreyHealth: num(0, 100, 'Santé d’une proie faible', 'En dessous de cette santé, une proie compte comme affaiblie (blessée, affamée).', 'points'),
-        trackTiles: num(0, 200, 'Pister le gibier', 'Un chasseur affamé sans proie à portée suit la piste du gibier le plus proche dans ce rayon (odeurs, traces) ; au-delà, il bat la campagne au hasard (0 = jamais de pistage). Désactivé par défaut (v1.2) : sans vigilance des troupeaux ni densité limitée par les territoires, des prédateurs qui pistent épuisent le gibier.', 'tuiles'),
-        huntSearchTiles: num(0, 100, 'Battre la campagne', 'Un chasseur affamé sans proie à portée part chercher aussi loin (le meneur emmène sa meute ; il revient vers sa tanière une fois repu).', 'tuiles'),
+        huntSearchTiles: num(0, 100, 'Errance d’un solitaire', 'Un chasseur sans territoire (un jeune parti chercher une terre libre) et sans proie en vue part chercher aussi loin. Un groupe qui tient un territoire, lui, le parcourt.', 'tuiles'),
+        farForageFactor: num(1, 20, 'Recherche lointaine de nourriture', 'Un herbivore affamé qui ne trouve rien autour de lui regarde ce nombre de fois plus loin (son troupeau le suit) : déplacement vers l’herbe.', 'facteur'),
         fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),
-        chaseSteps: int(1, 500, 'Durée d’une poursuite', 'Un chasseur abandonne après ce nombre de pas de poursuite.', 'pas'),
         packShareRadius: int(0, 64, 'Partage de la proie', 'Les membres de la meute dans quatre fois ce rayon viennent manger la proie.', 'tuiles'),
         lonerJoinRadius: int(0, 200, 'Recherche d’un groupe', 'Distance à laquelle un animal seul trouve un groupe de son espèce.', 'tuiles'),
         waterSearchTiles: int(1, 2000, 'Recherche de l’eau', 'Distance maximale du chemin connu vers l’eau douce.', 'tuiles', NEW_WORLD),
         spawnSiteAttempts: int(1, 1000000, 'Recherche d’un territoire', 'Lieux essayés pour chaque meute de départ (un chasseur ne s’installe que là où vit assez de gibier, hors du territoire d’une autre meute) ; faute de lieu, il y a moins de chasseurs au départ.', 'essais', NEW_WORLD),
         migrationMaxDays: int(1, 200, 'Durée maximale d’une migration', 'Une migration s’arrête au plus tard après ce nombre de jours.', 'jours'),
         breedingMinHealth: num(0, 100, 'Santé pour se reproduire', 'Santé minimale d’une femelle pour concevoir.', 'points'),
-        breedingMaxHunger: num(0, 100, 'Faim pour se reproduire', 'Au-dessus de cette faim, une femelle ne conçoit pas.', 'points'),
         mateRadius: int(1, 200, 'Recherche d’un partenaire', 'Une femelle trouve un mâle adulte de son espèce dans ce rayon.', 'tuiles'),
       },
     },
@@ -393,7 +493,7 @@ export const ANIMALS_SCHEMA: Schema = {
         hungerEscape: num(0, 20, 'Faim et fuite', 'Une bête affamée s’échappe jusqu’à (1 + ceci) fois plus souvent.', 'facteur'),
         noPenEscape: num(1, 20, 'Sans enclos', 'Une bête gardée sans enclos s’échappe ce nombre de fois plus souvent.', 'facteur'),
         starvingEscape: num(0, 1, 'Faim extrême', 'Chance par jour, en plus, qu’une bête à bout de faim s’échappe même apprivoisée.', 'chance/jour'),
-        causeNames: { kind: 'array', minLength: 7, maxLength: 7, items: text('Cause de mort', 'Comment on dit la mort d’une bête domestique au journal (vieillesse, faim, soif, froid, prédateurs, abattage, maladie).') },
+        causeNames: { kind: 'array', minLength: 8, maxLength: 8, items: text('Cause de mort', 'Comment on dit la mort d’une bête domestique au journal (vieillesse, faim, soif, froid, prédateurs, abattage, maladie, blessures).') },
         texts: {
           kind: 'object',
           fields: {
@@ -441,6 +541,9 @@ export function parseFaunaParams(raw: unknown, biomes: BiomeTable, resources: Re
   if (speciesIds.size !== params.species.length) problems.push('deux animaux ont le même « id ».');
   if (params.species.length > MAX_SPECIES) problems.push(`au plus ${MAX_SPECIES} espèces animales sont possibles.`);
   if (params.stepsPerDay % params.thinkEverySteps !== 0) problems.push('« stepsPerDay » doit être un multiple de « thinkEverySteps ».');
+  for (const table of [params.hunting.coverByBiome, params.hunting.refugeByBiome]) {
+    for (const id of Object.keys(table)) if (!biomeIds.has(id)) problems.push(`« hunting » : le biome « ${id} » n'existe pas.`);
+  }
   for (const id of params.humanPrey.hunters) if (!speciesIds.has(id)) problems.push(`« humanPrey.hunters » : l'animal « ${id} » n'existe pas.`);
   for (const species of params.species) {
     const where = `animal « ${species.id} »`;
@@ -452,6 +555,8 @@ export function parseFaunaParams(raw: unknown, biomes: BiomeTable, resources: Re
     if (species.prey.length > 0 && !('meat' in species.diet)) problems.push(`${where} : un chasseur doit avoir « meat » dans « diet ».`);
     if (species.groupSize[0] > species.groupSize[1]) problems.push(`${where} : « groupSize » doit être [min, max].`);
     if (species.litter[0] > species.litter[1]) problems.push(`${where} : « litter » doit être [min, max].`);
+    if (species.territoryMinTiles > species.territoryMaxTiles) problems.push(`${where} : « territoryMinTiles » doit être inférieur ou égal à « territoryMaxTiles ».`);
+    if (species.prey.length > 0 && species.huntRadius <= 0) problems.push(`${where} : un chasseur doit voir ses proies (« huntRadius » > 0).`);
     problems.push(...unknownResources(resources, species.carcass.map((item) => item.resource), where));
   }
   if (problems.length > 0) throw new DataFileError(FILE, problems);

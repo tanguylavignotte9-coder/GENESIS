@@ -1,10 +1,12 @@
 import { DeathCause, type FaunaSystem } from './fauna-system';
 import { canDrink } from './fresh-water';
 import { eatHere, foodValueAt } from './food';
+import { biteSize, payTravel } from './energy';
+import { choosePrey, meatOf, strike } from './hunting';
 import { State as States } from './animal-store';
 import { humanTargetValid, huntHuman, nearestLoneHuman } from './human-prey';
 import { feastOnKill } from './kill';
-import { denTarget } from './territory';
+import { denTarget, territorySearchSpot } from './territory';
 import { thinkDomestic, troughHere } from './domestic';
 import type { AnimalSpecies } from './params';
 import type { SpatialGrid } from '../../core/spatial-grid';
@@ -63,13 +65,16 @@ export function think(fauna: FaunaSystem, slot: number): void {
   if (species.fleeRadius > 0) {
     const n = params.species.length;
     const code = store.species[slot]!;
-    // Danger = a hunter of this species that is hunting, or one that comes very close.
-    const threat = nearestAnimal(fauna, fauna.hunterGrid, slot, species.fleeRadius, (other) => {
+    // Danger = a hunter of this species that is hunting, or one that comes very close. More eyes
+    // in the herd see it sooner; thick cover hides it.
+    const sight = vigilanceRadius(fauna, slot, species);
+    const threat = nearestAnimal(fauna, fauna.hunterGrid, slot, sight, (other) => {
       if (fauna.hunts[store.species[other]! * n + code] !== 1) return false;
       return store.state[other] === State.Hunt || distance(x, y, store.px[other]!, store.py[other]!) <= CLOSE_DANGER;
     });
     if (threat >= 0) {
       fleeFrom(fauna, slot, store.px[threat]!, store.py[threat]!);
+      alarmHerd(fauna, slot, store.px[threat]!, store.py[threat]!);
       return;
     }
   }
@@ -95,21 +100,18 @@ export function think(fauna: FaunaSystem, slot: number): void {
   const leader = fauna.groups.leader[group]!;
   if (store.hunger[slot]! > params.needs.seekFoodAbove) {
     if (findFood(fauna, slot, species)) return;
-    // A hungry hunter with nothing in reach does not wait by its den: it goes looking for game,
-    // the leader taking its pack along (the others keep following it).
     const leads = leader === slot || leader < 0 || store.alive[leader] !== 1;
-    if (species.huntRadius > 0 && leads && params.behavior.huntSearchTiles > 0) {
-      // It follows the trail of the nearest game it can scent; with none, it roams at random.
-      const n = params.species.length;
-      const hunter = store.species[slot]!;
-      const trail = params.behavior.trackTiles > species.huntRadius ? nearestAnimal(fauna, fauna.grid, slot, params.behavior.trackTiles, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1 && store.ownerCamp[other]! < 0) : -1;
-      if (trail >= 0) {
-        setTarget(fauna, slot, State.Wander, store.px[trail]!, store.py[trail]!);
+    // A hunter hungry enough to hunt, with no prey in sight: the leader takes its group across its
+    // territory (a lone disperser roams further); the others follow it.
+    if (species.huntRadius > 0 && leads && store.hunger[slot]! > params.needs.huntAbove) {
+      if (territorySearchSpot(fauna, slot, species, PUSH)) {
+        setTarget(fauna, slot, State.Wander, PUSH.x, PUSH.y);
         return;
       }
-      const k = fauna.rng.nextIntInclusive(0, DIRECTION_COUNT - 1);
-      const r = params.behavior.huntSearchTiles;
-      setTarget(fauna, slot, State.Wander, x + DIRECTIONS_X[k]! * r, y + DIRECTIONS_Y[k]! * r);
+    }
+    // A grazer that finds nothing around looks further, and its herd follows: toward the grass.
+    if (species.huntRadius <= 0 && leads && farFood(fauna, slot, PUSH)) {
+      setTarget(fauna, slot, State.Wander, PUSH.x, PUSH.y);
       return;
     }
   }
@@ -142,7 +144,10 @@ export function think(fauna: FaunaSystem, slot: number): void {
   store.state[slot] = State.Rest;
 }
 
-/** Hunting first for meat eaters, then plant food or fish here, then the best of a few tiles around. */
+/**
+ * Food: a carcass in reach for meat eaters, then (hungry enough) a prey worth its chase, then
+ * plant food or fish here, then the best of a few tiles around.
+ */
 function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boolean {
   const { store, params } = fauna;
   const x = store.x[slot]!;
@@ -154,14 +159,8 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
       return true;
     }
   }
-  if (species.huntRadius > 0) {
-    const n = params.species.length;
-    const hunter = store.species[slot]!;
-    const isPrey = (other: number): boolean => fauna.hunts[hunter * n + store.species[other]!] === 1;
-    // Big game first; small prey only when no big game is in reach. A weak one (young, old, sick,
-    // wounded) counts as nearer: hunters single out the easy prey of a herd.
-    let prey = species.bigPreyMeat > 0 ? easiestPrey(fauna, slot, species.huntRadius, (other) => isPrey(other) && fauna.speciesOf(other).meat >= species.bigPreyMeat) : -1;
-    if (prey < 0) prey = easiestPrey(fauna, slot, species.huntRadius, isPrey);
+  if (species.huntRadius > 0 && store.hunger[slot]! > params.needs.huntAbove) {
+    const prey = choosePrey(fauna, slot, species);
     const preyDistance = prey >= 0 ? distance(store.px[slot]!, store.py[slot]!, store.px[prey]!, store.py[prey]!) : Infinity;
     // A person walking alone is a prey like another for a hungry predator: it goes for the nearest.
     const human = nearestLoneHuman(fauna, slot, species.huntRadius);
@@ -170,20 +169,34 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
       store.state[slot] = State.Hunt;
       store.targetAnimal[slot] = onHuman ? human.id : prey;
       store.huntsHuman[slot] = onHuman ? 1 : 0;
-      store.chase[slot] = params.behavior.chaseSteps;
+      store.chase[slot] = species.chaseSteps;
       return true;
     }
   }
-  const bite = species.foodPerDay / 4;
   const code = store.species[slot]!;
-  if (foodValueAt(fauna, code, x, y) >= bite) {
+  if (foodValueAt(fauna, code, x, y) >= biteSize(fauna, slot)) {
     store.state[slot] = State.Eat;
     return true;
   }
+  const best = bestFoodTile(fauna, slot, params.behavior.forageRadius);
+  if (best < 0) return false;
+  const bestX = best % fauna.size;
+  const bestY = (best - bestX) / fauna.size;
+  // Somewhere on the chosen tile (not its exact middle: a herd grazing a meadow spreads out).
+  const k = (store.uid[slot]! * 3) % DIRECTION_COUNT;
+  setTarget(fauna, slot, State.Forage, bestX + 0.5 + DIRECTIONS_X[k]! * 0.3, bestY + 0.5 + DIRECTIONS_Y[k]! * 0.3);
+  return true;
+}
+
+/** The richest of a few tiles within `r` that the animal can walk to (no water in between), or -1. */
+function bestFoodTile(fauna: FaunaSystem, slot: number, r: number): number {
+  const { store, params } = fauna;
+  const x = store.x[slot]!;
+  const y = store.y[slot]!;
+  const code = store.species[slot]!;
   let bestValue = 0;
   let bestX = x;
   let bestY = y;
-  const r = params.behavior.forageRadius;
   for (let s = 0; s < params.behavior.forageSamples; s++) {
     const tx = x + fauna.rng.nextIntInclusive(-r, r);
     const ty = y + fauna.rng.nextIntInclusive(-r, r);
@@ -196,11 +209,42 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
     }
   }
   // Food across a river or a lake is out of reach (checked for the chosen tile only: grazing is frequent).
-  if (bestValue <= 0 || !straightWay(fauna, slot, bestX + 0.5, bestY + 0.5)) return false;
-  // Somewhere on the chosen tile (not its exact middle: a herd grazing a meadow spreads out).
-  const k = (store.uid[slot]! * 3) % DIRECTION_COUNT;
-  setTarget(fauna, slot, State.Forage, bestX + 0.5 + DIRECTIONS_X[k]! * 0.3, bestY + 0.5 + DIRECTIONS_Y[k]! * 0.3);
+  if (bestValue <= 0 || !straightWay(fauna, slot, bestX + 0.5, bestY + 0.5)) return -1;
+  return bestY * fauna.size + bestX;
+}
+
+/** A hungry grazer that found nothing around: a richer place further away, its herd behind it. */
+function farFood(fauna: FaunaSystem, slot: number, out: { x: number; y: number }): boolean {
+  const { params } = fauna;
+  const best = bestFoodTile(fauna, slot, Math.round(params.behavior.forageRadius * params.behavior.farForageFactor));
+  if (best < 0) return false;
+  out.x = (best % fauna.size) + 0.5;
+  out.y = Math.floor(best / fauna.size) + 0.5;
   return true;
+}
+
+/**
+ * Distance at which a prey notices a hunter: its own vigilance, longer with each herd mate (more
+ * eyes, up to a point), shorter in thick cover.
+ */
+export function vigilanceRadius(fauna: FaunaSystem, slot: number, species: AnimalSpecies): number {
+  const { store, params } = fauna;
+  const rules = params.vigilance;
+  const mates = Math.min(rules.maxMates, Math.max(0, fauna.groups.size[store.group[slot]!]! - 1));
+  const cover = fauna.coverOfBiome[fauna.world.biome[store.y[slot]! * fauna.size + store.x[slot]!]!]!;
+  return species.fleeRadius * (1 + rules.perMate * mates) * (1 - rules.coverShare * cover);
+}
+
+/** The alarm: the herd mates close to an animal that runs from a hunter run with it. */
+function alarmHerd(fauna: FaunaSystem, slot: number, fx: number, fy: number): void {
+  const { store, params } = fauna;
+  const group = store.group[slot]!;
+  if (fauna.groups.size[group]! <= 1 || params.vigilance.alarmTiles <= 0) return;
+  fauna.grid.forEachNear(store.px[slot]!, store.py[slot]!, params.vigilance.alarmTiles, (other) => {
+    if (other === slot || store.group[other] !== group || store.state[other] === State.Flee) return;
+    if (distance(store.px[slot]!, store.py[slot]!, store.px[other]!, store.py[other]!) > params.vigilance.alarmTiles) return;
+    fleeFrom(fauna, other, fx, fy);
+  });
 }
 
 /** Can the animal walk straight from where it is to (tx, ty) without crossing water? (Half-tile samples.) */
@@ -230,39 +274,6 @@ function reachableCarcass(fauna: FaunaSystem, slot: number, radius: number): num
       bestDistance = d;
     }
   }
-  return best;
-}
-
-/** Is this animal an easy prey: young, old, sick or weakened? */
-export function weakPrey(fauna: FaunaSystem, prey: number): boolean {
-  const { store, params } = fauna;
-  const species = fauna.speciesOf(prey);
-  const age = store.ageDays[prey]!;
-  return (
-    age < species.adultAgeYears * fauna.daysPerYear ||
-    age > params.needs.oldAgeShare * species.maxAgeYears * fauna.daysPerYear ||
-    store.sickDays[prey]! > 0 ||
-    store.health[prey]! < params.behavior.weakPreyHealth
-  );
-}
-
-/** The prey within `radius` that is easiest to get: the nearest, a weak one counting as much nearer. */
-function easiestPrey(fauna: FaunaSystem, slot: number, radius: number, accept: (other: number) => boolean): number {
-  const { store, params } = fauna;
-  const x = store.px[slot]!;
-  const y = store.py[slot]!;
-  let best = -1;
-  let bestScore = Infinity;
-  fauna.grid.forEachNear(x, y, radius, (other) => {
-    if (other === slot) return;
-    const d = distance(x, y, store.px[other]!, store.py[other]!);
-    if (d > radius || !accept(other)) return;
-    const score = weakPrey(fauna, other) ? d / params.behavior.weakPreyFactor : d;
-    if (score < bestScore) {
-      best = other;
-      bestScore = score;
-    }
-  });
   return best;
 }
 
@@ -296,7 +307,7 @@ export function act(fauna: FaunaSystem, slot: number): void {
       return;
     case State.Eat:
       settle(fauna, slot);
-      if (eatHere(fauna, slot, species) <= 0 || store.hunger[slot]! < params.needs.fullBelow) store.state[slot] = State.Rest;
+      if (eatHere(fauna, slot) <= 0 || store.hunger[slot]! < params.needs.fullBelow) store.state[slot] = State.Rest;
       return;
     case State.Drink:
       settle(fauna, slot);
@@ -351,10 +362,13 @@ export function moveTo(fauna: FaunaSystem, slot: number, tx: number, ty: number,
   GOAL.arrive = arrive;
   GOAL.pushX = store.pushX[slot]!;
   GOAL.pushY = store.pushY[slot]!;
+  const x0 = store.px[slot]!;
+  const y0 = store.py[slot]!;
   steer(store, slot, GOAL, hours);
   advance(store, slot, hours, fauna.size, fauna.walkableTile);
   updateGait(store, slot, running);
   fauna.place(slot, store.px[slot]!, store.py[slot]!);
+  payTravel(fauna, slot, distance(x0, y0, store.px[slot]!, store.py[slot]!), running);
 }
 
 function travel(fauna: FaunaSystem, slot: number, species: AnimalSpecies, state: number): void {
@@ -431,7 +445,7 @@ function noticeLoneHuman(fauna: FaunaSystem, slot: number, species: AnimalSpecie
   store.state[slot] = State.Hunt;
   store.targetAnimal[slot] = human.id;
   store.huntsHuman[slot] = 1;
-  store.chase[slot] = fauna.params.behavior.chaseSteps;
+  store.chase[slot] = species.chaseSteps;
 }
 
 function huntTargetAlive(fauna: FaunaSystem, slot: number): boolean {
@@ -471,6 +485,7 @@ function hunt(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
   const { store } = fauna;
   const prey = store.targetAnimal[slot]!;
   store.chase[slot] = store.chase[slot]! - 1;
+  // Out of breath, or the prey is gone: the chase is over.
   if (store.chase[slot]! <= 0 || !huntTargetAlive(fauna, slot)) {
     store.state[slot] = State.Rest;
     store.huntsHuman[slot] = 0;
@@ -483,14 +498,19 @@ function hunt(fauna: FaunaSystem, slot: number, species: AnimalSpecies): void {
   const px = store.px[prey]!;
   const py = store.py[prey]!;
   if (!chase(fauna, slot, species, px, py)) return;
-  // A weak prey is caught easily; one in its prime defends itself and often gets away.
-  const behavior = fauna.params.behavior;
-  if (fauna.rng.nextFloat() >= species.huntSuccess * (weakPrey(fauna, prey) ? behavior.weakPreyFactor : behavior.primePreyFactor)) return;
-  const preySpecies = fauna.speciesOf(prey);
-  const adult = store.ageDays[prey]! >= preySpecies.adultAgeYears * fauna.daysPerYear;
+  // On the prey: one attack.
+  if (!strike(fauna, slot, species, prey)) {
+    if (store.alive[slot] !== 1) return;
+    // Missed: the prey runs off, the hunter gives up this one.
+    if (store.alive[prey] === 1) fleeFrom(fauna, prey, store.px[slot]!, store.py[slot]!);
+    store.state[slot] = State.Rest;
+    store.targetAnimal[slot] = -1;
+    return;
+  }
   const tile = store.y[prey]! * fauna.size + store.x[prey]!;
+  const meat = meatOf(fauna, prey);
   fauna.kill(prey, DeathCause.Predation);
-  // The kill becomes a carcass: the hunter eats first, the pack (and scavengers) come for the rest.
-  fauna.carrion.add(tile, adult ? preySpecies.meat : preySpecies.meat / 2);
+  // The kill becomes a carcass: the hunter eats first, the group (and scavengers) come for the rest.
+  fauna.carrion.add(tile, meat);
   feastOnKill(fauna, slot, px, py);
 }

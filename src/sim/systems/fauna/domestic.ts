@@ -4,6 +4,7 @@ import { describeLocation } from '../world/places';
 import { State } from './animal-store';
 import type { FaunaSystem } from './fauna-system';
 import { foodValueAt } from './food';
+import { biteSize } from './energy';
 import type { AnimalSpecies } from './params';
 
 /**
@@ -123,7 +124,7 @@ export function thinkDomestic(fauna: FaunaSystem, slot: number, species: AnimalS
   }
   if (store.hunger[slot]! > params.needs.seekFoodAbove) {
     const code = store.species[slot]!;
-    if (foodValueAt(fauna, code, store.x[slot]!, store.y[slot]!) >= species.foodPerDay / 4) {
+    if (foodValueAt(fauna, code, store.x[slot]!, store.y[slot]!) >= biteSize(fauna, slot)) {
       store.state[slot] = State.Eat;
       return;
     }

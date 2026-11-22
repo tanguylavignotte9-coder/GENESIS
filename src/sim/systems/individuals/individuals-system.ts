@@ -1050,6 +1050,26 @@ export class IndividualsSystem {
     days[slot] = this.absoluteDay;
   }
 
+  /** Where one drinks, starting from `tile`: the first water reached by walking down toward it (-1 if too far). */
+  waterNear(tile: number): number {
+    let at = tile;
+    for (let step = 0; step <= this.params.memory.waterSearchSteps && at >= 0; step++) {
+      const x = at % this.size;
+      if (canDrink(this.world, x, (at - x) / this.size)) return at;
+      const next = this.fauna.waterPath[at]!;
+      if (next === at) return -1;
+      at = next;
+    }
+    return -1;
+  }
+
+  /** Whether the person already knows a water place on this tile. */
+  knowsWater(person: number, tile: number): boolean {
+    const { people } = this;
+    for (let s = person * people.waterSlots; s < (person + 1) * people.waterSlots; s++) if (people.waterMemory[s] === tile) return true;
+    return false;
+  }
+
   forget(person: number, kind: 'water' | 'food', tile: number): void {
     const { people } = this;
     const slots = kind === 'water' ? people.waterSlots : people.foodSlots;
@@ -1078,7 +1098,9 @@ export class IndividualsSystem {
   private forgetOldPlaces(): void {
     const { people, params } = this;
     const limit = this.absoluteDay - params.memory.forgetDays;
-    for (let s = 0; s < people.waterMemory.length; s++) if (people.waterMemoryDay[s]! < limit) people.waterMemory[s] = -1;
+    // Water places are landmarks one keeps for years: the dry season's springs are found again.
+    const waterLimit = this.absoluteDay - params.memory.waterForgetDays;
+    for (let s = 0; s < people.waterMemory.length; s++) if (people.waterMemoryDay[s]! < waterLimit) people.waterMemory[s] = -1;
     for (let s = 0; s < people.foodMemory.length; s++) if (people.foodMemoryDay[s]! < limit) people.foodMemory[s] = -1;
   }
 

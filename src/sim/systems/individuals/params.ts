@@ -143,7 +143,7 @@ export interface HumanParams {
     stuckSteps: number;
   };
   camp: { shelterMaxCelsius: number; besideFireCelsius: number; homeRadiusTiles: number };
-  memory: { waterSlots: number; foodSlots: number; forgetDays: number };
+  memory: { waterSlots: number; foodSlots: number; forgetDays: number; waterForgetDays: number; waterSearchSteps: number };
   danger: {
     predators: string[];
     alertTiles: number;
@@ -313,7 +313,9 @@ export const HUMANS_SCHEMA: Schema = {
       fields: {
         waterSlots: v('integer', 0, 16, 'Points d’eau retenus', 'Nombre de points d’eau qu’une personne garde en mémoire.', 'lieux', 'newWorld'),
         foodSlots: v('integer', 0, 32, 'Coins de cueillette retenus', 'Nombre d’endroits nourriciers qu’une personne garde en mémoire.', 'lieux', 'newWorld'),
-        forgetDays: v('integer', 1, 400, 'Oubli', 'Un souvenir d’endroit non revisité s’efface après ce nombre de jours.', 'jours'),
+        forgetDays: v('integer', 1, 400, 'Oubli', 'Un souvenir de coin de cueillette non revisité s’efface après ce nombre de jours.', 'jours'),
+        waterForgetDays: v('integer', 1, 4000, 'Oubli des points d’eau', 'Un point d’eau est un repère qu’on garde des années : il ne s’oublie qu’après ce nombre de jours sans y retourner.', 'jours'),
+        waterSearchSteps: v('integer', 0, 100, 'Retrouver un point d’eau raconté', 'Un point d’eau dont on a entendu parler (approximativement) est retrouvé en descendant vers l’eau sur au plus ce nombre de tuiles.', 'tuiles'),
       },
     },
     danger: {

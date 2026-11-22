@@ -4,6 +4,7 @@ import { Sex } from './animal-store';
 import type { FaunaSystem } from './fauna-system';
 import { publishMigrations, type MigrationStart } from './fauna-events';
 import { holdTerritories } from './territory';
+import { condition } from './energy';
 
 /** Local days of the year when migratory herds leave: toward the equator in autumn, back in spring. */
 const SEASONS_BEFORE_AUTUMN = 2;
@@ -39,6 +40,7 @@ export function maintainGroups(fauna: FaunaSystem, dayOfYear: number, journal: J
   }
   disperse(fauna);
   joinLoners(fauna);
+  splitAndGather(fauna);
   holdTerritories(fauna);
   publishMigrations(fauna, updateMigrations(fauna, dayOfYear), journal, tick);
 }
@@ -64,7 +66,7 @@ function joinLoners(fauna: FaunaSystem): void {
     const species = fauna.speciesOf(slot);
     if (groups.size[group] !== 1 || species.groupSize[1] <= 1 || store.ownerCamp[slot]! >= 0) continue;
     // A lone disperser of a territorial species pairs with another loner, never with a pack.
-    const territorial = species.territoryTiles > 0;
+    const territorial = species.territoryMaxTiles > 0;
     let target = -1;
     fauna.grid.forEachNear(store.x[slot]!, store.y[slot]!, params.behavior.lonerJoinRadius, (other) => {
       if (target >= 0 || other === slot || store.species[other] !== store.species[slot] || store.ownerCamp[other]! >= 0) return;
@@ -134,5 +136,53 @@ function disperse(fauna: FaunaSystem): void {
     const own = groups.add(store.species[slot]!, slot);
     store.group[slot] = own;
     groups.size[own] = 1;
+  }
+}
+
+/**
+ * Species whose groups follow the food (lions): a hungry group splits in two smaller hunting groups
+ * (less mouths at each kill, more ground covered); two well fed groups close to each other gather
+ * again, within the largest group size.
+ */
+function splitAndGather(fauna: FaunaSystem): void {
+  const { store, groups, params } = fauna;
+  const rules = params.territory;
+  const sum = new Float64Array(groups.count);
+  const members: number[][] = [];
+  for (let slot = 0; slot < store.slots; slot++) {
+    if (store.alive[slot] === 0 || store.ownerCamp[slot]! >= 0 || !fauna.speciesOf(slot).splitWhenHungry) continue;
+    const group = store.group[slot]!;
+    sum[group] = sum[group]! + condition(fauna, slot);
+    (members[group] ??= []).push(slot);
+  }
+  const fed: number[] = [];
+  for (let group = 0; group < members.length; group++) {
+    const list = members[group];
+    if (!list || list.length === 0) continue;
+    const mean = sum[group]! / list.length;
+    if (mean < rules.splitBelowCondition && list.length >= rules.splitMinSize) {
+      // Every second member leaves with the youngest half's leader.
+      const daughter = groups.add(groups.species[group]!, list[1]!);
+      for (let k = 1; k < list.length; k += 2) store.group[list[k]!] = daughter;
+      groups.size[daughter] = Math.floor(list.length / 2);
+      groups.size[group] = list.length - groups.size[daughter]!;
+    } else if (mean > rules.mergeAboveCondition) fed.push(group);
+  }
+  for (let i = 0; i < fed.length; i++) {
+    const a = fed[i]!;
+    if (groups.size[a] === 0) continue;
+    for (let j = i + 1; j < fed.length; j++) {
+      const b = fed[j]!;
+      if (groups.size[b] === 0 || groups.species[a] !== groups.species[b]) continue;
+      const species = params.species[groups.species[a]!]!;
+      if (groups.size[a]! + groups.size[b]! > species.maxGroupSize) continue;
+      const la = groups.leader[a]!;
+      const lb = groups.leader[b]!;
+      if (la < 0 || lb < 0 || store.alive[la] !== 1 || store.alive[lb] !== 1) continue;
+      if (Math.hypot(store.px[la]! - store.px[lb]!, store.py[la]! - store.py[lb]!) > rules.mergeTiles) continue;
+      for (const slot of members[b]!) store.group[slot] = a;
+      groups.size[a] = groups.size[a]! + groups.size[b]!;
+      groups.size[b] = 0;
+    }
   }
 }

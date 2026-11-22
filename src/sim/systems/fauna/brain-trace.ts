@@ -3,6 +3,8 @@ import { distance } from '../../core/motion';
 import { State, STATE_NAMES } from './animal-store';
 import type { FaunaSystem } from './fauna-system';
 import { nearestLoneHuman } from './human-prey';
+import { condition } from './energy';
+import { vigilanceRadius } from './behavior';
 
 /**
  * Visual brain of an animal (step 10.5). An animal decides by priorities (danger, then thirst,
@@ -48,7 +50,7 @@ export function traceAnimal(fauna: FaunaSystem, slot: number): void {
   const y = store.py[slot]!;
   const hunger = store.hunger[slot]! / PERCENT;
   const thirst = store.thirst[slot]! / PERCENT;
-  const threat = nearestThreat(fauna, slot, species.fleeRadius);
+  const threat = nearestThreat(fauna, slot, species.fleeRadius > 0 ? vigilanceRadius(fauna, slot, species) : 0);
   const group = store.group[slot]!;
   const leader = fauna.groups.leader[group]!;
   const isLeader = leader === slot;
@@ -59,6 +61,8 @@ export function traceAnimal(fauna: FaunaSystem, slot: number): void {
     { id: 'hunger', label: 'Faim', group: 'Besoins', value: hunger },
     { id: 'thirst', label: 'Soif', group: 'Besoins', value: thirst },
     { id: 'health', label: 'Santé', group: 'Besoins', value: store.health[slot]! / PERCENT },
+    { id: 'reserves', label: 'Réserves (graisse)', group: 'Corps', value: Math.min(1, condition(fauna, slot)) },
+    { id: 'stomach', label: 'Estomac', group: 'Corps', value: store.mealSize[slot]! > 0 ? Math.min(1, store.gut[slot]! / store.mealSize[slot]!) : 0 },
     { id: 'age', label: 'Âge', group: 'Corps', value: Math.min(1, store.ageDays[slot]! / (species.maxAgeYears * fauna.daysPerYear)) },
     { id: 'danger', label: threat ? `Danger : ${threat.name} à ${Math.round(threat.distance)} tuiles` : 'Aucun danger en vue', group: 'Émotions', value: threat ? 1 : 0 },
     { id: 'group', label: isLeader ? 'Mène son groupe' : leader >= 0 && store.alive[leader] === 1 ? 'Suit son groupe' : 'Seul', group: 'Groupe', value: -1 },
@@ -79,7 +83,8 @@ export function traceAnimal(fauna: FaunaSystem, slot: number): void {
   const seekFood = needs.seekFoodAbove / PERCENT;
   add('flee', 'Fuir', threat !== null, 1, [State.Flee], [threat ? `un ${threat.name} chasse ou s’approche (${Math.round(threat.distance)} tuiles) : priorité absolue` : species.fleeRadius > 0 ? 'aucun chasseur en vue' : 'ne fuit aucun prédateur'], threat ? [['danger', 1]] : [], threat ? [] : [['danger', 0.5]]);
   if (species.huntRadius > 0) {
-    add('hunt', 'Chasser', hunger > seekFood, hunger, [State.Hunt], [`faim ${pct(hunger)} (chasse au-dessus de ${pct(seekFood)})`, lone.id >= 0 ? 'un humain seul est une proie possible' : 'chasse le gros gibier d’abord, les petites proies sinon'], hunger > seekFood ? [['hunger', hunger], ...(lone.id >= 0 ? ([['human', 0.6]] as [string, number][]) : [])] : [], hunger > seekFood ? [] : [['hunger', 1 - hunger]]);
+    const huntAt = needs.huntAbove / PERCENT;
+    add('hunt', 'Chasser', hunger > huntAt, hunger, [State.Hunt], [`faim ${pct(hunger)} (chasse au-dessus de ${pct(huntAt)} : une poursuite coûte cher)`, lone.id >= 0 ? 'un humain seul est une proie possible' : 'choisit la proie qui rapporte le plus pour l’effort : une bête faible, à sa taille, proche', 'la plupart des attaques échouent'], hunger > huntAt ? [['hunger', hunger], ...(lone.id >= 0 ? ([['human', 0.6]] as [string, number][]) : [])] : [], hunger > huntAt ? [] : [['hunger', 1 - hunger], ['stomach', 0.5]]);
   }
   add('drink', 'Boire', thirst > seekWater, thirst + 0.01, [State.Drink, State.SeekWater], [`soif ${pct(thirst)} (va boire au-dessus de ${pct(seekWater)})`, 'passe avant la faim'], thirst > seekWater ? [['thirst', thirst]] : [], thirst > seekWater ? [] : [['thirst', 1 - thirst]]);
   add('eat', species.huntRadius > 0 ? 'Manger (charogne, poisson, plantes)' : 'Brouter', hunger > seekFood, hunger, [State.Eat, State.Forage], [`faim ${pct(hunger)} (cherche à manger au-dessus de ${pct(seekFood)})`], hunger > seekFood ? [['hunger', hunger]] : [], hunger > seekFood ? [] : [['hunger', 1 - hunger]]);

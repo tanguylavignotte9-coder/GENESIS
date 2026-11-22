@@ -192,9 +192,11 @@
     "homeRadiusTiles": 70
   },
   "memory": {
-    "waterSlots": 4,
+    "waterSlots": 6,
     "foodSlots": 8,
-    "forgetDays": 20
+    "forgetDays": 20,
+    "waterForgetDays": 400,
+    "waterSearchSteps": 12
   },
   "danger": {
     "predators": ["wolf", "lion", "bear"],

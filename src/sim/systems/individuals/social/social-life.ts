@@ -288,6 +288,24 @@ export class SocialLife {
     if (fact.knowers <= 0) this.news.facts.delete(fact.id);
   }
 
+  /**
+   * A water place one did not know: worth telling (once a day at most per person). The children and
+   * the newcomers of the camp learn the springs and the rivers by hearing about them.
+   */
+  onWaterFound(person: number, tile: number): void {
+    const s = this.state;
+    if (s.lastWaterNewsDay[person] === this.day) return;
+    s.lastWaterNewsDay[person] = this.day;
+    const fact = this.news.add('water', person, -1, tile, this.day, -1);
+    fact.knowers++;
+    const slot = this.freeNewsSlot(person);
+    if (slot >= 0) {
+      s.newsFact[slot] = fact.id;
+      s.newsDetail[slot] = 0;
+    } else fact.knowers--;
+    if (fact.knowers <= 0) this.news.facts.delete(fact.id);
+  }
+
   private freeNewsSlot(person: number): number {
     const s = this.state;
     for (let k = person * s.newsSlots; k < (person + 1) * s.newsSlots; k++) if (s.newsFact[k]! < 0) return k;
@@ -316,6 +334,13 @@ export class SocialLife {
       case 'danger':
         remember(this, person, 'danger', -1, detail === 0 ? 1 : 1 / (1 + detail));
         return;
+      case 'water': {
+        // A river or a spring is a landmark: told roughly, it is found again by walking down toward it.
+        if (from < 0) return;
+        const water = this.sys.waterNear(fuzzyTile(this, fact.tile, detail));
+        if (water >= 0) this.sys.remember(person, 'water', water);
+        return;
+      }
     }
   }
 

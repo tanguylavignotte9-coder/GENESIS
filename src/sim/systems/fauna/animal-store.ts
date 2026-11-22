@@ -64,7 +64,24 @@ export class AnimalStore {
   /** Last push away from too close neighbours (tiles per hour), refreshed when the animal thinks. */
   pushX = new Float32Array(0);
   pushY = new Float32Array(0);
+  /**
+   * Hunger, 0..100: how empty the body is (100 = no reserve left, nothing to digest). Kept up to
+   * date from `energy` and `gut` (the energy budget, see energy.ts); read by the brain and the display.
+   */
   hunger = new Float32Array(0);
+  /** Energy budget: reserves (fat), food in the stomach not yet digested (energy units). */
+  energy = new Float32Array(0);
+  gut = new Float32Array(0);
+  /** Refreshed daily from the age: body mass (kg), largest reserves, basal cost of one step, largest meal. */
+  mass = new Float32Array(0);
+  maxReserve = new Float32Array(0);
+  basalStep = new Float32Array(0);
+  mealSize = new Float32Array(0);
+  /** Energy spent today on moving and chasing (reset each day, for the brain and the statistics). */
+  spentMoving = new Float32Array(0);
+  /** The mother (slot and uid: a slot is reused) of a young that still drinks her milk; -1 for none. */
+  mother = new Int32Array(0);
+  motherUid = new Int32Array(0);
   thirst = new Float32Array(0);
   health = new Float32Array(0);
   state = new Uint8Array(0);
@@ -142,6 +159,11 @@ export class AnimalStore {
     this.gait[slot] = 0;
     this.pushX[slot] = 0;
     this.pushY[slot] = 0;
+    this.energy[slot] = 0;
+    this.gut[slot] = 0;
+    this.spentMoving[slot] = 0;
+    this.mother[slot] = -1;
+    this.motherUid[slot] = -1;
     this.living++;
     return slot;
   }
@@ -179,6 +201,15 @@ export class AnimalStore {
     this.pushX = copy(this.pushX, (n) => new Float32Array(n));
     this.pushY = copy(this.pushY, (n) => new Float32Array(n));
     this.hunger = copy(this.hunger, (n) => new Float32Array(n));
+    this.energy = copy(this.energy, (n) => new Float32Array(n));
+    this.gut = copy(this.gut, (n) => new Float32Array(n));
+    this.mass = copy(this.mass, (n) => new Float32Array(n));
+    this.maxReserve = copy(this.maxReserve, (n) => new Float32Array(n));
+    this.basalStep = copy(this.basalStep, (n) => new Float32Array(n));
+    this.mealSize = copy(this.mealSize, (n) => new Float32Array(n));
+    this.spentMoving = copy(this.spentMoving, (n) => new Float32Array(n));
+    this.mother = copy(this.mother, (n) => new Int32Array(n));
+    this.motherUid = copy(this.motherUid, (n) => new Int32Array(n));
     this.thirst = copy(this.thirst, (n) => new Float32Array(n));
     this.health = copy(this.health, (n) => new Float32Array(n));
     this.state = copy(this.state, (n) => new Uint8Array(n));

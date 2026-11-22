@@ -145,7 +145,7 @@ describe('Wiki pages', () => {
     expect(wolf.title).toBe('Loup');
     const found = references(wolf.blocks);
     expect(found.links).toContain('animal:deer');
-    expect(found.variables).toContainEqual({ file: 'animals.json', key: 'species.wolf.hungerPerDay' });
+    expect(found.variables).toContainEqual({ file: 'animals.json', key: 'species.wolf.massKg' });
   });
 
   it('a knowledge page says what it needs and what it unlocks', () => {

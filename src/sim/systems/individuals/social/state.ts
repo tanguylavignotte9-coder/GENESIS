@@ -76,6 +76,7 @@ export class SocialState {
   /** Last day this person turned a find into news (one a day at most). */
   readonly lastFoodNewsDay: Int32Array;
   readonly lastDangerNewsDay: Int32Array;
+  readonly lastWaterNewsDay: Int32Array;
 
   constructor(count: number, traitCount: number, relationSlots: number, memorySlots: number, newsSlots: number) {
     this.count = count;
@@ -117,6 +118,7 @@ export class SocialState {
     this.talkDone = new Uint8Array(count);
     this.lastFoodNewsDay = new Int32Array(count).fill(-1);
     this.lastDangerNewsDay = new Int32Array(count).fill(-1);
+    this.lastWaterNewsDay = new Int32Array(count).fill(-1);
   }
 
   emotion(person: number, emotion: number): number {

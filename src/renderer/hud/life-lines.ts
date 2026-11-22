@@ -24,10 +24,12 @@ export function animalLines(animal: AnimalDetails, life: LifeTables, daysPerYear
     `${species.name} (${sex})`,
     `Âge : ${age(animal.ageDays, daysPerYear)}`,
     `Faim : ${fr.format(animal.hunger)} % · Soif : ${fr.format(animal.thirst)} %`,
+    `Réserves : ${fr.format(animal.reserves)} % · ${fr.format(animal.massKg)} kg`,
     `Santé : ${fr.format(animal.health)} %`,
     `État : ${life.animalStates[animal.state] ?? '?'}`,
   ];
   if (animal.groupSize > 1) lines.push(`Groupe : ${fr.format(animal.groupSize)} animaux`);
+  if (animal.territory > 0) lines.push(`Territoire : ${fr.format(animal.territory)} tuiles de rayon`);
   lines.push(`Fournit : ${resourceNames(life, species.carcass.map((item) => item.resource))}`);
   if (animal.domestic) {
     const d = animal.domestic;

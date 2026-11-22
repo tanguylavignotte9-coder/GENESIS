@@ -25,6 +25,36 @@ export type Factor = (typeof FACTORS)[number];
 /** What makes someone fit to lead (each measured 0..1 for a candidate). */
 export const POWER_FEATURES = ['respect', 'prestige', 'age', 'lineage', 'force', 'wealth', 'piety'] as const;
 export type PowerFeature = (typeof POWER_FEATURES)[number];
+/** French names of the situations and of the features, for the variables workshop and the Wiki. */
+const FACTOR_LABELS: Record<Factor, string> = {
+  small: 'petit groupe',
+  large: 'grand groupe',
+  surplus: 'abondance',
+  settled: 'vie sédentaire',
+  elders: 'nombreux anciens',
+  rivalry: 'rivalité',
+  scarcity: 'pénurie',
+  cold: 'froid',
+  territory: 'territoire à défendre',
+  religion: 'religion',
+  trade: 'échanges',
+  privateProperty: 'propriété privée',
+  writing: 'écriture',
+  war: 'guerre',
+  hierarchy: 'hiérarchie',
+  equality: 'égalité',
+  eldersCustom: 'coutume des anciens',
+  sharing: 'partage',
+};
+const FEATURE_LABELS: Record<PowerFeature, string> = {
+  respect: 'respect',
+  prestige: 'prestige',
+  age: 'âge',
+  lineage: 'lignée',
+  force: 'force',
+  wealth: 'richesse',
+  piety: 'piété',
+};
 /** How the leaders decide for the group. */
 export const DECISIONS = ['consensus', 'council', 'chief'] as const;
 export const LEVEL_COUNT = 3;
@@ -189,7 +219,7 @@ const TEXT_HELP = 'Texte du journal. Remplacements entre accolades : {nom}, {gro
 const fixed = (keys: readonly string[], item: (key: string) => Schema): Schema => ({ kind: 'object', fields: Object.fromEntries(keys.map((key) => [key, item(key)])) });
 const optionalFixed = (keys: readonly string[], item: (key: string) => Schema): Schema => ({ kind: 'object', fields: Object.fromEntries(keys.map((key) => [key, item(key)])), optional: keys });
 const factorWeights = (what: string): Schema =>
-  optionalFixed(FACTORS, (factor) => num(0, 5, `Favorisé par : ${factor}`, `Poids de la situation « ${factor} » (0 à 1, mesurée par le système de groupes) dans le choix ${what}.`, 'poids'));
+  optionalFixed(FACTORS, (factor) => num(0, 5, `Favorisé par : ${FACTOR_LABELS[factor as Factor]}`, `Poids de la situation « ${FACTOR_LABELS[factor as Factor]} » (0 à 1, mesurée par le système de groupes) dans le choix ${what}.`, 'poids'));
 const traitWeights = (what: string): Schema => ({ kind: 'record', values: num(-3, 3, 'Effet d’un trait', `Effet d’un trait de personnalité du dirigeant sur le choix ${what} (+ : il le préfère).`, 'poids') });
 
 const REGIME_SCHEMA: Schema = {
@@ -204,7 +234,7 @@ const REGIME_SCHEMA: Schema = {
     decision: choice(DECISIONS, 'Façon de décider', 'consensus : les adultes tranchent ensemble ; council : la majorité du conseil ; chief : le chef seul.'),
     hereditary: flag('Héréditaire', 'Le pouvoir passe de préférence aux enfants du dirigeant (lignée).'),
     levels: { kind: 'array', minLength: 1, items: int(0, 2, 'Niveau possible', 'Niveaux de groupe où ce régime peut exister (0 tribu, 1 clan, 2 famille).', 'niveau') },
-    weights: fixed(POWER_FEATURES, (feature) => num(0, 5, `Accès : ${feature}`, `Poids de « ${feature} » d’un candidat pour accéder au pouvoir dans ce régime.`, 'poids')),
+    weights: fixed(POWER_FEATURES, (feature) => num(0, 5, `Accès : ${FEATURE_LABELS[feature as PowerFeature]}`, `Poids de l’atout « ${FEATURE_LABELS[feature as PowerFeature]} » d’un candidat pour accéder au pouvoir dans ce régime.`, 'poids')),
     favors: factorWeights('de ce régime'),
     requires: { kind: 'array', items: choice(FACTORS, 'Condition nécessaire', 'Situation sans laquelle ce régime ne peut pas apparaître (religion, écriture… : pas encore simulées, donc impossibles).') },
   },

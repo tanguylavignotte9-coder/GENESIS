@@ -94,7 +94,7 @@ describe('animal life', () => {
     const male = fauna.spawn(species, (tile % SIZE) + 1.5, Math.floor(tile / SIZE) + 0.5, group, 3000);
     store.sex[mother] = Sex.Female;
     store.sex[male] = Sex.Male;
-    store.hunger[mother] = 0;
+    store.energy[mother] = store.maxReserve[mother]!;
     store.health[mother] = 100;
     const bear = fauna.params.species[species]!;
     // During the mating season, a female without young may conceive…

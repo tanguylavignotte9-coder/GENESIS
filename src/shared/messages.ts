@@ -172,6 +172,11 @@ export interface AnimalDetails {
   thirst: number;
   health: number;
   state: number;
+  /** Reserves (fat), % of the largest; body mass (kg). */
+  reserves: number;
+  massKg: number;
+  /** Radius of the territory its group holds (tiles), or 0. */
+  territory: number;
   pregnant: boolean;
   groupSize: number;
   /** A domestic animal: who keeps it (« de la tribu des Tamuki »), its owner if a person, how tame (0..1). Null if wild. */

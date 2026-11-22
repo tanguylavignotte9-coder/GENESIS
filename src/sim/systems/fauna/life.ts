@@ -1,11 +1,15 @@
 import { localDayOfYear } from '../flora/fitness';
 import { Sex } from './animal-store';
+import { condition, nurse, refreshBody } from './energy';
 import { DeathCause, type FaunaSystem } from './fauna-system';
 import { holdsTerritory } from './territory';
 
 const FULL = 100;
 
-/** One day of an animal's life: health from its needs and the cold, ageing, death, pregnancy, mating. */
+/**
+ * One day of an animal's life: its body grows, a young drinks its mother's milk, health from its
+ * needs and the cold, ageing, death, pregnancy, mating.
+ */
 export function liveOneDay(fauna: FaunaSystem, slot: number): void {
   const { store, params } = fauna;
   const species = fauna.speciesOf(slot);
@@ -17,8 +21,11 @@ export function liveOneDay(fauna: FaunaSystem, slot: number): void {
     fauna.kill(slot, DeathCause.Age);
     return;
   }
+  refreshBody(fauna, slot, species);
+  store.spentMoving[slot] = 0;
+  if (store.mother[slot]! >= 0) nurse(fauna, slot, species);
 
-  const damages = [0, 0, 0, 0, 0, 0, 0];
+  const damages = [0, 0, 0, 0, 0, 0, 0, 0];
   if (store.hunger[slot]! >= FULL) damages[DeathCause.Starvation] = needs.starvationDamagePerDay;
   if (store.thirst[slot]! >= FULL) damages[DeathCause.Thirst] = needs.thirstDamagePerDay;
   const temperature = fauna.climate.temperatureAt(store.y[slot]! * fauna.size + store.x[slot]!);
@@ -41,7 +48,18 @@ export function liveOneDay(fauna: FaunaSystem, slot: number): void {
     if (store.pregnancy[slot] === 0) giveBirth(fauna, slot);
     return;
   }
-  if (canConceive(fauna, slot) && fauna.rng.nextFloat() < species.conceptionChance) store.pregnancy[slot] = species.gestationDays;
+  if (canConceive(fauna, slot) && fauna.rng.nextFloat() < species.conceptionChance * fertility(fauna, slot)) store.pregnancy[slot] = species.gestationDays;
+}
+
+/**
+ * Fertility from the body: 0 below the condition needed to breed, then growing with the reserves
+ * up to 1 for a female in full condition (a thin female conceives seldom, has small litters).
+ */
+export function fertility(fauna: FaunaSystem, slot: number): number {
+  const min = fauna.params.energy.breedingMinCondition;
+  const shape = condition(fauna, slot);
+  if (shape < min) return 0;
+  return min >= 1 ? 1 : Math.min(1, (shape - min) / (1 - min));
 }
 
 export function canConceive(fauna: FaunaSystem, slot: number): boolean {
@@ -50,34 +68,12 @@ export function canConceive(fauna: FaunaSystem, slot: number): boolean {
   if (store.sex[slot] !== Sex.Female || store.ageDays[slot]! < species.adultAgeYears * fauna.daysPerYear) return false;
   // A mother still raising her last young, or a sick animal, does not conceive.
   if (fauna.day - store.lastBirthDay[slot]! < species.birthIntervalDays || store.sickDays[slot]! > 0) return false;
-  if (store.health[slot]! < params.behavior.breedingMinHealth || store.hunger[slot]! > params.behavior.breedingMaxHunger) return false;
+  if (store.health[slot]! < params.behavior.breedingMinHealth || fertility(fauna, slot) <= 0) return false;
   const northern = store.y[slot]! < fauna.size / 2;
   const day = localDayOfYear(fauna.climate.dayOfYear, northern, fauna.daysPerYear);
   if (day < species.breedingDays[0] || day >= species.breedingDays[1]) return false;
-  return (
-    hasMateNearby(fauna, slot, params.behavior.mateRadius) &&
-    // A pack that holds its land raises young when it is well fed (hunger and health above): its
-    // territory replaces the rules of crowding and of prey counted around.
-    (species.territoryTiles > 0
-      ? holdsTerritory(fauna, slot)
-      : !isCrowded(fauna, slot, species.crowdingRadius, species.crowdingMax) && enoughPrey(fauna, slot, species.preyCheckRadius, species.breedingMinPrey))
-  );
-}
-
-/** Hunters raise young only where game is plentiful: at least `min` prey within `radius` tiles. */
-function enoughPrey(fauna: FaunaSystem, slot: number, radius: number, min: number): boolean {
-  if (min <= 0) return true;
-  const { store } = fauna;
-  const x = store.x[slot]!;
-  const y = store.y[slot]!;
-  const n = fauna.params.species.length;
-  const hunter = store.species[slot]!;
-  let seen = 0;
-  fauna.grid.forEachNear(x, y, radius, (other) => {
-    if (seen >= min || fauna.hunts[hunter * n + store.species[other]!] !== 1) return;
-    if (Math.abs(store.x[other]! - x) <= radius && Math.abs(store.y[other]! - y) <= radius) seen++;
-  });
-  return seen >= min;
+  // Territorial hunters raise young only on the land their group holds (and, for wolves, only the dominant female).
+  return hasMateNearby(fauna, slot, params.behavior.mateRadius) && (species.territoryMaxTiles <= 0 || store.ownerCamp[slot]! >= 0 || holdsTerritory(fauna, slot));
 }
 
 /** An adult male of the same species within `radius` tiles (herd mate or a solitary neighbour). */
@@ -95,28 +91,19 @@ function hasMateNearby(fauna: FaunaSystem, slot: number, radius: number): boolea
   return found;
 }
 
-/** Does the animal see more than `max` others of its species within `radius` tiles? */
-function isCrowded(fauna: FaunaSystem, slot: number, radius: number, max: number): boolean {
-  const { store } = fauna;
-  const x = store.x[slot]!;
-  const y = store.y[slot]!;
-  const code = store.species[slot]!;
-  let seen = 0;
-  fauna.grid.forEachNear(x, y, radius, (other) => {
-    if (store.species[other] === code && Math.abs(store.x[other]! - x) <= radius && Math.abs(store.y[other]! - y) <= radius) seen++;
-  });
-  return seen > max;
-}
-
+/** The litter: bigger for a mother in good condition; each young starts with its share of her reserves. */
 function giveBirth(fauna: FaunaSystem, mother: number): void {
   const { store } = fauna;
   const species = fauna.speciesOf(mother);
-  const young = fauna.rng.nextIntInclusive(species.litter[0], species.litter[1]);
+  const [few, many] = species.litter;
+  const young = few + Math.min(many - few, Math.floor((many - few + 1) * fertility(fauna, mother) * fauna.rng.nextFloat()));
   store.lastBirthDay[mother] = fauna.day;
   for (let k = 0; k < young; k++) {
     const child = fauna.spawn(store.species[mother]!, store.px[mother]!, store.py[mother]!, store.group[mother]!, 0);
-    store.hunger[child] = 0;
     store.thirst[child] = 0;
+    store.energy[child] = store.maxReserve[child]! * condition(fauna, mother);
+    store.mother[child] = mother;
+    store.motherUid[child] = store.uid[mother]!;
     // Born among its keepers: domestic and tame, with its mother's owner and home.
     if (store.ownerCamp[mother]! >= 0) {
       store.ownerCamp[child] = store.ownerCamp[mother]!;

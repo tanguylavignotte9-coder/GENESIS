@@ -315,7 +315,7 @@ function feedStep(sys: ProductionSystem, person: number, job: Job, out: WorkResu
     if (!hungry(sys, slot)) continue;
     carried.take(item, 1);
     const species = sys.fauna.speciesOf(slot);
-    feed(sys.fauna, slot, species, sys.params.husbandry.feedPerItem);
+    feed(sys.fauna, slot, sys.params.husbandry.feedPerItem);
   }
   out.skill = job.recipe!.skill;
   out.hours = job.recipe!.def.hours;

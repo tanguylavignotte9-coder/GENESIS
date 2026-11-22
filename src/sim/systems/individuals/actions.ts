@@ -234,6 +234,8 @@ export function performAction(sys: IndividualsSystem, person: number, action: Co
         return !sys.walkToWater(person, hours);
       }
       people.working[person] = 1;
+      // A water place one did not know is worth telling the others.
+      if (!sys.knowsWater(person, sys.tileOf(person))) sys.social.onWaterFound(person, sys.tileOf(person));
       sys.remember(person, 'water', sys.tileOf(person));
       people.thirst[person] = Math.max(0, people.thirst[person]! - body.drinkPerHour * hours);
       return people.thirst[person]! < SATISFIED;

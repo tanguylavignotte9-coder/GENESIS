@@ -46,7 +46,7 @@ function newsText(life: SocialLife, person: number, fact: Fact, detail: number):
       const dy = Math.floor(fact.tile / size) - life.people.y[person]!;
       const tiles = Math.round(Math.max(Math.abs(dx), Math.abs(dy)));
       const distance = detail === 0 ? String(tiles) : fillTemplate(t.around, { distance: String(tiles) });
-      text = tiles <= 1 ? t.nearby : fillTemplate(fact.kind === 'food' ? t.food : t.danger, { distance, direction: towards(dx, dy) });
+      text = tiles <= 1 ? t.nearby : fillTemplate(fact.kind === 'food' ? t.food : fact.kind === 'water' ? t.water : t.danger, { distance, direction: towards(dx, dy) });
     }
   }
   return text + (detail === 1 ? t.secondHand : detail >= 2 ? t.farHand : '');

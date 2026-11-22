@@ -16,6 +16,8 @@ export class GroupStore {
   /** Territorial species: the den the pack holds (tile coordinates; -1 = none yet). */
   denX = new Int16Array(INITIAL_CAPACITY).fill(-1);
   denY = new Int16Array(INITIAL_CAPACITY).fill(-1);
+  /** Territorial species: radius of the land the group holds around its den (tiles), sized by its game. */
+  range = new Float32Array(INITIAL_CAPACITY);
   /** 1 when a stronger pack holds the place: the pack yields and does not raise young there. */
   contested = new Uint8Array(INITIAL_CAPACITY);
 
@@ -31,11 +33,12 @@ export class GroupStore {
     this.denX[id] = -1;
     this.denY[id] = -1;
     this.contested[id] = 0;
+    this.range[id] = 0;
     return id;
   }
 
   private grow(capacity: number): void {
-    const resize = <T extends Int32Array | Uint8Array | Int16Array>(old: T, next: T): T => {
+    const resize = <T extends Int32Array | Uint8Array | Int16Array | Float32Array>(old: T, next: T): T => {
       next.set(old);
       return next;
     };
@@ -51,5 +54,6 @@ export class GroupStore {
     this.denX = resize(this.denX, new Int16Array(capacity).fill(-1));
     this.denY = resize(this.denY, new Int16Array(capacity).fill(-1));
     this.contested = resize(this.contested, new Uint8Array(capacity));
+    this.range = resize(this.range, new Float32Array(capacity));
   }
 }

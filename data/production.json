@@ -15,7 +15,7 @@
   "quality": { "base": 0.3, "skillWeight": 0.5, "toolWeight": 0.2, "randomness": 0.1 },
   "work": { "skillSpeedBonus": 0.8, "branchHarmToPlant": 0.03, "spareFoodPlants": 4, "keepingPreference": 1, "keepingDays": 30, "searchTiles": 30, "campTiles": 6, "buildRingMin": 2, "buildRingMax": 7 },
   "hunting": {
-    "searchTiles": 16,
+    "searchTiles": 30,
     "strikeTiles": 1.4,
     "rangedTools": ["bow"],
     "rangedStrikeTiles": 3.5,

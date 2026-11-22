@@ -6,6 +6,137 @@ en fin d'étape.** Les étapes les plus récentes sont en haut.
 Chaque entrée contient : ce qui a été fait, les décisions et écarts validés, la dette technique
 (raccourcis provisoires à reprendre plus tard, avec l'étape prévue), et les mesures clés.
 
+## v1.1 · Correctifs (monde, peur et danger, vitesse et affichage, outils, bugs de l'étape 12) — 21-22 nov. 2026
+
+**Fait (partie A, monde) :**
+- **Rivières sans diagonale** (`world/hydrology.ts`) : l'eau ne s'écoule plus que par les 4 côtés d'une tuile ; une rivière
+  oblique avance en escalier (test sur 5 graines). Débit d'une rivière relevé de 400 à 500 (`riverMinFlow`) pour garder une
+  densité de rivières comparable (les rivières en escalier occupent plus de tuiles).
+- **Flore et eau** (`flora-system.ts`, `growsInWater` dans `plants.json`) : aucune plante ne germe ni n'est placée dans le lit
+  d'une rivière (ni dans un lac), sauf les espèces qui le permettent (le roseau).
+- **Un dessin par espèce** (`renderer/art/plant.ts`, `shape` propre à chaque espèce) : chêne, bouleau élancé, épicéa,
+  fromager à contreforts, acacia en parasol, ronce, myrtillier, figuier, tamaris, saule nain, carotte (ombelle), igname
+  (liane), pissenlit (rosette), ortie, roseau, blé (épis), lin. Les baies, figues, épis… ne sont dessinés que s'il y a
+  vraiment quelque chose à cueillir (`FloraSnapshot.fruit`, `FloraSystem.hasProduce`) : un buisson cueilli ou hors saison
+  reste visible, sans fruits.
+
+**Fait (partie B, peur et danger) :**
+- **Crainte des humains par espèce** (`fauna/human-fear.ts`) : `calmShare` supprimé ; chaque bête sauvage fuit tout humain,
+  chasseur ou passant, à la distance de son espèce (`humanFleeTiles`) multipliée par sa prudence individuelle. Les bêtes
+  domestiques ne fuient jamais. Un éleveur qui approche doucement une bête pour la capturer n'est remarqué qu'à 30 % de la
+  distance (`tamerShare`) : sans cela, la capture devenait impossible.
+- **Peur mutuelle** : loups (8 tuiles), lions (7) et ours (5) évitent les humains, un peu plus un groupe ou un camp
+  (+10 % par personne, jusqu'à 6), sauf s'ils sont affamés (même seuil que pour attaquer). Côté humains : nouvelle action
+  **« Chasser un prédateur »** (`drive_off`, entrée `threatNearCamp`) : un adulte entouré des siens marche sur un prédateur
+  vu près du camp (cris, feu, armes) ; il est alors remarqué de 2,5 fois plus loin, même par un prédateur affamé.
+- **Fuir met à jour l'état** : le danger (affiché « Sécurité » dans la fiche, 100 − danger) ne retombait pas parce qu'il
+  décroissait à chaque pas alors que le prédateur n'était relu qu'une fois par heure ; il ne baisse plus tant qu'un prédateur
+  est en vue. L'émotion « peur » monte au moins à 60 % du danger (`sightFearShare`) puis retombe à son rythme. Le cerveau
+  montre toujours le danger.
+
+**Fait (partie C, simulation et affichage) :**
+- **Vitesse purement visuelle** : test `tests/worker/speed.test.ts` qui rejoue la boucle du fil de simulation (paquets de
+  ticks, reste fractionnaire en x1, tous les envois vers l'affichage, cerveaux suivis, fiches, arbre des savoirs) : même
+  monde octet par octet après 3 jours en x500, en x5, en x25 et avec des changements de vitesse en route (dont x1). Rien ne
+  divergeait. Garde-fou ajouté : la lecture par l'affichage (fiche, arbre) ne remplit plus les caches du jour du système
+  d'idées (`IdeasSystem.displayRead`).
+- **Plus de téléportation** (cause trouvée) : l'affichage estimait le rythme de la simulation par une moyenne lissée ;
+  après une pause il devenait infini (courbes de 25 s), après un changement de vitesse il restait faux plusieurs secondes,
+  le retard dépassait 4 tuiles et l'être était posé d'un coup. Désormais le rythme de la vitesse demandée est connu tout de
+  suite (`MotionInfo.ticksPerRealSecond`), la mesure ne sert qu'à ralentir si l'ordinateur ne suit pas, une pause garde le
+  rythme, et un retard se rattrape en glissant (un « saut » n'est plus que le déplacement propre de l'être en un pas).
+- **Bâtiments fermés** (`enclosed` dans `buildings.json` : huttes, tentes, maisons, caches, greniers, ateliers,
+  sanctuaire ; pas l'appentis ni le feu) : une personne immobile sur la tuile n'est plus dessinée ni cliquable ; la fenêtre
+  du bâtiment liste « À l'intérieur » avec ce que chacun fait (clic = fiche), en plus du stock.
+- **Bêtes domestiques** : collier rouge et robe pie (`FaunaSnapshot.domestic`).
+
+**Fait (partie D, outils) :**
+- **Atelier** : sections repliables, repliées au départ, bouton « Tout déplier / Tout replier » ; les lignes ne sont
+  construites qu'à l'ouverture d'une section.
+- **Découvertes progressives** (`ideas/knowledge.ts`, `knowledge.ponder` dans `ideas.json`) : le tirage quotidien devient un
+  départ de réflexion (mêmes conditions : prérequis, milieu, besoin, aptitude) ; la personne avance chaque jour, beaucoup
+  plus vite les jours où elle a exercé le métier lié (`lastSkill`), selon son aptitude et l'urgence du besoin ; elle peut se
+  décourager (plus quand le besoin ne presse pas ou qu'elle n'a pas pu expérimenter), s'arrêter si quelqu'un du camp a
+  trouvé ou si elle quitte le milieu. Journal : « X tient une piste vers la poterie » à mi-chemin, puis la découverte (qui a
+  la piste pour cause), ou l'abandon après une piste. Fiche : « Réfléchit à : poterie », progression, état de chaque
+  condition ; cerveau : groupe « Réflexion ». Sauvegardes : **format 6** (les anciennes sont refusées avec un message).
+- **Arbre des savoirs** (touche **K**, `ideas/knowledge-tree.ts`, `hud/knowledge-tree-panel.ts`) : graphe en colonnes
+  (profondeur des prérequis) des savoirs, recettes et bâtiments ; pour la tribu choisie : connu (vert), en cours de
+  découverte avec qui et où il en est (orange), conditions réunies (bleu), hors de portée (gris) ; clic : explication
+  (prérequis ✓/✗, besoin, milieu, métier, qui l'a découvert, ce qu'il ouvre).
+
+**Fait (partie E, bugs de l'étape 12) :**
+- **Sans religion** : la version exacte de l'étape 12 (8a62e53) rejouée 100 ans sur les graines 5, 7 et 10 avec un suivi
+  par tribu donne 0/60, 0/97 et 1/58 adultes sans religion : les 93 %, 38 % et 48 % ne se reproduisent pas avec ce code.
+  En validation v1.1, les taux élevés viennent d'une **religion née il y a peu** (graine 9 : culte de Haha né d'une
+  révélation l'an 48, 5 croyants sur 35 adultes à l'an 50 ; les autres n'ont simplement pas encore été convertis) :
+  histoire légitime. Aucun mécanisme de disparition d'une religion avec son fondateur n'a été trouvé. `validate.ts` donne
+  maintenant la foi tribu par tribu (jamais croyants / foi perdue / religions).
+- **Élevage** : suivi du devenir de chaque bête capturée (graine 4, code de l'étape 12) : 63 captures → 47 abattues, 19
+  échappées, 1 morte de vieillesse ; aucune ne « disparaissait », mais seul le premier abattage était écrit au journal et
+  compté. Désormais chaque abattage entre dans le bilan quotidien du troupeau, un troupeau dont le camp n'existe plus
+  retourne à l'état sauvage avec une ligne au journal, et `FaunaSystem.domesticTally` compte tout (rapport et
+  `npm run sim`). « Personne ne capture » : l'éleveur était vu comme un chasseur et les bêtes fuyaient avant qu'il les
+  atteigne : approche douce (voir partie B).
+- **Appelés à la guerre** : triés par force du moment (`life.strength`), plus par vigueur ; test où les plus vigoureux sont
+  de carrure frêle.
+
+**Défauts trouvés et corrigés pendant le lot :**
+- La première version de la crainte des groupes (+35 % par personne, jusqu'à 8) repoussait les loups à 27 tuiles d'un
+  camp : ils ne chassaient plus autour, finissaient affamés, donc sans peur, et attaquaient les buveurs isolés (graine 4 :
+  25 attaques en 3 ans contre 0 avant). Ramenée à +10 % par personne (jusqu'à 6) : 0 attaque sur la même période.
+- Même cause chez les lions (graine 2 : 12 morts par des lions contre 0 avant le lot) : un prédateur lâchait sa proie dès
+  qu'il apercevait un humain. Désormais, occupé à chasser ou à manger, il ne s'écarte que d'un humain tout proche
+  (`busyShare`, 35 % de sa distance) : 3 morts par prédateur sur la même graine.
+- La propension à se mettre à chercher (`startFactor`) a été calibrée sur 3 mondes × 40 ans (ancien tirage : 4 découvertes
+  par monde ; nouveau : 2 avec 3, 3 avec 6, retenu 8).
+- 4 tests dépendaient de la carte (rivières changées) : couple qui marche (départ dans la foule), test du doute (graine
+  choisie), test du sommeil (mains pleines), test de capture.
+
+**Décisions et écarts (à valider) :**
+- Un humain qui chasse le prédateur ne lui fait pas de mal (pas de blessure) : il le fait fuir. Un prédateur affamé
+  n'évite plus les humains mais fuit encore celui qui le chasse.
+- La « sécurité » de la fiche est l'inverse du danger existant (pas un nouveau besoin).
+- Le joueur voit les fruits avec quelques jours de retard au plus (la flore est envoyée tous les 2 jours de jeu).
+- Les personnes qui ne font que traverser une hutte en marchant restent visibles : « dans un bâtiment » = immobile sur sa
+  tuile.
+
+**Dette technique :**
+- **Soif** : 35 et 37 % des morts dans 2 mondes sur 10 en 50 ans (graines 5 et 10, pays secs) ; sur la graine 10, le code
+  d'avant ce lot donnait 24 % → **v1.2** (soif dans les pays secs, prévue).
+- Les validations de l'étape 12 ne sont pas reproductibles avec le code commité : à l'avenir, noter le commit exact de
+  chaque validation.
+- Élevage : aucun monde ne découvre l'élevage en 50 ans (2 sur 10 en 100 ans à l'étape 12) ; à revoir sur 100 ans.
+
+**Dettes résolues :** bêtes domestiques non distinctes (étape 12) ; « sans religion » (examiné : non reproduit, histoire
+légitime) ; « élevage rare / bêtes disparues » (destin compté et raconté) ; appelés choisis par vigueur (étape 12).
+
+**Mesures (serveurs de Claude Code) :**
+- **Validation, 10 graines × 50 ans** (commit « Prédateurs : occupés à chasser… », 4 calculs en parallèle, **≈ 25 min**) :
+
+| Graine | Hab. fin (pic) | Décès | Soif | Froid | Prédateurs | Tribus | Découvertes | Sans religion | Loups | Lions | ms/jour |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 62 (63) | 36 | 22 % | 0 | 0 | 1 | 7 | 24/37 | 52 | 34 | 121 |
+| 2 | 59 (59) | 26 | 0 % | 0 | 3 | 3 | 3 | 0/40 | 0 | 13 | 112 |
+| 3 | 49 (50) | 27 | 7 % | 0 | 1 | 2 | 3 | 0/29 | 0 | 31 | 112 |
+| 4 | 94 (94) | 38 | 13 % | 0 | 3 | 1 | 2 | 0/57 | 4 | 22 | 94 |
+| 5 | 43 (54) | 52 | 37 % | 0 | 0 | 1 | 7 | 0/31 | 0 | 0 | 123 |
+| 6 | 22 (30) | 35 | 3 % | 16 | 0 | 1 | 3 | 0/17 | 53 | 0 | 72 |
+| 7 | 18 (35) | 45 | 4 % | 18 | 0 | 1 | 2 | 0/10 | 0 | 27 | 111 |
+| 8 | 66 (66) | 38 | 3 % | 7 | 4 | 2 | 2 | 8/37 | 13 | 14 | 91 |
+| 9 | 67 (69) | 43 | 21 % | 0 | 0 | 1 | 3 | 0/43 | 7 | 16 | 131 |
+| 10 | 65 (67) | 38 | 32 % | 0 | 0 | 1 | 6 | 0/43 | 0 | 0 | 98 |
+
+  Aucune extinction humaine (une première version de la validation, avant les corrections des prédateurs, avait vu la
+  graine 6 s'éteindre de froid : même région froide qu'aux lots précédents). Graine 7 : 35 → 18 habitants, 18 morts de
+  froid (pays froid, histoire légitime). Morts par prédateur : 0 à 4 par monde. Loups vivants dans 6 mondes, lions dans
+  8. Découvertes : 2 à 7 par monde en 50 ans (vannerie, cuisson, terre crue partout ; chasse, pêche, taille, arc, pierre
+  polie, conservation ailleurs). Élevage découvert dans aucun monde en 50 ans (aucune bête domestique). Sans religion :
+  0 % sauf graine 1 (24/37 : culte de Yéfdo encore jeune, 13 croyants) et graine 8 (8/37 : la petite tribu des Paipon,
+  née d'une scission, n'a pas de religion ; l'autre tribu croit à 29/30). Soif : 32 et 37 % des morts (graines 10 et 5,
+  pays secs) → v1.2.
+- Tests rapides : 612, ~2 min avec 1 seul fil (machine occupée). Tests longs : voir ci-dessous.
+
 ---
 
 ## Étape 12 · Force individuelle, loups, élevage, HUD complet et validation de la v1 — 21 nov. 2026

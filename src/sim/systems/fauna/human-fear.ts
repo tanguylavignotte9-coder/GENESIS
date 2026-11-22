@@ -21,12 +21,16 @@ export function scareGame(fauna: FaunaSystem): void {
   const fear = params.humanFear;
   const fleeTiles = fauna.humanFleeTiles;
   const crowdBoost = 1 + fear.crowdShare * (fear.crowdMax - 1);
-  const look = Math.ceil(fauna.maxHumanFleeTiles * (1 + fear.warinessSpread) * Math.max(crowdBoost, fear.driveOffFactor));
+  // Farthest an animal can notice someone: walking by (with a crowd), or driving a predator off (rare).
+  const far = fauna.maxHumanFleeTiles * (1 + fear.warinessSpread);
+  const lookCalm = Math.ceil(far * crowdBoost);
+  const lookScaring = Math.ceil(far * Math.max(crowdBoost, fear.driveOffFactor));
   view.forEachAlive((person) => {
     const px = view.x(person);
     const py = view.y(person);
     const scaring = view.scaring?.(person) === true;
     const taming = view.taming?.(person) === true;
+    const look = scaring ? lookScaring : lookCalm;
     let crowd = -1;
     fauna.grid.forEachNear(px, py, look, (slot) => {
       const distance = realDistance(store.px[slot]!, store.py[slot]!, px, py);

@@ -206,7 +206,8 @@ describe('languages and cultures', () => {
     const simulation = world(13);
     const { ideas, humans } = simulation;
     const people = humans.people;
-    const a = [...Array(people.count).keys()].find((p) => people.spouse[p]! >= 0)!;
+    // A young couple (an old one may die before the month is out).
+    const a = [...Array(people.count).keys()].find((p) => people.spouse[p]! >= 0 && people.ageYears[p]! < 40 && people.ageYears[people.spouse[p]!]! < 40)!;
     const b = people.spouse[a]!;
     const foreign = ideas.addIdea(Family.Language, 'zorak', -1, -1, -1, -1);
     foreign.phonology = ideas.ideas[ideas.holdings.motherTongue(a)]!.phonology;

@@ -141,6 +141,7 @@ export interface FaunaParams {
     youngHunterFactor: number;
     riposteShare: number;
     groupTiles: number;
+    guardTiles: number;
     maxSuccess: number;
     coverByBiome: Record<string, number>;
     refugeByBiome: Record<string, number>;
@@ -372,6 +373,7 @@ export const ANIMALS_SCHEMA: Schema = {
         youngHunterFactor: share('Jeune chasseur', 'Un chasseur pas encore adulte réussit cette part des attaques d’un adulte.'),
         riposteShare: share('Blessures des chasseurs', 'Part de la force de riposte d’une proie qu’un prédateur subit quand elle se défend (une attaque ratée sur un aurochs ou un sanglier peut coûter cher).'),
         groupTiles: num(0.5, 20, 'Chasse en groupe', 'Les chasseurs du même groupe à cette distance de la proie l’attaquent ensemble.', 'tuiles'),
+        guardTiles: num(0, 20, 'Mère qui défend', 'Un petit qui tète encore, à moins de cette distance de sa mère, est défendu par elle : l’attaque échoue en plus aussi souvent que sa mère riposterait.', 'tuiles'),
         maxSuccess: share('Réussite maximale', 'Aucune attaque ne réussit à coup sûr.'),
         coverByBiome: { kind: 'record', values: share('Couvert du terrain', 'Végétation qui cache un chasseur à l’affût : la proie le voit d’autant moins loin.') },
         refugeByBiome: { kind: 'record', values: share('Terrain refuge', 'Terrain où une proie échappe plus souvent (rochers, pentes, marais) : part des attaques qui échouent en plus.') },

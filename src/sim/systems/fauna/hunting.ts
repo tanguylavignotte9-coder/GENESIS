@@ -32,6 +32,14 @@ export function weakPrey(fauna: FaunaSystem, prey: number): boolean {
   );
 }
 
+/** A young still at its mother's side (within a few tiles), its mother alive. */
+function guarded(fauna: FaunaSystem, prey: number): boolean {
+  const { store } = fauna;
+  const mother = store.mother[prey]!;
+  if (mother < 0 || store.alive[mother] !== 1 || store.uid[mother] !== store.motherUid[prey]) return false;
+  return distance(store.px[prey]!, store.py[prey]!, store.px[mother]!, store.py[mother]!) <= fauna.params.hunting.guardTiles;
+}
+
 /** Meat (kg) the body of this animal gives: an adult's, a young's by its weight. */
 export function meatOf(fauna: FaunaSystem, prey: number): number {
   const species = fauna.speciesOf(prey);
@@ -65,6 +73,8 @@ export function attackChance(fauna: FaunaSystem, slot: number, species: AnimalSp
   const vigor = 0.5 + 0.5 * Math.min(1, store.health[slot]! / 100);
   let chance = species.huntSkill * size * (1 - preySpecies.evasion) * (1 - refuge) * young * vigor;
   if (weakPrey(fauna, prey)) chance *= rules.weakPreyFactor;
+  // A young one by its mother is defended by her (a cow aurochs, a sow): as often as she would fight back.
+  if (guarded(fauna, prey)) chance *= 1 - preySpecies.riposteChance;
   if (surprised) chance *= rules.surpriseFactor;
   return Math.min(rules.maxSuccess, chance);
 }

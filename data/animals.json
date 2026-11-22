@@ -30,7 +30,7 @@
     "startConditionMin": 0.6,
     "breedingMinCondition": 0.3,
     "breedingFullCondition": 0.6,
-    "foodEnergy": {"grass": 4, "meat": 7, "fish": 5, "produce": 5}
+    "foodEnergy": {"grass": 3.5, "meat": 7, "fish": 5, "produce": 5}
   },
   "hunting": {
     "weakPreyFactor": 2.5,
@@ -41,6 +41,7 @@
     "youngHunterFactor": 0.4,
     "riposteShare": 0.3,
     "groupTiles": 4,
+    "guardTiles": 3,
     "maxSuccess": 0.9,
     "coverByBiome": {"temperate_forest": 0.5, "tropical_forest": 0.6, "taiga": 0.4, "marsh": 0.4, "savanna": 0.2, "prairie": 0.1, "mountain": 0.2, "tundra": 0},
     "refugeByBiome": {"mountain": 0.4, "snowy_peak": 0.5, "marsh": 0.2}

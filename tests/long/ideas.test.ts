@@ -27,7 +27,8 @@ describe('ideas over decades', () => {
         expect(event.text).toMatch(/découvre/);
       }
       for (let p = 0; p < people.count; p++) {
-        if (people.alive[p] === 0) continue;
+        // (Someone born since this morning gets their ideas at the next daily update.)
+        if (people.alive[p] === 0 || ideas.holdings.ready[p] === 0) continue;
         expect(ideas.holdings.motherTongue(p)).toBeGreaterThanOrEqual(0);
         expect(ideas.holdings.culture[p]).toBeGreaterThanOrEqual(0);
         catalog.forEach((item, k) => {

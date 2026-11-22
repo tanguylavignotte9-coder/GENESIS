@@ -30,12 +30,14 @@ function openSpot(sim: Simulation): { x: number; y: number } {
 
 describe('predators and prey (v1.2)', () => {
   it('a hungry wolf with no prey in reach follows the trail of game further away instead of roaming at random', () => {
-    const sim = new Simulation(3, data);
+    // Tracking is off by default (v1.2): the test turns it on.
+    const tracking = { ...data, fauna: { ...data.fauna, behavior: { ...data.fauna.behavior, trackTiles: 60 } } };
+    const sim = new Simulation(3, tracking);
     const { fauna } = sim;
     const spot = openSpot(sim);
     const wolf = fauna.spawn(code('wolf'), spot.x, spot.y, fauna.groups.add(code('wolf'), -1), 4 * fauna.daysPerYear);
     fauna.groups.leader[fauna.store.group[wolf]!] = wolf;
-    clearAround(sim, spot.x, spot.y, data.fauna.behavior.trackTiles + 2, [wolf]);
+    clearAround(sim, spot.x, spot.y, 62, [wolf]);
     const deer = fauna.spawn(code('deer'), spot.x + 40, spot.y, fauna.groups.add(code('deer'), -1), 3 * fauna.daysPerYear);
     fauna.store.hunger[wolf] = 80;
     fauna.store.thirst[wolf] = 0;
@@ -90,7 +92,7 @@ describe('predators and prey (v1.2)', () => {
     }
     expect(spot).not.toBeNull();
     const { x, y } = spot!;
-    clearAround(sim, x + 0.5, y + 0.5, data.fauna.behavior.trackTiles + 2, []);
+    clearAround(sim, x + 0.5, y + 0.5, 62, []);
     fauna.carrion.tiles.length = 0;
     fauna.carrion.meat.length = 0;
     const wolf = fauna.spawn(code('wolf'), x + 0.5, y + 0.5, fauna.groups.add(code('wolf'), -1), 4 * fauna.daysPerYear);

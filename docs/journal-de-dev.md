@@ -6,6 +6,129 @@ en fin d'étape.** Les étapes les plus récentes sont en haut.
 Chaque entrée contient : ce qui a été fait, les décisions et écarts validés, la dette technique
 (raccourcis provisoires à reprendre plus tard, avec l'étape prévue), et les mesures clés.
 
+---
+
+## v1.2 · Équilibre de l'écosystème (prédateurs, soif, pourriture, religion mesurée) — 22 nov. 2026
+
+**Diagnostic d'abord (partie A, code de la v1.1, 10 graines × 50 ans, script de suivi hors du dépôt) :**
+- **Loups et lions** : tous deux s'effondrent dans les 10-15 premières années dans les 10 mondes. Aucun n'est tué par
+  les humains ; partenaires presque toujours présents ; peu de jeunes morts. La **faim** cause plus de la moitié des
+  morts alors que des milliers de proies vivent sur la carte ; les derniers survivants meurent ensuite de vieillesse sans
+  relève. Tableau (avant tout réglage) :
+
+| Graine | Espèce | Éteinte vers | Morts (faim / vieillesse / maladie / froid / soif / chassés) | Jeunes < 2 ans | Dernières morts |
+| --- | --- | --- | --- | --- | --- |
+| 2 | loups | an 45 | 108 / 128 / 9 / 0 / 0 / 0 | 13 | vieillesse 6, faim 2 |
+| 3 | loups | an 50 | 236 / 155 / 17 / 0 / 0 / 0 | 51 | vieillesse 5, faim 3 |
+| 5 | loups | an 45 | 268 / 152 / 13 / 0 / 0 / 0 | 47 | vieillesse 7, faim 1 |
+| 5 | lions | an 25 | 79 / 37 / 10 / 0 / 0 / 0 | 4 | faim 5, vieillesse 2, maladie 1 |
+| 6 | lions | an 25 | 50 / 23 / 5 / 13 / 0 / 0 | 6 | faim 8 |
+| 7 | loups | an 30 | 102 / 48 / 5 / 0 / 2 / 0 | 20 | faim 6, vieillesse 2 |
+| 10 | loups | an 30 | 118 / 54 / 6 / 0 / 3 / 0 | 19 | faim 5, vieillesse 3 |
+| 10 | lions | an 30 | 66 / 25 / 5 / 0 / 0 / 0 | 5 | faim 3, vieillesse 5 |
+
+  Chaîne commune trouvée en trois temps : (1) un prédateur affamé sans proie à portée partait au hasard (24 tuiles dans
+  une direction tirée au sort) : médiane de 0 proie à 16 tuiles à sa mort, souvent 0 à 40 tuiles, alors que le gibier
+  abondait ailleurs ; (2) une fois le pistage ajouté, les morts de faim restaient massives : suivi heure par heure, des
+  loups et lions restaient **jusqu'à 68 heures « en train d'aller à une charogne »** sans jamais manger — il fallait
+  arriver à 0,12 tuile du centre de la nourriture, et les membres d'une meute autour d'une même carcasse se repoussent
+  (espace personnel 0,6) ; (3) la chasse réussissait une fois sur deux, quel que soit l'état de la proie.
+- **Soif** : presque toutes les victimes mouraient **à 2-5 tuiles d'une eau qu'elles connaissaient**, en « allant
+  boire », souvent affamées. Suivi heure par heure (graine 5, an 27) : immobiles 14 h devant un obstacle (une eau « en
+  vue » était approchée en ligne droite vers un point 4 tuiles plus loin, sans calcul de chemin). Second cas (graine 10) :
+  camp à 10-15 tuiles de l'eau, on ne partait boire qu'à 70 % de soif, trop tard pour un corps affaibli. Les camps sont
+  près de l'eau (1 à 3 tuiles) dans les autres mondes, la mémoire des points d'eau fonctionne.
+- **Religion** : la cause des 93/48/38 % de l'étape 12 n'est toujours pas reproduite. Mesuré par décennie : la part sans
+  religion monte à 80-95 % la décennie où une religion naît (presque personne n'y croit encore), puis retombe à quelques %
+  en 10 à 20 ans (conversions). C'est ce qu'on voyait à l'étape 12 en fin de période dans les mondes où une religion était
+  jeune. Aucun saut inexpliqué.
+
+**Fait (partie A.3, mesure de la religion, aucune règle changée) :** `npm run sim` affiche la part d'adultes sans religion
+par décennie (et le nombre de religions), la chronique des religions (naissances, adoptions, schismes, extinctions) et
+les conversions / pertes de foi par décennie, avec une alerte « ⚠ Saut inexpliqué » si la part varie de 25 points sans
+événement de religion dans la décennie. Une religion qui n'a plus aucun fidèle est racontée au journal (« … s'éteint »).
+
+**Fait (partie B, correctifs au niveau de l'individu) :**
+- **Prédateurs** (`fauna/behavior.ts`, `animals.json → behavior`) : un prédateur affamé sans proie à portée **suit la piste
+  du gibier** le plus proche à 60 tuiles (`trackTiles`) ; il **mange dès qu'il est sur la tuile** de la nourriture ; une
+  **proie faible** (jeune, vieille, malade, santé < 50) est prise 3 fois plus facilement et choisie en priorité, une bête
+  adulte en pleine force s'échappe plus souvent (`weakPreyFactor`, `primePreyFactor`, `weakPreyHealth`).
+- **Pourriture** : une carcasse pourrit selon la température (demi-vie 4,3 jours à 15 °C, deux fois plus vite tous les
+  10 °C, presque plus dans le grand froid : `carrion.*`) au lieu de 15 % par jour partout. La viande, le poisson et les
+  carcasses gâtés dans un stock ou un tas sont jetés et laissent de la viande aux charognards (`scavengerMeat` dans
+  `items.json`). Les humains mangeaient déjà en premier ce qui se gâte le plus vite ; aucune technique de conservation
+  ajoutée.
+- **Soif** : une personne qui voit l'eau **calcule un vrai chemin** pour l'atteindre ; aux abords du camp, l'envie de boire
+  compte la soif qui viendra pendant la marche jusqu'à l'eau connue la plus proche (`thirstAnticipation`) ; en route, on
+  boit à l'eau qu'on croise.
+- **Découvertes (défaut de la v1.1 trouvé par la validation)** : seul le dernier métier de la journée comptait comme
+  « essai », et un savoir dont le métier n'existe pas encore (la taille de la pierre avant tout artisanat) ne progressait
+  presque pas : 3 découvertes en 75 ans dans 8 mondes sur 10, jamais de chasse ni de taille. Désormais chaque métier de la
+  journée compte (`LifeState.skillsToday`), et tant qu'aucune recette du métier lié n'est accessible, tout travail sert
+  d'essai. Sauvegardes : **format 7**.
+
+- **Animaux bloqués sur une rive** : un animal visait une charogne ou une tuile où manger située de l'autre côté d'une eau
+  (distance seule) et restait collé à la rive jusqu'à mourir de faim. Il ne vise plus que ce qu'il peut atteindre en ligne
+  droite sur la terre ferme. Étendue aux proies et au pistage, cette vérification rendait les prédateurs si efficaces
+  qu'ils anéantissaient le gibier (graine 1 : 190 loups, puis aurochs 0 et chevaux 20 sur toute la carte, puis plus aucun
+  prédateur) : elle a été retirée pour les proies.
+
+**Défauts trouvés et corrigés pendant le lot :**
+- Un coût de la poursuite (faim gagnée à chaque pas de chasse) a été essayé puis retiré : il gardait les prédateurs
+  presque toujours au-dessus du seuil de faim où ils n'ont plus peur des humains (scénario de test : 12 personnes tuées par
+  des loups et des lions en 3 semaines au lieu de 1).
+- Une anticipation de la soif comptée partout (même en expédition) faisait rentrer les guerriers boire au camp : elle ne
+  vaut qu'aux abords du camp.
+- La viande jetée passe par une méthode de la faune (`leaveCarrion`) : la production n'écrit pas dans les données d'un
+  autre système (test d'architecture).
+
+**Suivi de la v1.1 (partie C) :**
+- **Évasions** : avec les règles actuelles, une bête capturée adulte et sauvage s'échappe très souvent (64 % au calme dans
+  un enclos, presque toujours sans enclos), un jeune rarement (16 % bien nourri). Les 19 évasions sur 63 de la graine 4
+  (dont 47 bêtes abattues avant d'avoir pu fuir) correspondent à ce mélange : plausible, rien changé.
+- **Chasseurs qui cherchent à 30 tuiles** : vérifié par la validation ci-dessous (aucune famine, chasse découverte et
+  pratiquée).
+
+**Mesures (serveurs de Claude Code) :**
+- **Validation, 10 graines × 75 ans** (code final, 4 calculs en parallèle, **18 min**). Elle a été lancée 4 fois : la
+  première a révélé le blocage des découvertes et la soif de la graine 10, la deuxième et la troisième les prédateurs
+  bloqués sur les rives puis l'anéantissement du gibier ; seule la dernière (code commité) est donnée ici.
+
+| Graine | Hab. fin (pic) | Morts | Faim | Soif | Froid | Prédateur | Maladie | Vieillesse | Violence | Tribus | Découvertes | Sans religion fin (max par décennie) | Élevage (captures / abattues / échappées) | Loups | Lions | ms/jour |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 21 (37) | 72 | 25 % | 29 % | 0 % | 0 % | 22 % | 19 % | 4 % | 1 | 8 | 0/15 (89 %) | 0 / 0 / 0 | 84 | 55 | 135 |
+| 2 | 24 (35) | 38 | 5 % | 0 % | 0 % | 11 % | 11 % | 74 % | 0 % | 3 | 6 | 0/23 (48 %) | 0 / 0 / 0 | 0 | 0 | 99 |
+| 3 | 75 (75) | 46 | 4 % | 2 % | 4 % | 4 % | 37 % | 46 % | 0 % | 2 | 7 | 0/49 (0 %) | 0 / 0 / 0 | 0 | 0 | 120 |
+| 4 | 136 (136) | 80 | 20 % | 15 % | 0 % | 1 % | 39 % | 22 % | 0 % | 1 | 8 | 0/91 (0 %) | 100 / 89 / 34 | 0 | 0 | 117 |
+| 5 | 91 (98) | 92 | 20 % | 17 % | 0 % | 0 % | 40 % | 22 % | 0 % | 2 | 8 | 5/64 (95 %) | 0 / 0 / 0 | 1 | 0 | 135 |
+| 6 | 9 (30) | 34 | 0 % | 0 % | 68 % | 0 % | 9 % | 18 % | 6 % | 1 | 6 | 0/9 (0 %) | 0 / 0 / 0 | 35 | 0 | 74 |
+| 7 | 42 (42) | 47 | 6 % | 23 % | 0 % | 4 % | 34 % | 28 % | 4 % | 2 | 3 | 0/25 (58 %) | 0 / 0 / 0 | 0 | 0 | 106 |
+| 8 | 47 (57) | 88 | 5 % | 7 % | 41 % | 0 % | 28 % | 17 % | 1 % | 1 | 3 | 0/29 (0 %) | 0 / 0 / 0 | 0 | 34 | 97 |
+| 9 | 104 (106) | 77 | 13 % | 14 % | 0 % | 0 % | 42 % | 23 % | 1 % | 1 | 3 | 1/67 (42 %) | 0 / 0 / 0 | 0 | 0 | 133 |
+| 10 | 96 (98) | 76 | 11 % | 11 % | 1 % | 1 % | 51 % | 17 % | 1 % | 1 | 2 | 0/64 (67 %) | 0 / 0 / 0 | 0 | 0 | 112 |
+
+  Humains : aucune extinction ; graine 6 réduite à 9 personnes par le froid (68 % des morts, pays froid déjà en
+  difficulté à chaque lot) ; graine 8 : 41 % de morts de froid. Soif : 0 à 29 % (graines 1 et 7 au-dessus de 20 %).
+  Découvertes : 2 à 8 ; élevage dans la graine 4 (100 captures, 89 bêtes abattues, 34 évasions). Sans religion à la fin :
+  0 à 8 %, mais 42 à 95 % au pire de la décennie où une religion naît (aucun saut inexpliqué).
+  **Prédateurs : loups vivants dans 2 mondes (plus 1 loup seul dans un troisième), lions dans 2.**
+- Tests rapides : 619. Tests longs : voir ci-dessous.
+
+**Dette technique :**
+- **Prédateurs, non résolu → v1.3** : les correctifs d'individu (pistage, repas sur la tuile, rives, proies faibles)
+  ont supprimé des absurdités réelles, mais la dynamique reste en dents de scie : les prédateurs pullulent les premières
+  années (loups ×1,5 à ×2), épuisent localement le gibier, puis meurent de faim ; selon le monde, une espèce disparaît
+  encore dans 8 mondes sur 10 à 75 ans. Pistes réalistes à examiner une par une : seule la louve dominante de la meute met
+  bas (une portée par an, taille selon l'état), vigilance des troupeaux (une proie avertie fuit plus tôt), densité limitée
+  par les territoires. Le système est très sensible : juger chaque piste sur 10 graines.
+- **Soif** : 23 et 29 % des morts dans 2 mondes sur 10 (souvent des personnes déjà affamées, loin de l'eau).
+- La validation de l'étape 12 sur la religion n'est toujours pas reproduite (mesures en place désormais).
+
+**Dettes résolues :** pourriture de la viande indépendante du climat (étape 12) ; morts de soif à quelques pas d'une eau
+connue (v1.1) ; découvertes bloquées par les métiers impossibles à exercer (défaut de la v1.1).
+
+---
+
 ## v1.1 · Correctifs (monde, peur et danger, vitesse et affichage, outils, bugs de l'étape 12) — 21-22 nov. 2026
 
 **Fait (partie A, monde) :**

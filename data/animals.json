@@ -21,7 +21,7 @@
     "wanderChance": 0.3,
     "wanderRadius": 6,
     "huntSearchTiles": 24,
-    "trackTiles": 60,
+    "trackTiles": 0,
     "weakPreyFactor": 3,
     "primePreyFactor": 0.4,
     "weakPreyHealth": 50,

@@ -187,7 +187,7 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
   for (let s = 0; s < params.behavior.forageSamples; s++) {
     const tx = x + fauna.rng.nextIntInclusive(-r, r);
     const ty = y + fauna.rng.nextIntInclusive(-r, r);
-    if (!fauna.isWalkable(tx, ty) || !straightWay(fauna, slot, tx + 0.5, ty + 0.5)) continue;
+    if (!fauna.isWalkable(tx, ty)) continue;
     const value = foodValueAt(fauna, code, tx, ty);
     if (value > bestValue) {
       bestValue = value;
@@ -195,7 +195,8 @@ function findFood(fauna: FaunaSystem, slot: number, species: AnimalSpecies): boo
       bestY = ty;
     }
   }
-  if (bestValue <= 0) return false;
+  // Food across a river or a lake is out of reach (checked for the chosen tile only: grazing is frequent).
+  if (bestValue <= 0 || !straightWay(fauna, slot, bestX + 0.5, bestY + 0.5)) return false;
   // Somewhere on the chosen tile (not its exact middle: a herd grazing a meadow spreads out).
   const k = (store.uid[slot]! * 3) % DIRECTION_COUNT;
   setTarget(fauna, slot, State.Forage, bestX + 0.5 + DIRECTIONS_X[k]! * 0.3, bestY + 0.5 + DIRECTIONS_Y[k]! * 0.3);

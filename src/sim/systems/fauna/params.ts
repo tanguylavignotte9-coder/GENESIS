@@ -292,7 +292,7 @@ export const ANIMALS_SCHEMA: Schema = {
         weakPreyFactor: num(1, 10, 'Proie faible', 'Une proie jeune, vieille, malade ou affaiblie est prise ce nombre de fois plus facilement, et le chasseur la choisit plutôt qu’une bête plus proche en pleine force.', 'facteur'),
         primePreyFactor: num(0.05, 1, 'Proie en pleine force', 'Facteur sur la réussite de la chasse contre une bête adulte en bonne santé (elle se défend, distance ses poursuivants).', 'facteur'),
         weakPreyHealth: num(0, 100, 'Santé d’une proie faible', 'En dessous de cette santé, une proie compte comme affaiblie (blessée, affamée).', 'points'),
-        trackTiles: num(0, 200, 'Pister le gibier', 'Un chasseur affamé sans proie à portée suit la piste du gibier le plus proche dans ce rayon (odeurs, traces) ; au-delà, il bat la campagne au hasard.', 'tuiles'),
+        trackTiles: num(0, 200, 'Pister le gibier', 'Un chasseur affamé sans proie à portée suit la piste du gibier le plus proche dans ce rayon (odeurs, traces) ; au-delà, il bat la campagne au hasard (0 = jamais de pistage). Désactivé par défaut (v1.2) : sans vigilance des troupeaux ni densité limitée par les territoires, des prédateurs qui pistent épuisent le gibier.', 'tuiles'),
         huntSearchTiles: num(0, 100, 'Battre la campagne', 'Un chasseur affamé sans proie à portée part chercher aussi loin (le meneur emmène sa meute ; il revient vers sa tanière une fois repu).', 'tuiles'),
         fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),
         chaseSteps: int(1, 500, 'Durée d’une poursuite', 'Un chasseur abandonne après ce nombre de pas de poursuite.', 'pas'),

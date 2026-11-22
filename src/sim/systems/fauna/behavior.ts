@@ -487,16 +487,16 @@ export function chase(fauna: FaunaSystem, slot: number, species: AnimalSpecies, 
     settle(fauna, slot);
     return true;
   }
-  if (d > species.chargeTiles) {
-    moveTo(fauna, slot, px, py, species.walkTilesPerHour, false, false);
-    return false;
-  }
   let tx = px;
   let ty = py;
   if (groups.size[store.group[slot]!]! > 1 && d > movement.encircleTiles + movement.catchTiles) {
     const k = (store.uid[slot]! * 5) % DIRECTION_COUNT;
     tx += DIRECTIONS_X[k]! * movement.encircleTiles;
     ty += DIRECTIONS_Y[k]! * movement.encircleTiles;
+  }
+  if (d > species.chargeTiles) {
+    moveTo(fauna, slot, tx, ty, species.walkTilesPerHour, false, false);
+    return false;
   }
   // Close to the prey, the hunter brakes so as to stay on it instead of running past.
   const close = d <= movement.encircleTiles + movement.catchTiles;

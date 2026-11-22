@@ -4,6 +4,7 @@ import { Simulation } from '../../../src/sim/core/simulation';
 import { daysPerYear } from '../../../src/sim/core/time-params';
 import { Sex, State } from '../../../src/sim/systems/fauna/animal-store';
 import { think } from '../../../src/sim/systems/fauna/behavior';
+import { Gait } from '../../../src/sim/core/motion';
 import { dataWithSize } from '../world/helpers';
 
 const SIZE = 256;
@@ -71,6 +72,8 @@ describe('animals', () => {
     const wolf = fauna.spawn(speciesCode('wolf'), spot.x + 3, spot.y, pack, 1000);
     fauna.groups.leader[pack] = wolf;
     fauna.store.state[wolf] = State.Hunt;
+    // It charges: it is seen.
+    fauna.store.gait[wolf] = Gait.Run;
     think(fauna, deer);
     expect(fauna.store.state[deer]).toBe(State.Flee);
     expect(fauna.store.targetX[deer]).toBeLessThan(spot.x);

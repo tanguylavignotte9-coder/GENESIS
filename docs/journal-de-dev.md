@@ -88,10 +88,18 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 - Même cause chez les lions (graine 2 : 12 morts par des lions contre 0 avant le lot) : un prédateur lâchait sa proie dès
   qu'il apercevait un humain. Désormais, occupé à chasser ou à manger, il ne s'écarte que d'un humain tout proche
   (`busyShare`, 35 % de sa distance) : 3 morts par prédateur sur la même graine.
+- 5 tests dépendaient de la carte ou d'un hasard de trajectoire : couple qui marche (départ dans la foule), test du doute
+  (graine choisie), test du sommeil (mains pleines), capture de chèvres, couple bilingue (l'épouse mourait de vieillesse).
+- Le gibier qui fuit aussi les passants s'écarte d'un camp animé : un chasseur ne cherchait une proie qu'à 16 tuiles
+  alors que le camp jugeait la chasse possible avec du gibier à 30 tuiles (incohérence : on voulait chasser sans jamais
+  partir). Le chasseur cherche maintenant à 30 tuiles (`hunting.searchTiles`). Graine 42, tribu qui sait chasser : le
+  cuir revient dans les 2 ans (test long). La chasse reste plus difficile qu'avant (79 bêtes en 3 ans contre 128) : c'est
+  la conséquence voulue du gibier plus craintif ; la première année, la tribu passe moins de temps à l'artisanat (lance
+  vers le jour 30) et en chassant les loups du camp.
+- Le balayage de la peur des humains utilisait pour tout le monde le rayon de « chasser un prédateur » (38 tuiles) : il
+  n'est plus utilisé que pour la personne qui chasse un prédateur (mesure de 1 000 humains revenue sous la limite).
 - La propension à se mettre à chercher (`startFactor`) a été calibrée sur 3 mondes × 40 ans (ancien tirage : 4 découvertes
   par monde ; nouveau : 2 avec 3, 3 avec 6, retenu 8).
-- 4 tests dépendaient de la carte (rivières changées) : couple qui marche (départ dans la foule), test du doute (graine
-  choisie), test du sommeil (mains pleines), test de capture.
 
 **Décisions et écarts (à valider) :**
 - Un humain qui chasse le prédateur ne lui fait pas de mal (pas de blessure) : il le fait fuir. Un prédateur affamé
@@ -112,7 +120,8 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 légitime) ; « élevage rare / bêtes disparues » (destin compté et raconté) ; appelés choisis par vigueur (étape 12).
 
 **Mesures (serveurs de Claude Code) :**
-- **Validation, 10 graines × 50 ans** (commit « Prédateurs : occupés à chasser… », 4 calculs en parallèle, **≈ 25 min**) :
+- **Validation, 10 graines × 50 ans** (commit « Prédateurs : occupés à chasser… », avant l'allongement de la recherche
+  du chasseur, qui n'a été vérifié que par les tests, 4 calculs en parallèle, **≈ 25 min**) :
 
 | Graine | Hab. fin (pic) | Décès | Soif | Froid | Prédateurs | Tribus | Découvertes | Sans religion | Loups | Lions | ms/jour |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -135,7 +144,9 @@ légitime) ; « élevage rare / bêtes disparues » (destin compté et raconté)
   0 % sauf graine 1 (24/37 : culte de Yéfdo encore jeune, 13 croyants) et graine 8 (8/37 : la petite tribu des Paipon,
   née d'une scission, n'a pas de religion ; l'autre tribu croit à 29/30). Soif : 32 et 37 % des morts (graines 10 et 5,
   pays secs) → v1.2.
-- Tests rapides : 612, ~2 min avec 1 seul fil (machine occupée). Tests longs : voir ci-dessous.
+- Tests rapides : 609 (~2 min). **Tests longs : 13/13** (8 fichiers, 14 min). Jeu construit (`npm run build`) et vérifié dans
+  Chromium (affichage compilé, sans Electron) : carte zoomée (plantes dessinées par espèce, lac sans plante), arbre des
+  savoirs, Atelier replié ; aucune erreur dans la console.
 
 ---
 

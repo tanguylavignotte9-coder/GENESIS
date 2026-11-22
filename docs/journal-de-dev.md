@@ -8,6 +8,77 @@ Chaque entrée contient : ce qui a été fait, les décisions et écarts validé
 
 ---
 
+## v1.3 · Le Wiki en jeu — 22 nov. 2026
+
+**Fait (aucun changement de `src/sim/` ni de `data/*.json` : seulement l’affichage, `data/wiki/` et les tests) :**
+- **Socle** (`src/renderer/wiki/`) : fenêtre Wiki (F1 ou H, bouton « Wiki » de la barre d’outils ; l’ancienne aide
+  `hud/help-page.ts` est supprimée) avec index par chapitres repliables, recherche sur tout le Wiki (titres, mots-clés,
+  textes), liens, retour (← ou Retour arrière), accueil (⌂), bouton ↻ pour relire le monde. Modules : `model.ts` (pages et
+  blocs, sans DOM), `markup.ts` (`[[lien]]`, `{var:fichier.json:clé}`, `**gras**`, `## titre`, `- liste`, `> encadré`,
+  `{live:id}`), `content.ts` (validation des fichiers de `data/wiki/` par le schéma commun, messages en français),
+  `library.ts` (toutes les pages, recherche, références), `render.ts` et `wiki-window.ts` (DOM).
+- **Chiffres en direct** : `{var:…}` affiche la valeur de l’Atelier (modifications comprises) avec son unité
+  (`values.ts`, pourcentage pour fractions et probabilités), légende au survol, encadré orange si modifiée. Le Wiki
+  demande les valeurs (`workshopGet`, message déjà existant) à l’ouverture ; il reçoit ensuite chaque instantané de
+  l’Atelier et ne reconstruit ses pages que s’il est ouvert (sinon à l’ouverture). Avant la première réponse : valeurs
+  par défaut.
+- **Pages générées** (`catalog/`) : une fiche par entrée de 24 listes de données (biomes, ressources, types de temps,
+  années anormales, plantes, animaux, traits, compétences, actions, émotions, souvenirs, conversations, ambitions,
+  maladies, régimes, règles de propriété et d’héritage, stratégies, valeurs culturelles, croyances, savoirs, recettes,
+  objets, bâtiments) : liens « ce qu’il faut / ce que ça ouvre / d’où ça vient / à quoi ça sert » calculés depuis les
+  données, puis toutes ses variables en direct (un identifiant devient un lien). Plus une page par fichier de données pour
+  les variables qui n’appartiennent à aucune fiche. Le contenu est reconstruit depuis les valeurs de l’Atelier
+  (`rawFromVariables`), aucun texte de fiche écrit à la main ; les mots des fiches sont dans `data/wiki/libelles.json`.
+- **Chapitres rédigés** (écrits en lisant le code) : accueil, démarrer en 10 minutes, monde, temps, plantes et animaux,
+  humain (besoins, corps, mémoire), cerveau, mouvement, production, vie sociale, famille et cycle de vie, groupes et
+  pouvoir, écosystème, idées, conflit, lire une histoire, ce qui n’est pas encore simulé, glossaire ; et 18 pages d’écrans
+  (raccourcis, légende, fiche, fiche animale, bâtiment, cerveau, gouvernance, groupes, idées, journal, Atelier,
+  statistiques, généalogie, relations, politique, arbre des savoirs, suivis, sauvegardes).
+- **Pages vivantes** (`live.ts`) : « Ma partie » (vue d’ensemble, tribus et régime avec boutons « Voir sur la carte » et
+  « Voir dans le journal » (nouveau `JournalPanel.showFiltered`), cultures/langues/religions/biens d’échange, savoirs
+  connus, espèces vivantes avec effectifs) et 10 encadrés « Dans ta partie » utilisés par les chapitres. Construites à
+  l’ouverture d’une page ou sur ↻ (comptage des plantes à la demande : `PlantLayer.speciesCounts`), jamais à chaque image.
+- **Boutons « ? »** : fiche humaine, fiche animale, bâtiment, cerveau, gouvernance, groupes, idées, journal, Atelier,
+  statistiques, sauvegardes, généalogie, relations, politique, arbre des savoirs, suivis (`wiki/help-targets.ts`).
+- **Déplacé dans le Wiki** : l’aide (touches → page « Raccourcis », description des panneaux → pages « écran ») ; la
+  légende des couleurs du cerveau, de la gouvernance et de la carte politique (remplacées dans ces fenêtres par un renvoi
+  au « ? ») → page « Légende ». L’Atelier garde ses variables et leurs légendes (ce sont les métadonnées que le Wiki
+  réutilise) et gagne un lien « En savoir plus » par fichier (le chapitre dont `dataFiles` contient ce fichier).
+- **Test de couverture** (`tests/renderer/wiki.test.ts`) : chaque dossier de `src/sim/systems/` a une page rédigée
+  (`systems`), chaque fichier de données un « en savoir plus » (`dataFiles`), chaque variable de l’Atelier est documentée et
+  affichée par une page générée (5 228), aucun lien cassé, aucune variable citée inconnue (pages rédigées, générées,
+  chapitres, pages vivantes avec un monde factice), chaque encadré et chaque « ? » mène quelque part ; plus des tests du
+  balisage, de la validation (fichier invalide refusé avec un message qui le nomme) et de la recherche.
+- **Dette v1.2 résolue** : le test long « 1 000 humains en x500 » est relatif à la machine
+  (`tests/long/support/calibration.ts` : calcul de référence sans code de simulation, meilleur de 5 essais, mesuré avant et
+  après). Seuil : 18,5 références par jour de jeu (le budget de 960 ms sur un serveur où la référence prend ~52 ms) ;
+  aujourd’hui 15 références.
+
+**Écarts relevés en lisant le code :**
+- La fin de partie (« recommencer » / « faire réapparaître une tribu ») du design n’existe pas : il faut lancer un nouveau
+  monde. Écrit dans « Ce qui n’est pas encore simulé ».
+- La république exige l’écriture, qui n’existe pas aux ères 0 et 1 : ce régime ne peut pas apparaître.
+- Le poisson n’est pas fait d’individus (stock par tuile d’eau), contrairement au pilier 1 ; les objets remarquables ont
+  leur place mais n’apparaissent pas.
+- La carte des systèmes du design compte 6 systèmes ; le code a 8 dossiers (monde, flore, faune séparés ; individus).
+- « Type de culture » : il n’y a pas de types fixes (les cultures naissent) ; les fiches portent sur les valeurs culturelles.
+
+**Dette technique :**
+- Les libellés des variables d’enregistrements montrent l’identifiant brut (« Densité de départ par biome : taiga »,
+  « Préférence alimentaire : meat ») : ils viennent du catalogue de l’Atelier (`variables.ts`, dans `src/sim/`, non touché).
+  → à reprendre avec la prochaine étape qui touche `src/sim/core`.
+- Le `{var:}` d’un texte n’est vérifié que par le test (pas au lancement) : une faute de frappe s’affiche en rouge.
+- Pas de page dédiée à l’indicateur de performance (F3) et au banc d’essai (une ligne dans « Raccourcis » et « Atelier »).
+
+**Mesures :** construction du Wiki 80 ms (363 pages rédigées, générées et vivantes), reconstruction après un changement de
+l’Atelier 43 ms (seulement si le Wiki est ouvert), première recherche 33 ms (index), puis quelques ms. Tests rapides : 635
+(16 nouveaux pour le Wiki, 71 s au total). Tests longs : non relancés (rien de `src/sim/` ni de `data/*.json` hors
+`data/wiki/` n’a changé), sauf le test de performance devenu relatif (passe). Essai dans l’affichage compilé (Electron sous
+Xvfb, script hors dépôt) : F1, chapitre « groupes » (10 valeurs en direct, 2 encadrés), recherche « loup », fiche du loup
+(54 valeurs), retour, page « Les tribus et leur régime », « ? » du journal, « En savoir plus » de l’Atelier : aucune erreur.
+
+---
+
 ## v1.2 · Équilibre de l'écosystème (prédateurs, soif, pourriture, religion mesurée) — 22 nov. 2026
 
 **Diagnostic d'abord (partie A, code de la v1.1, 10 graines × 50 ans, script de suivi hors du dépôt) :**

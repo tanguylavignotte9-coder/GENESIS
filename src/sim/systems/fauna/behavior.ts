@@ -102,7 +102,7 @@ export function think(fauna: FaunaSystem, slot: number): void {
       // It follows the trail of the nearest game it can scent; with none, it roams at random.
       const n = params.species.length;
       const hunter = store.species[slot]!;
-      const trail = params.behavior.trackTiles > species.huntRadius ? nearestAnimal(fauna, fauna.grid, slot, params.behavior.trackTiles, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1 && store.ownerCamp[other]! < 0 && straightWay(fauna, slot, store.px[other]!, store.py[other]!)) : -1;
+      const trail = params.behavior.trackTiles > species.huntRadius ? nearestAnimal(fauna, fauna.grid, slot, params.behavior.trackTiles, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1 && store.ownerCamp[other]! < 0) : -1;
       if (trail >= 0) {
         setTarget(fauna, slot, State.Wander, store.px[trail]!, store.py[trail]!);
         return;
@@ -257,8 +257,7 @@ function easiestPrey(fauna: FaunaSystem, slot: number, radius: number, accept: (
     const d = distance(x, y, store.px[other]!, store.py[other]!);
     if (d > radius || !accept(other)) return;
     const score = weakPrey(fauna, other) ? d / params.behavior.weakPreyFactor : d;
-    // A prey on the other side of a river or a lake cannot be run down.
-    if (score < bestScore && straightWay(fauna, slot, store.px[other]!, store.py[other]!)) {
+    if (score < bestScore) {
       best = other;
       bestScore = score;
     }

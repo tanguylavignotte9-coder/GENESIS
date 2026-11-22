@@ -116,6 +116,8 @@ export interface FaunaParams {
     wanderRadius: number;
     /** A hungry hunter with no prey in reach goes looking this far (the leader takes its pack along). */
     huntSearchTiles: number;
+    /** A hungry hunter with no prey in reach follows the trail of the nearest game within this distance. */
+    trackTiles: number;
     fleeDistance: number;
     chaseSteps: number;
     packShareRadius: number;
@@ -151,7 +153,8 @@ export interface FaunaParams {
     coastMaxDepthMeters: number;
   };
   /** Carcasses: share of the meat that rots each day, and scraps below which they vanish. */
-  carrion: { rotPerDay: number; minimumMeat: number };
+  /** Carcasses: days for half the meat to rot at the reference temperature (×2 faster every `doublingCelsius` warmer, within bounds), and scraps below which they vanish. */
+  carrion: { halfLifeDays: number; referenceCelsius: number; doublingCelsius: number; minFactor: number; maxFactor: number; minimumMeat: number };
   stats: { intervalDays: number };
   /**
    * How wild animals perceive humans: individual wariness; predators keep away from people
@@ -281,6 +284,7 @@ export const ANIMALS_SCHEMA: Schema = {
         cohesionRadius: int(1, 64, 'Cohésion du groupe', 'Au-delà de cette distance du chef, l’animal rejoint son groupe.', 'tuiles'),
         wanderChance: share('Promenade', 'Chance de partir se promener quand l’animal n’a besoin de rien.'),
         wanderRadius: int(1, 64, 'Rayon de promenade', 'Distance maximale d’une promenade.', 'tuiles'),
+        trackTiles: num(0, 200, 'Pister le gibier', 'Un chasseur affamé sans proie à portée suit la piste du gibier le plus proche dans ce rayon (odeurs, traces) ; au-delà, il bat la campagne au hasard.', 'tuiles'),
         huntSearchTiles: num(0, 100, 'Battre la campagne', 'Un chasseur affamé sans proie à portée part chercher aussi loin (le meneur emmène sa meute ; il revient vers sa tanière une fois repu).', 'tuiles'),
         fleeDistance: int(1, 64, 'Distance de fuite', 'Distance parcourue en fuyant un chasseur.', 'tuiles'),
         chaseSteps: int(1, 500, 'Durée d’une poursuite', 'Un chasseur abandonne après ce nombre de pas de poursuite.', 'pas'),
@@ -341,7 +345,11 @@ export const ANIMALS_SCHEMA: Schema = {
     carrion: {
       kind: 'object',
       fields: {
-        rotPerDay: share('Pourriture', 'Part de la viande d’une carcasse qui pourrit chaque jour.'),
+        halfLifeDays: num(0.2, 100, 'Pourriture d’une carcasse', 'Jours pour que la moitié de la viande d’une carcasse pourrisse à la température de référence.', 'jours'),
+        referenceCelsius: num(-30, 40, 'Température de référence', 'Température à laquelle la carcasse pourrit au rythme indiqué.', '°C'),
+        doublingCelsius: num(1, 40, 'Chaleur et pourriture', 'Tous ces degrés de plus, la viande pourrit deux fois plus vite (deux fois moins vite en dessous).', '°C'),
+        minFactor: num(0, 1, 'Froid qui conserve', 'Dans le grand froid, la viande pourrit au plus lentement à ce facteur du rythme de référence.', 'facteur'),
+        maxFactor: num(1, 10, 'Chaleur extrême', 'Dans la grande chaleur, la viande pourrit au plus vite à ce facteur du rythme de référence.', 'facteur'),
         minimumMeat: num(0, 100, 'Restes', 'En dessous de cette quantité, la carcasse disparaît.', 'unités'),
       },
     },

@@ -16,6 +16,8 @@ export interface ItemDef {
   food: number;
   /** Days for half a pile to spoil at the reference temperature (0 = never spoils). */
   halfLifeDays: number;
+  /** Meat left for scavengers by one unit of it thrown away once spoilt (0 = nothing an animal eats). */
+  scavengerMeat?: number;
   /** Degrees of warmth felt when wearing it (clothing). */
   warmthCelsius: number;
   /** Extra load a person can carry with it (basket). */
@@ -189,11 +191,13 @@ export const ITEMS_SCHEMA: Schema = {
           bulk: num(0.05, 50, 'Encombrement', 'Place prise par une unité dans la charge d’une personne ou dans un stock.', 'charge/unité'),
           food: num(0, 5, 'Valeur nutritive', 'Valeur d’une unité comme nourriture (0 = non comestible ; 1 = une poignée de baies).', 'facteur'),
           halfLifeDays: num(0, 1000, 'Conservation', 'Jours pour que la moitié d’une pile se gâte à la température de référence (0 = ne se gâte pas). Le froid ralentit, la chaleur accélère.', 'jours'),
+          scavengerMeat: num(0, 100, 'Restes pour les charognards', 'Viande (unités de carcasse) qu’une unité gâtée jetée laisse aux charognards près du camp (0 = rien qu’un animal mange).', 'unités'),
           warmthCelsius: num(0, 30, 'Chaleur du vêtement', 'Degrés ressentis en plus quand on le porte.', '°C'),
           carryBonus: num(0, 50, 'Aide au transport', 'Charge supplémentaire qu’on peut porter avec cet objet (panier).', 'charge'),
           fuelHours: num(0, 50, 'Combustible', 'Heures de feu que donne une unité (0 = ne brûle pas).', 'heures/unité'),
           wantPerMember: num(0, 20, 'Besoin coutumier', 'Nombre d’unités que le camp veut avoir par membre ; en dessous, fabriquer devient un besoin collectif (0 = aucun).', 'unités/personne'),
         },
+        optional: ['scavengerMeat'],
       },
     },
   },

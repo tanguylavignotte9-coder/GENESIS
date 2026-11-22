@@ -819,6 +819,12 @@ export class ProductionSystem {
     return false;
   }
 
+  /** Spoilt food is thrown away at the edge of the camp: spoilt meat feeds the scavengers (fauna's carrion). */
+  private throwAway(tile: number, item: number, qty: number): void {
+    const meat = qty * this.catalog.scavengerMeat[item]!;
+    if (meat > 0) this.fauna.leaveCarrion(tile, meat);
+  }
+
   /** Every day: food spoils (faster when warm, slower in a cache), sown fields grow, the herds are kept. */
   dailyUpdate(): void {
     husbandryDay(this);
@@ -836,13 +842,14 @@ export class ProductionSystem {
       const bulk = this.foodBulk(camp.stock);
       const sheltered = bulk > 0 ? Math.min(1, capacity / bulk) : 1;
       const container = sheltered * storeFactor + (1 - sheltered) * params.stock.openPileSpoilFactor;
-      const weather = spoilFactor(this.climate.temperatureAt(this.stockTile(camp.id)), spoilage);
-      spoil(camp.stock, 1, weather * container, catalog.halfLife, params.stock.minQuantity);
+      const tile = this.stockTile(camp.id);
+      const weather = spoilFactor(this.climate.temperatureAt(tile), spoilage);
+      spoil(camp.stock, 1, weather * container, catalog.halfLife, params.stock.minQuantity, (item, qty) => this.throwAway(tile, item, qty));
     }
-    // Food left on the ground rots like an open heap; what is gone leaves nothing behind.
+    // Food left on the ground rots like an open heap; spoilt meat is left to the scavengers.
     for (let k = this.ground.length - 1; k >= 0; k--) {
       const pile = this.ground[k]!;
-      spoil(pile.items, 1, spoilFactor(this.climate.temperatureAt(pile.tile), spoilage) * params.stock.openPileSpoilFactor, catalog.halfLife, params.stock.minQuantity);
+      spoil(pile.items, 1, spoilFactor(this.climate.temperatureAt(pile.tile), spoilage) * params.stock.openPileSpoilFactor, catalog.halfLife, params.stock.minQuantity, (item, qty) => this.throwAway(pile.tile, item, qty));
       if (pile.items.isEmpty) this.ground.splice(k, 1);
     }
     for (const building of this.buildings) {

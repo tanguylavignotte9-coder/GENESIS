@@ -48,6 +48,8 @@ export class Catalog {
   readonly buildingIndex = new Map<string, number>();
   /** Recipes able to produce each item (harvests and crafts), in data order (= preference). */
   readonly producers: Recipe[][];
+  /** Meat left for scavengers by one unit thrown away once spoilt. */
+  readonly scavengerMeat: Float64Array;
 
   constructor(knowledge: KnowledgeCatalog, items: ItemCatalog, recipes: RecipeBook, buildings: BuildingCatalog, skillIds: readonly string[], speciesIds: readonly string[]) {
     this.items = items.items;
@@ -56,6 +58,7 @@ export class Catalog {
     this.food = Float64Array.from(this.items, (item) => item.food);
     this.fuel = Float64Array.from(this.items, (item) => item.fuelHours);
     this.halfLife = Float64Array.from(this.items, (item) => item.halfLifeDays);
+    this.scavengerMeat = Float64Array.from(this.items, (item) => item.scavengerMeat ?? 0);
     buildings.buildings.forEach((building, k) => this.buildingIndex.set(building.id, k));
     const need = (list: { items: string[]; qty: number }[]): Need[] => list.map((entry) => ({ items: entry.items.map((id) => this.item(id)), qty: entry.qty }));
     this.recipes = recipes.recipes.map((def, index) => ({

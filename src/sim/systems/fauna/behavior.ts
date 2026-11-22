@@ -99,6 +99,14 @@ export function think(fauna: FaunaSystem, slot: number): void {
     // the leader taking its pack along (the others keep following it).
     const leads = leader === slot || leader < 0 || store.alive[leader] !== 1;
     if (species.huntRadius > 0 && leads && params.behavior.huntSearchTiles > 0) {
+      // It follows the trail of the nearest game it can scent; with none, it roams at random.
+      const n = params.species.length;
+      const hunter = store.species[slot]!;
+      const trail = params.behavior.trackTiles > species.huntRadius ? nearestAnimal(fauna, fauna.grid, slot, params.behavior.trackTiles, (other) => fauna.hunts[hunter * n + store.species[other]!] === 1 && store.ownerCamp[other]! < 0) : -1;
+      if (trail >= 0) {
+        setTarget(fauna, slot, State.Wander, store.px[trail]!, store.py[trail]!);
+        return;
+      }
       const k = fauna.rng.nextIntInclusive(0, DIRECTION_COUNT - 1);
       const r = params.behavior.huntSearchTiles;
       setTarget(fauna, slot, State.Wander, x + DIRECTIONS_X[k]! * r, y + DIRECTIONS_Y[k]! * r);

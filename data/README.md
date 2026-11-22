@@ -126,7 +126,7 @@ Chaque animal est un individu : espèce, âge, sexe, faim, soif, santé, positio
 | `behavior.*` | Rayons de recherche de nourriture, de cohésion du groupe, de fuite, de recherche de partenaire, distance à laquelle un chasseur affamé part battre la campagne (`huntSearchTiles`)… |
 | `species[].riposteChance`, `riposteDamage` | Chance qu'un animal chassé par un humain se défende, et force de son coup (aurochs, sanglier, ours…) |
 | `fish.*` | Poisson par tuile d'eau (rivière, lac, côte, haute mer) et sa vitesse de renouvellement |
-| `carrion.*` | Carcasses laissées par les chasseurs : part qui pourrit chaque jour |
+| `carrion.*` | Carcasses (laissées par les chasseurs, ou viande gâtée jetée par les humains) : demi-vie de la viande à la température de référence, plus vite à la chaleur (`doublingCelsius`), presque plus dans le grand froid (`minFactor`) ; les charognards les mangent tant qu'il en reste |
 | `stats.intervalDays` | Fréquence du recensement (courbes du panneau Statistiques) |
 | `humanFear.*` | Crainte des humains : écart de prudence d'un animal à l'autre ; chaque bête sauvage fuit tout humain (chasseur ou passant) à la distance `humanFleeTiles` de son espèce ; un prédateur craint plus un groupe ou un camp (`crowdShare` par personne en plus, jusqu'à `crowdMax` personnes à moins de `crowdTiles`), sauf s'il est affamé ; quelqu'un qui le chasse du camp (`driveOffFactor`) le fait fuir de plus loin, même affamé ; un éleveur qui approche doucement une bête pour la capturer n'est remarqué qu'à `tamerShare` de la distance |
 | `humanPrey.*` | Prédateurs et humains : espèces qui peuvent attaquer une personne seule, faim minimale, distance en dessous de laquelle une personne n'est pas « seule », chance d'attaque par pas, blessure |

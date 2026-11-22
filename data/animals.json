@@ -21,6 +21,7 @@
     "wanderChance": 0.3,
     "wanderRadius": 6,
     "huntSearchTiles": 24,
+    "trackTiles": 60,
     "fleeDistance": 10,
     "chaseSteps": 30,
     "packShareRadius": 3,
@@ -52,7 +53,7 @@
     "capacityByWater": { "river": 1, "lake": 0.9, "coast": 0.7, "openSea": 0.1 },
     "coastMaxDepthMeters": 200
   },
-  "carrion": { "rotPerDay": 0.15, "minimumMeat": 1 },
+  "carrion": { "halfLifeDays": 4.3, "referenceCelsius": 15, "doublingCelsius": 10, "minFactor": 0.1, "maxFactor": 3, "minimumMeat": 1 },
   "stats": { "intervalDays": 10 },
   "humanFear": { "warinessSpread": 0.5, "crowdShare": 0.1, "crowdMax": 6, "crowdTiles": 4, "driveOffFactor": 2.5, "tamerShare": 0.3, "busyShare": 0.35 },
   "humanPrey": { "hunters": ["wolf", "lion", "bear"], "minHunger": 70, "loneTiles": 6, "attackChancePerStep": 0.6, "attackDamage": 40 },

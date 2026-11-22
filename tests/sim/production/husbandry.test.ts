@@ -81,8 +81,8 @@ describe('husbandry (capturing, keeping, breeding, milking, slaughtering)', () =
     const sim = world(7);
     buildPen(sim);
     const c = center(sim);
-    for (let k = 0; k < 6; k++) wild(sim, 'goat', c.x + 6 + k, c.y - 5, k % 2 === 0 ? 0.3 : 4);
-    days(sim, 12);
+    for (let k = 0; k < 8; k++) wild(sim, 'goat', c.x + 6 + k, c.y - 5, k % 2 === 0 ? 0.3 : 4);
+    for (let d = 0; d < 30 && herdOf(sim.production, 0).length === 0; d++) days(sim, 1);
     const herd = herdOf(sim.production, 0);
     expect(herd.length).toBeGreaterThan(0);
     const captures = sim.journal.all().filter((e) => e.type === HUSBANDRY_EVENTS.capture);

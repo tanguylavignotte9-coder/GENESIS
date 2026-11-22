@@ -45,10 +45,10 @@ export class Carrion {
     return best;
   }
 
-  /** Rotting: each carcass loses `share` of its meat per day; scraps disappear. */
-  rot(share: number, minimum: number): void {
+  /** One day of rotting: each carcass keeps `kept(tile)` of its meat (by the warmth of its place); scraps disappear. */
+  rot(kept: (tile: number) => number, minimum: number): void {
     for (let at = this.tiles.length - 1; at >= 0; at--) {
-      this.meat[at] = this.meat[at]! * (1 - share);
+      this.meat[at] = this.meat[at]! * kept(this.tiles[at]!);
       if (this.meat[at]! < minimum) this.removeAt(at);
     }
   }

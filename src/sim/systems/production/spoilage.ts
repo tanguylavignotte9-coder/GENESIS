@@ -7,11 +7,18 @@ export function spoilFactor(celsius: number, params: ProductionParams['spoilage'
   return Math.min(params.maxFactor, Math.max(params.minFactor, factor));
 }
 
-/** `days` of spoiling for every pile of an inventory (each item at its own pace), then crumbs vanish. */
-export function spoil(inventory: Inventory, days: number, factor: number, halfLife: Float64Array, minQuantity: number): void {
+/**
+ * `days` of spoiling for every pile of an inventory (each item at its own pace), then crumbs vanish.
+ * `thrown(item, qty)` hears of what went bad (it is thrown away).
+ */
+export function spoil(inventory: Inventory, days: number, factor: number, halfLife: Float64Array, minQuantity: number, thrown?: (item: number, qty: number) => void): void {
   for (const pile of inventory.piles) {
     const life = halfLife[pile.item]!;
-    if (life > 0) pile.qty *= Math.pow(0.5, (days * factor) / life);
+    if (life <= 0) continue;
+    const before = pile.qty;
+    pile.qty *= Math.pow(0.5, (days * factor) / life);
+    thrown?.(pile.item, before - pile.qty);
   }
+  if (thrown) for (const pile of inventory.piles) if (pile.qty > 0 && pile.qty < minQuantity) thrown(pile.item, pile.qty);
   inventory.dropCrumbs(minQuantity);
 }

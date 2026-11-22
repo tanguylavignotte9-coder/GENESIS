@@ -205,7 +205,12 @@ export class FaunaSystem {
   runDay(absoluteDay: number, dayOfYear: number, journal: Journal, tick: number): void {
     this.fish.dailyUpdate(absoluteDay);
     this.day = absoluteDay;
-    this.carrion.rot(this.params.carrion.rotPerDay, this.params.carrion.minimumMeat);
+    const rot = this.params.carrion;
+    // Meat rots faster in the heat, hardly at all in the frost.
+    this.carrion.rot((tile) => {
+      const factor = Math.min(rot.maxFactor, Math.max(rot.minFactor, Math.pow(2, (this.climate.temperatureAt(tile) - rot.referenceCelsius) / rot.doublingCelsius)));
+      return Math.pow(0.5, factor / rot.halfLifeDays);
+    }, rot.minimumMeat);
     spreadSickness(this);
     for (let slot = 0; slot < this.store.slots; slot++) {
       if (this.store.alive[slot] !== 1) continue;
@@ -298,6 +303,11 @@ export class FaunaSystem {
   }
 
   /** Living animals per species. */
+  /** Meat left on a tile by another system (spoilt meat thrown away by people): the scavengers' share. */
+  leaveCarrion(tile: number, meat: number): void {
+    this.carrion.add(tile, meat);
+  }
+
   countBySpecies(): number[] {
     const counts = new Array<number>(this.params.species.length).fill(0);
     for (let slot = 0; slot < this.store.slots; slot++) if (this.store.alive[slot] === 1) counts[this.store.species[slot]!]!++;

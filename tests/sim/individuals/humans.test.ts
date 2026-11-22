@@ -11,6 +11,13 @@ const data = dataWithSize(SIZE);
 const hourTicks = data.time.ticksPerDay / 24;
 const actionIndex = (simulation: Simulation, id: string): number => simulation.humans.actions.findIndex((a) => a.def.id === id);
 
+/** An animal as hungry as `hunger` (0..100): hunger follows its reserves and its stomach (v1.4). */
+function setHunger(fauna: Simulation['fauna'], slot: number, hunger: number): void {
+  fauna.store.gut[slot] = 0;
+  fauna.store.energy[slot] = fauna.store.maxReserve[slot]! * (1 - hunger / 100);
+  fauna.store.hunger[slot] = hunger;
+}
+
 describe('the starting tribe', () => {
   const simulation = new Simulation(42, data);
   const { humans } = simulation;
@@ -184,7 +191,7 @@ describe('daily life', () => {
     const before = humans.people.health[p]!;
     let hurt = false;
     for (let hour = 0; hour < 48 && !hurt; hour++) {
-      fauna.store.hunger[wolf] = 100;
+      setHunger(fauna, wolf, 100);
       fauna.store.thirst[wolf] = 0;
       // Keep the person alone where she is (her own decisions would take her home).
       humans.people.placeAt(p, (fauna.store.px[wolf]! + 1) % SIZE, fauna.store.py[wolf]!);
@@ -208,7 +215,7 @@ describe('daily life', () => {
     // The two stay side by side (re-placed at every step of the humans: their own decisions would take them away).
     const quarter = hourTicks / data.humans.stepsPerHour;
     for (let step = 0; step < 24 * data.humans.stepsPerHour; step++) {
-      fauna.store.hunger[wolf] = 100;
+      setHunger(fauna, wolf, 100);
       fauna.store.thirst[wolf] = 0;
       humans.people.placeAt(p, (fauna.store.px[wolf]! + 1) % SIZE, fauna.store.py[wolf]!);
       humans.people.placeAt(friend, humans.people.px[p]!, humans.people.py[p]! + 1);
@@ -223,7 +230,7 @@ describe('daily life', () => {
     const fear = (): number => humans.social.state.emotions[p * 5 + 3]!;
     const fearBefore = fear();
     for (let hour = 0; hour < 3; hour++) {
-      fauna.store.hunger[wolf] = 0;
+      setHunger(fauna, wolf, 0);
       humans.people.placeAt(p, (fauna.store.px[wolf]! + 3) % SIZE, fauna.store.py[wolf]!);
       simulation.step(hourTicks);
     }
@@ -256,7 +263,7 @@ describe('daily life', () => {
     const quarter = hourTicks / data.humans.stepsPerHour;
     for (let step = 0; step < 6 * data.humans.stepsPerHour && !fled; step++) {
       // Starving: the crowd alone no longer keeps it away.
-      fauna.store.hunger[wolf] = data.fauna.humanPrey.minHunger + 5;
+      setHunger(fauna, wolf, data.fauna.humanPrey.minHunger + 5);
       fauna.store.thirst[wolf] = 0;
       simulation.step(quarter);
       for (let q = 0; q < humans.people.count; q++) if (humans.people.action[q] === driveOff) drivers++;

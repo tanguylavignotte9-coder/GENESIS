@@ -150,7 +150,8 @@ describe('recipes', () => {
     for (const inventory of production.carried) knives += inventory.count(knife);
     expect(knives).toBeGreaterThan(0);
     const first = simulation.journal.all().find((event) => event.type === FIRST_ITEM);
-    expect(first?.text).toContain('couteau de pierre');
+    // The first object made from knapped stone (a knife or a scraper, as the work went) is told.
+    expect(first?.text).toMatch(/de pierre/);
   });
 
   it('skill speeds work up, improves quality and grows with practice; the trade is the most practised activity', () => {

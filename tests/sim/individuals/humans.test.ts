@@ -78,6 +78,41 @@ describe('the brain', () => {
     expect(humans.people.action[p]).toBe(actionIndex(simulation, 'sleep'));
   });
 
+  it('a thirsty person with water in sight walks a real path to it (no getting stuck on a shore)', () => {
+    const simulation = new Simulation(42, data);
+    const { humans, world } = simulation;
+    const p = 0;
+    // A spot a few tiles from fresh water, with no water right at hand.
+    let spot = -1;
+    const camp = humans.camps[0]!;
+    for (let d = 2; d < 40 && spot < 0; d++) {
+      for (const tile of [camp.center + d, camp.center - d, camp.center + d * SIZE, camp.center - d * SIZE]) {
+        const x = tile % SIZE;
+        const y = Math.floor(tile / SIZE);
+        if (!humans.terrain.walkable(tile) || canDrink(world, x, y)) continue;
+        let at = tile;
+        let steps = 0;
+        while (steps < 6 && at >= 0 && !canDrink(world, at % SIZE, Math.floor(at / SIZE))) {
+          at = simulation.fauna.waterPath[at]!;
+          steps++;
+        }
+        if (steps >= 3 && steps < 6 && at >= 0) {
+          spot = tile;
+          break;
+        }
+      }
+    }
+    expect(spot).toBeGreaterThanOrEqual(0);
+    humans.people.placeAt(p, (spot % SIZE) + 0.5, Math.floor(spot / SIZE) + 0.5);
+    humans.people.thirst[p] = 95;
+    humans.think(p);
+    expect(humans.people.action[p]).toBe(actionIndex(simulation, 'drink'));
+    expect(humans.people.paths[p]).not.toBeNull();
+    // It gets there and drinks.
+    for (let h = 0; h < 12 && humans.people.thirst[p]! > 50; h++) simulation.step(hourTicks);
+    expect(humans.people.thirst[p]).toBeLessThan(50);
+  });
+
   it('decisions are deterministic: same seed => same positions and needs', () => {
     const run = () => {
       const simulation = new Simulation(5, data);
@@ -166,7 +201,8 @@ describe('daily life', () => {
     let attacks = 0;
     const attack = simulation.interactions.attack.bind(simulation.interactions);
     simulation.interactions.attack = (blow) => {
-      attacks++;
+      // (The hungry wolf may go after someone walking alone elsewhere: only the pair counts here.)
+      if (blow.target.kind === 'human' && (blow.target.id === p || blow.target.id === friend)) attacks++;
       return attack(blow);
     };
     // The two stay side by side (re-placed at every step of the humans: their own decisions would take them away).

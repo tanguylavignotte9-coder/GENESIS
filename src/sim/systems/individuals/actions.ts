@@ -51,17 +51,18 @@ function onMission(sys: IndividualsSystem, person: number): boolean {
 }
 
 /** Is there water to drink within sight, on the way down to it? */
-function waterInSight(sys: IndividualsSystem, from: number): boolean {
+/** The nearest place to drink in sight (a walkable tile by the water), or -1. */
+function waterInSight(sys: IndividualsSystem, from: number): number {
   const path = sys.fauna.waterPath;
   let at = from;
   for (let step = 0; step <= sys.params.body.perceptionTiles; step++) {
     const x = at % sys.size;
-    if (canDrink(sys.world, x, (at - x) / sys.size)) return true;
+    if (sys.terrain.walkable(at) && canDrink(sys.world, x, (at - x) / sys.size)) return at;
     const next = path[at]!;
-    if (next < 0 || next === at) return false;
+    if (next < 0 || next === at) return -1;
     at = next;
   }
-  return false;
+  return -1;
 }
 
 function startOther(sys: IndividualsSystem, person: number, action: CompiledAction): boolean {
@@ -73,7 +74,9 @@ function startOther(sys: IndividualsSystem, person: number, action: CompiledActi
       if (canDrink(sys.world, people.x[person]!, people.y[person]!)) return true;
       // Water in sight goes before a remembered spring further away (after a move of the camp, the
       // old one may lie a day's walk behind).
-      if (waterInSight(sys, here)) return true;
+      // A real way there (around a lake shore, a thicket): walking straight at it may get one stuck.
+      const seen = waterInSight(sys, here);
+      if (seen >= 0) return sys.goTo(person, seen) || true;
       const remembered = sys.nearestMemory(person, 'water');
       return remembered >= 0 ? sys.goTo(person, remembered) : sys.fauna.waterPath[here]! >= 0;
     }
